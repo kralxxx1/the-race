@@ -345,6 +345,17 @@ export class BikePhysics {
       this.wheelspin = clamp((driveForce - maxDrive) / Math.max(driveForce, 1), 0, 1);
       driveForce = maxDrive; // traction control
     }
+    // Holding a wheelie: the rider feathers the throttle to stay at the balance point,
+    // where the inertial moment m·a·y equals the gravity moment m·g·x about the rear
+    // contact patch. More drive than that would flip the bike over backwards.
+    if (riderWheelie && this.pitch > 0.06) {
+      const p = this.pitch;
+      const x = ch.lr * Math.cos(p) - ch.h * Math.sin(p);
+      const y = ch.lr * Math.sin(p) + ch.h * Math.cos(p);
+      const aBalance = (G * Math.max(0, x)) / Math.max(0.2, y);
+      const resist = 0.5 * AIR_DENSITY * dr.cda * this.v * this.v + dr.crr * m * G;
+      driveForce = Math.min(driveForce, m * (aBalance + 0.6) + resist);
+    }
 
     // ── brakes (ABS limited by grip and stoppie threshold) ──
     const front = this.pitch > 0.05 ? 0.25 : 1; // airborne front wheel cannot brake

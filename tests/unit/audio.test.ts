@@ -90,3 +90,47 @@ describe('layer crossfade', () => {
     }
   });
 });
+
+describe('engine character', () => {
+  const voice = { resonance: 300, brightness: 0.5, roughness: 0, crackle: 0, loudness: 0 };
+  /** Normalised autocorrelation of the loop's energy envelope at a lag in samples. */
+  function envelopeCorrelation(layout: Parameters<typeof renderEngineLoop>[0]['layout'], fracOfCycle: number): number {
+    const loop = renderEngineLoop({ sampleRate: 22050, baseRpm: 2400, layout, voice, ccPerCylinder: 300, seconds: 1.2 });
+    const n = loop.data.length;
+    const env = new Float32Array(n);
+    const win = Math.max(1, Math.round(loop.samplesPerCycle / 64));
+    let acc = 0;
+    for (let i = 0; i < n + win; i++) {
+      acc += loop.data[i % n] ** 2;
+      if (i >= win) acc -= loop.data[(i - win) % n] ** 2;
+      if (i >= win) env[(i - Math.floor(win / 2)) % n] = acc / win;
+    }
+    let mean = 0;
+    for (const v of env) mean += v;
+    mean /= n;
+    const lag = Math.round(loop.samplesPerCycle * fracOfCycle);
+    let num = 0;
+    let den = 0;
+    for (let i = 0; i < n; i++) {
+      const a = env[i] - mean;
+      num += a * (env[(i + lag) % n] - mean);
+      den += a * a;
+    }
+    return num / den;
+  }
+
+  it('even-firing engines repeat every firing interval', () => {
+    expect(envelopeCorrelation('I4', 1 / 4)).toBeGreaterThan(0.85);
+    expect(envelopeCorrelation('I3', 1 / 3)).toBeGreaterThan(0.85);
+    expect(envelopeCorrelation('BOXER', 1 / 2)).toBeGreaterThan(0.85);
+  });
+
+  it('uneven-firing engines only repeat every full 720° cycle (their signature lope)', () => {
+    for (const [layout, n] of [['V2_45', 2], ['L2', 2], ['I4CP', 4], ['V4', 4]] as const) {
+      const atInterval = envelopeCorrelation(layout, 1 / n);
+      const atCycle = envelopeCorrelation(layout, 1);
+      expect(atCycle).toBeGreaterThan(0.85);
+      expect(atInterval).toBeLessThan(atCycle - 0.25);
+    }
+  });
+});

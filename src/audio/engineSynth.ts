@@ -61,7 +61,9 @@ export function renderEngineLoop(o: EngineLoopOptions): EngineLoop {
 
   // Per-cylinder character (slightly different runner lengths / combustion).
   const cylGain = angles.map(() => 1 + (rng.float() - 0.5) * 0.5 * v.roughness);
-  const cylPhase = angles.map(() => rng.float() * Math.PI * 2);
+  // Phase spread scales with roughness: an inline-four sings one pure note,
+  // a big V-twin's cylinders each sound a little different.
+  const cylPhase = angles.map(() => (rng.float() - 0.5) * Math.PI * 2 * Math.min(1, v.roughness * 1.6));
   const pulseLen = Math.min(total, Math.ceil(Math.max(tauRes, tauLow, tauNoise) * 6 * sr));
 
   for (let k = 0; k < cycles; k++) {

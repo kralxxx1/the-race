@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { BikeLook, BikeSpec, Livery } from '../data/bikes';
 import { FIRING_ANGLES } from '../data/bikes';
 import { clamp, lerp, smoothstep } from '../core/math';
-import { PartBuilder, V, fenderArc, latheX, profileExtrude, rod, roundedBox, splitTriangles, superLoft, tube, type LoftStation } from './geom';
+import { PartBuilder, V, fenderArc, latheX, loftSurfaceX, profileExtrude, rod, roundedBox, splitTriangles, superLoft, tube, type LoftStation } from './geom';
 import type { Materials } from './materials';
 import { decalTexture, plateTexture } from './textures';
 
@@ -427,19 +427,30 @@ export class BikeModel {
     b: PartBuilder,
     stations: LoftStation[],
     mats: { main: THREE.Material; lower: THREE.Material; stripe: THREE.Material },
-    opts: { splitY?: number; stripeY?: number; stripeW?: number } = {},
+    /**
+     * split: section height (-1 bottom … 1 top) below which the lower colour is used.
+     * stripe: section height above which the accent stripe runs along the crown.
+     * Both follow the loft lines, so paint edges are smooth curves.
+     */
+    opts: { split?: number; stripe?: number; band?: [number, number]; openBottom?: number } = {},
   ): void {
-    let geo = superLoft(stations, 32, 4);
-    if (opts.stripeY !== undefined) {
-      const sy = opts.stripeY;
-      const sw = opts.stripeW ?? 0.05;
-      const [stripe, rest] = splitTriangles(geo, (x, y) => Math.abs(x) < sw && y > sy);
+    let geo = superLoft(stations, 40, 4, { openBottom: opts.openBottom });
+    if (opts.stripe !== undefined) {
+      const lim = opts.stripe;
+      const [stripe, rest] = splitTriangles(geo, (_x, _y, _z, s) => s > lim);
       b.add(stripe, mats.stripe);
       geo = rest;
     }
-    if (opts.splitY !== undefined) {
-      const cut = opts.splitY;
-      const [low, high] = splitTriangles(geo, (_x, y) => y < cut);
+    if (opts.band) {
+      // Accent pinstripe running along a loft line (classic race-livery flash).
+      const [lo, hi] = opts.band;
+      const [band, rest] = splitTriangles(geo, (_x, _y, _z, s) => s >= lo && s < hi);
+      b.add(band, mats.stripe);
+      geo = rest;
+    }
+    if (opts.split !== undefined) {
+      const cut = opts.split;
+      const [low, high] = splitTriangles(geo, (_x, _y, _z, s) => s < cut);
       b.add(low, mats.lower);
       b.add(high, mats.main);
     } else b.add(geo, mats.main);
@@ -509,7 +520,7 @@ export class BikeModel {
           { z: sf + 0.04, w: 0.22, yb: sy - 0.04, yt: sy + 0.02, n: 2 },
         ];
       }
-      this.shell(b, st, tankOnly, { stripeY: tankTop - 0.05, stripeW: 0.045 });
+      this.shell(b, st, tankOnly, { stripe: 0.975 });
       // Fuel cap
       b.place(new THREE.CylinderGeometry(0.035, 0.035, 0.012, 18), m.metal('#9aa1a9', 0.3), [0, tankTop + 0.025, (hz + sf) / 2 - 0.02]);
       if (k.fairing === 'none' || k.fairing === 'half' || k.fairing === 'batwing') {
@@ -532,45 +543,62 @@ export class BikeModel {
     // ── fairings ──
     if (k.fairing === 'full') {
       const nose = -f.L - 0.1;
+      const B = bulk;
+      const mirror = lv.pattern === 'chrome';
+      // Open shells need painted outsides and dark insides.
+      const sh = {
+        main: m.paintShell(lv.primary, 0.45, mirror),
+        lower: two ? m.paintShell(lv.secondary) : m.paintShell(lv.primary, 0.45, mirror),
+        stripe: striped ? m.paintShell(lv.accent, 0.2) : m.paintShell(lv.primary, 0.45, mirror),
+      };
+      // One continuous fairing: sharp V nose → cowl → flanks that sweep back and down
+      // around the engine. The underside is open so the front wheel turns inside it.
+      const fairing: LoftStation[] = [
+        { z: nose, w: 0.07, yb: hy - 0.22, yt: hy - 0.16, n: 2.2, pinchBottom: 0.5, pinchTop: 0.9 },
+        { z: nose + 0.07, w: 0.3 * B, yb: hy - 0.34, yt: hy - 0.09, n: 2.5, pinchBottom: 0.42, pinchTop: 0.85 },
+        { z: nose + 0.2, w: 0.5 * B, yb: hy - 0.43, yt: hy - 0.03, n: 2.7, pinchBottom: 0.68, pinchTop: 0.8 },
+        { z: hz - 0.08, w: 0.62 * B, yb: 0.36, yt: hy + 0.0, n: 3.4, pinchBottom: 0.8, pinchTop: 0.74 },
+        { z: hz + 0.12, w: 0.64 * B, yb: 0.27, yt: hy - 0.05, n: 3.8, pinchBottom: 0.8, pinchTop: 0.8 },
+        { z: hz + 0.38, w: 0.58 * B, yb: 0.22, yt: hy - 0.22, n: 4, pinchBottom: 0.84, pinchTop: 0.9 },
+        { z: hz + 0.58, w: 0.34, yb: 0.25, yt: 0.5, n: 3 },
+      ];
+      this.shell(b, fairing, sh, { split: 0.12, stripe: 0.975, band: pat === 'tricolor' || pat === 'racing' ? [0.12, 0.2] : undefined, openBottom: 1.25 });
+      // Belly pan under the engine
       this.shell(b, [
-        { z: nose, w: 0.06, yb: hy - 0.21, yt: hy - 0.16, n: 2 },
-        { z: nose + 0.06, w: 0.3 * bulk, yb: hy - 0.29, yt: hy - 0.09, n: 2.4 },
-        { z: nose + 0.18, w: 0.5 * bulk, yb: hy - 0.35, yt: hy - 0.03, n: 2.6 },
-        { z: hz - 0.1, w: 0.58 * bulk, yb: hy - 0.39, yt: hy + 0.0, n: 2.9 },
-        { z: hz + 0.05, w: 0.6 * bulk, yb: hy - 0.41, yt: hy - 0.03, n: 3.1 },
-        { z: hz + 0.15, w: 0.5, yb: hy - 0.37, yt: hy - 0.11, n: 2.8 },
-      ], M, { splitY: hy - 0.31, stripeY: hy - 0.05, stripeW: 0.07 });
-      // Side panels down to the belly
-      this.shell(b, [
-        { z: hz - 0.1, w: 0.36, yb: 0.52, yt: hy - 0.3, n: 3 },
-        { z: hz + 0.05, w: 0.54 * bulk, yb: 0.3, yt: hy - 0.32, n: 4 },
-        { z: hz + 0.3, w: 0.56 * bulk, yb: 0.2, yt: hy - 0.36, n: 4.5, flatBottom: 0.6 },
-        { z: hz + 0.5, w: 0.46, yb: 0.18, yt: 0.56, n: 4 },
-        { z: hz + 0.62, w: 0.24, yb: 0.22, yt: 0.42, n: 3 },
-      ], { main: M.lower, lower: ex.has('bellypan') ? M.lower : black, stripe: M.lower }, { splitY: 0.27 });
-      if (pat === 'tricolor' || pat === 'racing') {
-        // Accent flash along the flank.
-        b.add(profileExtrude([[hz - 0.06, hy - 0.31], [hz + 0.42, hy - 0.37], [hz + 0.46, hy - 0.42], [hz - 0.02, hy - 0.36]], 0.58 * bulk, { bevel: 0.004 }), accent);
-      }
+        { z: hz + 0.08, w: 0.22, yb: 0.18, yt: 0.32, n: 2.6 },
+        { z: hz + 0.3, w: 0.38 * B, yb: 0.13, yt: 0.33, n: 3.5, flatBottom: 0.8 },
+        { z: hz + 0.55, w: 0.32, yb: 0.15, yt: 0.33, n: 3.5 },
+        { z: hz + 0.68, w: 0.12, yb: 0.2, yt: 0.3, n: 2.4 },
+      ], { main: ex.has('bellypan') ? M.lower : black, lower: ex.has('bellypan') ? M.lower : black, stripe: black });
       // Windscreen bubble
       this.shell(b, [
-        { z: nose + 0.14, w: 0.22, yb: hy - 0.07, yt: hy - 0.03, n: 2.2 },
-        { z: hz - 0.12, w: 0.34, yb: hy - 0.03, yt: hy + 0.09, n: 2.4 },
-        { z: hz - 0.0, w: 0.3, yb: hy - 0.01, yt: hy + 0.13, n: 2.4 },
-        { z: hz + 0.03, w: 0.24, yb: hy + 0.0, yt: hy + 0.1, n: 2 },
+        { z: nose + 0.15, w: 0.2, yb: hy - 0.08, yt: hy - 0.05, n: 2.2 },
+        { z: hz - 0.14, w: 0.32, yb: hy - 0.04, yt: hy + 0.08, n: 2.4, pinchTop: 0.8 },
+        { z: hz - 0.02, w: 0.3, yb: hy - 0.02, yt: hy + 0.13, n: 2.4, pinchTop: 0.8 },
+        { z: hz + 0.03, w: 0.24, yb: hy - 0.0, yt: hy + 0.1, n: 2 },
       ], { main: glass, lower: glass, stripe: glass });
-      // Ram-air intake below the headlights
-      b.place(roundedBox(0.09, 0.06, 0.08, 0.02), black, [0, hy - 0.2, nose + 0.06]);
-      this.addDecal(b, this.spec.brand.toUpperCase(), hz + 0.32, 0.46, 0.285 * bulk, 0.34, 0.075, lv);
+      // Ram-air intake under the nose
+      this.shell(b, [
+        { z: nose + 0.02, w: 0.08, yb: hy - 0.3, yt: hy - 0.24, n: 2.6 },
+        { z: nose + 0.12, w: 0.12, yb: hy - 0.34, yt: hy - 0.24, n: 3 },
+        { z: nose + 0.2, w: 0.1, yb: hy - 0.36, yt: hy - 0.26, n: 3 },
+      ], { main: black, lower: black, stripe: black });
+      const decalX = loftSurfaceX(fairing, hz + 0.3, 0.45, { openBottom: 1.25 }) ?? 0.26 * B;
+      this.addDecal(b, this.spec.brand.toUpperCase(), hz + 0.3, 0.45, decalX + 0.003, 0.34, 0.075, lv);
       // Mirrors on the fairing
       for (const s of [-1, 1]) {
-        b.add(rod(V(s * 0.22, hy - 0.02, hz - 0.12), V(s * 0.3, hy + 0.04, hz - 0.1), 0.01), black);
+        b.add(rod(V(s * 0.21, hy - 0.02, hz - 0.12), V(s * 0.3, hy + 0.04, hz - 0.1), 0.01), black);
         b.place(roundedBox(0.13, 0.055, 0.05, 0.02), style === 'hyper' ? paint : black, [s * 0.33, hy + 0.05, hz - 0.1], [0, s * 0.15, 0]);
       }
       if (ex.has('winglets')) {
+        // Thin aerofoil winglets rooted in the fairing flanks, raked slightly up at the tip.
+        const wing: Pt[] = [[nose + 0.2, hy - 0.215], [nose + 0.27, hy - 0.2], [nose + 0.38, hy - 0.19], [nose + 0.39, hy - 0.205], [nose + 0.3, hy - 0.225], [nose + 0.21, hy - 0.228]];
         for (const s of [-1, 1]) {
-          const wing: Pt[] = [[nose + 0.16, hy - 0.2], [nose + 0.36, hy - 0.17], [nose + 0.38, hy - 0.23], [nose + 0.18, hy - 0.25]];
-          b.add(profileExtrude(wing, 0.12, { bevel: 0.006, centerX: s * 0.29 * bulk }), style === 'hyper' ? m.carbon() : paint2);
+          const g = profileExtrude(wing, 0.085, { bevel: 0.003 });
+          g.translate(0, 0.21 - hy, 0);
+          g.rotateZ(s * 0.12);
+          g.translate(s * 0.27 * B, hy - 0.21, 0);
+          b.add(g, m.carbon());
         }
       }
     } else if (k.fairing === 'half') {
@@ -579,7 +607,7 @@ export class BikeModel {
         { z: hz - 0.16, w: 0.42, yb: hy - 0.26, yt: hy + 0.04, n: 2.8 },
         { z: hz - 0.02, w: 0.54, yb: hy - 0.3, yt: hy + 0.06, n: 3.2 },
         { z: hz + 0.08, w: 0.46, yb: hy - 0.26, yt: hy + 0.0, n: 3 },
-      ], M, { splitY: hy - 0.22 });
+      ], M, { split: -0.2 });
       this.shell(b, [
         { z: hz - 0.16, w: 0.24, yb: hy + 0.02, yt: hy + 0.05, n: 2 },
         { z: hz - 0.06, w: 0.3, yb: hy + 0.03, yt: hy + 0.12, n: 2.4 },
@@ -597,7 +625,7 @@ export class BikeModel {
         { z: hz - 0.16, w: 0.36, yb: hy - 0.18, yt: hy + 0.12, n: 2.8 },
         { z: hz + 0.0, w: 0.46, yb: hy - 0.24, yt: hy + 0.16, n: 3 },
         { z: hz + 0.12, w: 0.42, yb: hy - 0.22, yt: hy + 0.12, n: 3 },
-      ], M, { splitY: hy - 0.1 });
+      ], M, { split: 0.1 });
       if (k.headlight === 'beak') {
         this.shell(b, [
           { z: hz - 0.56, w: 0.04, yb: hy - 0.2, yt: hy - 0.18, n: 2 },
@@ -626,7 +654,7 @@ export class BikeModel {
         { z: hz + 0.3, w: 0.88, yb: hy - 0.52, yt: hy + 0.08, n: 3.6 },
         { z: hz + 0.46, w: 0.62, yb: hy - 0.36, yt: hy + 0.0, n: 3 },
         { z: sf + 0.02, w: 0.4, yb: sy - 0.04, yt: sy + 0.06, n: 2.4 },
-      ], M, { splitY: hy - 0.36 });
+      ], M, { split: -0.25 });
       this.shell(b, [
         { z: hz + 0.16, w: 0.5, yb: 0.32, yt: hy - 0.42, n: 4 },
         { z: hz + 0.46, w: 0.7, yb: 0.26, yt: hy - 0.46, n: 4 },
@@ -704,7 +732,7 @@ export class BikeModel {
       { z: -0.1, w: 0.5, yb: 0.24, yt: sy - 0.04, n: 2.6, flatBottom: 0.5 },
       { z: 0.14, w: 0.38, yb: 0.32, yt: sy - 0.08, n: 2.4 },
       { z: 0.25, w: 0.14, yb: 0.44, yt: sy - 0.14, n: 2 },
-    ], { main: paint, lower: paint2, stripe: paint }, { splitY: 0.33 });
+    ], { main: paint, lower: paint2, stripe: paint }, { split: -0.55 });
     // Front fender on the wheel
     this.shell(b, [
       { z: -L - 0.12, w: 0.06, yb: f.Rf + 0.04, yt: f.Rf + 0.08, n: 2 },
@@ -774,7 +802,7 @@ export class BikeModel {
         { z: -0.06, w: 0.2, yb: sy - 0.02, yt: sy + 0.12, n: 2.8 },
         { z: 0.06, w: 0.1, yb: sy + 0.05, yt: sy + 0.13, n: 2.2 },
         { z: 0.09, w: 0.03, yb: sy + 0.08, yt: sy + 0.12, n: 2 },
-      ], { main: paint, lower: two ? paint2 : paint, stripe: striped ? accent : paint }, { splitY: sy - 0.05, stripeY: sy + 0.06, stripeW: 0.035 });
+      ], { main: paint, lower: two ? paint2 : paint, stripe: striped ? accent : paint }, { split: -0.15, stripe: 0.975 });
       this.addPlate(b, 0.22, 0.64, black);
       return;
     }
@@ -1049,17 +1077,18 @@ export class BikeModel {
     const hy = f.head.y;
     switch (k.headlight) {
       case 'sportTwin': {
-        const nose = -f.L - 0.08;
+        // Narrow, swept-back LED slits on the flanks of the nose.
+        const nose = -f.L - 0.1;
         for (const s of [-1, 1]) {
-          const g = roundedBox(0.12, 0.035, 0.02, 0.01);
-          g.rotateZ(s * 0.25);
-          g.rotateY(s * 0.35);
-          g.translate(s * 0.1, hy - 0.08, nose + 0.08);
+          const g = roundedBox(0.11, 0.028, 0.02, 0.008);
+          g.rotateZ(s * 0.32);
+          g.rotateY(s * 0.62);
+          g.translate(s * 0.095, hy - 0.2, nose + 0.11);
           chassis.add(g, this.headLight);
-          const d = roundedBox(0.1, 0.012, 0.02, 0.005);
-          d.rotateZ(s * 0.25);
-          d.rotateY(s * 0.35);
-          d.translate(s * 0.11, hy - 0.04, nose + 0.1);
+          const d = roundedBox(0.1, 0.01, 0.018, 0.004);
+          d.rotateZ(s * 0.32);
+          d.rotateY(s * 0.62);
+          d.translate(s * 0.105, hy - 0.165, nose + 0.12);
           chassis.add(d, this.drl);
         }
         break;

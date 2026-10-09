@@ -85,6 +85,10 @@ export class Renderer {
   private width = 1;
   private height = 1;
   speedBlurEnabled = true;
+  /** Adaptive resolution scale applied on top of the quality preset (0.6..1). */
+  private dynScale = 1;
+  private fpsLow = 0;
+  private fpsHigh = 0;
 
   constructor(readonly canvas: HTMLCanvasElement, quality: Quality) {
     this.quality = quality;
@@ -100,7 +104,8 @@ export class Renderer {
     this.quality = q;
     this.profile = QUALITY[q];
     this.renderer.shadowMap.enabled = this.profile.shadows;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.profile.pixelRatio));
+    this.dynScale = 1;
+    this.renderer.setPixelRatio(this.pixelRatio);
     this.buildComposer();
     this.resize();
   }
@@ -127,6 +132,41 @@ export class Renderer {
     composer.addPass(this.speed);
     composer.addPass(new OutputPass());
     this.composer = composer;
+  }
+
+  private get pixelRatio(): number {
+    return Math.max(0.5, Math.min(window.devicePixelRatio || 1, this.profile.pixelRatio) * this.dynScale);
+  }
+
+  /**
+   * Adaptive resolution: drop the render scale when frames take too long for a
+   * couple of seconds, and restore it when there is headroom again.
+   */
+  adapt(fps: number, dt: number): void {
+    if (fps < 42) {
+      this.fpsLow += dt;
+      this.fpsHigh = 0;
+    } else if (fps > 57) {
+      this.fpsHigh += dt;
+      this.fpsLow = 0;
+    } else {
+      this.fpsLow = 0;
+      this.fpsHigh = 0;
+    }
+    let next = this.dynScale;
+    if (this.fpsLow > 2 && this.dynScale > 0.6) next = Math.max(0.6, this.dynScale - 0.1);
+    else if (this.fpsHigh > 6 && this.dynScale < 1) next = Math.min(1, this.dynScale + 0.1);
+    if (next !== this.dynScale) {
+      this.dynScale = next;
+      this.fpsLow = 0;
+      this.fpsHigh = 0;
+      this.renderer.setPixelRatio(this.pixelRatio);
+      this.resize();
+    }
+  }
+
+  get resolutionScale(): number {
+    return this.dynScale;
   }
 
   setBloom(strength: number, threshold: number, radius: number): void {

@@ -27,7 +27,10 @@ Yoğun otoyol trafiğinde, gerçek motosiklet modellerinin fizik ve ses karakter
   vinyet, prosedürel asfalt (aşınma izleri, çatlaklar, ıslak zeminde su birikintileri), yağmur, şimşek, gece ışık havuzları.
   Motosikletler süperelips kesitlerden lofted kaporta ile her stile (süpersport, naked, macera, tur, cruiser, klasik, skuter)
   ve modele özgü ayrıntılarla (boxer silindirleri, tek kollu salıncak, kanatçıklar, süperşarj, batwing kaporta, org egzoz…)
-  üretilir; canlı TFT gösterge, Türk plakası.
+  üretilir; süpersporlarda V burunlu, alt tarafı açık tek parça kaporta (içi boyasız koyu plastik), kesit çizgilerini
+  izleyen kavisli boya ayrımları ve şeritler, ince karbon kanatçıklar; canlı TFT gösterge, Türk plakası.
+- **Performans** — ilk açılışta cihaz sınıfına göre kalite seçimi; sürüş sırasında FPS düşerse çözünürlük otomatik
+  olarak %60'a kadar azaltılır, toparlanınca geri yükseltilir (FPS göstergesinde görünür).
 - **Animasyon** — IK iskeletli sürücü: eller gidonda, ayaklar marşpedalında, virajda içe sarkma, yüksek hızda yatma,
   fren/ivmede gövde kayması, vites değiştirirken sol ayak, dururken ayak yere; süspansiyon dalışı/çökmesi, dönen ve hızda
   bulanıklaşan jantlar, ragdoll kaza ve kayan motosiklet + kıvılcımlar + parçalar.
@@ -78,11 +81,11 @@ npm run check        # hepsi
 
 ## Testler
 
-- **Birim (235 test)** — her motosikletin tork eğrisinin beyan edilen güç/torku üretmesi, azami hız ve 0-100 aralıkları,
+- **Birim (238 test)** — her motosikletin tork eğrisinin beyan edilen güç/torku üretmesi, azami hız ve 0-100 aralıkları,
   fren mesafesi, otomatik vites, yatış/şerit değiştirme, viraj takibi, wheelie sınırları, bariyer temas/çarpma,
-  rastgele girdilerle NaN oluşmaması; yol geometrisi (300 km/s'de yanal ivme sınırı), trafikte 5 dakikalık simülasyonda
+  wheelie'de denge noktası ivme sınırı, rastgele girdilerle NaN oluşmaması; yol geometrisi (300 km/s'de yanal ivme sınırı), trafikte 5 dakikalık simülasyonda
   araçlar arası çakışma olmaması, sabit sürücünün arkasında frenleme; oyun oturumu (geri sayım, kaza, mod kuralları,
-  adillik için otopilot); puanlama; kayıt doğrulama/göç/bozuk veri/kota hatası; ateşleme ritimleri ve ses döngüsü sentezi.
+  adillik için otopilot); puanlama; kayıt doğrulama/göç/bozuk veri/kota hatası; ateşleme ritimleri, ses döngüsü sentezi ve motor karakteri (sıralı-4'ün saf tonu, V-twin'in düzensiz vuruşu).
 - **Uçtan uca (14 test, Playwright)** — üretim derlemesi `vite preview` ile sunulur ve yazılım WebGL (SwiftShader)
   üzerinde: açılış, menülerden tam sürüş akışı, HUD, duraklatma, kaza ve sonuç ekranı, satın alma ve ayarların sayfa yenilemede
   korunması, bozuk/kurcalanmış kayıt, tüm mod/ortamlar, serbest sürüşte yeniden doğma, manuel vites, ses kilidi, mobil

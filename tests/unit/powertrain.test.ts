@@ -169,6 +169,19 @@ describe('bike dynamics', () => {
     expect(landed).toBe(true);
   });
 
+  it('a held wheelie limits acceleration to the balance point', () => {
+    const bike = new BikePhysics(getBike('yamaha-r1'));
+    bike.reset(0, 0, 15);
+    const input = { ...neutralInput(), throttle: 1, wheelie: true };
+    for (let i = 0; i < 120 * 0.6; i++) bike.step(dt, input, FLAT_ROAD, limits);
+    const v0 = bike.v;
+    for (let i = 0; i < 120; i++) bike.step(dt, input, FLAT_ROAD, limits);
+    expect(bike.isWheelie).toBe(true);
+    // Far below the ~10 m/s² a superbike manages with both wheels down.
+    expect(bike.v - v0).toBeLessThan(6);
+    expect(bike.v - v0).toBeGreaterThan(0.5);
+  });
+
   it('barrier: glancing contact scrapes, steep impact crashes', () => {
     const bike = new BikePhysics(getBike('yamaha-r1'));
     const narrow = { halfWidth: 3, grip: 1.1 };

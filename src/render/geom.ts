@@ -218,6 +218,14 @@ export interface LoftStation {
   x?: number;
   /** Squash the bottom half (0..1) for flat undersides. */
   flatBottom?: number;
+  /** Width multiplier at the bottom / top of the section (V or keel shapes). */
+  pinchBottom?: number;
+  pinchTop?: number;
+}
+
+export interface LoftOptions {
+  /** Leave the underside open by this angle (radians), e.g. fairings over a wheel. */
+  openBottom?: number;
 }
 
 /**
@@ -225,14 +233,21 @@ export interface LoftStation {
  * Used for tanks, fairings, tails and seats so they read as curved,
  * pressed panels instead of extruded slabs.
  */
-export function superLoft(stations: LoftStation[], radial = 28, sub = 4): THREE.BufferGeometry {
+export function superLoft(stations: LoftStation[], radial = 28, sub = 4, opts: LoftOptions = {}): THREE.BufferGeometry {
   const st = [...stations].sort((a, b) => a.z - b.z);
-  const keys: (keyof LoftStation)[] = ['z', 'w', 'yb', 'yt', 'n', 'x', 'flatBottom'];
+  const keys: (keyof LoftStation)[] = ['z', 'w', 'yb', 'yt', 'n', 'x', 'flatBottom', 'pinchBottom', 'pinchTop'];
   const get = (s: LoftStation, k: keyof LoftStation): number => {
     const v = s[k];
     if (typeof v === 'number') return v;
-    return k === 'n' ? 2.5 : 0;
+    return k === 'n' ? 2.5 : k === 'pinchBottom' || k === 'pinchTop' ? 1 : 0;
   };
+  const open = Math.max(0, opts.openBottom ?? 0);
+  const closed = open <= 0;
+  // Closed rings wrap around; open rings run from just right of the bottom gap,
+  // over the top, to just left of it.
+  const ringCount = closed ? radial : radial + 1;
+  const th0 = closed ? 0 : -Math.PI / 2 + open / 2;
+  const span = closed ? Math.PI * 2 : Math.PI * 2 - open;
   // Catmull-Rom interpolate every parameter between stations.
   const rings: LoftStation[] = [];
   for (let i = 0; i < st.length - 1; i++) {
@@ -254,6 +269,7 @@ export function superLoft(stations: LoftStation[], radial = 28, sub = 4): THREE.
   rings.push(st[st.length - 1]);
   const pos: number[] = [];
   const uv: number[] = [];
+  const sec: number[] = [];
   const idx: number[] = [];
   rings.forEach((r, i) => {
     const n = Math.max(1.2, get(r, 'n'));
@@ -262,45 +278,58 @@ export function superLoft(stations: LoftStation[], radial = 28, sub = 4): THREE.
     const yc = (r.yb + r.yt) / 2;
     const h = Math.max(0.0005, (r.yt - r.yb) / 2);
     const fb = clamp01(get(r, 'flatBottom'));
-    for (let j = 0; j < radial; j++) {
-      const th = (j / radial) * Math.PI * 2;
+    const pb = get(r, 'pinchBottom');
+    const pt = get(r, 'pinchTop');
+    for (let j = 0; j < ringCount; j++) {
+      const th = th0 + (closed ? j / radial : j / radial) * span;
       const c = Math.cos(th);
       const s = Math.sin(th);
       const ex = 2 / n;
       let y = Math.sign(s) * Math.pow(Math.abs(s), ex);
       if (y < 0) y *= 1 - fb * 0.5;
-      pos.push(cx + (w / 2) * Math.sign(c) * Math.pow(Math.abs(c), ex), yc + h * y, r.z);
+      const tY = (y + 1) / 2;
+      const pinch = pb + (pt - pb) * (tY * tY * (3 - 2 * tY));
+      pos.push(cx + (w / 2) * pinch * Math.sign(c) * Math.pow(Math.abs(c), ex), yc + h * y, r.z);
       uv.push(j / radial, i / (rings.length - 1));
+      // Vertical position within the section (-1 bottom … 1 top): livery splits
+      // follow these loft lines, giving clean curved paint edges.
+      sec.push(s);
     }
   });
   const R = rings.length;
+  const segs = closed ? radial : radial;
   for (let i = 0; i < R - 1; i++) {
-    for (let j = 0; j < radial; j++) {
-      const a = i * radial + j;
-      const b = i * radial + ((j + 1) % radial);
-      const c = (i + 1) * radial + j;
-      const d = (i + 1) * radial + ((j + 1) % radial);
+    for (let j = 0; j < segs; j++) {
+      const jn = closed ? (j + 1) % radial : j + 1;
+      const a = i * ringCount + j;
+      const b = i * ringCount + jn;
+      const c = (i + 1) * ringCount + j;
+      const d = (i + 1) * ringCount + jn;
       idx.push(a, b, c, b, d, c);
     }
   }
-  // End caps
+  // End caps (closed shells only)
   const cap = (ring: number, flip: boolean) => {
     const r = rings[ring];
     const ci = pos.length / 3;
     pos.push(get(r, 'x'), (r.yb + r.yt) / 2, r.z);
     uv.push(0.5, ring === 0 ? 0 : 1);
+    sec.push(0);
     for (let j = 0; j < radial; j++) {
-      const a = ring * radial + j;
-      const b = ring * radial + ((j + 1) % radial);
+      const a = ring * ringCount + j;
+      const b = ring * ringCount + ((j + 1) % radial);
       if (flip) idx.push(ci, b, a);
       else idx.push(ci, a, b);
     }
   };
-  cap(0, true);
-  cap(R - 1, false);
+  if (closed) {
+    cap(0, true);
+    cap(R - 1, false);
+  }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute('sec', new THREE.Float32BufferAttribute(sec, 1));
   g.setIndex(idx);
   g.computeVertexNormals();
   return g;
@@ -311,30 +340,48 @@ function clamp01(v: number): number {
 }
 
 /**
+ * Outer surface X of a loft at height y and station z, found by casting a ray in from +X.
+ * Used to sit decals and fittings exactly on curved bodywork.
+ */
+export function loftSurfaceX(stations: LoftStation[], z: number, y: number, opts: LoftOptions = {}): number | null {
+  const geo = superLoft(stations, 40, 4, opts);
+  const mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+  const hit = new THREE.Raycaster(new THREE.Vector3(10, y, z), new THREE.Vector3(-1, 0, 0)).intersectObject(new THREE.Mesh(geo, mat))[0];
+  geo.dispose();
+  mat.dispose();
+  return hit ? hit.point.x : null;
+}
+
+/**
  * Split a geometry by a predicate on triangle centroids, returning
  * [matching, rest]. Used to paint two-tone liveries and stripes.
  */
 export function splitTriangles(
   geom: THREE.BufferGeometry,
-  pred: (x: number, y: number, z: number) => boolean,
+  pred: (x: number, y: number, z: number, sec: number) => boolean,
 ): [THREE.BufferGeometry, THREE.BufferGeometry] {
   const g = geom.index ? geom.toNonIndexed() : geom;
   const p = g.attributes.position as THREE.BufferAttribute;
   const nrm = g.attributes.normal as THREE.BufferAttribute;
   const uvA = g.attributes.uv as THREE.BufferAttribute | undefined;
-  const A: number[][] = [[], [], []];
-  const B: number[][] = [[], [], []];
+  const secA = g.attributes.sec as THREE.BufferAttribute | undefined;
+  const A: number[][] = [[], [], [], []];
+  const B: number[][] = [[], [], [], []];
   for (let t = 0; t < p.count; t += 3) {
     const cx = (p.getX(t) + p.getX(t + 1) + p.getX(t + 2)) / 3;
     const cy = (p.getY(t) + p.getY(t + 1) + p.getY(t + 2)) / 3;
     const cz = (p.getZ(t) + p.getZ(t + 1) + p.getZ(t + 2)) / 3;
-    const dst = pred(cx, cy, cz) ? A : B;
+    // Minimum (not mean) so both triangles of a loft quad always land on the same
+    // side of a section threshold: paint edges follow loft lines without zigzags.
+    const cs = secA ? Math.min(secA.getX(t), secA.getX(t + 1), secA.getX(t + 2)) : 0;
+    const dst = pred(cx, cy, cz, cs) ? A : B;
     for (let k = 0; k < 3; k++) {
       const i = t + k;
       dst[0].push(p.getX(i), p.getY(i), p.getZ(i));
       dst[1].push(nrm.getX(i), nrm.getY(i), nrm.getZ(i));
       if (uvA) dst[2].push(uvA.getX(i), uvA.getY(i));
       else dst[2].push(0, 0);
+      dst[3].push(secA ? secA.getX(i) : 0);
     }
   }
   const make = (d: number[][]) => {
@@ -342,6 +389,7 @@ export function splitTriangles(
     out.setAttribute('position', new THREE.Float32BufferAttribute(d[0], 3));
     out.setAttribute('normal', new THREE.Float32BufferAttribute(d[1], 3));
     out.setAttribute('uv', new THREE.Float32BufferAttribute(d[2], 2));
+    if (secA) out.setAttribute('sec', new THREE.Float32BufferAttribute(d[3], 1));
     return out;
   };
   if (g !== geom) geom.dispose();

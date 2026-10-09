@@ -30,6 +30,27 @@ export class Materials {
     });
   }
 
+  /**
+   * Paint for open shells (fairings seen from below/inside): the back faces render
+   * as dark unpainted plastic, like the inside of a real fairing.
+   */
+  paintShell(color: string, metallic = 0.45, mirror = false): THREE.MeshPhysicalMaterial {
+    return this.get(`paintShell:${color}:${metallic}:${mirror}`, () => {
+      const m = mirror
+        ? new THREE.MeshPhysicalMaterial({ color, metalness: 1, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.6 })
+        : new THREE.MeshPhysicalMaterial({ color, metalness: metallic, roughness: 0.38, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 1.1 });
+      m.side = THREE.DoubleSide;
+      m.onBeforeCompile = (sh) => {
+        sh.fragmentShader = sh.fragmentShader.replace(
+          '#include <color_fragment>',
+          '#include <color_fragment>\n  if (!gl_FrontFacing) diffuseColor.rgb = vec3(0.025);',
+        );
+      };
+      m.customProgramCacheKey = () => 'paintShell';
+      return m;
+    });
+  }
+
   /** Mirror-like dark chrome (Kawasaki H2 style). */
   mirrorPaint(color: string): THREE.MeshPhysicalMaterial {
     return this.get(`mirror:${color}`, () =>

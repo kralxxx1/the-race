@@ -218,6 +218,8 @@ export class SaveManager {
   private store: KeyValueStore;
   private listeners = new Set<(d: SaveData) => void>();
   lastError: string | null = null;
+  /** True when no previous save existed (first launch on this device). */
+  isNew = false;
 
   constructor(store?: KeyValueStore) {
     if (store) {
@@ -238,7 +240,10 @@ export class SaveManager {
     } catch (e) {
       this.lastError = String(e);
     }
-    if (!text) return defaultSave();
+    if (!text) {
+      this.isNew = true;
+      return defaultSave();
+    }
     try {
       return sanitizeSave(JSON.parse(text));
     } catch (e) {

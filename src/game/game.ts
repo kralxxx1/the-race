@@ -70,6 +70,7 @@ export class Game {
     canvas.className = 'game-canvas';
     canvas.setAttribute('data-testid', 'game-canvas');
     container.append(canvas);
+    if (this.save.isNew) this.save.data.settings.quality = autoQuality();
     const s = this.save.data.settings;
     this.renderer = new Renderer(canvas, s.quality);
     this.renderer.renderer.info.autoReset = false;
@@ -574,9 +575,10 @@ export class Game {
       },
       dt,
     );
+    if (playing && s.state === 'running') this.renderer.adapt(this.fps, dt);
     if (this.showFps) {
       const i = this.renderer.info();
-      hud.setFps(`${this.fps.toFixed(0)} FPS · ${i.calls} çağrı · ${(i.triangles / 1000).toFixed(0)}k üçgen`);
+      hud.setFps(`${this.fps.toFixed(0)} FPS · ${i.calls} çağrı · ${(i.triangles / 1000).toFixed(0)}k üçgen · ${Math.round(this.renderer.resolutionScale * 100)}% çözünürlük`);
     } else hud.setFps(null);
     t0 = this.prof('hud', t0);
     view.render();
@@ -706,6 +708,14 @@ export class Game {
       },
     };
   }
+}
+
+/** Pick a sensible first-launch quality from the device class. */
+function autoQuality(): Settings['quality'] {
+  const cores = navigator.hardwareConcurrency || 4;
+  const mobile = matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+  if (mobile) return cores >= 8 ? 'medium' : 'low';
+  return cores >= 8 ? 'high' : 'medium';
 }
 
 function nextFrame(): Promise<void> {
