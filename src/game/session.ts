@@ -1,0 +1,275 @@
+import type { BikeSpec } from '../data/bikes';
+import type { EnvDef } from '../data/environments';
+import type { ModeDef } from '../data/modes';
+import { clamp, smoothstep } from '../core/math';
+import { BikePhysics, neutralInput, type PhysicsEvent, type RiderInput, type RoadLimits, type Upgrades } from '../physics/bike';
+import { RoadPath, laneCenter, makeLaneConfig, pavedHalfWidth, type LaneConfig } from '../world/road';
+import { TrafficSystem, type TrafficCar, type TrafficEvent } from '../world/traffic';
+import { NEAR_MISS_CLEARANCE, ScoreKeeper } from './scoring';
+
+export const FIXED_DT = 1 / 120;
+const MAX_STEPS_PER_FRAME = 12;
+export const PLAYER_HALF_LENGTH = 1.05;
+export const COUNTDOWN_SECONDS = 3;
+
+export type SessionState = 'countdown' | 'running' | 'crashed' | 'finished';
+
+export type SessionEvent =
+  | PhysicsEvent
+  | TrafficEvent
+  | { type: 'nearMiss'; car: TrafficCar; side: -1 | 1; points: number; combo: number; clearance: number }
+  | { type: 'pass'; car: TrafficCar; side: -1 | 1; oncoming: boolean; clearance: number }
+  | { type: 'hit'; car: TrafficCar; relSpeed: number }
+  | { type: 'checkpoint'; index: number; bonus: number }
+  | { type: 'timeUp' }
+  | { type: 'go' }
+  | { type: 'respawn' }
+  | { type: 'finish'; reason: 'crash' | 'timeUp' | 'quit' };
+
+export interface SessionConfig {
+  bike: BikeSpec;
+  upgrades: Upgrades;
+  mode: ModeDef;
+  env: EnvDef;
+  seed: number;
+  autoShift: boolean;
+}
+
+/** The complete, rendering-independent game simulation of one run. */
+export class GameSession {
+  readonly road: RoadPath;
+  readonly lanes: LaneConfig;
+  readonly bike: BikePhysics;
+  readonly traffic: TrafficSystem;
+  readonly score = new ScoreKeeper();
+  readonly limits: RoadLimits;
+  state: SessionState = 'countdown';
+  countdown = COUNTDOWN_SECONDS;
+  /** Time since the run started (excluding countdown). */
+  time = 0;
+  /** Remaining time for timed modes. */
+  timeLeft: number | null = null;
+  checkpointIndex = 0;
+  crashTime = 0;
+  crashedInto: TrafficCar | null = null;
+  finishReason: 'crash' | 'timeUp' | 'quit' | null = null;
+  events: SessionEvent[] = [];
+  private acc = 0;
+  private respawnTimer = 0;
+
+  constructor(readonly cfg: SessionConfig) {
+    this.road = new RoadPath(cfg.seed, 1, cfg.env.terrain === 'city' ? 0.5 : 1);
+    this.lanes = makeLaneConfig(cfg.mode.layout);
+    this.limits = { halfWidth: pavedHalfWidth(this.lanes) - 0.45, grip: cfg.env.grip };
+    this.bike = new BikePhysics(cfg.bike, cfg.upgrades);
+    this.bike.autoShift = cfg.autoShift;
+    this.traffic = new TrafficSystem(this.lanes, { seed: cfg.seed * 31 + 7, ...cfg.mode.traffic });
+    this.startPosition();
+    this.traffic.reset(this.bike.s);
+    if (cfg.mode.timer) this.timeLeft = cfg.mode.timer.start;
+  }
+
+  /** Lane index the player starts in (rightmost lane of the player's direction). */
+  get startLane(): number {
+    const dirs = this.lanes.dirs;
+    for (let i = dirs.length - 1; i >= 0; i--) if (dirs[i] === 1) return i;
+    return 0;
+  }
+
+  private startPosition(): void {
+    this.bike.reset(20, laneCenter(this.lanes, this.startLane) - 0.6, 0);
+  }
+
+  get playerHalfWidth(): number {
+    return 0.38 + 0.32 * Math.abs(Math.sin(this.bike.lean));
+  }
+
+  /** Is the player on a lane carrying oncoming traffic? */
+  get inOppositeLane(): boolean {
+    if (this.lanes.layout !== 'twoway') return false;
+    return this.bike.d < -0.3;
+  }
+
+  get oppositeLaneActive(): boolean {
+    return this.inOppositeLane && this.bike.speedKmh >= 100;
+  }
+
+  update(frameDt: number, input: RiderInput): void {
+    const dt = clamp(frameDt, 0, 0.1);
+    if (this.state === 'finished') return;
+    if (this.state === 'countdown') {
+      this.countdown -= dt;
+      // Rider may rev the engine on the grid; the bike is held by the front brake.
+      this.stepPhysics(dt, { ...input, brake: 1, steer: 0, wheelie: false, clutchIn: true });
+      if (this.countdown <= 0) {
+        this.state = 'running';
+        this.events.push({ type: 'go' });
+      }
+      return;
+    }
+    this.stepPhysics(dt, this.state === 'running' ? input : neutralInput());
+  }
+
+  private stepPhysics(dt: number, input: RiderInput): void {
+    this.acc += dt;
+    let steps = 0;
+    let first = true;
+    while (this.acc >= FIXED_DT && steps < MAX_STEPS_PER_FRAME) {
+      this.acc -= FIXED_DT;
+      steps++;
+      // Edge-triggered shift requests only apply to the first sub-step.
+      const inp = first ? input : { ...input, shiftUp: false, shiftDown: false };
+      first = false;
+      this.fixedStep(FIXED_DT, inp);
+      if (this.state === 'finished') break;
+    }
+    if (steps === MAX_STEPS_PER_FRAME) this.acc = 0; // drop time instead of spiralling
+  }
+
+  private fixedStep(dt: number, input: RiderInput): void {
+    const bike = this.bike;
+    const running = this.state === 'running';
+    const s0 = bike.distance;
+    bike.draft = this.computeDraft();
+    bike.step(dt, input, this.road, this.limits);
+    for (const e of bike.events) this.events.push(e);
+    bike.events.length = 0;
+
+    const probe = { s: bike.s, d: bike.d, v: this.state === 'crashed' ? 0 : bike.v };
+    this.traffic.update(dt, probe, bike.distance);
+    for (const e of this.traffic.events) this.events.push(e);
+    this.traffic.events.length = 0;
+
+    if (running) {
+      this.time += dt;
+      this.score.update(dt, {
+        speedKmh: bike.speedKmh,
+        distanceDelta: bike.distance - s0,
+        oppositeLane: this.inOppositeLane,
+        wheelie: bike.isWheelie,
+      });
+      this.checkTraffic();
+      if (bike.crashed && this.state === 'running') this.onCrash();
+      this.updateTimer(dt);
+    } else if (this.state === 'crashed') {
+      this.crashTime += dt;
+      if (this.cfg.mode.respawn) {
+        this.respawnTimer -= dt;
+        if (this.respawnTimer <= 0) this.respawn();
+      }
+    }
+  }
+
+  private computeDraft(): number {
+    const bike = this.bike;
+    let best = 0;
+    for (const c of this.traffic.cars) {
+      if (c.dir !== 1) continue;
+      const gap = c.s - bike.s - c.length / 2 - PLAYER_HALF_LENGTH;
+      if (gap < 0.5 || gap > 28) continue;
+      if (Math.abs(c.d - bike.d) > c.width / 2) continue;
+      const size = c.arch.heavy ? 1 : 0.6;
+      best = Math.max(best, smoothstep(28, 5, gap) * size);
+    }
+    return best;
+  }
+
+  private checkTraffic(): void {
+    const bike = this.bike;
+    const hw = this.playerHalfWidth;
+    for (const c of this.traffic.cars) {
+      const ds = c.s - bike.s;
+      // Collision: road-space box overlap.
+      if (Math.abs(ds) < (c.length / 2 + PLAYER_HALF_LENGTH) && Math.abs(c.d - bike.d) < c.width / 2 * 0.96 + hw) {
+        if (!bike.crashed) {
+          bike.crash('traffic');
+          this.crashedInto = c;
+          const rel = c.dir === 1 ? bike.v - c.v : bike.v + c.v;
+          this.events.push({ type: 'hit', car: c, relSpeed: rel });
+        }
+        return;
+      }
+      // Passing detection: the rider moves from behind the car's centre to in front of it.
+      if (!c.passed && ds < 0) {
+        c.passed = true;
+        const clearance = Math.abs(c.d - bike.d) - c.width / 2 - hw;
+        const side: -1 | 1 = c.d < bike.d ? -1 : 1;
+        const oncoming = c.dir === -1;
+        // Only count vehicles we actually overtook or met (not ones that spawned behind us).
+        if (ds > -(c.length / 2 + 6)) {
+          this.events.push({ type: 'pass', car: c, side, oncoming, clearance });
+          if (!oncoming) this.score.overtake();
+          if (clearance < NEAR_MISS_CLEARANCE) {
+            const pts = this.score.nearMiss(clearance, bike.speedKmh, oncoming);
+            if (pts > 0) {
+              c.nearMiss = true;
+              this.events.push({ type: 'nearMiss', car: c, side, points: pts, combo: this.score.combo, clearance });
+            }
+          }
+        }
+      } else if (c.passed && ds > c.length / 2 + 2 && c.dir === 1) {
+        // A car re-passed us (e.g. we braked): allow it to be overtaken again.
+        c.passed = false;
+      }
+    }
+  }
+
+  private updateTimer(dt: number): void {
+    const t = this.cfg.mode.timer;
+    if (!t || this.timeLeft === null) return;
+    this.timeLeft -= dt;
+    const next = (this.checkpointIndex + 1) * t.checkpointEvery;
+    if (this.score.distance >= next) {
+      this.checkpointIndex++;
+      const bonus = Math.max(18, t.bonus - (this.checkpointIndex - 1) * 2);
+      this.timeLeft += bonus;
+      this.score.addBonus(1000 * this.checkpointIndex);
+      this.events.push({ type: 'checkpoint', index: this.checkpointIndex, bonus });
+    }
+    if (this.timeLeft <= 0) {
+      this.timeLeft = 0;
+      this.events.push({ type: 'timeUp' });
+      this.finish('timeUp');
+    }
+  }
+
+  private onCrash(): void {
+    this.state = 'crashed';
+    this.crashTime = 0;
+    this.traffic.triggerIncident(this.bike.s);
+    if (this.cfg.mode.respawn) this.respawnTimer = 2.8;
+  }
+
+  private respawn(): void {
+    const bike = this.bike;
+    const lane = this.startLane;
+    // Clear the area around the respawn point.
+    this.traffic.cars = this.traffic.cars.filter((c) => {
+      const keep = Math.abs(c.s - bike.s) > 90;
+      if (!keep) this.traffic.events.push({ type: 'despawn', car: c });
+      else {
+        c.hazard = false;
+        c.v0 = Math.max(c.v0, 20);
+      }
+      return keep;
+    });
+    for (const c of this.traffic.cars) if (c.v0 === 0) c.v0 = 22;
+    bike.reset(bike.s + 5, laneCenter(this.lanes, lane), 0);
+    this.crashedInto = null;
+    this.state = 'running';
+    this.events.push({ type: 'respawn' });
+  }
+
+  finish(reason: 'crash' | 'timeUp' | 'quit'): void {
+    if (this.state === 'finished') return;
+    this.state = 'finished';
+    this.finishReason = reason;
+    this.events.push({ type: 'finish', reason });
+  }
+
+  drainEvents(): SessionEvent[] {
+    const e = this.events;
+    this.events = [];
+    return e;
+  }
+}
