@@ -442,11 +442,11 @@ export function plateTexture(text: string): THREE.Texture {
   return t;
 }
 
-/** Green motorway direction sign (Turkish otoyol style). */
-export function signTexture(lines: [string, string][], seed: number): THREE.Texture {
-  const key = `sign:${seed}:${lines.map((l) => l.join('|')).join(';')}`;
-  const hit = cache.get(key);
-  if (hit) return hit;
+/**
+ * Green motorway direction sign (Turkish otoyol style). Not cached: every gantry
+ * shows different distances, so the caller owns and disposes the texture.
+ */
+export function signTexture(lines: [string, string][]): THREE.Texture {
   const W = 512;
   const H = 256;
   const [c, g] = canvas(W, H);
@@ -466,7 +466,7 @@ export function signTexture(lines: [string, string][], seed: number): THREE.Text
     g.fillText(km, W - 36, y);
   });
   const t = finish(new THREE.CanvasTexture(c), true, false);
-  cache.set(key, t);
+  t.userData.owned = true;
   return t;
 }
 

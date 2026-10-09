@@ -279,7 +279,7 @@ export class Game {
       camera: () => this.cycleCamera(),
       pause: () => this.pause(),
     });
-    this.hud.tacho.configure(spec.engine.redline, spec.engine.limiter, spec.engine.layout === 'ELECTRIC');
+    this.hud.tacho.configure(spec.engine.redline, spec.engine.limiter, spec.transmission !== 'manual', spec.engine.layout === 'ELECTRIC');
     this.hud.setTiltMode(this.input.tiltEnabled);
     this.input.reset();
     this.timeScale = 1;
@@ -289,11 +289,12 @@ export class Game {
     this.screens.hideAll();
     audio.unlock();
     this.gameAudio.begin(spec, ENV_BY_ID.get(env)!, true);
-    // Warm up shaders so the first frames do not stutter.
+    // Warm up shaders and GPU buffers so the first frames do not stutter.
     try {
+      view.traffic.prewarm(this.renderer.renderer, view.cam.camera, view.scene);
       this.renderer.renderer.compile(view.scene, view.cam.camera);
-    } catch {
-      /* compile is best effort */
+    } catch (e) {
+      console.warn('prewarm failed', e);
     }
     this.state = 'playing';
     this.last = performance.now();
@@ -653,6 +654,13 @@ export class Game {
       },
       get audioState() {
         return audio.ctx?.state ?? 'none';
+      },
+      get audioLevel() {
+        return audio.level();
+      },
+      get memory() {
+        const m = game.renderer.renderer.info.memory;
+        return { geometries: m.geometries, textures: m.textures };
       },
       renderInfo: () => game.renderer.info(),
       get profile() {

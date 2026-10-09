@@ -281,7 +281,11 @@ function buildSet(kind: VehicleKind): VehicleGeometrySet {
   }
   for (const slot of Object.keys(b) as VehicleSlot[]) {
     const g = bake(b[slot]);
-    if (g) set.parts[slot] = g;
+    if (g) {
+      // Cached across runs: never disposed with a scene.
+      g.userData.shared = true;
+      set.parts[slot] = g;
+    }
   }
   return set;
 }

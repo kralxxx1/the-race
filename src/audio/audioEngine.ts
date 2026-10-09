@@ -11,6 +11,8 @@ export class AudioEngine {
   ambienceBus!: GainNode;
   uiBus!: GainNode;
   private compressor!: DynamicsCompressorNode;
+  private analyser: AnalyserNode | null = null;
+  private analyserBuf: Float32Array<ArrayBuffer> | null = null;
   private noise: AudioBuffer | null = null;
   private pink: AudioBuffer | null = null;
   private volumes = { master: 0.8, engine: 0.9, sfx: 0.8 };
@@ -41,6 +43,9 @@ export class AudioEngine {
         this.compressor.release.value = 0.2;
         this.master = ctx.createGain();
         this.master.connect(this.compressor).connect(ctx.destination);
+        this.analyser = ctx.createAnalyser();
+        this.analyser.fftSize = 2048;
+        this.compressor.connect(this.analyser);
         const bus = () => {
           const g = ctx.createGain();
           g.connect(this.master);
@@ -57,6 +62,16 @@ export class AudioEngine {
       console.warn('Audio unavailable', e);
       this.ctx = null;
     }
+  }
+
+  /** RMS level of the final mix (0..1), for diagnostics and tests. */
+  level(): number {
+    if (!this.analyser) return 0;
+    if (!this.analyserBuf) this.analyserBuf = new Float32Array(this.analyser.fftSize);
+    this.analyser.getFloatTimeDomainData(this.analyserBuf);
+    let sum = 0;
+    for (const v of this.analyserBuf) sum += v * v;
+    return Math.sqrt(sum / this.analyserBuf.length);
   }
 
   suspend(): void {

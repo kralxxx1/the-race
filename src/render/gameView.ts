@@ -367,10 +367,23 @@ export class GameView {
   }
 
   dispose(): void {
+    // Collect every per-run GPU resource *before* sub-systems detach their groups
+    // (shared vehicle geometry and cached textures survive for the next run).
+    const geos = new Set<THREE.BufferGeometry>();
+    const mats = new Set<THREE.Material>();
+    this.scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.geometry && !m.geometry.userData.shared) geos.add(m.geometry);
+      const mat = m.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(mat)) mat.forEach((x) => mats.add(x));
+      else if (mat) mats.add(mat);
+    });
     this.crash?.dispose();
     this.world.dispose();
     this.bike.dispose();
-    this.envMap.dispose();
+    this.sky.dispose();
+    for (const g of geos) g.dispose();
+    for (const m of mats) m.dispose();
     this.scene.clear();
   }
 }

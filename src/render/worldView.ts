@@ -16,6 +16,27 @@ const RAIL_PROFILE: [number, number][] = [[0, 0.79], [0.05, 0.73], [0.02, 0.63],
 const BARRIER_PROFILE: [number, number][] = [[0, 0], [0, 0.075], [0.13, 0.33], [0.19, 0.82], [0.36, 0.82], [0.42, 0.33], [0.55, 0.075], [0.55, 0]];
 
 const _v = new THREE.Vector3();
+
+/**
+ * Write vertex data into a geometry, reusing the existing attribute (and its GPU
+ * buffer) when the size matches. Replacing attributes on a live geometry would
+ * orphan the old GPU buffers until the geometry itself is disposed.
+ */
+function writeAttr(g: THREE.BufferGeometry, name: string, data: Float32Array, itemSize: number): void {
+  const a = g.getAttribute(name) as THREE.BufferAttribute | undefined;
+  if (a && a.array.length === data.length) {
+    (a.array as Float32Array).set(data);
+    a.needsUpdate = true;
+  } else {
+    if (a) g.deleteAttribute(name);
+    g.setAttribute(name, new THREE.BufferAttribute(data, itemSize));
+  }
+}
+
+function writeIndex(g: THREE.BufferGeometry, idx: number[]): void {
+  if (g.index && g.index.count === idx.length) return; // topology is fixed per chunk mesh
+  g.setIndex(idx);
+}
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
 const _s = new THREE.Vector3();
@@ -33,6 +54,21 @@ function vcolor(g: THREE.BufferGeometry, color: THREE.ColorRepresentation, jitte
   geo.setAttribute('color', new THREE.BufferAttribute(arr, 3));
   if (geo.attributes.uv) geo.deleteAttribute('uv');
   return geo;
+}
+
+/** Dispose geometries, materials and per-object (owned) textures of a subtree. */
+function disposeOwned(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh) return;
+    m.geometry.dispose();
+    const mats = Array.isArray(m.material) ? m.material : [m.material];
+    for (const mat of mats) {
+      const std = mat as THREE.MeshStandardMaterial;
+      for (const t of [std.map, std.emissiveMap]) if (t?.userData.owned) t.dispose();
+      mat.dispose();
+    }
+  });
 }
 
 function mergeColored(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
@@ -287,7 +323,8 @@ export class WorldView {
       [2600, 360, env.mountains.near, env.mountains.far, 1],
     ];
     for (const [r, h, near, far, i] of layers) {
-      const tex = mountainTexture(near, far, env.mountains.height, this.seed + i * 7);
+      // Silhouettes depend on the environment only, so the cached texture is reused across runs.
+      const tex = mountainTexture(near, far, env.mountains.height, 17 + i * 7);
       tex.repeat.set(2, 1);
       const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, fog: false, depthWrite: false, side: THREE.BackSide });
       // Blend towards the horizon haze colour.
@@ -440,9 +477,9 @@ export class WorldView {
         idx.push(a, b, d, b, e, d);
       }
     const g = c.road.geometry;
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-    g.setIndex(idx);
+    writeAttr(g, 'position', pos, 3);
+    writeAttr(g, 'uv', uv, 2);
+    writeIndex(g, idx);
     g.computeVertexNormals();
     g.computeBoundingSphere();
   }
@@ -491,10 +528,10 @@ export class WorldView {
         }
     }
     const g = c.terrain.geometry;
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    g.setIndex(idx);
+    writeAttr(g, 'position', pos, 3);
+    writeAttr(g, 'uv', uv, 2);
+    writeAttr(g, 'color', col, 3);
+    writeIndex(g, idx);
     g.computeVertexNormals();
     g.computeBoundingSphere();
   }
@@ -522,8 +559,8 @@ export class WorldView {
         else idx.push(a, b, d, b, e, d);
       }
     const g = mesh.geometry;
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    g.setIndex(idx);
+    writeAttr(g, 'position', pos, 3);
+    writeIndex(g, idx);
     g.computeVertexNormals();
     g.computeBoundingSphere();
   }
@@ -725,10 +762,7 @@ export class WorldView {
     const every = 9;
     if (c.gantry) {
       c.group.remove(c.gantry);
-      c.gantry.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (m.isMesh) m.geometry.dispose();
-      });
+      disposeOwned(c.gantry);
       c.gantry = null;
     }
     if (c.index % every !== 4) return;
@@ -758,7 +792,7 @@ export class WorldView {
       [[pick()[0], `${Math.max(2, pick()[1] - km)}`], ['ÇIKIŞ', `${rng.int(1, 3)} km`]],
     ];
     signs.forEach((lines, i) => {
-      const tex = signTexture(lines, c.index * 10 + i);
+      const tex = signTexture(lines);
       const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.5, metalness: 0.1, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: this.env.scenery.lightsOn ? 0.35 : 0.05 });
       // BoxGeometry face 4 (+Z) faces the approaching rider once the gantry is yawed.
       const panel = new THREE.Mesh(new THREE.BoxGeometry(7.2, 3.4, 0.12), [steel, steel, steel, steel, mat, steel]);
@@ -786,14 +820,14 @@ export class WorldView {
   }
 
   dispose(): void {
-    for (const c of this.chunks) {
-      c.road.geometry.dispose();
-      c.terrain.geometry.dispose();
-      c.railL.geometry.dispose();
-      c.railR.geometry.dispose();
-      c.buildings?.geometry.dispose();
-      for (const im of c.props.values()) im.dispose();
-    }
+    for (const c of this.chunks) if (c.gantry) disposeOwned(c.gantry);
+    // Release everything the world created, including detached recycled chunks.
+    this.group.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.geometry) m.geometry.dispose();
+      if ((m as unknown as THREE.InstancedMesh).isInstancedMesh) (m as unknown as THREE.InstancedMesh).dispose();
+    });
+    for (const g of this.propGeo.values()) g.dispose();
     this.group.clear();
   }
 

@@ -213,4 +213,47 @@ test.describe('The Race — production build', () => {
     await frames(page, 2);
     expectNoErrors(errors);
   });
+
+  test('engine is audible during a ride and the mix reacts to the throttle', async ({ page }) => {
+    const errors = trackErrors(page);
+    await seedSave(page);
+    await bootToMenu(page);
+    await page.getByTestId('btn-play').click(); // user gesture unlocks WebAudio
+    await page.getByTestId('btn-start').click();
+    await waitState(page, 'playing');
+    await page.evaluate(() => window.__THE_RACE__.clearTraffic());
+    await page.evaluate(() => window.__THE_RACE__.advance(3.5));
+    await page.evaluate(() => window.__THE_RACE__.setInput({ throttle: 1 }));
+    await page.evaluate(() => window.__THE_RACE__.advance(1));
+    await page.waitForTimeout(700);
+    const loud = await api(page, 'audioLevel');
+    expect(await api(page, 'audioState')).toBe('running');
+    expect(loud).toBeGreaterThan(0.005);
+    expectNoErrors(errors);
+  });
+
+  test('repeated runs do not leak GPU geometries', async ({ page }) => {
+    await seedSave(page);
+    await bootToMenu(page);
+    const counts: number[] = [];
+    const textures: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      await startRun(page, 'endless', i % 2 ? 'night' : 'day');
+      await page.evaluate(() => window.__THE_RACE__.advance(4));
+      await frames(page, 1);
+      await page.evaluate(() => window.__THE_RACE__.crash());
+      await page.evaluate(() => window.__THE_RACE__.advance(4.5));
+      await frames(page, 1);
+      await waitState(page, 'gameover');
+      await page.getByTestId('btn-menu').click();
+      await waitState(page, 'menu');
+      await frames(page, 2);
+      const mem = await api(page, 'memory');
+      counts.push(mem.geometries);
+      textures.push(mem.textures);
+    }
+    // Runs 0 and 2 use the same environment: nothing may accumulate in between.
+    expect(counts[2]).toBeLessThanOrEqual(counts[0]);
+    expect(textures[2]).toBeLessThanOrEqual(textures[1] + 2);
+  });
 });

@@ -83,10 +83,10 @@ npm run check        # hepsi
   rastgele girdilerle NaN oluşmaması; yol geometrisi (300 km/s'de yanal ivme sınırı), trafikte 5 dakikalık simülasyonda
   araçlar arası çakışma olmaması, sabit sürücünün arkasında frenleme; oyun oturumu (geri sayım, kaza, mod kuralları,
   adillik için otopilot); puanlama; kayıt doğrulama/göç/bozuk veri/kota hatası; ateşleme ritimleri ve ses döngüsü sentezi.
-- **Uçtan uca (12 test, Playwright)** — üretim derlemesi `vite preview` ile sunulur ve yazılım WebGL (SwiftShader)
+- **Uçtan uca (14 test, Playwright)** — üretim derlemesi `vite preview` ile sunulur ve yazılım WebGL (SwiftShader)
   üzerinde: açılış, menülerden tam sürüş akışı, HUD, duraklatma, kaza ve sonuç ekranı, satın alma ve ayarların sayfa yenilemede
   korunması, bozuk/kurcalanmış kayıt, tüm mod/ortamlar, serbest sürüşte yeniden doğma, manuel vites, ses kilidi, mobil
-  dokunmatik kontroller.
+  dokunmatik kontroller, motor sesinin gerçekten duyulabilir olması ve art arda sürüşlerde GPU bellek sızıntısı olmaması.
 
 ## Dağıtım
 

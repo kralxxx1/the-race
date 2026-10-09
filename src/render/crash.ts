@@ -256,6 +256,8 @@ export class CrashSim {
 
   dispose(): void {
     this.scene.remove(this.debris.mesh);
+    this.debris.mesh.geometry.dispose();
+    (this.debris.mesh.material as THREE.Material).dispose();
     this.debris.mesh.dispose();
   }
 }

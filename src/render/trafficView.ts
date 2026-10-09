@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { EnvDef } from '../data/environments';
-import type { VehicleKind } from '../data/vehicles';
+import { VEHICLE_KINDS, type VehicleKind } from '../data/vehicles';
 import { clamp } from '../core/math';
 import type { TrafficCar } from '../world/traffic';
 import type { GlowPoints } from './effects';
@@ -38,10 +38,54 @@ export class TrafficView {
   ) {
     this.vm = new VehicleMaterials(mats);
     this.wheels = new THREE.InstancedMesh(wheelGeometry(), this.vm.wheel, MAX_WHEELS);
+    this.wheels.geometry.userData.shared = false;
     this.wheels.count = 0;
     this.wheels.castShadow = true;
     this.wheels.frustumCulled = false;
     this.group.add(this.wheels);
+    // Build every vehicle type up front so a first sighting never causes a frame hitch.
+    for (const k of VEHICLE_KINDS) vehicleGeometry(k);
+  }
+
+  /**
+   * Upload every vehicle type's geometry and compile its shaders by drawing one of
+   * each into a tiny off-screen target, so the first sighting mid-ride never hitches.
+   */
+  prewarm(renderer: THREE.WebGLRenderer, camera: THREE.Camera, scene: THREE.Scene): void {
+    const tmp = new THREE.Group();
+    const objs: VehicleObject[] = [];
+    VEHICLE_KINDS.forEach((k, i) => {
+      const o = new VehicleObject(vehicleGeometry(k), '#888888', this.vm);
+      o.group.position.set((i - VEHICLE_KINDS.length / 2) * 3, 0, -20);
+      objs.push(o);
+      tmp.add(o.group);
+    });
+    for (const o of objs) {
+      for (const m of Object.values(o.meshes)) {
+        if (!m) continue;
+        // Light materials get swapped at runtime: compile all variants too.
+        if (m === o.meshes.tail) m.material = this.vm.tailBrake;
+      }
+    }
+    const rt = new THREE.WebGLRenderTarget(4, 4);
+    const prev = renderer.getRenderTarget();
+    scene.add(tmp);
+    const cam = camera.clone() as THREE.PerspectiveCamera;
+    cam.position.set(0, 3, 0);
+    cam.lookAt(0, 0, -20);
+    renderer.setRenderTarget(rt);
+    renderer.render(scene, cam);
+    renderer.setRenderTarget(prev);
+    scene.remove(tmp);
+    rt.dispose();
+    // Keep the objects for reuse by the pools.
+    for (const o of objs) {
+      o.group.visible = false;
+      const pool = this.pools.get(o.set.kind) ?? [];
+      pool.push(o);
+      this.pools.set(o.set.kind, pool);
+      this.group.add(o.group);
+    }
   }
 
   spawn(car: TrafficCar): void {

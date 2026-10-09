@@ -9,6 +9,7 @@ export class Tacho {
   private maxRpm = 12000;
   private redline = 10000;
   private electric = false;
+  private automatic = false;
 
   constructor() {
     this.canvas = document.createElement('canvas');
@@ -27,8 +28,9 @@ export class Tacho {
     this.g.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  configure(redline: number, limiter: number, electric: boolean): void {
+  configure(redline: number, limiter: number, automatic: boolean, electric: boolean): void {
     this.electric = electric;
+    this.automatic = automatic;
     this.redline = redline;
     this.maxRpm = Math.ceil((limiter * 1.06) / 1000) * 1000;
   }
@@ -104,7 +106,7 @@ export class Tacho {
     g.fill();
     g.fillStyle = shift ? '#ff3b30' : '#ffd24a';
     g.font = `800 ${Math.round(S * 0.15)}px system-ui, sans-serif`;
-    g.fillText(this.electric ? 'D' : gear <= 0 ? 'N' : String(gear), cx, cy - R * 0.03);
+    g.fillText(this.automatic ? 'D' : gear <= 0 ? 'N' : String(gear), cx, cy - R * 0.03);
     g.fillStyle = '#ffffff';
     g.font = `800 ${Math.round(S * 0.17)}px system-ui, sans-serif`;
     g.fillText(String(Math.round(speed)), cx, cy + R * 0.42);

@@ -16,6 +16,8 @@ export interface DebugApi {
   errors: string[];
   save: Record<string, unknown> & { cash: number; ownedBikes: string[]; selectedBike: string; gamesPlayed: number; highScores: Record<string, number>; settings: Record<string, unknown> };
   audioState: string;
+  audioLevel: number;
+  memory: { geometries: number; textures: number };
   setInput(o: Record<string, unknown>): void;
   clearInput(): void;
   start(mode?: string, env?: string): Promise<void>;

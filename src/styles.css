@@ -170,8 +170,9 @@ button { font-family: inherit; }
 .credits { color: var(--muted); font-size: 12px; margin: 26px 0; line-height: 1.5; }
 
 /* modal (pause, game over) */
-.panel-pause, .panel-gameover { align-items: center; justify-content: center; background: rgba(5, 6, 9, 0.6); backdrop-filter: blur(4px); }
-.modal { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 28px; width: min(360px, 92vw); display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(14px); box-shadow: 0 30px 80px rgba(0,0,0,0.5); }
+/* margin:auto (not align-items:center) keeps tall modals reachable when they overflow short screens. */
+.panel-pause, .panel-gameover { overflow-y: auto; padding: 12px; background: rgba(5, 6, 9, 0.6); backdrop-filter: blur(4px); touch-action: pan-y; }
+.modal { margin: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 28px; width: min(360px, 92vw); display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(14px); box-shadow: 0 30px 80px rgba(0,0,0,0.5); }
 .modal.wide { width: min(620px, 94vw); }
 .modal .title { font-size: 30px; font-weight: 900; font-style: italic; text-align: center; letter-spacing: 0.04em; }
 .modal .title.red { color: var(--red); }
@@ -266,6 +267,14 @@ button { font-family: inherit; }
   .hud-chips { top: 120px; }
 }
 @media (max-height: 520px) {
+  .modal { padding: 14px 18px; gap: 8px; }
+  .modal .title { font-size: 22px; }
+  .go-score { font-size: 32px; }
+  .go-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .go-cell { padding: 6px; }
+  .go-cell b { font-size: 13px; }
+  .earned { font-size: 20px; }
+  .modal .btn { padding: 9px 14px; }
   .touch-right { bottom: 130px; }
   .tbtn.gas { height: 96px; }
   .menu-left { padding-top: 12px; }

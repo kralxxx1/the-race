@@ -75,6 +75,7 @@ export class SkySystem {
   readonly hemi: THREE.HemisphereLight;
   readonly sunDir = new THREE.Vector3();
   envMap: THREE.Texture | null = null;
+  private envTarget: THREE.WebGLRenderTarget | null = null;
   private flash = 0;
   private baseHemi = 1;
   private nextFlash = 8;
@@ -153,8 +154,23 @@ export class SkySystem {
     }
     const rt = pm.fromScene(scene, 0.02);
     pm.dispose();
+    // Free the temporary capture scene (the sky geometry itself is shared with the live sky).
+    scene.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      if (mesh.geometry !== this.mesh.geometry) mesh.geometry.dispose();
+      (mesh.material as THREE.Material).dispose();
+    });
+    this.envTarget = rt;
     this.envMap = rt.texture;
     return rt.texture;
+  }
+
+  dispose(): void {
+    this.envTarget?.dispose();
+    this.envTarget = null;
+    this.mesh.geometry.dispose();
+    this.material.dispose();
   }
 
   /** Keep the shadow frustum centred on the player, snapped to texels to avoid shimmering. */
