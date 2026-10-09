@@ -32,12 +32,13 @@ export class Showroom {
     pm.dispose();
     const s = this.scene;
     s.environment = this.envTex;
+    s.environmentIntensity = 0.7;
     s.background = new THREE.Color('#0b0d12');
     s.fog = new THREE.Fog('#0b0d12', 9, 26);
     // Floor with a glossy finish
     const floor = new THREE.Mesh(
       new THREE.CircleGeometry(30, 64),
-      new THREE.MeshPhysicalMaterial({ color: '#15171c', roughness: 0.32, metalness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.2 }),
+      new THREE.MeshPhysicalMaterial({ color: '#0e1014', roughness: 0.42, metalness: 0.2, clearcoat: 0.5, clearcoatRoughness: 0.25 }),
     );
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
@@ -56,16 +57,16 @@ export class Showroom {
     this.holder.position.y = 0.06;
     s.add(this.holder);
 
-    const key = new THREE.SpotLight('#ffffff', 220, 30, 0.5, 0.6, 1.4);
+    const key = new THREE.SpotLight('#ffffff', 120, 30, 0.42, 0.7, 1.4);
     key.position.set(4, 7, 4);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
     key.shadow.bias = -0.0002;
     s.add(key, key.target);
-    const rim = new THREE.SpotLight('#7fb2ff', 140, 30, 0.6, 0.7, 1.4);
+    const rim = new THREE.SpotLight('#7fb2ff', 95, 30, 0.5, 0.7, 1.4);
     rim.position.set(-5, 4, -4);
     s.add(rim, rim.target);
-    const warm = new THREE.SpotLight('#ffb070', 90, 30, 0.6, 0.7, 1.4);
+    const warm = new THREE.SpotLight('#ffb070', 55, 30, 0.5, 0.7, 1.4);
     warm.position.set(-3, 3, 5);
     s.add(warm, warm.target);
     s.add(new THREE.HemisphereLight('#9fb7d9', '#1a1c22', 0.35));

@@ -2,7 +2,7 @@
   "name": "the-race",
   "private": true,
   "version": "1.0.0",
-  "description": "The Race — gerçekçi 3D trafik motosiklet sürüş oyunu (Vite + TypeScript + three.js)",
+  "description": "The Race \u2014 ger\u00e7ek\u00e7i 3D trafik motosiklet s\u00fcr\u00fc\u015f oyunu (Vite + TypeScript + three.js)",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,8 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
-    "check": "npm run typecheck && npm run test && vite build && npm run test:e2e"
+    "test:e2e": "vite build && playwright test",
+    "check": "npm run typecheck && npm run test && npm run test:e2e"
   },
   "license": "MIT",
   "dependencies": {
