@@ -81,11 +81,11 @@ npm run check        # hepsi
 
 ## Testler
 
-- **Birim (238 test)** — her motosikletin tork eğrisinin beyan edilen güç/torku üretmesi, azami hız ve 0-100 aralıkları,
+- **Birim (244 test)** — her motosikletin tork eğrisinin beyan edilen güç/torku üretmesi, azami hız ve 0-100 aralıkları,
   fren mesafesi, otomatik vites, yatış/şerit değiştirme, viraj takibi, wheelie sınırları, bariyer temas/çarpma,
   wheelie'de denge noktası ivme sınırı, rastgele girdilerle NaN oluşmaması; yol geometrisi (300 km/s'de yanal ivme sınırı), trafikte 5 dakikalık simülasyonda
   araçlar arası çakışma olmaması, sabit sürücünün arkasında frenleme; oyun oturumu (geri sayım, kaza, mod kuralları,
-  adillik için otopilot); puanlama; kayıt doğrulama/göç/bozuk veri/kota hatası; ateşleme ritimleri, ses döngüsü sentezi ve motor karakteri (sıralı-4'ün saf tonu, V-twin'in düzensiz vuruşu).
+  adillik için otopilot); puanlama; kayıt doğrulama/göç/bozuk veri/kota hatası; kaporta geometrisi (kesit çizgisi boya ayrımı, yüzey bulma); ateşleme ritimleri, ses döngüsü sentezi ve motor karakteri (sıralı-4'ün saf tonu, V-twin'in düzensiz vuruşu).
 - **Uçtan uca (14 test, Playwright)** — üretim derlemesi `vite preview` ile sunulur ve yazılım WebGL (SwiftShader)
   üzerinde: açılış, menülerden tam sürüş akışı, HUD, duraklatma, kaza ve sonuç ekranı, satın alma ve ayarların sayfa yenilemede
   korunması, bozuk/kurcalanmış kayıt, tüm mod/ortamlar, serbest sürüşte yeniden doğma, manuel vites, ses kilidi, mobil
