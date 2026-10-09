@@ -1,0 +1,332 @@
+import * as THREE from 'three';
+import type { BikeStyle, Livery } from '../data/bikes';
+import { clamp, damp, lerp, smoothstep } from '../core/math';
+import type { BikeModel } from './bikeModel';
+import type { Materials } from './materials';
+
+const UPPER_ARM = 0.3;
+const FOREARM = 0.29;
+const THIGH = 0.45;
+const SHIN = 0.45;
+const TORSO = 0.5;
+
+const _a = new THREE.Vector3();
+const _b = new THREE.Vector3();
+const _c = new THREE.Vector3();
+const _q = new THREE.Quaternion();
+const _m = new THREE.Matrix4();
+const UP = new THREE.Vector3(0, 1, 0);
+
+/** Analytic two-bone IK. Writes the middle joint into `outMid` and the reached end into `outEnd`. */
+export function solveTwoBone(
+  root: THREE.Vector3,
+  target: THREE.Vector3,
+  pole: THREE.Vector3,
+  a: number,
+  b: number,
+  outMid: THREE.Vector3,
+  outEnd: THREE.Vector3,
+): void {
+  const dir = _a.copy(target).sub(root);
+  let d = dir.length();
+  if (d < 1e-6) {
+    dir.set(0, -1, 0);
+    d = 1e-6;
+  }
+  dir.divideScalar(d);
+  const dc = clamp(d, Math.abs(a - b) + 1e-4, a + b - 1e-4);
+  const cosA = clamp((a * a + dc * dc - b * b) / (2 * a * dc), -1, 1);
+  const sinA = Math.sqrt(1 - cosA * cosA);
+  // Bend direction: component of (pole - root) perpendicular to dir.
+  const p = _b.copy(pole).sub(root);
+  p.addScaledVector(dir, -p.dot(dir));
+  if (p.lengthSq() < 1e-8) p.set(0, 0, -1).addScaledVector(dir, -dir.z);
+  p.normalize();
+  outMid.copy(root).addScaledVector(dir, cosA * a).addScaledVector(p, sinA * a);
+  outEnd.copy(target).sub(outMid).normalize().multiplyScalar(b).add(outMid);
+}
+
+interface Limb {
+  upper: THREE.Mesh;
+  lower: THREE.Mesh;
+  end: THREE.Mesh;
+  joint: THREE.Mesh;
+}
+
+/** Joint targets in the rider-root (bike chassis) frame. */
+export interface RiderPose {
+  hip: THREE.Vector3;
+  torso: THREE.Quaternion;
+  head: THREE.Quaternion;
+  handL: THREE.Vector3;
+  handR: THREE.Vector3;
+  footL: THREE.Vector3;
+  footR: THREE.Vector3;
+  elbowPoleL: THREE.Vector3;
+  elbowPoleR: THREE.Vector3;
+  kneePoleL: THREE.Vector3;
+  kneePoleR: THREE.Vector3;
+}
+
+export function makePose(): RiderPose {
+  return {
+    hip: new THREE.Vector3(),
+    torso: new THREE.Quaternion(),
+    head: new THREE.Quaternion(),
+    handL: new THREE.Vector3(),
+    handR: new THREE.Vector3(),
+    footL: new THREE.Vector3(),
+    footR: new THREE.Vector3(),
+    elbowPoleL: new THREE.Vector3(),
+    elbowPoleR: new THREE.Vector3(),
+    kneePoleL: new THREE.Vector3(),
+    kneePoleR: new THREE.Vector3(),
+  };
+}
+
+export interface RideParams {
+  speedKmh: number;
+  lean: number;
+  accel: number;
+  brake: number;
+  pitch: number;
+  steer: number;
+  /** -1 downshift, +1 upshift, 0 none: triggers the foot animation. */
+  shift: number;
+  dt: number;
+}
+
+/** Articulated rider in leathers and a full-face helmet. */
+export class RiderModel {
+  readonly root = new THREE.Group();
+  private pelvis: THREE.Mesh;
+  private pelvisHolder: THREE.Group;
+  private torso: THREE.Group;
+  private headGroup: THREE.Group;
+  private armL: Limb;
+  private armR: Limb;
+  private legL: Limb;
+  private legR: Limb;
+  readonly pose = makePose();
+  /** Eye position in rider-root space (for the helmet camera). */
+  readonly eye = new THREE.Vector3();
+  readonly eyeQuat = new THREE.Quaternion();
+  private footDown = 0;
+  private shiftT = 0;
+  private shiftDir = 0;
+  private tuck = 0;
+  private hang = 0;
+  private torsoLag = new THREE.Vector2();
+  private breath = 0;
+  private headVisible = true;
+  private helmetParts: THREE.Object3D[] = [];
+
+  constructor(
+    mats: Materials,
+    livery: Livery,
+    readonly style: BikeStyle,
+  ) {
+    const [c1, c2] = livery.suit;
+    const suit = mats.suit(c1);
+    const suit2 = mats.suit(c2);
+    const glove = mats.leather('#141516');
+    const boot = mats.leather('#18191b');
+    const capsule = (r: number, len: number, mat: THREE.Material) => {
+      const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(0.001, len - 2 * r), 6, 12), mat);
+      m.castShadow = true;
+      return m;
+    };
+    this.pelvis = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.1, 6, 12), suit2);
+    this.pelvis.scale.set(1, 1, 0.85);
+    this.pelvis.rotation.z = Math.PI / 2;
+    this.pelvis.castShadow = true;
+    const pelvisHolder = new THREE.Group();
+    pelvisHolder.add(this.pelvis);
+    this.pelvisHolder = pelvisHolder;
+
+    this.torso = new THREE.Group();
+    const chest = capsule(0.17, TORSO + 0.06, suit);
+    chest.scale.set(1.12, 1, 0.78);
+    chest.position.y = TORSO / 2 + 0.01;
+    this.torso.add(chest);
+    // Contrasting side panels / stripes
+    const stripe = capsule(0.172, TORSO * 0.7, suit2);
+    stripe.scale.set(1.13, 1, 0.5);
+    stripe.position.set(0, TORSO * 0.45, 0.04);
+    this.torso.add(stripe);
+    if (style === 'sport' || style === 'hyper') {
+      // Aero hump on the back of race leathers.
+      const hump = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), suit2);
+      hump.rotation.x = Math.PI / 2 + 0.3;
+      hump.scale.set(0.9, 1.3, 0.7);
+      hump.position.set(0, TORSO * 0.86, 0.1);
+      hump.castShadow = true;
+      this.torso.add(hump);
+    }
+
+    // Helmet
+    this.headGroup = new THREE.Group();
+    const helmetMat = mats.helmet(c1);
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.145, 24, 18), helmetMat);
+    shell.scale.set(0.95, 1.0, 1.12);
+    shell.castShadow = true;
+    const stripeH = new THREE.Mesh(new THREE.SphereGeometry(0.1465, 24, 18, Math.PI * 0.42, Math.PI * 0.16, 0, Math.PI * 0.75), mats.helmet(c2));
+    stripeH.scale.copy(shell.scale);
+    const visor = new THREE.Mesh(new THREE.SphereGeometry(0.149, 24, 12, Math.PI * 0.63, Math.PI * 0.74, Math.PI * 0.32, Math.PI * 0.28), mats.visor());
+    visor.scale.copy(shell.scale);
+    const chin = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.12, 4, 10), helmetMat);
+    chin.rotation.z = Math.PI / 2;
+    chin.position.set(0, -0.07, -0.11);
+    const spoiler = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.025, 0.06), mats.plastic('#111'));
+    spoiler.position.set(0, 0.05, 0.16);
+    spoiler.rotation.x = -0.4;
+    this.headGroup.add(shell, stripeH, visor, chin, spoiler);
+    this.helmetParts = [shell, stripeH, visor, chin, spoiler];
+    const neck = capsule(0.055, 0.14, mats.leather('#1b1c1e'));
+    neck.position.y = -0.12;
+    this.headGroup.add(neck);
+
+    const limb = (r1: number, r2: number, l1: number, l2: number, m1: THREE.Material, m2: THREE.Material, endGeo: THREE.BufferGeometry, endMat: THREE.Material): Limb => {
+      const upper = capsule(r1, l1 + r1, m1);
+      const lower = capsule(r2, l2 + r2 * 0.5, m2);
+      const end = new THREE.Mesh(endGeo, endMat);
+      end.castShadow = true;
+      const joint = new THREE.Mesh(new THREE.SphereGeometry(r1 * 1.08, 10, 8), m2);
+      return { upper, lower, end, joint };
+    };
+    const handGeo = new THREE.BoxGeometry(0.085, 0.05, 0.11);
+    handGeo.translate(0, 0, -0.03);
+    const bootGeo = new THREE.BoxGeometry(0.1, 0.1, 0.27);
+    bootGeo.translate(0, -0.02, -0.06);
+    this.armL = limb(0.06, 0.05, UPPER_ARM, FOREARM, suit, suit, handGeo, glove);
+    this.armR = limb(0.06, 0.05, UPPER_ARM, FOREARM, suit, suit, handGeo.clone(), glove);
+    this.legL = limb(0.085, 0.065, THIGH, SHIN, suit2, suit, bootGeo, boot);
+    this.legR = limb(0.085, 0.065, THIGH, SHIN, suit2, suit, bootGeo.clone(), boot);
+    // Knee sliders
+    for (const leg of [this.legL, this.legR]) {
+      const puck = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.08, 0.1), mats.plastic('#d8d8d8'));
+      leg.joint.add(puck);
+      puck.position.set(0, 0, -0.07);
+    }
+    this.root.add(pelvisHolder, this.torso, this.headGroup);
+    for (const l of [this.armL, this.armR, this.legL, this.legR]) this.root.add(l.upper, l.lower, l.end, l.joint);
+  }
+
+  setHeadVisible(v: boolean): void {
+    if (v === this.headVisible) return;
+    this.headVisible = v;
+    for (const p of this.helmetParts) p.visible = v;
+  }
+
+  /** Place limb meshes from solved joint positions. */
+  private placeBone(mesh: THREE.Mesh, a: THREE.Vector3, b: THREE.Vector3): void {
+    mesh.position.copy(a).add(b).multiplyScalar(0.5);
+    _c.copy(b).sub(a).normalize();
+    mesh.quaternion.setFromUnitVectors(UP, _c);
+  }
+
+  private solveLimb(limb: Limb, root: THREE.Vector3, target: THREE.Vector3, pole: THREE.Vector3, l1: number, l2: number, endQuat: THREE.Quaternion | null): void {
+    const mid = new THREE.Vector3();
+    const end = new THREE.Vector3();
+    solveTwoBone(root, target, pole, l1, l2, mid, end);
+    this.placeBone(limb.upper, root, mid);
+    this.placeBone(limb.lower, mid, end);
+    limb.joint.position.copy(mid);
+    limb.joint.quaternion.copy(limb.upper.quaternion);
+    limb.end.position.copy(end);
+    if (endQuat) limb.end.quaternion.copy(endQuat);
+  }
+
+  /** Apply a pose (all in rider-root space). */
+  applyPose(p: RiderPose, handQuat: THREE.Quaternion, footQuatL: THREE.Quaternion, footQuatR: THREE.Quaternion): void {
+    this.pelvisHolder.position.copy(p.hip);
+    this.pelvisHolder.quaternion.copy(p.torso);
+    this.torso.position.copy(p.hip);
+    this.torso.quaternion.copy(p.torso);
+    const shoulderC = _a.set(0, TORSO, 0).applyQuaternion(p.torso).add(p.hip);
+    const sL = new THREE.Vector3(-0.2, -0.05, 0.02).applyQuaternion(p.torso).add(shoulderC);
+    const sR = new THREE.Vector3(0.2, -0.05, 0.02).applyQuaternion(p.torso).add(shoulderC);
+    const neckBase = new THREE.Vector3(0, TORSO + 0.06, -0.02).applyQuaternion(p.torso).add(p.hip);
+    this.headGroup.position.copy(neckBase).add(new THREE.Vector3(0, 0.17, -0.03).applyQuaternion(p.head));
+    this.headGroup.quaternion.copy(p.head);
+    this.eye.copy(this.headGroup.position).add(new THREE.Vector3(0, 0.0, -0.1).applyQuaternion(p.head));
+    this.eyeQuat.copy(p.head);
+    this.solveLimb(this.armL, sL, p.handL, p.elbowPoleL, UPPER_ARM, FOREARM, handQuat);
+    this.solveLimb(this.armR, sR, p.handR, p.elbowPoleR, UPPER_ARM, FOREARM, handQuat);
+    const hL = new THREE.Vector3(-0.11, -0.02, 0).applyQuaternion(p.torso).add(p.hip);
+    const hR = new THREE.Vector3(0.11, -0.02, 0).applyQuaternion(p.torso).add(p.hip);
+    this.solveLimb(this.legL, hL, p.footL, p.kneePoleL, THIGH, SHIN, footQuatL);
+    this.solveLimb(this.legR, hR, p.footR, p.kneePoleR, THIGH, SHIN, footQuatR);
+  }
+
+  /** Procedural riding animation driven by the bike state. */
+  ride(bike: BikeModel, r: RideParams): void {
+    const f = bike.frame;
+    const p = this.pose;
+    const dt = Math.max(r.dt, 1e-4);
+    const sporty = this.style === 'sport' || this.style === 'hyper';
+    const hangK = sporty ? 1 : this.style === 'naked' ? 0.55 : 0.2;
+    // Smoothed behaviours
+    const tuckTarget = sporty ? smoothstep(110, 220, r.speedKmh) : this.style === 'naked' ? smoothstep(150, 240, r.speedKmh) * 0.6 : 0;
+    this.tuck = damp(this.tuck, tuckTarget, 2.5, dt);
+    const leanFrac = clamp(r.lean / 0.7, -1, 1);
+    this.hang = damp(this.hang, leanFrac * hangK, 4, dt);
+    // + when accelerating (rider pushed back), − when braking (thrown forward).
+    this.torsoLag.x = damp(this.torsoLag.x, clamp(r.accel / 12, -0.8, 0.6), 6, dt);
+    const stopped = r.speedKmh < 4;
+    this.footDown = damp(this.footDown, stopped ? 1 : 0, stopped ? 5 : 8, dt);
+    if (r.shift !== 0) {
+      this.shiftT = 0.18;
+      this.shiftDir = r.shift;
+    }
+    this.shiftT = Math.max(0, this.shiftT - dt);
+    this.breath += dt;
+
+    // Hips
+    p.hip.copy(bike.hipAnchor.position);
+    p.hip.x += this.hang * 0.12;
+    p.hip.z += this.torsoLag.x * 0.06 - this.tuck * 0.03;
+    p.hip.y += -Math.abs(this.hang) * 0.02 + Math.sin(this.breath * 1.7) * 0.003;
+
+    // Torso orientation
+    const pitchT = f.torsoPitch + this.tuck * 0.32 - this.torsoLag.x * 0.12 + r.pitch * 0.45;
+    const rollT = this.hang * 0.35 + r.lean * 0.12 * hangK;
+    _q.setFromEuler(new THREE.Euler(-pitchT, -this.hang * 0.15, -rollT, 'YXZ'));
+    p.torso.copy(_q);
+
+    // Head: stays closer to level and looks into the turn / ahead.
+    const headPitch = -pitchT * 0.28 + this.tuck * 0.12 - r.pitch * 0.3;
+    const headRoll = -rollT * 0.4 + r.lean * 0.55;
+    const look = clamp(r.steer * 0.5 + r.lean * 0.25, -0.5, 0.5);
+    p.head.setFromEuler(new THREE.Euler(headPitch, -look, headRoll, 'YXZ'));
+
+    // Hands on the grips (bike's steering group → rider space).
+    bike.chassis.updateMatrixWorld(true);
+    _m.copy(bike.chassis.matrixWorld).invert();
+    p.handL.setFromMatrixPosition(bike.gripL.matrixWorld).applyMatrix4(_m);
+    p.handR.setFromMatrixPosition(bike.gripR.matrixWorld).applyMatrix4(_m);
+    p.elbowPoleL.set(p.handL.x - 0.5, p.handL.y - 0.25 - this.tuck * 0.1, p.handL.z + 0.25);
+    p.elbowPoleR.set(p.handR.x + 0.5, p.handR.y - 0.25 - this.tuck * 0.1, p.handR.z + 0.25);
+
+    // Feet on the pegs, with gear-change taps and a foot down when stopped.
+    p.footL.copy(bike.pegL.position);
+    p.footR.copy(bike.pegR.position);
+    if (this.shiftT > 0) {
+      const k = Math.sin((1 - this.shiftT / 0.18) * Math.PI);
+      p.footL.y += k * (this.shiftDir > 0 ? 0.05 : -0.03);
+      p.footL.z -= k * 0.04;
+    }
+    if (this.footDown > 0.001) {
+      const ground = new THREE.Vector3(-0.42, 0.04, p.hip.z + 0.05);
+      p.footL.lerp(ground, this.footDown);
+    }
+    const kneeOut = 0.32 + Math.max(0, -leanFrac) * 0.35 * hangK;
+    const kneeOutR = 0.32 + Math.max(0, leanFrac) * 0.35 * hangK;
+    p.kneePoleL.set(p.hip.x - kneeOut, p.hip.y + 0.1, p.hip.z - 0.8);
+    p.kneePoleR.set(p.hip.x + kneeOutR, p.hip.y + 0.1, p.hip.z - 0.8);
+
+    const handQ = _q.setFromEuler(new THREE.Euler(-0.3, 0, 0));
+    const footQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(lerp(0.25, -0.1, this.footDown), 0, 0));
+    this.applyPose(p, handQ.clone(), footQ, footQ.clone().setFromEuler(new THREE.Euler(0.25, 0, 0)));
+  }
+}

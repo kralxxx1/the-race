@@ -1,0 +1,47 @@
+// Developer tool: renders a single bike + rider for visual inspection.
+// Usage: /dev/preview.html?bike=yamaha-r1&livery=0&yaw=0.6&lean=0.3&dist=4
+import * as THREE from 'three';
+import { BIKES, getBike } from '../src/data/bikes';
+import { ENV_BY_ID } from '../src/data/environments';
+import { BikeModel } from '../src/render/bikeModel';
+import { Materials } from '../src/render/materials';
+import { RiderModel } from '../src/render/riderModel';
+import { SkySystem } from '../src/render/sky';
+
+const q = new URLSearchParams(location.search);
+const spec = getBike(q.get('bike') ?? BIKES[0].id);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const env = ENV_BY_ID.get((q.get('env') as 'day') ?? 'day')!;
+const sky = new SkySystem(env);
+scene.add(sky.mesh, sky.sun, sky.sun.target, sky.hemi);
+scene.environment = sky.buildEnvMap(renderer);
+const mats = new Materials();
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: '#555', roughness: 0.85 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+const bike = new BikeModel(spec, Number(q.get('livery') ?? 0), mats);
+scene.add(bike.root);
+const rider = new RiderModel(mats, bike.livery, spec.style);
+if (q.get('rider') !== '0') bike.riderMount.add(rider.root);
+const lean = Number(q.get('lean') ?? 0);
+const speed = Number(q.get('speed') ?? 0);
+bike.update({ lean, pitch: Number(q.get('pitch') ?? 0), steer: Number(q.get('steer') ?? 0), wheelSpeed: 0, frontComp: 0, rearComp: 0, brake: 0, headlight: true, dt: 0.016 });
+bike.root.updateMatrixWorld(true);
+for (let i = 0; i < 60; i++) rider.ride(bike, { speedKmh: speed, lean, accel: 0, brake: 0, pitch: Number(q.get('pitch') ?? 0), steer: 0, shift: 0, dt: 0.05 });
+const cam = new THREE.PerspectiveCamera(Number(q.get('fov') ?? 35), innerWidth / innerHeight, 0.05, 5000);
+const yaw = Number(q.get('yaw') ?? 0.9);
+const dist = Number(q.get('dist') ?? 4.2);
+const h = Number(q.get('h') ?? 1.0);
+const target = new THREE.Vector3(0, 0.62, -spec.look.wheelbase / 2);
+cam.position.set(target.x + Math.sin(yaw) * dist, h, target.z + Math.cos(yaw) * dist);
+cam.lookAt(target);
+sky.follow(new THREE.Vector3());
+renderer.render(scene, cam);
+(window as unknown as { __ready: boolean }).__ready = true;

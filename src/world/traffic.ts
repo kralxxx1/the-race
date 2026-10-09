@@ -62,10 +62,11 @@ export type TrafficEvent =
   | { type: 'honk'; car: TrafficCar }
   | { type: 'signal'; car: TrafficCar };
 
-const SPAWN_MIN_AHEAD = 430;
-const SPAWN_MAX_AHEAD = 640;
+// Spawn beyond the fog line so vehicles never pop into view.
+const SPAWN_MIN_AHEAD = 620;
+const SPAWN_MAX_AHEAD = 860;
 const DESPAWN_BEHIND = 160;
-const DESPAWN_AHEAD = 1100;
+const DESPAWN_AHEAD = 1150;
 
 // Intelligent Driver Model parameters
 const IDM_A = 1.6;
