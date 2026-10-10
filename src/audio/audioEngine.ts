@@ -1,22 +1,50 @@
+import type { SettingsReader } from '../settings/schema';
+import { DEFAULT_AUDIO_CONFIG, readAudioConfig, type AudioConfig } from './audioConfig';
+import type { DspBackend } from './dspNodes';
+import { ReverbSystem } from './reverb';
+import workletUrl from './worklet/processors.ts?worker&url';
+
+/** Per-bus trim so that unit-level DSP output sits sensibly against the engine in the final mix. */
+const TRIM = { engine: 1, world: 1, traffic: 0.9, sfx: 0.9, ambience: 0.8, ui: 1 };
+/** How much of each bus feeds the environment reverb. */
+const SEND = { engine: 0.32, world: 0.12, traffic: 0.55, sfx: 0.5, ambience: 0.25 };
+
 /**
- * Owns the WebAudio context and the mixing buses. The context can only start
- * after a user gesture (browser autoplay policy), so everything is lazy and
- * every public method is a no-op until `unlock()` succeeded.
+ * Owns the WebAudio context, the mixing buses and the master processing chain
+ * (EQ → night-mode compressor → limiter → master volume → mono fold → output).
+ * The context can only start after a user gesture (browser autoplay policy), so
+ * everything is lazy and every public method is a no-op until `unlock()` succeeded.
+ *
+ * Signal flow:
+ *   engine / world / traffic / sfx / ambience bus ─┬─► mix ─► bass ─► treble ─► night ─► limiter ─► master ─► mono ─► out
+ *                                                  └─► reverb send ─► convolver (cross-fading zones) ─► mix
+ *   ui bus ─────────────────────────────────────────────────────────► mix
  */
-export class AudioEngine {
+export class AudioEngine implements DspBackend {
   ctx: AudioContext | null = null;
-  master!: GainNode;
   engineBus!: GainNode;
+  worldBus!: GainNode;
+  trafficBus!: GainNode;
   sfxBus!: GainNode;
   ambienceBus!: GainNode;
   uiBus!: GainNode;
-  private compressor!: DynamicsCompressorNode;
+  reverb!: ReverbSystem;
+  cfg: AudioConfig = { ...DEFAULT_AUDIO_CONFIG };
+  /** True once the worklet module is loaded; DSP nodes fall back to ScriptProcessor otherwise. */
+  workletReady = false;
+  private settled: Promise<void> = Promise.resolve();
+  private master!: GainNode;
+  private bassNode!: BiquadFilterNode;
+  private trebleNode!: BiquadFilterNode;
+  private night!: DynamicsCompressorNode;
+  private nightMakeup!: GainNode;
+  private mono!: GainNode;
   private analyser: AnalyserNode | null = null;
   private analyserBuf: Float32Array<ArrayBuffer> | null = null;
   private noise: AudioBuffer | null = null;
   private pink: AudioBuffer | null = null;
-  private volumes = { master: 0.8, engine: 0.9, sfx: 0.8 };
   private muted = false;
+  private listeners = new Set<() => void>();
 
   get ready(): boolean {
     return this.ctx !== null && this.ctx.state === 'running';
@@ -26,42 +54,147 @@ export class AudioEngine {
     return this.ctx ? this.ctx.currentTime : 0;
   }
 
+  /** Resolves once the worklet module finished loading (or failed): safe to create DSP nodes afterwards. */
+  whenSettled(): Promise<void> {
+    return this.settled;
+  }
+
+  /** Called whenever settings change (after the audio graph has been updated). */
+  onConfig(fn: () => void): () => void {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
   /** Create/resume the context. Call from a user gesture handler. */
   unlock(): void {
     try {
       if (!this.ctx) {
-        const Ctor: typeof AudioContext | undefined =
-          window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        const Ctor: typeof AudioContext | undefined = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
         if (!Ctor) return;
         const ctx = new Ctor({ latencyHint: 'interactive' });
         this.ctx = ctx;
-        this.compressor = ctx.createDynamicsCompressor();
-        this.compressor.threshold.value = -14;
-        this.compressor.knee.value = 10;
-        this.compressor.ratio.value = 4;
-        this.compressor.attack.value = 0.004;
-        this.compressor.release.value = 0.2;
-        this.master = ctx.createGain();
-        this.master.connect(this.compressor).connect(ctx.destination);
-        this.analyser = ctx.createAnalyser();
-        this.analyser.fftSize = 2048;
-        this.compressor.connect(this.analyser);
-        const bus = () => {
-          const g = ctx.createGain();
-          g.connect(this.master);
-          return g;
-        };
-        this.engineBus = bus();
-        this.sfxBus = bus();
-        this.ambienceBus = bus();
-        this.uiBus = bus();
-        this.applyVolumes();
+        this.build(ctx);
+        this.settled = this.loadWorklet(ctx);
+        this.applyConfig();
       }
       if (this.ctx.state === 'suspended') void this.ctx.resume();
     } catch (e) {
       console.warn('Audio unavailable', e);
       this.ctx = null;
     }
+  }
+
+  private async loadWorklet(ctx: AudioContext): Promise<void> {
+    try {
+      if (!ctx.audioWorklet) throw new Error('AudioWorklet unsupported');
+      await ctx.audioWorklet.addModule(workletUrl);
+      this.workletReady = true;
+    } catch (e) {
+      this.workletReady = false;
+      console.warn('AudioWorklet unavailable, using the ScriptProcessor fallback', e);
+    }
+  }
+
+  private build(ctx: AudioContext): void {
+    const g = (v = 1): GainNode => {
+      const n = ctx.createGain();
+      n.gain.value = v;
+      return n;
+    };
+    const mix = g();
+    this.bassNode = ctx.createBiquadFilter();
+    this.bassNode.type = 'lowshelf';
+    this.bassNode.frequency.value = 130;
+    this.trebleNode = ctx.createBiquadFilter();
+    this.trebleNode.type = 'highshelf';
+    this.trebleNode.frequency.value = 4800;
+    this.night = ctx.createDynamicsCompressor();
+    this.night.ratio.value = 1;
+    this.night.threshold.value = 0;
+    this.night.knee.value = 24;
+    this.night.attack.value = 0.006;
+    this.night.release.value = 0.28;
+    this.nightMakeup = g();
+    // Always-on safety limiter (not a "sound" compressor): transparent below -2 dBFS.
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -2;
+    limiter.knee.value = 3;
+    limiter.ratio.value = 14;
+    limiter.attack.value = 0.002;
+    limiter.release.value = 0.12;
+    this.master = g(0.8);
+    this.mono = g();
+    this.mono.channelCountMode = 'explicit';
+    this.mono.channelInterpretation = 'speakers';
+    this.mono.channelCount = 2;
+    mix.connect(this.bassNode).connect(this.trebleNode).connect(this.night).connect(this.nightMakeup).connect(limiter).connect(this.master).connect(this.mono).connect(ctx.destination);
+    this.analyser = ctx.createAnalyser();
+    this.analyser.fftSize = 2048;
+    this.mono.connect(this.analyser);
+
+    this.reverb = new ReverbSystem(ctx, mix);
+    const bus = (trim: number): GainNode => {
+      const b = g(trim);
+      b.connect(mix);
+      return b;
+    };
+    this.engineBus = bus(TRIM.engine);
+    this.worldBus = bus(TRIM.world);
+    this.trafficBus = bus(TRIM.traffic);
+    this.sfxBus = bus(TRIM.sfx);
+    this.ambienceBus = bus(TRIM.ambience);
+    this.uiBus = bus(TRIM.ui);
+    const send = (from: GainNode, level: number): GainNode => {
+      const s = g(level);
+      from.connect(s).connect(this.reverb.input);
+      return s;
+    };
+    send(this.engineBus, SEND.engine);
+    send(this.worldBus, SEND.world);
+    send(this.trafficBus, SEND.traffic);
+    send(this.sfxBus, SEND.sfx);
+    send(this.ambienceBus, SEND.ambience);
+  }
+
+  /** Apply the game's settings store to the graph (levels, EQ, compression, reverb, mono, quality). */
+  applySettings(s: SettingsReader): void {
+    this.cfg = readAudioConfig(s);
+    this.applyConfig();
+  }
+
+  /** Legacy three-slider API. */
+  setVolumes(master: number, engine: number, sfx: number): void {
+    this.cfg = { ...this.cfg, master, engine, sfx };
+    this.applyConfig();
+  }
+
+  private applyConfig(): void {
+    const ctx = this.ctx;
+    const c = this.cfg;
+    if (ctx) {
+      const t = ctx.currentTime;
+      const k = 0.05;
+      this.master.gain.setTargetAtTime(this.muted ? 0 : c.master, t, k);
+      this.engineBus.gain.setTargetAtTime(c.engine * TRIM.engine, t, k);
+      // Wind/tyres/rain trims live inside the world DSP (it needs them per component); the bus is unity.
+      this.worldBus.gain.setTargetAtTime(TRIM.world, t, k);
+      this.trafficBus.gain.setTargetAtTime(c.traffic * TRIM.traffic, t, k);
+      this.sfxBus.gain.setTargetAtTime(c.sfx * TRIM.sfx, t, k);
+      this.ambienceBus.gain.setTargetAtTime(c.ambience * TRIM.ambience, t, k);
+      this.uiBus.gain.setTargetAtTime(c.ui * TRIM.ui, t, k);
+      this.bassNode.gain.setTargetAtTime(c.bass, t, k);
+      this.trebleNode.gain.setTargetAtTime(c.treble, t, k);
+      // "Night mode": heavy, fast-ish compression with make-up gain so quiet details stay audible
+      // while the loud peaks (engine at redline, crashes) are pulled down.
+      this.night.threshold.setTargetAtTime(c.nightMode ? -34 : 0, t, k);
+      this.night.ratio.setTargetAtTime(c.nightMode ? 7 : 1, t, k);
+      this.nightMakeup.gain.setTargetAtTime(c.nightMode ? 2.4 : 1, t, k);
+      this.mono.channelCount = c.mono ? 1 : 2;
+      this.reverb.setEnabled(c.reverb);
+      this.reverb.setAmount(c.reverbAmount);
+      this.reverb.setQuality(c.quality);
+    }
+    for (const fn of this.listeners) fn();
   }
 
   /** RMS level of the final mix (0..1), for diagnostics and tests. */
@@ -82,28 +215,13 @@ export class AudioEngine {
     if (this.ctx && this.ctx.state === 'suspended') void this.ctx.resume();
   }
 
-  setVolumes(master: number, engine: number, sfx: number): void {
-    this.volumes = { master, engine, sfx };
-    this.applyVolumes();
-  }
-
   setMuted(m: boolean): void {
     this.muted = m;
-    this.applyVolumes();
+    this.applyConfig();
   }
 
   get isMuted(): boolean {
     return this.muted;
-  }
-
-  private applyVolumes(): void {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime;
-    this.master.gain.setTargetAtTime(this.muted ? 0 : this.volumes.master, t, 0.05);
-    this.engineBus.gain.setTargetAtTime(this.volumes.engine, t, 0.05);
-    this.sfxBus.gain.setTargetAtTime(this.volumes.sfx, t, 0.05);
-    this.ambienceBus.gain.setTargetAtTime(this.volumes.sfx * 0.9, t, 0.05);
-    this.uiBus.gain.setTargetAtTime(this.volumes.sfx, t, 0.05);
   }
 
   /** Shared 2 s white-noise buffer. */
@@ -119,7 +237,7 @@ export class AudioEngine {
     return this.noise;
   }
 
-  /** Shared pink-ish noise buffer (smoother, for wind and rain). */
+  /** Shared pink-ish noise buffer. */
   pinkBuffer(): AudioBuffer {
     const ctx = this.ctx!;
     if (!this.pink) {
@@ -143,18 +261,7 @@ export class AudioEngine {
     return this.pink;
   }
 
-  /** Looping noise source started immediately. */
-  noiseSource(pink = false): AudioBufferSourceNode {
-    const ctx = this.ctx!;
-    const src = ctx.createBufferSource();
-    src.buffer = pink ? this.pinkBuffer() : this.noiseBuffer();
-    src.loop = true;
-    src.loopStart = Math.random();
-    src.start(0, Math.random() * 1.5);
-    return src;
-  }
-
-  /** One-shot filtered noise burst (used by pops, whooshes, impacts, shatter...). */
+  /** One-shot filtered noise burst (UI blips, small effects). */
   burst(
     dest: AudioNode,
     opts: { at?: number; dur: number; gain: number; type?: BiquadFilterType; freq: number; freqEnd?: number; q?: number; attack?: number; pan?: number },

@@ -5,6 +5,8 @@ import { BQ_STRIDE, HighPass1, LowPass1, Noise, PinkNoise, bandpass, clamp01, fl
 export const VEHICLE_VOICES: Record<VehicleEngineType, Omit<VehicleVoiceParams, 'seed'>> = {
   // Modern petrol hatch/sedan: 4 cylinders, catalytic converter + two silencers.
   car: { type: 'car', cylinders: 4, idle: 800, gearRpmPerMs: [150, 95, 68, 52, 43, 36], mufflerHz: 420, resonanceHz: 95, engineGain: 0.55, tyreGain: 1, clatter: 0, turbo: 0.1, aero: 0.15 },
+  // Light diesel van / pickup: clattery 4-cylinder with a turbo, a little boomy body.
+  van: { type: 'van', cylinders: 4, idle: 780, gearRpmPerMs: [165, 105, 74, 56, 46, 39], mufflerHz: 520, resonanceHz: 78, engineGain: 0.7, tyreGain: 1.15, clatter: 0.5, turbo: 0.35, aero: 0.35 },
   // Taxi/police sedans run harder.
   sport: { type: 'sport', cylinders: 6, idle: 750, gearRpmPerMs: [160, 105, 78, 60, 49, 41], mufflerHz: 900, resonanceHz: 120, engineGain: 0.8, tyreGain: 1.05, clatter: 0, turbo: 0, aero: 0.2 },
   // Diesel lorry: big straight-six, low revs, injector clatter and turbo whistle.
@@ -53,6 +55,7 @@ export class VehicleDSP {
   private tLoad = 0.3;
   private tDoppler = 1;
   private blockCount = 0;
+  private active = true;
 
   constructor(params: VehicleVoiceParams, sampleRate: number) {
     this.p = params;
@@ -73,6 +76,7 @@ export class VehicleDSP {
     this.rpm = params.idle;
     this.gear = 0;
     this.gain = 0;
+    this.active = true;
   }
 
   setControls(speed: number, load: number, doppler: number, distance: number, brake: number): void {
@@ -110,7 +114,7 @@ export class VehicleDSP {
     const tyreLvl = p.tyreGain * Math.pow(v / 25, 1.7) * 0.12;
     const aeroLvl = p.aero * (v / 25) * (v / 25) * 0.08;
     const engLvl = p.engineGain * (0.35 + 0.65 * this.load) * 0.5;
-    const target01 = 1;
+    const target01 = this.active ? 1 : 0;
     this.blockCount++;
 
     for (let i = 0; i < n; i++) {
@@ -147,6 +151,15 @@ export class VehicleDSP {
       out[offset + i] = softClip(s * this.gain * 1.6) * 0.8;
     }
     flushBank(this.bank);
+  }
+
+  /** Fade the voice in/out (the slot may be reused for another vehicle once silent). */
+  setActive(on: boolean): void {
+    this.active = on;
+  }
+
+  get audible(): boolean {
+    return this.active || this.gain > 0.002;
   }
 
   get currentRpm(): number {
