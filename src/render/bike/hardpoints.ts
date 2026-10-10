@@ -42,6 +42,14 @@ export interface Hardpoints {
   /** Right grip (bike space). */
   grip: P3;
   torsoPitch: number;
+  /** Recommended first-person eye point (bike space). */
+  eye: P3;
+}
+
+/** Default helmet eye from the hip and torso pitch: crouched sport riders sit lower and further forward. */
+export function defaultEye(hip: P3, torsoPitch: number): P3 {
+  const k = Math.max(-0.2, Math.min(1.1, torsoPitch / 0.8));
+  return [0, hip[1] + 0.66 - 0.26 * k, hip[2] - 0.08 - 0.22 * k];
 }
 
 export function computeHardpoints(bp: BikeBlueprint): Hardpoints {
@@ -86,6 +94,7 @@ export function computeHardpoints(bp: BikeBlueprint): Hardpoints {
     peg: bp.rider.peg,
     grip: bp.cockpit.grip,
     torsoPitch: bp.rider.torsoPitch,
+    eye: bp.rider.eye ?? defaultEye(bp.rider.hip, bp.rider.torsoPitch),
   };
 }
 

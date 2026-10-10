@@ -43,6 +43,12 @@ export interface BikeFrame {
   gripOffset: THREE.Vector3;
   peg: THREE.Vector3;
   torsoPitch: number;
+  /**
+   * Recommended helmet-camera eye point (bike space, rest pose) for this bike's riding
+   * position: from here the screen top, dash, clamps and mirrors frame the bottom of a
+   * ~74° view pitched ~20° down. (The rider model's own head is not used for this.)
+   */
+  eye: THREE.Vector3;
 }
 
 export interface BikeModelOptions {
@@ -146,6 +152,7 @@ export class BikeModel {
       gripOffset: new THREE.Vector3(...hp.grip).sub(new THREE.Vector3(...hp.head)),
       peg: new THREE.Vector3(...hp.peg),
       torsoPitch: hp.torsoPitch,
+      eye: new THREE.Vector3(...hp.eye),
     };
     this.tailLight = bikeEmitterMaterial('#ff1a12', 1.2);
     this.headLight = bikeEmitterMaterial('#fff6e8', 2.2);

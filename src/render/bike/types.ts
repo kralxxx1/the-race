@@ -209,6 +209,12 @@ export interface RiderSpec {
   peg: P3;
   /** Torso pitch forward from vertical (radians). */
   torsoPitch: number;
+  /**
+   * Helmet-camera eye point (bike space) of a rider in the normal riding position, from
+   * which the cockpit (screen top, dash, clamps, mirrors) frames the bottom of the view.
+   * Defaults to a point derived from `hip` and `torsoPitch`.
+   */
+  eye?: P3;
 }
 
 export interface SeatSpec {

@@ -62,7 +62,8 @@ const bike = new BikeModel(spec, num('livery', 0), mats, { detail: (q.get('detai
 const buildMs = performance.now() - t0;
 scene.add(bike.root);
 const rider = new RiderModel(mats, bike.livery, spec.style);
-const showRider = q.get('rider') === '1' || (view === 'cockpit' && q.get('rider') !== '0');
+// The rider is shown for the rider-eye cockpit view (as in game) and on request; the blueprint-eye view hides it.
+const showRider = q.get('rider') === '1' || (view === 'cockpit' && q.get('eye') === 'rider' && q.get('rider') !== '0');
 if (showRider) bike.riderMount.add(rider.root);
 const lean = num('lean', 0);
 const steer = num('steer', 0);
@@ -115,9 +116,18 @@ switch (view) {
     place(Math.PI + 0.6, bike.frame.head.y + 0.45, 1.2, 34, new THREE.Vector3(0, bike.frame.head.y + 0.02, bike.frame.head.z + 0.05));
     break;
   case 'cockpit': {
-    // Same construction as the in-game helmet camera.
+    // eye=bike (default): the blueprint's recommended helmet eye (BikeFrame.eye) with the game's
+    // helmet pitch. eye=rider: the rider model's own eye, exactly as the in-game camera does today.
     rider.setHeadVisible(false);
     rider.root.updateMatrixWorld(true);
+    if (q.get('eye') !== 'rider') {
+      const eyeW = bike.frame.eye.clone().applyMatrix4(bike.chassis.matrixWorld);
+      cam.position.copy(eyeW);
+      cam.rotation.set(-0.36 - num('look', 0), 0, 0, 'YXZ');
+      cam.fov = num('fov', 74);
+      console.log('[preview] eye', eyeW.toArray().map((v) => v.toFixed(3)).join(','));
+      break;
+    }
     const eye = rider.eye.clone().applyMatrix4(rider.root.matrixWorld);
     const eq = new THREE.Quaternion();
     rider.root.getWorldQuaternion(eq);
@@ -125,7 +135,7 @@ switch (view) {
     const e = new THREE.Euler().setFromQuaternion(eq, 'YXZ');
     e.z *= 0.75;
     // Same pitch as the game's helmet camera; `look` adds a downward glance (default: a glance at the dash).
-    e.x -= 0.16 + num('look', 0.45);
+    e.x -= 0.16 + num('look', 0);
     cam.position.copy(eye);
     cam.quaternion.setFromEuler(e);
     console.log('[preview] eye', eye.toArray().map((v) => v.toFixed(3)).join(','), 'euler', e.x.toFixed(2), e.y.toFixed(2), e.z.toFixed(2));
