@@ -16,7 +16,7 @@ const inRange = (v: number, lo: number, hi: number) => v >= lo && v <= hi;
 describe('bike blueprints (all bikes)', () => {
   it('covers every bike in the catalogue and the showcase bikes are authored', () => {
     expect(BIKES.length).toBeGreaterThanOrEqual(60);
-    for (const id of ['yamaha-r1', 'ducati-panigale-v4s']) expect(authoredIds()).toContain(id);
+    for (const id of ['yamaha-r1', 'ducati-panigale-v4s', 'kawasaki-h2', 'bmw-s1000rr', 'harley-street-glide', 'bmw-r1250gs']) expect(authoredIds()).toContain(id);
   });
 
   for (const spec of BIKES) {
@@ -26,7 +26,8 @@ describe('bike blueprints (all bikes)', () => {
       const scooter = spec.style === 'scooter';
       expect(inRange(bp.wheelbase, scooter ? 1.25 : 1.3, 1.85)).toBe(true);
       expect(inRange(bp.rakeDeg, 20, 35)).toBe(true);
-      expect(inRange(bp.trail, 0.06, 0.16)).toBe(true);
+      // Sport bikes ~90–105 mm; big cruisers/tourers up to ~170 mm (Harley touring).
+      expect(inRange(bp.trail, 0.06, 0.18)).toBe(true);
       expect(inRange(bp.seat.height, 0.6, 0.93)).toBe(true);
       for (const end of [bp.front, bp.rear]) {
         const t = parseTyre(end.tyre);
@@ -71,6 +72,22 @@ describe('bike blueprints (all bikes)', () => {
     expect(pv4.swingarm.type).toBe('singleSided');
     expect(pv4.frontWheel.spokes).toBe(3);
     expect(pv4.exhaust.route).toBe('underbelly');
+    const h2 = blueprintFor(getBike('kawasaki-h2'));
+    expect(h2.wheelbase).toBeCloseTo(1.455, 3);
+    expect(h2.frame.type).toBe('trellis');
+    expect(h2.engine.supercharger).toBe(true);
+    const s1k = blueprintFor(getBike('bmw-s1000rr'));
+    expect(s1k.wheelbase).toBeCloseTo(1.457, 3);
+    expect(s1k.exhaust.route).toBe('underslung');
+    const glide = blueprintFor(getBike('harley-street-glide'));
+    expect(parseTyre(glide.front.tyre)!.rimInch).toBe(19);
+    expect(parseTyre(glide.rear.tyre)!.rimInch).toBe(18);
+    expect(glide.footrests).toBe('floorboard');
+    const gs = blueprintFor(getBike('bmw-r1250gs'));
+    expect(gs.fork.type).toBe('telelever');
+    expect(gs.drive.type).toBe('shaft');
+    expect(gs.frontWheel.crossSpoke).toBe(true);
+    expect(parseTyre(gs.front.tyre)!.rimInch).toBe(19);
   });
 });
 
@@ -111,7 +128,7 @@ describe('bike kit geometry', () => {
   }, 240000);
 
   it('showcase bikes meet the LOD0 triangle budget and stay under 60 draw calls', () => {
-    for (const id of ['yamaha-r1', 'ducati-panigale-v4s']) {
+    for (const id of ['yamaha-r1', 'ducati-panigale-v4s', 'kawasaki-h2', 'bmw-s1000rr']) {
       const hi = assembleBike(getBike(id), 0, kitQuality('high', 0));
       expect(hi.warnings).toEqual([]);
       const tris = checkBuild(hi);

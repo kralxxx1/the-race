@@ -299,7 +299,15 @@ export function cut(mesh: MeshData, field: Field): MeshData {
     const t = f[a] / (f[a] - f[b]);
     const L = (arr: number[], s: number, k: number) => arr[a * s + k] + (arr[b * s + k] - arr[a * s + k]) * t;
     let nx = L(mesh.nrm, 3, 0), ny = L(mesh.nrm, 3, 1), nz = L(mesh.nrm, 3, 2);
-    const l = Math.hypot(nx, ny, nz) || 1;
+    let l = Math.hypot(nx, ny, nz);
+    if (l < 1e-6) {
+      // Opposite normals across a sharp tip/seam: keep the inside vertex's normal.
+      const i = f[a] >= 0 ? a : b;
+      nx = mesh.nrm[i * 3];
+      ny = mesh.nrm[i * 3 + 1];
+      nz = mesh.nrm[i * 3 + 2];
+      l = Math.hypot(nx, ny, nz) || 1;
+    }
     nx /= l;
     ny /= l;
     nz /= l;
@@ -389,9 +397,26 @@ export function flange(mesh: MeshData, o: FlangeOpts): MeshData {
     const hit = vmap.get(v);
     if (hit) return hit;
     const acc = accum.get(v)!;
-    const l = Math.hypot(acc[0], acc[1], acc[2]) || 1;
-    const ox = acc[0] / l, oy = acc[1] / l, oz = acc[2] / l;
     const nx = n[v * 3], ny = n[v * 3 + 1], nz = n[v * 3 + 2];
+    const l = Math.hypot(acc[0], acc[1], acc[2]);
+    // At a cusp (two boundary edges folding back on each other) the outward directions cancel:
+    // fall back to the fold direction itself so the flange still has a valid normal.
+    let ox: number, oy: number, oz: number;
+    if (l > 1e-9) {
+      ox = acc[0] / l;
+      oy = acc[1] / l;
+      oz = acc[2] / l;
+    } else {
+      // any direction perpendicular to the surface normal
+      const ax = Math.abs(ny) < 0.9 ? 0 : 1, ay = Math.abs(ny) < 0.9 ? 1 : 0;
+      ox = ny * 0 - nz * ay;
+      oy = nz * ax - nx * 0;
+      oz = nx * ay - ny * ax;
+      const k = Math.hypot(ox, oy, oz) || 1;
+      ox /= k;
+      oy /= k;
+      oz /= k;
+    }
     const x = p[v * 3], y = p[v * 3 + 1], z = p[v * 3 + 2];
     // Rolled lip: halfway normal between surface and outward direction.
     let hx = nx + ox, hy = ny + oy, hz = nz + oz;
