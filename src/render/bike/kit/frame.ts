@@ -141,8 +141,9 @@ export function buildFrame(ctx: KitContext, L: ForkLayout): void {
         }
         if (ctx.micro) for (const p of nodes) ctx.add('chassis', sphere(r * 1.25, 8, 6), fin, T(p[0], p[1], p[2]));
         // Cast pivot plate
-        const plate = smooth2([[pv[2] - 0.08, pv[1] + 0.28], [pv[2] + 0.04, pv[1] + 0.27], [pv[2] + 0.06, pv[1] - 0.02], [pv[2] - 0.04, pv[1] - 0.09], [pv[2] - 0.09, pv[1] + 0.05]], 3, true);
-        ctx.add('chassis', extrude(plate, 0.03, { plane: 'zy', bevel: 0.008, center: s * (W * 0.92), curveSegs: 1 }), F.castAlu);
+        // Cast pivot section joining the rails (kept compact: on most trellis bikes it hides behind the footrest hanger).
+        const plate = smooth2([[pv[2] - 0.06, pv[1] + 0.2], [pv[2] + 0.035, pv[1] + 0.2], [pv[2] + 0.055, pv[1] - 0.01], [pv[2] - 0.02, pv[1] - 0.07], [pv[2] - 0.07, pv[1] + 0.04]], 3, true);
+        ctx.add('chassis', extrude(plate, 0.026, { plane: 'zy', bevel: 0.008, center: s * (W * 0.92), curveSegs: 1 }), F.darkAlu);
       }
       break;
     }
