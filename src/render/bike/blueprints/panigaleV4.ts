@@ -159,14 +159,14 @@ function body(ctx: KitContext): void {
     const p = sideAt(ob, -1.12, 0.62, s);
     const inner = smooth2(outletPoly.map(([z, y]) => [z + (z < -1.12 ? -0.012 : 0.012), y + (y > 0.62 ? 0.012 : -0.012)] as P2), 3, true);
     ctx.add('chassis', extrude(inner, 0.006, { plane: 'zy', center: p.p[0] - s * 0.05 }), F.texturedBlack);
-    const xIn = Math.abs(p.p[0]) - 0.05, xOut = Math.abs(p.p[0]) + 0.026;
-    for (const [y, z0, z1] of [[0.665, -1.25, -1.03], [0.585, -1.22, -1.0]] as const) {
-      const blade = wingBlade(z0, z1, y, xIn, xOut, 0.016, 0.01);
-      ctx.add('chassis', s > 0 ? blade : blade.mirrored(), blackGloss);
+    const xIn = Math.abs(p.p[0]) - 0.05, xOut = Math.abs(p.p[0]) + 0.03;
+    for (const [y, z0, z1] of [[0.668, -1.25, -1.02], [0.59, -1.22, -0.995]] as const) {
+      const blade = wingBlade(z0, z1, y, xIn, xOut, 0.018, 0.01);
+      ctx.add('chassis', s > 0 ? blade : blade.mirrored(), PAINT);
     }
-    // End plate joining the blade tips (the outer edge of the double wing).
-    const plate: P2[] = [[-1.22, 0.565], [-1.0, 0.575], [-0.99, 0.61], [-1.02, 0.7], [-1.25, 0.69], [-1.24, 0.61]];
-    ctx.add('chassis', extrude(smooth2(plate, 2, true), 0.004, { plane: 'zy', center: s * (xOut + 0.002), bevel: 0.0012 }), blackGloss);
+    // Slim black end plate at the blade tips.
+    const plate: P2[] = [[-1.2, 0.58], [-1.0, 0.59], [-0.995, 0.61], [-1.02, 0.69], [-1.23, 0.685], [-1.22, 0.6]];
+    ctx.add('chassis', extrude(smooth2(plate, 2, true), 0.003, { plane: 'zy', center: s * (xOut + 0.0015), bevel: 0.001 }), blackGloss);
   }
   // Inner panel under the screen (dash surround).
   const inner = outlineLoft(
@@ -287,7 +287,7 @@ function body(ctx: KitContext): void {
 function lettering(p: Pen, color: string): void {
   if (p.view !== 'right' && p.view !== 'left') return;
   // Big "V4 S" on the lower side fairing, Ducati wordmark on the nose, model name on the tail.
-  p.text('V4 S', -1.02, 0.36, { color, size: 0.105, italic: true, weight: '900', stretch: 1.08 });
+  p.text('V4 S', -1.06, 0.36, { color, size: 0.085, italic: true, weight: '900', stretch: 1.08 });
   p.text('DUCATI', -1.55, 0.79, { color, size: 0.026, weight: '900', spacing: 0.06, italic: true });
   p.text('Panigale V4 S', -0.2, 0.86, { color, size: 0.024, weight: '700', italic: true });
 }

@@ -129,18 +129,122 @@ export function vary(base: Finish, o: Partial<Pick<Finish, 'metal' | 'rough' | '
   return { ...base, ...o };
 }
 
+/** Growable typed-array storage for one material slot (avoids per-element pushes and per-part clones). */
 export class Bucket {
-  pos: number[] = [];
-  nrm: number[] = [];
-  uv: number[] = [];
-  col: number[] = [];
-  pbr: number[] = [];
-  idx: number[] = [];
+  pos = new Float32Array(3 * 1024);
+  nrm = new Float32Array(3 * 1024);
+  uv = new Float32Array(2 * 1024);
+  col = new Float32Array(3 * 1024);
+  pbr = new Float32Array(4 * 1024);
+  idx = new Uint32Array(3 * 1024);
+  vcount = 0;
+  icount = 0;
 
-  get vcount(): number {
-    return this.pos.length / 3;
+  private reserve(nv: number, ni: number): void {
+    const V = this.vcount + nv;
+    if (V * 3 > this.pos.length) {
+      let cap = this.pos.length / 3;
+      while (cap < V) cap *= 2;
+      const grow = <T extends Float32Array>(a: T, k: number): T => {
+        const b = new Float32Array(cap * k);
+        b.set(a.subarray(0, this.vcount * k));
+        return b as T;
+      };
+      this.pos = grow(this.pos, 3);
+      this.nrm = grow(this.nrm, 3);
+      this.uv = grow(this.uv, 2);
+      this.col = grow(this.col, 3);
+      this.pbr = grow(this.pbr, 4);
+    }
+    const I = this.icount + ni;
+    if (I > this.idx.length) {
+      let cap = this.idx.length;
+      while (cap < I) cap *= 2;
+      const b = new Uint32Array(cap);
+      b.set(this.idx.subarray(0, this.icount));
+      this.idx = b;
+    }
+  }
+
+  /** Append a mesh transformed by `m` (positions) and its normal matrix `nm`. */
+  append(src: MeshData, f: Finish, m: THREE.Matrix4 | null): void {
+    const nv = src.vcount;
+    const ni = src.idx.length;
+    this.reserve(nv, ni);
+    const base = this.vcount;
+    const P = this.pos, N = this.nrm, U = this.uv, C = this.col, R = this.pbr;
+    const sp = src.pos, sn = src.nrm, su = src.uv, ss = src.shade, vc = src.col;
+    const [r, g, bl] = f.color;
+    let e: ArrayLike<number> | null = null;
+    let n: ArrayLike<number> | null = null;
+    if (m) {
+      e = m.elements;
+      n = _n3.getNormalMatrix(m).elements;
+    }
+    for (let i = 0; i < nv; i++) {
+      const o = (base + i) * 3;
+      const x = sp[i * 3], y = sp[i * 3 + 1], z = sp[i * 3 + 2];
+      const a = sn[i * 3], b = sn[i * 3 + 1], c = sn[i * 3 + 2];
+      if (e && n) {
+        P[o] = e[0] * x + e[4] * y + e[8] * z + e[12];
+        P[o + 1] = e[1] * x + e[5] * y + e[9] * z + e[13];
+        P[o + 2] = e[2] * x + e[6] * y + e[10] * z + e[14];
+        let nx = n[0] * a + n[3] * b + n[6] * c;
+        let ny = n[1] * a + n[4] * b + n[7] * c;
+        let nz = n[2] * a + n[5] * b + n[8] * c;
+        const l = Math.hypot(nx, ny, nz) || 1;
+        nx /= l;
+        ny /= l;
+        nz /= l;
+        N[o] = nx;
+        N[o + 1] = ny;
+        N[o + 2] = nz;
+      } else {
+        P[o] = x;
+        P[o + 1] = y;
+        P[o + 2] = z;
+        N[o] = a;
+        N[o + 1] = b;
+        N[o + 2] = c;
+      }
+      U[(base + i) * 2] = su[i * 2];
+      U[(base + i) * 2 + 1] = su[i * 2 + 1];
+      const sh = ss[i];
+      if (vc) {
+        C[o] = r * sh * vc[i * 3];
+        C[o + 1] = g * sh * vc[i * 3 + 1];
+        C[o + 2] = bl * sh * vc[i * 3 + 2];
+      } else {
+        C[o] = r * sh;
+        C[o + 1] = g * sh;
+        C[o + 2] = bl * sh;
+      }
+      const q = (base + i) * 4;
+      R[q] = f.metal;
+      R[q + 1] = f.rough;
+      R[q + 2] = f.coat;
+      R[q + 3] = f.micro;
+    }
+    const I = this.idx;
+    const si = src.idx;
+    const flip = m !== null && m.determinant() < 0;
+    let k = this.icount;
+    for (let t = 0; t < ni; t += 3) {
+      I[k++] = si[t] + base;
+      if (flip) {
+        I[k++] = si[t + 2] + base;
+        I[k++] = si[t + 1] + base;
+      } else {
+        I[k++] = si[t + 1] + base;
+        I[k++] = si[t + 2] + base;
+      }
+    }
+    this.vcount += nv;
+    this.icount += ni;
   }
 }
+
+const _n3 = new THREE.Matrix3();
 
 export type GroupName =
   | 'chassis'
@@ -172,25 +276,12 @@ export class GroupSink {
   /** Add geometry given in group-local coordinates. */
   add(mesh: MeshData, f: Finish, m?: THREE.Matrix4): void {
     if (!mesh.tcount) return;
-    const src = m ? mesh.clone().transform(m) : mesh;
     let b = this.buckets.get(f.slot);
     if (!b) {
       b = new Bucket();
       this.buckets.set(f.slot, b);
     }
-    const base = b.vcount;
-    const [r, g, bl] = f.color;
-    for (let i = 0; i < src.pos.length; i++) b.pos.push(src.pos[i]);
-    for (let i = 0; i < src.nrm.length; i++) b.nrm.push(src.nrm[i]);
-    for (let i = 0; i < src.uv.length; i++) b.uv.push(src.uv[i]);
-    const vc = src.col;
-    for (let i = 0; i < src.shade.length; i++) {
-      const s = src.shade[i];
-      if (vc) b.col.push(r * s * vc[i * 3], g * s * vc[i * 3 + 1], bl * s * vc[i * 3 + 2]);
-      else b.col.push(r * s, g * s, bl * s);
-      b.pbr.push(f.metal, f.rough, f.coat, f.micro);
-    }
-    for (let i = 0; i < src.idx.length; i++) b.idx.push(src.idx[i] + base);
+    b.append(mesh, f, m ?? null);
   }
 
   /** Add geometry given in bike coordinates (rest pose). */
@@ -202,7 +293,7 @@ export class GroupSink {
 
   get triangles(): number {
     let n = 0;
-    for (const b of this.buckets.values()) n += b.idx.length / 3;
+    for (const b of this.buckets.values()) n += b.icount / 3;
     return n;
   }
 
@@ -213,15 +304,16 @@ export class GroupSink {
     const e = this.rest.elements;
     const n = nm.elements;
     for (const [slot, b] of this.buckets) {
-      if (!b.idx.length) continue;
+      if (!b.icount) continue;
+      const V = b.vcount;
       const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.Float32BufferAttribute(b.pos, 3));
-      g.setAttribute('normal', new THREE.Float32BufferAttribute(b.nrm, 3));
-      g.setAttribute('uv', new THREE.Float32BufferAttribute(b.uv, 2));
-      g.setAttribute('color', new THREE.Float32BufferAttribute(b.col, 3));
-      g.setAttribute('pbr', new THREE.Float32BufferAttribute(b.pbr, 4));
+      // Exact-size copies (the buckets keep growth headroom).
+      g.setAttribute('position', new THREE.BufferAttribute(b.pos.slice(0, V * 3), 3));
+      g.setAttribute('normal', new THREE.BufferAttribute(b.nrm.slice(0, V * 3), 3));
+      g.setAttribute('uv', new THREE.BufferAttribute(b.uv.slice(0, V * 2), 2));
+      g.setAttribute('color', new THREE.BufferAttribute(b.col.slice(0, V * 3), 3));
+      g.setAttribute('pbr', new THREE.BufferAttribute(b.pbr.slice(0, V * 4), 4));
       if (BIKE_SPACE.has(slot)) {
-        const V = b.vcount;
         const bp = new Float32Array(V * 3);
         const bn = new Float32Array(V * 3);
         for (let i = 0; i < V; i++) {
@@ -237,7 +329,8 @@ export class GroupSink {
         g.setAttribute('bp', new THREE.BufferAttribute(bp, 3));
         g.setAttribute('bn', new THREE.BufferAttribute(bn, 3));
       }
-      g.setIndex(b.vcount > 65535 ? new THREE.Uint32BufferAttribute(b.idx, 1) : new THREE.Uint16BufferAttribute(b.idx, 1));
+      const idx = b.idx.subarray(0, b.icount);
+      g.setIndex(V > 65535 ? new THREE.BufferAttribute(idx.slice(), 1) : new THREE.BufferAttribute(Uint16Array.from(idx), 1));
       g.computeBoundingSphere();
       g.computeBoundingBox();
       g.userData.shared = true; // owned by the bike geometry cache

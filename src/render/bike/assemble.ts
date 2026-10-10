@@ -80,16 +80,19 @@ function plateText(id: string): string {
 }
 
 /** Developer switches (dev/preview.html `skip=`): generator stages to leave out, for isolating parts. */
-export const kitDebug = { skip: new Set<string>() };
+export const kitDebug = { skip: new Set<string>(), timings: null as Map<string, number> | null };
 
 function runKit(ctx: KitContext, warnings: string[]): void {
   const safe = <T>(name: string, fn: () => T, fallback: T): T => {
     if (kitDebug.skip.has(name)) return fallback;
+    const t0 = kitDebug.timings ? performance.now() : 0;
     try {
       return fn();
     } catch (e) {
       warnings.push(`${ctx.bp.id}: ${name}: ${(e as Error).message}`);
       return fallback;
+    } finally {
+      if (kitDebug.timings) kitDebug.timings.set(name, (kitDebug.timings.get(name) ?? 0) + performance.now() - t0);
     }
   };
   safe('front wheel', () => buildWheel(ctx, true), null);
@@ -126,6 +129,7 @@ export function assembleBike(spec: BikeSpec, liveryIndex: number, q: KitQuality)
   runKit(ctx, warnings);
 
   // Livery atlas
+  const tL = performance.now();
   const lc = new LiveryCanvas(q.livery[0], q.livery[1]);
   try {
     bp.livery(lc, livery, { spec, hp, zones: zonesFor(hp, bp), index: idx });
@@ -134,8 +138,10 @@ export function assembleBike(spec: BikeSpec, liveryIndex: number, q: KitQuality)
   }
   const lvTex = lc.textures();
   const decalTex = ctx.decals.texture();
+  if (kitDebug.timings) kitDebug.timings.set('livery', performance.now() - tL);
 
   // Geometry
+  const tG = performance.now();
   const geoms = new Map<GroupName, Map<Slot, THREE.BufferGeometry>>();
   let triangles = 0;
   let vertices = 0;
@@ -147,6 +153,7 @@ export function assembleBike(spec: BikeSpec, liveryIndex: number, q: KitQuality)
     }
     geoms.set(g, m);
   }
+  if (kitDebug.timings) kitDebug.timings.set('merge', performance.now() - tG);
 
   // Materials owned by the build
   if (!hardShared) hardShared = bikeHardMaterial(true);

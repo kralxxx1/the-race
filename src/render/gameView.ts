@@ -6,6 +6,7 @@ import type { AudioCar } from '../audio/gameAudio';
 import { clamp, damp, noise1, smoothstep } from '../core/math';
 import type { GameSession, SessionEvent } from '../game/session';
 import { BikeModel } from './bikeModel';
+import { bikeDetailFrom } from './bike/bikeSettings';
 import { CameraRig } from './camera';
 import { CrashSim } from './crash';
 import { GlowPoints, Rain, Smoke, Sparks } from './effects';
@@ -74,7 +75,7 @@ export class GameView {
     scene.add(this.traffic.group);
     for (const c of session.traffic.cars) this.traffic.spawn(c);
 
-    this.bike = new BikeModel(session.cfg.bike, liveryIndex, this.mats, { headlightSpot: env.headlights });
+    this.bike = new BikeModel(session.cfg.bike, liveryIndex, this.mats, { headlightSpot: env.headlights, detail: bikeDetailFrom(settings) });
     scene.add(this.bike.root);
     this.rider = new RiderModel(this.mats, this.bike.livery, session.cfg.bike.style);
     this.bike.riderMount.add(this.rider.root);

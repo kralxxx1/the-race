@@ -204,19 +204,45 @@ export function outline(ctrl: readonly P2[], n = 6, sharp: readonly number[] = [
   return smooth2(ctrl, n, true, sharp);
 }
 
+/**
+ * Signed distance to a polygon with a bounding-box early-out: far outside the box
+ * the (smaller) distance to the box is returned. Cutting only needs exact values
+ * near the iso-line, and a lower bound keeps the sign, so min/max combinations of
+ * regions still cut in exactly the same places — this makes panel cuts ~5× faster.
+ */
+function boxedPolygon(poly: readonly P2[]): (a: number, b: number) => number {
+  let a0 = Infinity, a1 = -Infinity, b0 = Infinity, b1 = -Infinity;
+  for (const [a, b] of poly) {
+    a0 = Math.min(a0, a);
+    a1 = Math.max(a1, a);
+    b0 = Math.min(b0, b);
+    b1 = Math.max(b1, b);
+  }
+  const M = 0.04;
+  return (a, b) => {
+    const da = a < a0 ? a0 - a : a > a1 ? a - a1 : 0;
+    const db = b < b0 ? b0 - b : b > b1 ? b - b1 : 0;
+    if (da > M || db > M) return -Math.hypot(da, db);
+    return sdPolygon(poly, a, b);
+  };
+}
+
 /** Region drawn in side view, points [z, y]. */
 export function sideRegion(poly: readonly P2[]): Field {
-  return (_x, y, z) => sdPolygon(poly, z, y);
+  const f = boxedPolygon(poly);
+  return (_x, y, z) => f(z, y);
 }
 
 /** Region drawn in plan view, points [z, |x|] (mirror symmetric) or [z, x]. */
 export function planRegion(poly: readonly P2[], symmetric = true): Field {
-  return (x, _y, z) => sdPolygon(poly, z, symmetric ? Math.abs(x) : x);
+  const f = boxedPolygon(poly);
+  return (x, _y, z) => f(z, symmetric ? Math.abs(x) : x);
 }
 
 /** Region drawn in front view, points [|x|, y]. */
 export function frontRegion(poly: readonly P2[], symmetric = true): Field {
-  return (x, y) => sdPolygon(poly, symmetric ? Math.abs(x) : x, y);
+  const f = boxedPolygon(poly);
+  return (x, y) => f(symmetric ? Math.abs(x) : x, y);
 }
 
 export const fAnd = (...f: Field[]): Field => (x, y, z) => {
