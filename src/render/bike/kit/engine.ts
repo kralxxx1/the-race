@@ -137,8 +137,9 @@ function buildCrankcase(ctx: KitContext, c: THREE.Vector3, k: number, width: num
   if (boxer) return;
   // Side covers: clutch (right), alternator + sprocket (left)
   const cover = (x: number, y: number, z: number, r: number, depth: number, side: number, f: Finish) => {
-    const prof: P2[] = [[0, depth], [r * 0.4, depth], [r * 0.8, depth * 0.85], [r * 0.98, depth * 0.45], [r, 0], [r * 1.03, -0.004]];
-    const m = lathe(prof.slice().reverse() as P2[], { segs: ctx.seg(36, 12), axis: 'x' });
+    // Flat machined face, chamfered rim and a short skirt: reads as a cast cover, not a dome.
+    const prof: P2[] = [[0, depth], [r * 0.3, depth], [r * 0.34, depth * 0.94], [r * 0.78, depth * 0.9], [r * 0.9, depth * 0.72], [r * 0.97, depth * 0.3], [r, 0], [r * 1.03, -0.004]];
+    const m = lathe(prof.slice().reverse() as P2[], { segs: ctx.seg(36, 12), axis: 'x', sharp: [4, 6] });
     ctx.add('chassis', m, f, mul(T(x, y, z), side > 0 ? new THREE.Matrix4() : new THREE.Matrix4().makeScale(-1, 1, 1)));
     if (ctx.micro) {
       const n = Math.max(6, Math.round(r * 90));
