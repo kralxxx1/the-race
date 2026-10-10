@@ -1,10 +1,12 @@
 import type { BikeSpec } from '../data/bikes';
+import type { MissionDef } from '../data/career';
 import type { EnvDef } from '../data/environments';
 import type { ModeDef } from '../data/modes';
 import { clamp, smoothstep } from '../core/math';
 import { BikePhysics, neutralInput, type PhysicsEvent, type RiderInput, type RoadLimits, type Upgrades } from '../physics/bike';
 import { RoadPath, laneCenter, makeLaneConfig, pavedHalfWidth, type LaneConfig } from '../world/road';
 import { TrafficSystem, type TrafficCar, type TrafficEvent } from '../world/traffic';
+import { MissionTracker, emptySample, type MissionFailReason, type MissionSample } from './missions';
 import { NEAR_MISS_CLEARANCE, ScoreKeeper } from './scoring';
 
 export const FIXED_DT = 1 / 120;
@@ -13,6 +15,7 @@ export const PLAYER_HALF_LENGTH = 1.05;
 export const COUNTDOWN_SECONDS = 3;
 
 export type SessionState = 'countdown' | 'running' | 'crashed' | 'finished';
+export type FinishReason = 'crash' | 'timeUp' | 'quit' | 'missionComplete' | 'missionFailed';
 
 export type SessionEvent =
   | PhysicsEvent
@@ -24,7 +27,18 @@ export type SessionEvent =
   | { type: 'timeUp' }
   | { type: 'go' }
   | { type: 'respawn' }
-  | { type: 'finish'; reason: 'crash' | 'timeUp' | 'quit' };
+  | { type: 'missionArmed' }
+  | { type: 'missionComplete'; stars: number }
+  | { type: 'missionFailed'; reason: MissionFailReason }
+  | { type: 'finish'; reason: FinishReason };
+
+/** Rider aids applied to the raw input before the physics sees it. */
+export interface SessionAssists {
+  /** Traffic Rider style auto-acceleration: full throttle unless braking. */
+  autoThrottle?: boolean;
+  /** Holding the wheelie control also holds the throttle at the balance point. */
+  wheelie?: boolean;
+}
 
 export interface SessionConfig {
   bike: BikeSpec;
@@ -33,6 +47,9 @@ export interface SessionConfig {
   env: EnvDef;
   seed: number;
   autoShift: boolean;
+  /** Career mission played in this run (its objective decides when the run ends). */
+  mission?: MissionDef;
+  assists?: SessionAssists;
 }
 
 /** The complete, rendering-independent game simulation of one run. */
@@ -52,10 +69,15 @@ export class GameSession {
   checkpointIndex = 0;
   crashTime = 0;
   crashedInto: TrafficCar | null = null;
-  finishReason: 'crash' | 'timeUp' | 'quit' | null = null;
+  finishReason: FinishReason | null = null;
   events: SessionEvent[] = [];
+  /** Objective tracker of a career run (null in free modes). */
+  readonly mission: MissionTracker | null;
   private acc = 0;
   private respawnTimer = 0;
+  private readonly sample: MissionSample = emptySample();
+  private readonly inputBuf: RiderInput = neutralInput();
+  private readonly subInput: RiderInput = neutralInput();
 
   constructor(readonly cfg: SessionConfig) {
     this.road = new RoadPath(cfg.seed, 1, cfg.env.terrain === 'city' ? 0.5 : 1);
@@ -67,6 +89,8 @@ export class GameSession {
     this.startPosition();
     this.traffic.reset(this.bike.s);
     if (cfg.mode.timer) this.timeLeft = cfg.mode.timer.start;
+    this.mission = cfg.mission ? new MissionTracker(cfg.mission) : null;
+    if (this.mission) this.timeLeft = this.mission.timeLeft;
   }
 
   /** Lane index the player starts in (rightmost lane of the player's direction). */
@@ -110,15 +134,42 @@ export class GameSession {
     this.stepPhysics(dt, this.state === 'running' ? input : neutralInput());
   }
 
-  private stepPhysics(dt: number, input: RiderInput): void {
+  /** Apply the rider aids; returns a reused buffer (no per-frame allocation). */
+  private assisted(input: RiderInput): RiderInput {
+    const out = this.inputBuf;
+    out.throttle = input.throttle;
+    out.brake = input.brake;
+    out.steer = input.steer;
+    out.wheelie = input.wheelie;
+    out.shiftUp = input.shiftUp;
+    out.shiftDown = input.shiftDown;
+    // Explicit, so a grid-revving `clutchIn` never leaks into the ride.
+    out.clutchIn = input.clutchIn === true;
+    const a = this.cfg.assists;
+    if (!a || this.state !== 'running') return out;
+    if (a.autoThrottle) out.throttle = out.brake > 0.05 ? 0 : 1;
+    if (a.wheelie && out.wheelie && out.brake < 0.2) {
+      // Full drive pulls the front up to the bike's balance point; ease off near the limit.
+      out.throttle = Math.max(out.throttle, this.bike.pitch > 0.75 ? 0.6 : 1);
+    }
+    return out;
+  }
+
+  private stepPhysics(dt: number, rawInput: RiderInput): void {
     this.acc += dt;
     let steps = 0;
     let first = true;
+    const input = this.assisted(rawInput);
     while (this.acc >= FIXED_DT && steps < MAX_STEPS_PER_FRAME) {
       this.acc -= FIXED_DT;
       steps++;
       // Edge-triggered shift requests only apply to the first sub-step.
-      const inp = first ? input : { ...input, shiftUp: false, shiftDown: false };
+      let inp = input;
+      if (!first) {
+        inp = Object.assign(this.subInput, input);
+        inp.shiftUp = false;
+        inp.shiftDown = false;
+      }
       first = false;
       this.fixedStep(FIXED_DT, inp);
       if (this.state === 'finished') break;
@@ -151,6 +202,7 @@ export class GameSession {
       this.checkTraffic();
       if (bike.crashed && this.state === 'running') this.onCrash();
       this.updateTimer(dt);
+      if (this.mission && this.state === 'running') this.updateMission(dt, bike.distance - s0);
     } else if (this.state === 'crashed') {
       this.crashTime += dt;
       if (this.cfg.mode.respawn) {
@@ -233,11 +285,60 @@ export class GameSession {
     }
   }
 
+  private updateMission(dt: number, distanceDelta: number): void {
+    const m = this.mission!;
+    const sc = this.score;
+    const sm = this.sample;
+    sm.time = this.time;
+    sm.distance = sc.distance;
+    sm.distanceDelta = distanceDelta;
+    sm.speedKmh = this.bike.speedKmh;
+    sm.score = sc.score;
+    sm.overtakes = sc.overtakes;
+    sm.nearMisses = sc.nearMisses;
+    sm.combo = sc.combo;
+    sm.maxCombo = sc.maxCombo;
+    sm.topSpeed = sc.topSpeed;
+    sm.oppositeDistance = sc.oppositeDistance;
+    sm.wheelieDistance = sc.wheelieDistance;
+    sm.currentWheelie = sc.currentWheelie;
+    sm.longestWheelie = sc.longestWheelie;
+    m.update(dt, sm);
+    this.timeLeft = m.timeLeft;
+    this.flushMissionEvents();
+    if (m.status === 'complete') this.finish('missionComplete');
+    else if (m.status === 'failed') this.finish('missionFailed');
+  }
+
+  private flushMissionEvents(): void {
+    const m = this.mission;
+    if (!m) return;
+    for (const e of m.events) {
+      if (e.type === 'checkpoint') this.events.push({ type: 'checkpoint', index: e.index, bonus: e.bonus });
+      else if (e.type === 'armed') this.events.push({ type: 'missionArmed' });
+      else if (e.type === 'complete') this.events.push({ type: 'missionComplete', stars: e.stars });
+      else {
+        if (e.reason === 'timeUp') this.events.push({ type: 'timeUp' });
+        this.events.push({ type: 'missionFailed', reason: e.reason });
+      }
+    }
+    m.events.length = 0;
+  }
+
   private onCrash(): void {
     this.state = 'crashed';
     this.crashTime = 0;
     this.traffic.triggerIncident(this.bike.s);
     if (this.cfg.mode.respawn) this.respawnTimer = 2.8;
+    if (this.mission) {
+      this.mission.fail('crash');
+      this.flushMissionEvents();
+    }
+  }
+
+  /** End the run after the crash cinematic (missions report a failed mission). */
+  finishAfterCrash(): void {
+    this.finish(this.mission ? 'missionFailed' : 'crash');
   }
 
   private respawn(): void {
@@ -260,8 +361,17 @@ export class GameSession {
     this.events.push({ type: 'respawn' });
   }
 
-  finish(reason: 'crash' | 'timeUp' | 'quit'): void {
+  finish(reason: FinishReason): void {
     if (this.state === 'finished') return;
+    const m = this.mission;
+    if (m) {
+      // Ending a mission run any other way than completing it counts as a failure.
+      if (m.running) {
+        m.fail(reason === 'quit' ? 'quit' : reason === 'timeUp' ? 'timeUp' : 'crash');
+        this.flushMissionEvents();
+      }
+      if (reason !== 'quit') reason = m.status === 'complete' ? 'missionComplete' : 'missionFailed';
+    }
     this.state = 'finished';
     this.finishReason = reason;
     this.events.push({ type: 'finish', reason });
