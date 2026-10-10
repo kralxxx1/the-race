@@ -79,8 +79,12 @@ function plateText(id: string): string {
   return `${city} ${l} ${100 + (h % 899)}`;
 }
 
+/** Developer switches (dev/preview.html `skip=`): generator stages to leave out, for isolating parts. */
+export const kitDebug = { skip: new Set<string>() };
+
 function runKit(ctx: KitContext, warnings: string[]): void {
   const safe = <T>(name: string, fn: () => T, fallback: T): T => {
+    if (kitDebug.skip.has(name)) return fallback;
     try {
       return fn();
     } catch (e) {

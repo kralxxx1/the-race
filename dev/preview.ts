@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { BIKES, getBike } from '../src/data/bikes';
 import { ENV_BY_ID } from '../src/data/environments';
+import { kitDebug } from '../src/render/bike/assemble';
 import type { BikeDetail } from '../src/render/bike/quality';
 import { BikeModel } from '../src/render/bikeModel';
 import { Materials } from '../src/render/materials';
@@ -55,6 +56,7 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
+for (const k of (q.get('skip') ?? '').split(',')) if (k) kitDebug.skip.add(k.replace(/_/g, ' '));
 const t0 = performance.now();
 const bike = new BikeModel(spec, num('livery', 0), mats, { detail: (q.get('detail') as BikeDetail) ?? 'high', lod: num('lod', 0) === 1 ? 1 : 0 });
 const buildMs = performance.now() - t0;
@@ -133,7 +135,52 @@ switch (view) {
 }
 if (q.has('yaw') && view === 'free') place(num('yaw', 0), num('h', 1.1), num('dist', 4.4), 30);
 cam.updateProjectionMatrix();
-renderer.render(scene, cam);
+let shotCam: THREE.Camera = cam;
+if (q.get('ortho') === '1') {
+  // Orthographic elevation views with a 0.1 m grid: read real dimensions straight off the image.
+  const ppm = num('ppm', 440);
+  const hw = innerWidth / ppm / 2, hh = innerHeight / ppm / 2;
+  const o = new THREE.OrthographicCamera(-hw, hw, hh, -hh, 0.01, 50);
+  const cz = num('cz', -0.72), cy = num('cy', 0.66);
+  if (view === 'front') o.position.set(0, cy, -10), o.lookAt(0, cy, 0);
+  else if (view === 'rear') o.position.set(0, cy, 10), o.lookAt(0, cy, 0);
+  else if (view === 'top') o.position.set(0, 10, cz), o.up.set(-1, 0, 0), o.lookAt(0, 0, cz);
+  else if (view === 'left') o.position.set(-10, cy, cz), o.lookAt(0, cy, cz);
+  else o.position.set(10, cy, cz), o.lookAt(0, cy, cz);
+  o.updateMatrixWorld(true);
+  shotCam = o;
+  const cv = document.createElement('canvas');
+  cv.width = innerWidth;
+  cv.height = innerHeight;
+  cv.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none';
+  document.body.appendChild(cv);
+  const g = cv.getContext('2d')!;
+  g.font = '11px monospace';
+  const proj = (p: THREE.Vector3) => p.project(o);
+  const toPx = (v: THREE.Vector3): [number, number] => [(v.x * 0.5 + 0.5) * innerWidth, (-v.y * 0.5 + 0.5) * innerHeight];
+  for (let i = -30; i <= 30; i++) {
+    const major = i % 5 === 0;
+    g.strokeStyle = major ? 'rgba(255,220,80,0.55)' : 'rgba(255,255,255,0.13)';
+    g.fillStyle = 'rgba(255,220,80,0.9)';
+    const a = i / 10;
+    // vertical lines (horizontal axis) and horizontal lines (vertical axis)
+    const h1 = view === 'front' || view === 'rear' ? new THREE.Vector3(a, 0, 0) : view === 'top' ? new THREE.Vector3(0, 0, a) : new THREE.Vector3(0, 0, a);
+    const v1 = view === 'top' ? new THREE.Vector3(a, 0, 0) : new THREE.Vector3(0, a, 0);
+    const [hx] = toPx(proj(h1.clone()));
+    const [, vy] = toPx(proj(v1.clone()));
+    g.beginPath();
+    g.moveTo(hx, 0);
+    g.lineTo(hx, innerHeight);
+    g.moveTo(0, vy);
+    g.lineTo(innerWidth, vy);
+    g.stroke();
+    if (major) {
+      g.fillText(a.toFixed(1), hx + 2, innerHeight - 4);
+      g.fillText(a.toFixed(1), 2, vy - 2);
+    }
+  }
+}
+renderer.render(scene, shotCam);
 const info = renderer.info.render;
 const stats = { bike: spec.id, view, tris: bike.stats.triangles, drawCalls: bike.stats.drawCalls, buildMs: Math.round(buildMs), kitMs: Math.round(bike.stats.buildMs), frameTris: info.triangles, frameCalls: info.calls };
 document.title = `${spec.id} ${view} tris=${stats.tris} calls=${stats.drawCalls} build=${stats.buildMs}ms`;
