@@ -66,6 +66,8 @@ export function dailyStatus(state: DailyState, now: Date): DailyStatus {
   const last = state.lastDay ? dayNumber(state.lastDay) : null;
   let availability: DailyAvailability = 'available';
   let nextStreak = 1;
+  // An unreadable clock (invalid Date, year outside 1000-9999) must never produce a claim.
+  if (today === null) availability = 'clockBehind';
   if (today !== null && last !== null) {
     const diff = today - last;
     if (diff === 0) availability = 'claimed';

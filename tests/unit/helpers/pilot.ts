@@ -172,3 +172,10 @@ export function runSession(sess: GameSession, drive: (s: GameSession) => RiderIn
     if (sess.state === 'crashed') sess.finishAfterCrash();
   }
 }
+
+/** Hold a lateral position at (at most) a given speed: for scripted scenarios on an empty road. */
+export function holdLane(sess: GameSession, targetD: number, maxMps: number, extra: Partial<RiderInput> = {}): RiderInput {
+  const b = sess.bike;
+  const steer = Math.max(-1, Math.min(1, (targetD - b.d) * 0.7 - b.heading * 8));
+  return { ...neutralInput(), steer, throttle: b.v < maxMps ? 1 : 0, brake: b.v > maxMps + 3 ? 0.5 : 0, ...extra };
+}
