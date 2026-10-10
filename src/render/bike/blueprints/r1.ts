@@ -44,7 +44,8 @@ function r1Fairing(): OutlineBody {
   const zs = [NOSE, -1.626, -1.615, -1.6, -1.58, -1.55, -1.51, -1.46, -1.4, -1.33, -1.25, -1.16, -1.06, -0.96, -0.86, -0.76, -0.66, -0.56, -0.46];
   // Section templates, top centre → bottom edge (x / half-width, height fraction).
   // Trapezoid sections: narrow creased shoulders under the screen, widest low down around the radiator.
-  const face: P2[] = [[0, 1], [0.3, 0.96], [0.62, 0.86], [0.85, 0.68], [0.97, 0.46], [0.98, 0.24], [0.86, 0.06], [0.66, 0]];
+  // The face template closes under the chin (intakes are cut into it explicitly).
+  const face: P2[] = [[0, 1], [0.3, 0.96], [0.62, 0.86], [0.85, 0.68], [0.97, 0.46], [0.9, 0.21], [0.56, 0.045], [0, 0]];
   const cowl: P2[] = [[0, 1], [0.35, 0.985], [0.64, 0.935], [0.82, 0.8], [0.95, 0.6], [1, 0.38], [0.95, 0.12], [0.75, 0]];
   const side: P2[] = [[0, 1], [0.38, 0.99], [0.68, 0.95], [0.86, 0.82], [0.97, 0.6], [1, 0.36], [0.93, 0.1], [0.6, 0]];
   const back: P2[] = [[0, 1], [0.42, 0.99], [0.72, 0.95], [0.9, 0.82], [0.98, 0.6], [1, 0.36], [0.92, 0.1], [0.5, 0]];
