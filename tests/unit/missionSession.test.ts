@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { BIKES, getBike } from '../../src/data/bikes';
-import { MISSION_BY_ID, missionMode, type MissionDef, type Objective } from '../../src/data/career';
+import { MISSIONS, MISSION_BY_ID, missionMode, type MissionDef, type Objective } from '../../src/data/career';
 import { resolveEnvironment } from '../../src/data/maps';
 import { MODE_BY_ID } from '../../src/data/modes';
 import { GameSession, type SessionAssists, type SessionEvent } from '../../src/game/session';
 import { neutralInput } from '../../src/physics/bike';
 import { laneCenter } from '../../src/world/road';
 import { mk } from './helpers/mission';
-import { holdLane, missionSession, pilotInput, runSession, slowestBikeFor, type PilotOptions } from './helpers/pilot';
+import { holdLane, missionSession, pilotInput, referenceRiderOptions, runSession, slowestBikeFor } from './helpers/pilot';
 import { addCar, clearRoad } from './helpers/scenario';
 
 const R1 = getBike('yamaha-r1');
@@ -85,6 +85,17 @@ describe('mission sessions: start and finish', () => {
     const settled = s.bike.s;
     for (let i = 0; i < 60; i++) s.update(1 / 60, neutralInput());
     expect(s.bike.s).toBe(settled); // the coast phase ends: a finished session is frozen
+  });
+
+  it('never rolls through a vehicle during the coast phase', () => {
+    const s = lab({ type: 'distance', meters: 300 });
+    run(s, (x) => holdLane(x, startLaneD(x), 40), 60);
+    expect(s.state).toBe('finished');
+    const car = addCar(s, { ahead: 14, lane: s.startLane, kmh: 0, dOffset: -0.6 });
+    for (let i = 0; i < 60 * 4; i++) s.update(1 / 60, neutralInput());
+    expect(s.bike.s).toBeLessThan(car.s - car.length / 2);
+    expect(s.bike.crashed).toBe(false);
+    expect(s.mission!.status).toBe('complete');
   });
 
   it('running out of time fails the mission with missionFailed and a timeUp event', () => {
@@ -329,46 +340,35 @@ describe('rider assists', () => {
 
 describe('reference rider completes missions on the real traffic simulation', () => {
   /** One mission per objective type, ridden by the headless reference rider on the slowest qualifying bike. */
-  const SAMPLE: [id: string, opts: Partial<PilotOptions>][] = [
-    ['suburb-01', {}], // distance
-    ['suburb-02', {}], // overtakes
-    ['suburb-04', {}], // checkpoints
-    ['suburb-05', { hunt: true }], // near misses
-    ['suburb-06', { preferOpposite: true }], // opposite lane (two-way)
-    ['suburb-08', { wheelie: true }], // wheelie (total)
-    ['suburb-09', {}], // survive
-    ['suburb-10', {}], // score within distance
-    ['highway-03', {}], // top speed
-    ['highway-06', { minSpeed: 100 / 3.6 }], // keep speed
-    ['city-09', { wheelie: true }], // wheelie (single)
-    ['desert-02', {}], // top speed on a faster bike
-    ['coast-01', {}], // long distance with a time limit
-  ];
+  const SAMPLE = ['suburb-01', 'suburb-02', 'suburb-04', 'suburb-05', 'suburb-06', 'suburb-08', 'suburb-09', 'suburb-10', 'highway-03', 'highway-06', 'city-09', 'desert-02', 'coast-01'];
 
-  it.each(SAMPLE)('%s', (id, extra) => {
+  /** The simulation is deterministic per seed; a human gets several tries, so does the reference rider. */
+  function completes(id: string, seeds: number[]): GameSession | null {
     const def = MISSION_BY_ID.get(id)!;
     const bike = slowestBikeFor(def.minTopSpeed);
     expect(bike.topSpeed).toBeGreaterThanOrEqual(def.minTopSpeed);
-    const t = def.objective.type;
-    const hunt = extra.hunt === true;
-    const opts: PilotOptions = {
-      cruise: Math.min(hunt ? 34 : 99, (bike.topSpeed / 3.6) * (t === 'topSpeed' ? 1.02 : 0.9)),
-      ...extra,
-    };
-    // The simulation is deterministic per seed; a human gets several tries, so does the reference rider.
-    let best: GameSession | null = null;
-    for (const seed of [11, 23, 37, 41, 53]) {
+    const opts = referenceRiderOptions(def, bike);
+    for (const seed of seeds) {
       const s = missionSession(def, bike, seed);
       runSession(s, (x) => pilotInput(x, opts), def.limit.time ? def.limit.time + 120 : 700);
-      if (s.mission!.status === 'complete') {
-        best = s;
-        break;
-      }
+      if (s.mission!.status === 'complete') return s;
     }
+    return null;
+  }
+
+  it.each(SAMPLE)('%s', (id) => {
+    const best = completes(id, [11, 23, 37, 41, 53]);
     expect(best, `${id} completed by the reference rider`).not.toBeNull();
     expect(best!.finishReason).toBe('missionComplete');
     expect(best!.mission!.stars).toBeGreaterThanOrEqual(1);
     expect(best!.mission!.result().progress).toBe(1);
+  });
+
+  // The full sweep takes a couple of minutes: FULL_CAREER=1 npx vitest run tests/unit/missionSession.test.ts
+  it.skipIf(!process.env.FULL_CAREER)('all 80 missions are completable (full sweep)', { timeout: 900_000 }, () => {
+    const failed: string[] = [];
+    for (const d of MISSIONS) if (!completes(d.id, [11, 23, 37, 41, 53, 67, 79, 83])) failed.push(d.id);
+    expect(failed).toEqual([]);
   });
 
   it('every bike that meets the requirement can in principle start the mission (bike coverage)', () => {

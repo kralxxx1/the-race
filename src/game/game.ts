@@ -198,6 +198,7 @@ export class Game {
   }
 
   private toCareer(): void {
+    if (this.session) this.endRun(); // coming from a mission result card
     this.state = 'career';
     this.showroom.framing = 0;
     this.screens.career(true);

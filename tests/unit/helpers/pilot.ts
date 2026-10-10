@@ -179,3 +179,18 @@ export function holdLane(sess: GameSession, targetD: number, maxMps: number, ext
   const steer = Math.max(-1, Math.min(1, (targetD - b.d) * 0.7 - b.heading * 8));
   return { ...neutralInput(), steer, throttle: b.v < maxMps ? 1 : 0, brake: b.v > maxMps + 3 ? 0.5 : 0, ...extra };
 }
+
+/** How the reference rider plays a mission: the objective decides lane preference, hunting and speed. */
+export function referenceRiderOptions(def: MissionDef, bike: BikeSpec, extra: Partial<PilotOptions> = {}): PilotOptions {
+  const t = def.objective.type;
+  const hunt = t === 'nearMisses' || t === 'combo';
+  return {
+    // Hunting rides at a sane 122 km/h (lane-line passes at higher speed are a crash lottery); top-speed runs go all out.
+    cruise: Math.min(hunt ? 34 : 99, (bike.topSpeed / 3.6) * (t === 'topSpeed' ? 1.02 : 0.9)),
+    preferOpposite: t === 'oppositeLane',
+    hunt,
+    wheelie: t === 'wheelie',
+    minSpeed: def.objective.type === 'keepSpeed' ? def.objective.kmh / 3.6 : undefined,
+    ...extra,
+  };
+}

@@ -14,7 +14,7 @@ const MAX_STEPS_PER_FRAME = 12;
 export const PLAYER_HALF_LENGTH = 1.05;
 export const COUNTDOWN_SECONDS = 3;
 const COAST_SECONDS = 3;
-const COAST_INPUT: RiderInput = { ...neutralInput(), brake: 0.45 };
+const COAST_INPUT: RiderInput = { ...neutralInput(), brake: 0.7 };
 
 export type SessionState = 'countdown' | 'running' | 'crashed' | 'finished';
 export type FinishReason = 'crash' | 'timeUp' | 'quit' | 'missionComplete' | 'missionFailed';
@@ -127,7 +127,9 @@ export class GameSession {
     if (this.state === 'finished') {
       if (this.coast > 0) {
         this.coast -= dt;
-        this.stepPhysics(dt, COAST_INPUT);
+        // Collisions are no longer judged once the run is decided, so hold the world still
+        // rather than let the bike roll through a vehicle it is about to reach.
+        if (!this.coastBlocked()) this.stepPhysics(dt, COAST_INPUT);
       }
       return;
     }
@@ -142,6 +144,18 @@ export class GameSession {
       return;
     }
     this.stepPhysics(dt, this.state === 'running' ? input : neutralInput());
+  }
+
+  /** Is a vehicle within braking reach straight ahead? (Only used while coasting after the finish.) */
+  private coastBlocked(): boolean {
+    const b = this.bike;
+    const reach = b.v * 0.8 + 8;
+    for (const c of this.traffic.cars) {
+      const gap = c.s - b.s - c.length / 2 - PLAYER_HALF_LENGTH;
+      if (gap < -1 || gap > reach) continue;
+      if (Math.abs(c.d - b.d) < c.width / 2 + 1.0) return true;
+    }
+    return false;
   }
 
   /** Apply the rider aids; returns a reused buffer (no per-frame allocation). */
