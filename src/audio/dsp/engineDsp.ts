@@ -726,8 +726,11 @@ export class EngineDSP implements EngineSynthesizer {
     const mechMix = mech * this.gMech;
     let l = exL * this.gEx + inMix * 0.92 + mechMix;
     let r = exR * this.gEx + inMix * 1.0 + mechMix * 0.95;
-    l = this.eqHighL.process(this.eqLowL.process(this.dcL.process(l))) * this.outGain;
-    r = this.eqHighR.process(this.eqLowR.process(this.dcR.process(r))) * this.outGain;
+    // Perceptual dynamics: a real idle is ~20 dB under full throttle, which is too quiet to carry a game.
+    // Lift the bottom of the range (idle and light coasting) so the engine is always present.
+    const lift = (1 + 1.7 * clamp01(1 - (rpm - p.idle) / (p.idle * 2.5))) * (1 + 0.35 * (1 - clamp01(thr / 0.1)));
+    l = this.eqHighL.process(this.eqLowL.process(this.dcL.process(l * lift))) * this.outGain;
+    r = this.eqHighR.process(this.eqLowR.process(this.dcR.process(r * lift))) * this.outGain;
     if (this.measure) {
       this.sL = l;
       this.sR = r;

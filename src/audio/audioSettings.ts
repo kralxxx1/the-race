@@ -104,7 +104,6 @@ export const AUDIO_SETTINGS: SettingDef[] = [
     label: 'Motor sentezi kalitesi',
     type: 'select',
     default: 'high',
-    restart: true,
     presets: { low: 'low', medium: 'medium', high: 'high', ultra: 'ultra', extreme: 'extreme' },
     options: [
       { value: 'low', label: 'Düşük', help: 'Tek borulu egzoz, ses işlemcisi hafif (telefon).' },

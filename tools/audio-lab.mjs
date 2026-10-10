@@ -182,6 +182,50 @@ try {
     const nn = feats.map((f, i) => { let best = [1e9, '']; feats.forEach((g, j) => { if (i !== j) { const d = bikeDistance(f, g); if (d < best[0]) best = [d, g.id]; } }); return [best[0], f.id, best[1]]; }).sort((a, b) => a[0] - b[0]);
     console.log('--- nearest neighbour per bike (lowest first)');
     for (const [d, a, b] of nn.slice(0, 20)) console.log(d.toFixed(2), a, '→', b);
+  } else if (cmd === 'benchworld') {
+    const { WorldDSP } = await load('/src/audio/dsp/worldDsp.ts');
+    const { TrafficHost } = await load('/src/audio/dsp/trafficHost.ts');
+    const sr = 48000;
+    const time = (fn, label) => {
+      for (let i = 0; i < 300; i++) fn();
+      const n = 3000; const t = new Float64Array(n);
+      for (let i = 0; i < n; i++) { const t0 = process.hrtime.bigint(); fn(); t[i] = Number(process.hrtime.bigint() - t0) / 1e6; }
+      t.sort();
+      console.log(label.padEnd(34), `mean ${(t.reduce((a, c) => a + c, 0) / n).toFixed(3)} ms  p99 ${t[Math.floor(n * 0.99)].toFixed(3)}  max ${t[n - 1].toFixed(3)}`);
+    };
+    const w = new WorldDSP(sr);
+    w.setControls({ speed: 40, wet: 1, rain: 1, rumble: 1, scrape: 1, slide: 1, brake: 1, gust: 0.5 }); w.snap();
+    const L = new Float32Array(128), R = new Float32Array(128);
+    time(() => w.process(L, R, 0, 128), 'world DSP (everything active)');
+    const w2 = new WorldDSP(sr); w2.setControls({ speed: 40 }); w2.snap();
+    time(() => w2.process(L, R, 0, 128), 'world DSP (wind + tyre hum)');
+    for (const slots of [3, 5, 8]) {
+      const h = new TrafficHost(8, sr);
+      for (let i = 0; i < slots; i++) { h.handle({ t: 'cfg', i, type: ['car', 'diesel', 'bus', 'van', 'sport', 'moto', 'car', 'diesel'][i], seed: i + 1, on: true }); h.handle({ t: 'ctl', i, speed: 25, load: 0.5, doppler: 1, dist: 20, brake: 0 }); }
+      const outs = Array.from({ length: 8 }, () => new Float32Array(128));
+      time(() => h.render(outs, 128), `traffic host, ${slots} voices`);
+    }
+  } else if (cmd === 'sfx') {
+    const [outDir] = args;
+    mkdirSync(outDir, { recursive: true });
+    const sfx = await load('/src/audio/dsp/sfxDsp.ts');
+    const { WorldDSP } = await load('/src/audio/dsp/worldDsp.ts');
+    const { spectrogram } = await load('/src/audio/dsp/analysis.ts');
+    const sr = 44100;
+    const items = {
+      'crash-metal': sfx.metalCrunch(sr, 1), 'crash-plastic': sfx.plasticCrack(sr, 1), 'crash-glass': sfx.glassShatter(sr, 1), 'crash-body': sfx.bodyThud(sr, 1), 'crash-tumble': sfx.bikeTumble(sr, 1),
+      'whoosh-car': sfx.whoosh(sr, 1, false), 'whoosh-truck': sfx.whoosh(sr, 3, true), thunder: sfx.thunder(sr, 1), 'horn-car': sfx.horn(sr, 'car'), 'horn-truck': sfx.horn(sr, 'truck'),
+    };
+    const world = (name, ctl, secs = 4) => { const w = new WorldDSP(sr); w.setControls(ctl); w.snap(); const n = sr * secs; const L = new Float32Array(n), R = new Float32Array(n); for (let o = 0; o < n; o += 128) w.process(L, R, o, 128); items[name] = L; };
+    world('world-wind-20', { speed: 20 }); world('world-wind-60', { speed: 60 }); world('world-wet-30', { speed: 30, wet: 1, windGain: 0 }); world('world-rumble-25', { speed: 25, rumble: 1, windGain: 0 }); world('world-gravel-15', { speed: 15, gravel: 1, windGain: 0 }); world('world-rain', { speed: 15, rain: 1, windGain: 0, tyreGain: 0 }); world('world-slide', { speed: 20, slide: 1, scrape: 1, windGain: 0, tyreGain: 0 }); world('world-squeal', { speed: 20, brake: 1, windGain: 0 });
+    for (const [name, x] of Object.entries(items)) {
+      writeFileSync(join(outDir, `${name}.wav`), wavBuffer(x, x, sr));
+      const sg = spectrogram(x, sr, 1024, 256, 80, 16000);
+      const w = sg.frames, h = sg.bins; const rgb = Buffer.alloc(w * h * 3);
+      for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) { const c = heat((sg.data[xx * h + (h - 1 - y)] + 90) / 80); const o = (y * w + xx) * 3; rgb[o] = c[0]; rgb[o + 1] = c[1]; rgb[o + 2] = c[2]; }
+      writePng(join(outDir, `${name}.png`), w, h, rgb);
+      console.log(name.padEnd(18), `${(x.length / sr).toFixed(2)}s`, `${w}x${h}`);
+    }
   } else if (cmd === 'pair') {
     const { BIKES } = await load('/src/data/bikes.ts');
     const { voiceParams } = await load('/src/audio/voices.ts');

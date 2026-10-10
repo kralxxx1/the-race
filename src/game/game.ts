@@ -3,6 +3,7 @@ import { MAP_BY_ID, resolveEnvironment, type MapId, type RunConfig } from '../da
 import { MODE_BY_ID, type ModeId } from '../data/modes';
 import { audio } from '../audio/audioEngine';
 import { EngineSound } from '../audio/engineSound';
+import type { ReverbKind } from '../audio/dsp/impulse';
 import { GameAudio, UiSounds, surfaceAt, type AudioCar } from '../audio/gameAudio';
 import { clamp } from '../core/math';
 import { InputManager, type FrameInput } from '../input/input';
@@ -661,6 +662,10 @@ export class Game {
       },
       get audioBackend() {
         return audio.ctx ? (audio.workletReady ? 'worklet' : 'script') : 'none';
+      },
+      /** Force an acoustic zone ('tunnel', 'canyon'…) or pass null for the map's own. */
+      setAudioZone: (z: ReverbKind | null) => {
+        game.gameAudio.zoneOverride = z;
       },
       get memory() {
         const m = game.renderer.renderer.info.memory;

@@ -155,6 +155,8 @@ export class GameAudio {
   private readonly near: AudioCar[] = [];
   private offConfig: (() => void) | null = null;
   private crashTime = 0;
+  /** Debug/tools: force an acoustic zone regardless of the map (null = automatic). */
+  zoneOverride: ReverbKind | null = null;
 
   constructor(private engine: AudioEngine) {}
 
@@ -286,7 +288,7 @@ export class GameAudio {
   }
 
   private updateZone(override?: ReverbKind): void {
-    const want = override ?? zoneForEnv(this.env!);
+    const want = this.zoneOverride ?? override ?? zoneForEnv(this.env!);
     if (want !== this.zone) {
       this.zone = want;
       this.engine.reverb.setZone(want);

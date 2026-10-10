@@ -41,8 +41,13 @@ export class EngineSound {
   private crank = 0;
   private flare = 0;
   private lastLoad = 0;
+  private lastRpm = 0;
+  private lastThr = 0;
+  private lastSpeed = 0;
   private timers: number[] = [];
   private offConfig: (() => void) | null = null;
+  /** Settings the current DSP voice was built with; a change rebuilds it (and cross-fades). */
+  private builtKey = '';
 
   constructor(
     private readonly engine: AudioEngine,
@@ -76,6 +81,7 @@ export class EngineSound {
     if (!ctx) return;
     const c = this.engine.cfg;
     const params = voiceParams(this.spec, { exhaustMod: c.exhaust, dryClutch: c.dryClutch });
+    this.builtKey = this.configKey();
     this.out = ctx.createGain();
     this.out.gain.value = 1;
     this.out.connect(this.dest);
@@ -98,9 +104,28 @@ export class EngineSound {
     else if (this.pending.length < 64) this.pending.push(m);
   }
 
+  private configKey(): string {
+    const c = this.engine.cfg;
+    return `${c.exhaust}|${c.dryClutch}|${c.quality}`;
+  }
+
   private pushConfig(): void {
     if (!this.dsp || this.disposed) return;
     const c = this.engine.cfg;
+    if (this.configKey() !== this.builtKey) {
+      // Exhaust type, dry clutch or synthesis quality changed: build the new voice and cross-fade.
+      const old = { dsp: this.dsp, out: this.out };
+      this.dsp = null;
+      this.out = null;
+      old.dsp.post({ t: 'gain', g: 0 });
+      this.build();
+      this.post({ t: 'ctl', rpm: this.lastRpm, thr: this.lastThr, load: this.lastLoad, speed: this.lastSpeed });
+      window.setTimeout(() => {
+        old.dsp.dispose();
+        old.out?.disconnect();
+      }, 300);
+      return;
+    }
     this.post({ t: 'mix', mix: this.mix(), bal: this.perspective === 'rider' ? c.intakeBalance : 0 });
     this.post({ t: 'crackle', k: c.crackle });
   }
@@ -140,7 +165,10 @@ export class EngineSound {
     }
     this.lastLoad += (s.load - this.lastLoad) * Math.min(1, dt * 14);
     const thr = this.crank > 0 ? 0.1 : s.throttle;
-    this.post({ t: 'ctl', rpm: this.isElectric ? s.rpm : rpm, thr, load: this.crank > 0 ? 0 : this.lastLoad, speed: s.speed ?? 0 });
+    this.lastRpm = this.isElectric ? s.rpm : rpm;
+    this.lastThr = thr;
+    this.lastSpeed = s.speed ?? 0;
+    this.post({ t: 'ctl', rpm: this.lastRpm, thr, load: this.crank > 0 ? 0 : this.lastLoad, speed: this.lastSpeed });
   }
 
   /** Quickshifter / clutch ignition cut on a gear change. */
