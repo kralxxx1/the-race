@@ -3,6 +3,7 @@ import { FIRST_PERSON_MIX } from './params';
 import { WaveguideNetwork } from './waveguide';
 import {
   BQ_STRIDE,
+  Biquad,
   HalfBandDecimator,
   HighPass1,
   LowPass1,
@@ -65,25 +66,19 @@ const INTAKE_DURATION = 245;
 
 const TABLE_N = 256;
 
-/** Exhaust-port pressure pulse for one valve opening, x ∈ [0,1) over the open duration. */
-function buildExhaustTable(sharp: boolean): Float32Array {
+/**
+ * Slow "piston-driven" part of the exhaust flow over the valve-open period, x ∈ [0,1).
+ * The explosive blowdown spike that rides on top of it is generated in the time domain
+ * (see `exhaustSample`) because its duration is set by gas dynamics, not by crank angle.
+ */
+function buildHumpTable(): Float32Array {
   const t = new Float32Array(TABLE_N + 1);
   for (let i = 0; i <= TABLE_N; i++) {
     const x = Math.min(1, i / TABLE_N);
-    // Valve curtain area opens and closes smoothly.
+    // Valve curtain area opens and closes smoothly; displacement flow peaks early in the stroke.
     const curtain = Math.pow(Math.sin(Math.PI * Math.min(1, x * 1.02)), 0.6);
-    let v: number;
-    if (sharp) {
-      // Blowdown: cylinder pressure dumps through the opening valve — a steep
-      // spike in the first ~15 % — followed by the piston-driven displacement phase.
-      const rise = 1 - Math.exp(-x / 0.018);
-      const spike = Math.exp(-x / 0.075);
-      v = rise * (0.95 * spike + 0.24 * Math.sin(Math.PI * x));
-    } else {
-      const rise = 1 - Math.exp(-x / 0.05);
-      v = rise * (0.5 * Math.exp(-x / 0.2) + 0.36 * Math.sin(Math.PI * x));
-    }
-    t[i] = v * curtain;
+    const rise = 1 - Math.exp(-x / 0.05);
+    t[i] = rise * (0.5 * Math.exp(-x / 0.2) + 0.36 * Math.sin(Math.PI * x)) * curtain;
   }
   return t;
 }
@@ -109,8 +104,7 @@ function buildIntakeTable(): Float32Array {
   return t;
 }
 
-const EXH_SHARP = buildExhaustTable(true);
-const EXH_SOFT = buildExhaustTable(false);
+const HUMP = buildHumpTable();
 const RASP = buildRaspTable();
 const INTAKE = buildIntakeTable();
 
@@ -241,6 +235,9 @@ export class EngineDSP implements EngineSynthesizer {
   private readonly cyl: number;
   private readonly crank: Float32Array;
   private readonly sizeScale: number;
+  /** Blowdown spike time constant (s) and rise-envelope decay per sample. */
+  private readonly spikeTau: number;
+  private readonly riseDecay: number;
 
   // Event table (sorted by angle).
   private readonly evAngle: Float64Array;
@@ -255,7 +252,10 @@ export class EngineDSP implements EngineSynthesizer {
   private readonly exPsi: Float64Array;
   private readonly exAmp: Float64Array;
   private readonly exRasp: Float64Array;
-  private readonly exSharp: Float64Array;
+  private readonly exSpike: Float64Array;
+  private readonly exSpikeEnv: Float64Array;
+  private readonly exRiseEnv: Float64Array;
+  private readonly exSpikeDecay: Float64Array;
   private readonly exDur: Float64Array;
   private readonly exOn: Uint8Array;
   private readonly inPsi: Float64Array;
@@ -300,8 +300,12 @@ export class EngineDSP implements EngineSynthesizer {
   private readonly hissHp: HighPass1;
   private readonly roarEnv: LowPass1;
   private readonly flowEnv: LowPass1;
-  private readonly dcL: HighPass1;
-  private readonly dcR: HighPass1;
+  private readonly dcL = new Biquad();
+  private readonly dcR = new Biquad();
+  private readonly eqLowL = new Biquad();
+  private readonly eqLowR = new Biquad();
+  private readonly eqHighL = new Biquad();
+  private readonly eqHighR = new Biquad();
   private readonly intakeHp: HighPass1;
   private readonly mechLp: LowPass1;
   private bodyCount: number;
@@ -352,6 +356,9 @@ export class EngineDSP implements EngineSynthesizer {
     this.net = new WaveguideNetwork(net, this.netCyl ? this.cyl : 1, isr, params.gasC);
     this.crank = crankSpeedTable(params.firing.length ? params.firing : [0]);
     this.sizeScale = Math.sqrt(Math.max(50, params.ccPerCyl) / 250);
+    // Bigger bores and valves open slower: ~0.35 ms for a 100 cc/cyl 600, ~0.9 ms for a 600 cc V-twin cylinder.
+    this.spikeTau = clampN(0.00028 + 0.00000105 * params.ccPerCyl, 0.0003, 0.001);
+    this.riseDecay = Math.exp(-1 / (isr * 0.00006));
 
     // Events.
     const evs: { a: number; t: number; c: number }[] = [];
@@ -374,7 +381,10 @@ export class EngineDSP implements EngineSynthesizer {
     this.exPsi = new Float64Array(n);
     this.exAmp = new Float64Array(n);
     this.exRasp = new Float64Array(n);
-    this.exSharp = new Float64Array(n);
+    this.exSpike = new Float64Array(n);
+    this.exSpikeEnv = new Float64Array(n);
+    this.exRiseEnv = new Float64Array(n);
+    this.exSpikeDecay = new Float64Array(n);
     this.exDur = new Float64Array(n).fill(params.exhDuration);
     this.exOn = new Uint8Array(n);
     this.inPsi = new Float64Array(n);
@@ -396,8 +406,9 @@ export class EngineDSP implements EngineSynthesizer {
     this.hissHp = new HighPass1(2500, isr);
     this.roarEnv = new LowPass1(60, isr);
     this.flowEnv = new LowPass1(40, isr);
-    this.dcL = new HighPass1(18, isr);
-    this.dcR = new HighPass1(18, isr);
+    // Sub-bass below ~55 Hz is mostly unipolar-pulse sub-harmonics: no small speaker plays it and it eats headroom.
+    this.dcL.highpass(70, 0.62, isr);
+    this.dcR.highpass(70, 0.62, isr);
     this.intakeHp = new HighPass1(35, isr);
     this.mechLp = new LowPass1(9000, isr);
 
@@ -467,6 +478,10 @@ export class EngineDSP implements EngineSynthesizer {
     const hz = 16000 - 11000 * clamp01(mix.rearShadow);
     this.shadowL.set(hz, this.isr);
     this.shadowR.set(hz, this.isr);
+    this.eqLowL.lowShelf(140, mix.lowDb, this.isr);
+    this.eqLowR.lowShelf(140, mix.lowDb, this.isr);
+    this.eqHighL.highShelf(mix.highHz, mix.highDb, this.isr);
+    this.eqHighR.highShelf(mix.highHz, mix.highDb, this.isr);
   }
 
   trigger(e: EngineEvent, value = 1): void {
@@ -585,7 +600,7 @@ export class EngineDSP implements EngineSynthesizer {
     let res = 0;
     for (let i = 0; i < this.mufCount; i++) res += bandpass(this.bank, R_MUF + i, mono) * p.muffler.resonators[i].gain;
     const env = this.flowEnv.process(Math.abs(flow));
-    const hiss = this.hissHp.process(rng.white()) * env * p.muffler.hiss * 0.6;
+    const hiss = this.hissHp.process(rng.white()) * env * p.muffler.hiss * 0.22;
     exL += res + hiss;
     exR += res + hiss;
     if (this.shadowAmt > 0) {
@@ -614,7 +629,7 @@ export class EngineDSP implements EngineSynthesizer {
     const roarLevel = it.roar * Math.pow(thr, 1.4) * Math.pow(Math.min(1.1, rpmFrac), 1.1) * (0.35 + roarEnv);
     if (roarLevel > 1e-4) {
       const w = this.pink.next();
-      intake += (bandpass(b, R_ROAR_A, w) * 1.4 + bandpass(b, R_ROAR_B, rng.white()) * 0.45) * roarLevel;
+      intake += (bandpass(b, R_ROAR_A, w) * 0.2 + bandpass(b, R_ROAR_B, w) * 0.04) * roarLevel;
     }
     const sp = this.speed;
     if (it.ramAir > 0 && sp > 5) intake += bandpass(b, R_RAM, this.pink.next()) * it.ramAir * Math.min(2.2, (sp / 70) * (sp / 70)) * 0.35;
@@ -710,8 +725,8 @@ export class EngineDSP implements EngineSynthesizer {
     const mechMix = mech * this.gMech;
     let l = exL * this.gEx + inMix * 0.92 + mechMix;
     let r = exR * this.gEx + inMix * 1.0 + mechMix * 0.95;
-    l = this.dcL.process(l) * this.outGain;
-    r = this.dcR.process(r) * this.outGain;
+    l = this.eqHighL.process(this.eqLowL.process(this.dcL.process(l))) * this.outGain;
+    r = this.eqHighR.process(this.eqLowR.process(this.dcR.process(r))) * this.outGain;
     if (this.measure) {
       this.sL = l;
       this.sR = r;
@@ -732,9 +747,14 @@ export class EngineDSP implements EngineSynthesizer {
       return 0;
     }
     if (x < 0) return 0;
-    const sharp = this.exSharp[c];
-    const shape = table(EXH_SOFT, x) * (1 - sharp) + table(EXH_SHARP, x) * sharp;
-    return this.exAmp[c] * shape + this.exRasp[c] * table(RASP, x) * this.rng.white();
+    // Blowdown spike: time-domain (fixed milliseconds), so low-rpm engines stay crisp and
+    // high-rpm engines get their tight "crack". Two multiplicative envelopes, no exp() per sample.
+    const sEnv = this.exSpikeEnv[c];
+    const rEnv = this.exRiseEnv[c];
+    this.exSpikeEnv[c] = sEnv * this.exSpikeDecay[c];
+    this.exRiseEnv[c] = rEnv * this.riseDecay;
+    const spike = this.exSpike[c] * sEnv * (1 - rEnv);
+    return this.exAmp[c] * (table(HUMP, x) + spike) + this.exRasp[c] * table(RASP, x) * this.pink.next();
   }
 
   /** Advance the crank and dispatch every valve/firing event crossed. */
@@ -820,19 +840,24 @@ export class EngineDSP implements EngineSynthesizer {
         // Cycle-to-cycle timing scatter (always a small delay); afterburn pops light late.
         const delay = Math.abs(rng.gauss()) * p.roughness * 3 + (pop > 0 ? 30 * rng.next() : 0);
         this.exPsi[c] = late - delay;
+        const tauS = this.spikeTau;
         if (pop > 0) {
           // A pop is a sharp explosion in the header: high amplitude, very noisy, short.
           this.exAmp[c] = pop * 1.1 * this.sizeScale;
-          this.exRasp[c] = pop * 1.3 * this.sizeScale;
-          this.exSharp[c] = 1;
+          this.exRasp[c] = pop * 0.9 * this.sizeScale;
+          this.exSpike[c] = 3.2;
           this.exDur[c] = p.exhDuration * 0.55;
+          this.exSpikeDecay[c] = Math.exp(-1 / (this.isr * tauS * 0.7));
         } else {
           const loadSharp = clamp01(p.blowdown * (0.35 + 0.65 * Math.min(1, amp / 0.9)));
           this.exAmp[c] = amp * this.sizeScale;
-          this.exRasp[c] = amp * this.sizeScale * p.rasp * (0.25 + 0.75 * load) * 0.9;
-          this.exSharp[c] = loadSharp;
+          this.exRasp[c] = amp * this.sizeScale * p.rasp * (0.25 + 0.75 * load) * 0.28;
+          this.exSpike[c] = 0.25 + 3.4 * loadSharp;
           this.exDur[c] = p.exhDuration;
+          this.exSpikeDecay[c] = Math.exp(-1 / (this.isr * tauS * (0.85 + 0.3 * rng.next())));
         }
+        this.exSpikeEnv[c] = 1;
+        this.exRiseEnv[c] = 1;
         this.exOn[c] = 1;
         break;
       }

@@ -175,10 +175,16 @@ export interface EngineMix {
   rearShadow: number;
   /** Stereo width of outlets (0 = mono). */
   width: number;
+  /** Listener EQ: low-shelf (≈140 Hz) and high-shelf gains in dB, shelf corner in Hz. */
+  lowDb: number;
+  highDb: number;
+  highHz: number;
 }
 
-export const FIRST_PERSON_MIX: EngineMix = { exhaust: 0.85, intake: 1.0, mech: 0.75, rearShadow: 0.6, width: 0.55 };
-export const EXTERNAL_MIX: EngineMix = { exhaust: 1.0, intake: 0.32, mech: 0.4, rearShadow: 0, width: 0.85 };
+/** Rider on the bike: helmet and ear protection tame the highs, chest/seat add body. */
+export const FIRST_PERSON_MIX: EngineMix = { exhaust: 0.85, intake: 1.0, mech: 1.4, rearShadow: 0.6, width: 0.55, lowDb: 4, highDb: -9, highHz: 1800 };
+/** Bystander a few metres away (garage rev preview, replay cameras). */
+export const EXTERNAL_MIX: EngineMix = { exhaust: 1.0, intake: 0.32, mech: 0.4, rearShadow: 0, width: 0.85, lowDb: 1, highDb: -3, highHz: 3000 };
 
 export type VehicleEngineType = 'car' | 'diesel' | 'bus' | 'moto' | 'sport';
 

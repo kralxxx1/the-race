@@ -214,3 +214,72 @@ export class HalfBandDecimator {
     return acc;
   }
 }
+
+/** General RBJ biquad (direct form II transposed) for the few static EQ stages of a voice. */
+export class Biquad {
+  private b0 = 1;
+  private b1 = 0;
+  private b2 = 0;
+  private a1 = 0;
+  private a2 = 0;
+  private z1 = 0;
+  private z2 = 0;
+
+  private load(b0: number, b1: number, b2: number, a0: number, a1: number, a2: number): this {
+    this.b0 = b0 / a0;
+    this.b1 = b1 / a0;
+    this.b2 = b2 / a0;
+    this.a1 = a1 / a0;
+    this.a2 = a2 / a0;
+    return this;
+  }
+
+  lowpass(hz: number, q: number, sr: number): this {
+    const w = (TWO_PI * Math.min(hz, sr * 0.45)) / sr;
+    const c = Math.cos(w);
+    const al = Math.sin(w) / (2 * q);
+    return this.load((1 - c) / 2, 1 - c, (1 - c) / 2, 1 + al, -2 * c, 1 - al);
+  }
+
+  highpass(hz: number, q: number, sr: number): this {
+    const w = (TWO_PI * Math.min(hz, sr * 0.45)) / sr;
+    const c = Math.cos(w);
+    const al = Math.sin(w) / (2 * q);
+    return this.load((1 + c) / 2, -(1 + c), (1 + c) / 2, 1 + al, -2 * c, 1 - al);
+  }
+
+  lowShelf(hz: number, gainDb: number, sr: number): this {
+    const A = Math.pow(10, gainDb / 40);
+    const w = (TWO_PI * Math.min(hz, sr * 0.45)) / sr;
+    const c = Math.cos(w);
+    const al = (Math.sin(w) / 2) * Math.SQRT2;
+    const t = 2 * Math.sqrt(A) * al;
+    return this.load(A * (A + 1 - (A - 1) * c + t), 2 * A * (A - 1 - (A + 1) * c), A * (A + 1 - (A - 1) * c - t), A + 1 + (A - 1) * c + t, -2 * (A - 1 + (A + 1) * c), A + 1 + (A - 1) * c - t);
+  }
+
+  highShelf(hz: number, gainDb: number, sr: number): this {
+    const A = Math.pow(10, gainDb / 40);
+    const w = (TWO_PI * Math.min(hz, sr * 0.45)) / sr;
+    const c = Math.cos(w);
+    const al = (Math.sin(w) / 2) * Math.SQRT2;
+    const t = 2 * Math.sqrt(A) * al;
+    return this.load(A * (A + 1 + (A - 1) * c + t), -2 * A * (A - 1 + (A + 1) * c), A * (A + 1 + (A - 1) * c - t), A + 1 - (A - 1) * c + t, 2 * (A - 1 - (A + 1) * c), A + 1 - (A - 1) * c - t);
+  }
+
+  peaking(hz: number, q: number, gainDb: number, sr: number): this {
+    const A = Math.pow(10, gainDb / 40);
+    const w = (TWO_PI * Math.min(hz, sr * 0.45)) / sr;
+    const c = Math.cos(w);
+    const al = Math.sin(w) / (2 * q);
+    return this.load(1 + al * A, -2 * c, 1 - al * A, 1 + al / A, -2 * c, 1 - al / A);
+  }
+
+  process(x: number): number {
+    const y = this.b0 * x + this.z1;
+    this.z1 = this.b1 * x - this.a1 * y + this.z2;
+    this.z2 = this.b2 * x - this.a2 * y;
+    if (Math.abs(this.z1) < DENORMAL_EPS) this.z1 = 0;
+    if (Math.abs(this.z2) < DENORMAL_EPS) this.z2 = 0;
+    return y;
+  }
+}

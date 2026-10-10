@@ -1,6 +1,7 @@
 import type { BikeSpec } from '../data/bikes';
 import type { EngineVoiceParams } from './dsp/params';
 import { type BikeVoice, type SilencerKind, mech, resolveVoice } from './voiceKit';
+import { VOICE_CALIB } from './voiceCalib';
 
 /**
  * Per-bike engine voices — one entry for every bike in `src/data/bikes.ts`.
@@ -572,6 +573,8 @@ export type ExhaustMod = 'stock' | 'slipon' | 'race';
 export interface VoiceOptions {
   exhaustMod?: ExhaustMod;
   dryClutch?: boolean;
+  /** Apply the generated loudness calibration (default true; the calibration tool turns it off). */
+  calib?: boolean;
 }
 
 function modSilencer(kind: SilencerKind, mod: ExhaustMod): SilencerKind {
@@ -599,7 +602,9 @@ export function voiceParams(spec: BikeSpec, opts: VoiceOptions = {}): EngineVoic
     };
   }
   if (opts.dryClutch && spec.brand === 'Ducati') v = { ...v, mech: { ...v.mech, clutchRattle: Math.max(v.mech.clutchRattle, 1.2) } };
-  return resolveVoice(spec, v);
+  const params = resolveVoice(spec, v);
+  params.calib = opts.calib === false ? 1 : (VOICE_CALIB[spec.id] ?? 1);
+  return params;
 }
 
 /** Generic voice for a bike added to the catalogue without its own entry. */

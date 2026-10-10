@@ -81,6 +81,13 @@ export const SILENCERS: Record<SilencerKind, SilencerPreset> = {
   organ: { chamberLen: 0.28, chamberArea: 4.6, absorbHz: 3000, absorbGain: 0.85, tailLen: 0.09, tailArea: 0.75, toneHz: 5600, hiss: 0.32, hpHz: 66, resonators: [{ hz: 360, q: 2, gain: 0.18 }, { hz: 1350, q: 2.4, gain: 0.14 }] },
 };
 
+/**
+ * A tail pipe radiates volume-velocity *changes* (≈ +6 dB/oct) up to roughly ka ≈ 1. The
+ * network works on flow, so the silencer presets' `hpHz` is scaled up to model that derivative
+ * and stop the unipolar pulse trains from putting a boom at half the firing frequency.
+ */
+const RADIATION_HP = 5;
+
 export interface SilencerTweak {
   kind: SilencerKind;
   /** Multiplies the chamber length (changes its resonances). */
@@ -118,7 +125,7 @@ export function buildNetwork(topo: Topology, sil: SilencerTweak): ExhaustNetwork
     pipe(j, j1, 0.05, inArea, 9000, 0.98);
     pipe(j1, j2, chamberLen, chamberArea, absorbHz, s.absorbGain);
     pipe(j2, open, s.tailLen * tailLenMul, s.tailArea, 9000, 0.97);
-    outlets.push({ pan: pans[Math.min(out, pans.length - 1)], gain: 1, hpHz: s.hpHz });
+    outlets.push({ pan: pans[Math.min(out, pans.length - 1)], gain: 1, hpHz: s.hpHz * RADIATION_HP });
   };
 
   const ports = (headers: number[]) => headers.map((_, c) => node({ k: 'port', cyl: c, refl: 0.62 }));
@@ -180,7 +187,7 @@ export function buildNetwork(topo: Topology, sil: SilencerTweak): ExhaustNetwork
         const out = outlets.length;
         const open = node({ k: 'open', out, refl: 0.86, reflHz: 2200 });
         pipe(j2, open, len, s.tailArea, 9000, 0.97);
-        outlets.push({ pan: pans[Math.min(out, pans.length - 1)], gain: 1 / Math.sqrt(topo.tips.length), hpHz: s.hpHz });
+        outlets.push({ pan: pans[Math.min(out, pans.length - 1)], gain: 1 / Math.sqrt(topo.tips.length), hpHz: s.hpHz * RADIATION_HP });
       });
       break;
     }
