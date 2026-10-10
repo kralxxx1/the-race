@@ -6,7 +6,7 @@ import { PRESET_KEY, SETTINGS, type QualityPreset, type SettingValue } from '../
 import { MAX_UPGRADE, type Upgrades } from '../physics/bike';
 import { clamp, isFiniteNumber } from '../core/math';
 import type { AchievementDef } from '../data/achievements';
-import { grantAchievements, sanitizeAchievements } from '../game/achievements';
+import { achContext, grantAchievements, reachedAchievements, sanitizeAchievements } from '../game/achievements';
 import { emptyCareer, sanitizeCareer, type CareerSave } from '../game/careerProgress';
 import { claimDaily, emptyDaily, sanitizeDaily, type DailyState } from '../game/daily';
 import { sanitizeLeaderboards, type Leaderboards } from '../game/leaderboard';
@@ -370,14 +370,17 @@ export class SaveManager {
   lastUnlocks: AchievementDef[] = [];
 
   /**
-   * Unlock achievements the loaded save already qualifies for (e.g. riders migrating from v3
-   * whose old totals reach early tiers). Pays the rewards once and persists; returns the unlocks.
+   * Mark the achievements the loaded save already qualifies for as unlocked (e.g. riders upgrading
+   * from v3 whose old totals reach early tiers). Retroactive unlocks pay no reward, so loading a
+   * save can never create money or XP; returns the newly marked achievements.
    */
   reconcileAchievements(): AchievementDef[] {
-    const unlocked = this.checkAchievements();
-    if (unlocked.length) this.save();
-    this.lastUnlocks = unlocked;
-    return unlocked;
+    const fresh = reachedAchievements(this.data.achievements, achContext(this.data));
+    const now = Date.now();
+    for (const a of fresh) this.data.achievements[a.id] = now;
+    if (fresh.length) this.save();
+    this.lastUnlocks = fresh;
+    return fresh;
   }
 
   owns(bikeId: string): boolean {
