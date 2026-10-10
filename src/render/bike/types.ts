@@ -25,6 +25,8 @@ export interface WheelDesign {
   stripe?: string;
   /** Tubeless-style cross-spoke rims (spokes anchored on the rim edge, BMW GS / Africa Twin). */
   crossSpoke?: boolean;
+  /** Anodised rim colour for wire wheels (default polished aluminium), e.g. the GS Trophy's gold rims. */
+  rimColor?: string;
 }
 
 export interface WheelEnd {

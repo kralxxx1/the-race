@@ -4,6 +4,7 @@ import { autoBlueprint } from './auto';
 import { ninjaH2Blueprint } from './ninjaH2';
 import { panigaleV4Blueprint } from './panigaleV4';
 import { r1Blueprint } from './r1';
+import { r1250gsBlueprint } from './r1250gs';
 import { s1000rrBlueprint } from './s1000rr';
 import { streetGlideBlueprint } from './streetGlide';
 
@@ -22,6 +23,7 @@ AUTHORED.set('ducati-panigale-v4s', panigaleV4Blueprint);
 AUTHORED.set('kawasaki-h2', ninjaH2Blueprint);
 AUTHORED.set('bmw-s1000rr', s1000rrBlueprint);
 AUTHORED.set('harley-street-glide', streetGlideBlueprint);
+AUTHORED.set('bmw-r1250gs', r1250gsBlueprint);
 
 export function registerBlueprint(id: string, f: Factory): void {
   AUTHORED.set(id, f);
