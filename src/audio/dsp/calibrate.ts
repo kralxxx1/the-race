@@ -1,14 +1,18 @@
-import { aWeightedDb } from './analysis';
+import { bWeightedDb } from './analysis';
 import type { EngineVoiceParams } from './params';
 import { renderSteady } from './synthFactory';
 
-/** Every bike is brought to this A-weighted level (dB re full scale) at 65 % redline, wide-open throttle. */
-export const CALIB_TARGET_A_DB = -22;
+/**
+ * Every bike is brought to this B-weighted level (dB re full scale) at 65 % redline, wide-open throttle.
+ * B rather than A weighting: at engine-like levels the bass still counts, and A would pump the gain of
+ * low-frequency twins and singles up until they clipped.
+ */
+export const CALIB_TARGET_A_DB = -24;
 /** …but never louder than this RMS level at the top of the rev range (headroom for the soft clipper). */
-export const CALIB_RMS_CAP_DB = -9;
+export const CALIB_RMS_CAP_DB = -15;
 
 export interface LoudnessMeasure {
-  /** A-weighted level at the reference condition. */
+  /** B-weighted level at the reference condition (field name kept short for the tool output). */
   aDb: number;
   /** Unweighted RMS at 95 % redline. */
   rmsPeakDb: number;
@@ -33,5 +37,5 @@ export function measureLoudness(params: EngineVoiceParams, engine: { redline: nu
   const top = renderSteady(params, engine.redline * (electric ? 0.9 : 0.95), 1, 1.2, sampleRate, 'high', { measure: true, speed: 45 });
   const a = mono(ref.left, ref.right, Math.round(sampleRate * 0.5));
   const t = mono(top.left, top.right, Math.round(sampleRate * 0.4));
-  return { aDb: aWeightedDb(a, sampleRate), rmsPeakDb: rmsDb(t) };
+  return { aDb: bWeightedDb(a, sampleRate), rmsPeakDb: rmsDb(t) };
 }

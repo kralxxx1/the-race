@@ -233,6 +233,23 @@ export function aWeightDb(f: number): number {
   return 20 * Math.log10(ra + 1e-12) + 2.0;
 }
 
+/** B-weighting (IEC 651) in dB: closer to how loud engines are perceived at high levels than A (which discards the bass). */
+export function bWeightDb(f: number): number {
+  const f2 = f * f;
+  const rb = (12194 * 12194 * f2 * f) / ((f2 + 20.6 * 20.6) * Math.sqrt(f2 + 158.5 * 158.5) * (f2 + 12194 * 12194));
+  return 20 * Math.log10(rb + 1e-12) + 0.17;
+}
+
+/** B-weighted level (dB re 1.0 full scale RMS) of a mono signal. */
+export function bWeightedDb(x: Float32Array, sr: number): number {
+  const size = 4096;
+  const p = powerSpectrum(x, size, size / 2);
+  const binHz = sr / size;
+  let sum = 0;
+  for (let k = 1; k < p.length; k++) sum += p[k] * Math.pow(10, bWeightDb(k * binHz) / 10);
+  return 10 * Math.log10(sum + 1e-14);
+}
+
 /** A-weighted level (dB re 1.0 full scale RMS) of a mono signal. */
 export function aWeightedDb(x: Float32Array, sr: number): number {
   const size = 4096;
