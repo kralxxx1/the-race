@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import type { CameraMode } from '../storage/save';
 import { clamp, damp, lerp, noise1, smoothstep } from '../core/math';
 
 export interface CameraInput {
@@ -28,10 +27,13 @@ const _q2 = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const FWD = new THREE.Vector3(0, 0, -1);
 
+/** Gameplay is first-person only; the other rigs remain for crash/intro shots. */
+export type CameraMode = 'helmet' | 'chase' | 'far' | 'low';
+
 /** Chase / helmet / cinematic camera with spring smoothing, speed FOV and trauma shake. */
 export class CameraRig {
   readonly camera: THREE.PerspectiveCamera;
-  mode: CameraMode = 'chase';
+  mode: CameraMode = 'helmet';
   private pos = new THREE.Vector3();
   /** Smoothed camera offset relative to the bike (no speed-proportional lag). */
   private rel = new THREE.Vector3();

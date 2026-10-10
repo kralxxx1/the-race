@@ -1,5 +1,5 @@
 import { BIKE_BY_ID, getBike } from '../data/bikes';
-import { ENV_BY_ID, type EnvId } from '../data/environments';
+import { MAP_BY_ID, resolveEnvironment, type MapId, type RunConfig } from '../data/maps';
 import { MODE_BY_ID, type ModeId } from '../data/modes';
 import { audio } from '../audio/audioEngine';
 import { EngineSound } from '../audio/engineSound';
@@ -10,16 +10,14 @@ import type { RiderInput, Upgrades } from '../physics/bike';
 import { GameView } from '../render/gameView';
 import { Renderer } from '../render/renderer';
 import { Showroom } from '../render/showroom';
-import { SaveManager, type CameraMode, type Settings } from '../storage/save';
+import { SETTINGS, SettingsReader, type QualityPreset } from '../settings';
+import { SaveManager } from '../storage/save';
 import { Hud } from '../ui/hud';
 import { Screens } from '../ui/screens';
 import { cashForRun, type RunStats } from './scoring';
 import { GameSession, type SessionEvent } from './session';
 
 export type GameState = 'boot' | 'menu' | 'garage' | 'modes' | 'settings' | 'loading' | 'playing' | 'paused' | 'gameover';
-
-const CAMERAS: CameraMode[] = ['chase', 'helmet', 'far', 'low'];
-const CAMERA_LABEL: Record<CameraMode, string> = { chase: 'Takip kamerası', helmet: 'Kask içi kamera', far: 'Uzak kamera', low: 'Alçak kamera' };
 
 /** Top-level state machine wiring simulation, rendering, audio, input and UI. */
 export class Game {
@@ -39,8 +37,10 @@ export class Game {
   private crashTimer = 0;
   private countdownShown = -1;
   private goTimer = 0;
-  private mode: ModeId = 'endless';
-  private env: EnvId = 'day';
+  /** Configuration of the current (or last) run. */
+  private run: RunConfig;
+  /** Typed view over the saved settings record. */
+  readonly settings: SettingsReader;
   private prevScreen: GameState = 'menu';
   private revOn = false;
   private revEngine: EngineSound | null = null;
@@ -70,16 +70,15 @@ export class Game {
     canvas.className = 'game-canvas';
     canvas.setAttribute('data-testid', 'game-canvas');
     container.append(canvas);
-    if (this.save.isNew) this.save.data.settings.quality = autoQuality();
-    const s = this.save.data.settings;
-    this.renderer = new Renderer(canvas, s.quality);
+    if (this.save.isNew) this.save.data.settings = SETTINGS.applyPreset(this.save.data.settings, autoQuality());
+    this.settings = new SettingsReader(SETTINGS, this.save.data.settings);
+    const s = this.settings;
+    this.renderer = new Renderer(canvas, s);
     this.renderer.renderer.info.autoReset = false;
-    this.renderer.speedBlurEnabled = s.speedBlur;
-    this.input.sensitivity = s.steerSensitivity;
-    this.showFps = s.showFps;
-    audio.setVolumes(s.masterVolume, s.engineVolume, s.sfxVolume);
-    this.mode = this.save.data.lastMode;
-    this.env = this.save.data.lastEnv;
+    this.input.sensitivity = s.num('ctrl.steerSensitivity');
+    this.showFps = s.bool('hud.showFps');
+    audio.setVolumes(s.num('audio.master'), s.num('audio.engine'), s.num('audio.sfx'));
+    this.run = { ...this.save.data.lastRun };
     this.showroom = new Showroom(this.renderer);
     this.screens = new Screens(container, this.save, this.actions());
     this.showroom.attachPointer(canvas);
@@ -121,7 +120,7 @@ export class Game {
       openGarage: () => this.toGarage(),
       openSettings: () => this.toSettings(),
       back: () => this.back(),
-      start: (mode: ModeId, env: EnvId) => void this.startRun(mode, env),
+      start: (cfg: RunConfig) => void this.startRun(cfg),
       previewBike: (id: string, livery: number) => this.previewBike(id, livery),
       selectBike: (id: string) => {
         const ok = this.save.select(id);
@@ -144,14 +143,14 @@ export class Game {
         return ok;
       },
       rev: (on: boolean) => this.setRev(on),
-      applySettings: (patch: Partial<Settings>) => this.applySettings(patch),
+      applySettings: (patch: Readonly<Record<string, unknown>>) => this.applySettings(patch),
       resetProgress: () => {
         this.save.reset();
         this.screens.toast('İlerleme sıfırlandı');
         this.previewBike(this.save.data.selectedBike, 0);
       },
       resume: () => this.resume(),
-      restart: () => void this.startRun(this.mode, this.env),
+      restart: () => void this.startRun(this.run),
       quitToMenu: () => this.quitToMenu(),
       enableTilt: () => this.input.enableTilt(),
       click: () => this.uiSounds.click(),
@@ -228,31 +227,36 @@ export class Game {
     this.showroom.setRev(0);
   }
 
-  private applySettings(patch: Partial<Settings>): void {
+  private applySettings(patch: Readonly<Record<string, unknown>>): void {
     const before = this.save.data.settings;
     this.save.updateSettings(patch);
-    const s = this.save.data.settings;
-    audio.setVolumes(s.masterVolume, s.engineVolume, s.sfxVolume);
-    this.input.sensitivity = s.steerSensitivity;
-    this.renderer.speedBlurEnabled = s.speedBlur;
-    this.showFps = s.showFps;
-    this.input.tiltEnabled = s.tiltControls && this.input.tiltEnabled;
-    if (s.quality !== before.quality) {
-      this.renderer.applyQuality(s.quality);
-      if (this.session) this.screens.toast('Grafik kalitesi bir sonraki sürüşte tamamen uygulanır');
+    const after = this.save.data.settings;
+    const s = this.settings;
+    s.update(after);
+    audio.setVolumes(s.num('audio.master'), s.num('audio.engine'), s.num('audio.sfx'));
+    this.input.sensitivity = s.num('ctrl.steerSensitivity');
+    this.showFps = s.bool('hud.showFps');
+    this.input.tiltEnabled = s.bool('ctrl.tilt') && this.input.tiltEnabled;
+    this.renderer.applySettings();
+    const changed = Object.keys(after).filter((k) => after[k] !== before[k]);
+    if (this.session && changed.some((k) => SETTINGS.get(k)?.restart)) {
+      this.screens.toast('Bazı ayarlar bir sonraki sürüşte uygulanır');
     }
-    if (this.view && s.camera !== before.camera) this.view.setCameraMode(s.camera);
-    if (this.session && s.autoShift !== before.autoShift) this.session.bike.autoShift = s.autoShift;
+    if (this.session && changed.includes('play.autoShift')) this.session.bike.autoShift = s.str('play.autoShift') === 'auto';
   }
 
   // ───────────────────────────── runs ─────────────────────────────
-  async startRun(mode: ModeId, env: EnvId): Promise<void> {
+  async startRun(cfg: RunConfig): Promise<void> {
     this.disposeRev();
     this.endRun();
-    this.mode = mode;
-    this.env = env;
-    this.save.data.lastMode = mode;
-    this.save.data.lastEnv = env;
+    const map = MAP_BY_ID.get(cfg.map) ?? MAP_BY_ID.get('highway')!;
+    this.run = {
+      ...cfg,
+      map: map.id,
+      time: map.times.includes(cfg.time) ? cfg.time : map.defaultTime,
+      weather: map.weathers.includes(cfg.weather) ? cfg.weather : map.defaultWeather,
+    };
+    this.save.data.lastRun = { ...this.run };
     this.save.save();
     this.state = 'loading';
     this.screens.loading('Yol hazırlanıyor…', 0.2);
@@ -261,23 +265,24 @@ export class Game {
     const d = this.save.data;
     const bikeId = d.selectedBike;
     const spec = getBike(bikeId);
+    const env = resolveEnvironment(this.run.map, this.run.time, this.run.weather);
     this.runSeed = (this.runSeed * 1103515245 + 12345 + Date.now()) % 2147483647 || 7;
     const session = new GameSession({
       bike: spec,
       upgrades: this.save.upgradesFor(bikeId),
-      mode: MODE_BY_ID.get(mode)!,
-      env: ENV_BY_ID.get(env)!,
-      seed: (this.runSeed % 100000) + 1,
-      autoShift: d.settings.autoShift,
+      mode: MODE_BY_ID.get(this.run.mode)!,
+      env,
+      seed: this.run.seed ?? (this.runSeed % 100000) + 1,
+      autoShift: this.settings.str('play.autoShift') === 'auto',
     });
     this.screens.loading('Trafik ve manzara oluşturuluyor…', 0.6);
     await nextFrame();
-    const view = new GameView(this.renderer, session, ENV_BY_ID.get(env)!, this.save.livery(bikeId), d.settings);
+    const view = new GameView(this.renderer, session, env, this.save.livery(bikeId), this.settings);
     view.lightningCb = (delay) => this.gameAudio.thunder(delay);
     this.session = session;
     this.view = view;
     this.hud = new Hud(this.container, this.input, {
-      camera: () => this.cycleCamera(),
+      camera: () => this.hud?.popup('Birinci şahıs kamera', '', 'info'),
       pause: () => this.pause(),
     });
     this.hud.tacho.configure(spec.engine.redline, spec.engine.limiter, spec.transmission !== 'manual', spec.engine.layout === 'ELECTRIC');
@@ -289,7 +294,7 @@ export class Game {
     this.goTimer = 0;
     this.screens.hideAll();
     audio.unlock();
-    this.gameAudio.begin(spec, ENV_BY_ID.get(env)!, true);
+    this.gameAudio.begin(spec, env, true);
     // Warm up shaders and GPU buffers so the first frames do not stutter.
     try {
       view.traffic.prewarm(this.renderer.renderer, view.cam.camera, view.scene);
@@ -337,22 +342,14 @@ export class Game {
     this.last = performance.now();
   }
 
-  private cycleCamera(): void {
-    const cur = this.save.data.settings.camera;
-    const next = CAMERAS[(CAMERAS.indexOf(cur) + 1) % CAMERAS.length];
-    this.save.updateSettings({ camera: next });
-    this.view?.setCameraMode(next);
-    this.hud?.popup(CAMERA_LABEL[next], '', 'info');
-  }
-
   private recordRun(reason: 'crash' | 'timeUp' | 'quit'): void {
     const s = this.session!;
     const stats = s.score.stats();
     const cash = cashForRun(stats);
-    const record = this.save.recordRun(this.mode, stats, cash);
+    const record = this.save.recordRun(this.run.mode, stats, cash);
     this.lastStats = stats;
     if (reason !== 'quit') {
-      this.screens.gameOver(reason, stats, cash, record, this.mode);
+      this.screens.gameOver(reason, stats, cash, record, this.run.mode);
       if (record) this.uiSounds.record();
     } else {
       this.screens.toast(`+$${cash.toLocaleString('tr-TR')} kazanıldı`);
@@ -496,7 +493,6 @@ export class Game {
         this.pause();
         return;
       }
-      if (input.camera) this.cycleCamera();
       if (input.horn) this.gameAudio.playerHorn();
     }
     // Slow motion for the first moments of a crash.
@@ -532,16 +528,15 @@ export class Game {
 
     // Audio
     const b = s.bike;
-    const camMode = this.save.data.settings.camera;
     this.gameAudio.frame(dt, {
       engine: {
         rpm: b.rpm,
         throttle: b.throttle,
         load: b.crashed ? 0 : b.throttle * (b.shiftTimer > 0 ? 0.2 : 1),
-        distance: camMode === 'helmet' ? 0 : camMode === 'far' ? 0.5 : camMode === 'low' ? 0.12 : 0.25,
+        distance: 0,
       },
       speed: b.v,
-      helmet: camMode === 'helmet',
+      helmet: true,
       scrape: b.scraping,
       wheelspin: b.wheelspin,
       braking: b.brake,
@@ -551,7 +546,7 @@ export class Game {
     t0 = this.prof('audio', t0);
 
     // HUD
-    const units = this.save.data.settings.units;
+    const units = this.settings.str('hud.units');
     const sp = units === 'mph' ? b.speedKmh * 0.621371 : b.speedKmh;
     hud.update(
       {
@@ -570,7 +565,7 @@ export class Game {
         wheelie: b.isWheelie && b.speedKmh >= 50,
         draft: b.draft > 0.35 && b.speedKmh > 60,
         bonusSpeed: b.speedKmh >= 100 && s.state === 'running',
-        best: this.save.data.highScores[this.mode] ?? 0,
+        best: this.save.data.highScores[this.run.mode] ?? 0,
         manual: !b.autoShift,
       },
       dt,
@@ -682,7 +677,11 @@ export class Game {
       clearInput: () => {
         game.input.override = null;
       },
-      start: (mode: ModeId = 'endless', env: EnvId = 'day') => game.startRun(mode, env),
+      /** Start a run: `start('endless', 'highway', 'night', 'rain')`. */
+      start: (mode: ModeId = 'endless', map: MapId = 'highway', time?: RunConfig['time'], weather?: RunConfig['weather']) => {
+        const m = MAP_BY_ID.get(map) ?? MAP_BY_ID.get('highway')!;
+        return game.startRun({ mode, map: m.id, time: time ?? m.defaultTime, weather: weather ?? m.defaultWeather });
+      },
       /** Nearest vehicle ahead of the rider (road-space deltas). */
       nearestCar: () => {
         const s = game.session;
@@ -711,7 +710,7 @@ export class Game {
 }
 
 /** Pick a sensible first-launch quality from the device class. */
-function autoQuality(): Settings['quality'] {
+function autoQuality(): QualityPreset {
   const cores = navigator.hardwareConcurrency || 4;
   const mobile = matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
   if (mobile) return cores >= 8 ? 'medium' : 'low';

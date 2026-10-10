@@ -6,7 +6,7 @@ test('mobile: touch controls drive the bike', async ({ page }) => {
   await seedSave(page);
   await bootToMenu(page);
   await expect(page.getByTestId('btn-play')).toBeVisible();
-  await startRun(page, 'endless', 'day');
+  await startRun(page, 'endless', 'highway');
   const gas = page.locator('.tbtn.gas');
   await expect(gas).toBeVisible();
   await expect(page.locator('.tbtn.brake')).toBeVisible();

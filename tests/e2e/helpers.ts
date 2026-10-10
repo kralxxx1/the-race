@@ -20,7 +20,7 @@ export interface DebugApi {
   memory: { geometries: number; textures: number };
   setInput(o: Record<string, unknown>): void;
   clearInput(): void;
-  start(mode?: string, env?: string): Promise<void>;
+  start(mode?: string, map?: string, time?: string, weather?: string): Promise<void>;
   advance(seconds: number): void;
   crash(): void;
   clearTraffic(): void;
@@ -51,7 +51,7 @@ export async function seedSave(page: Page, save: Record<string, unknown> = {}): 
         sessionStorage.setItem('__seeded', '1');
       }
     },
-    [SAVE_KEY, { version: 2, settings: { quality: 'low', cameraShake: false }, ...save }] as const,
+    [SAVE_KEY, { version: 3, settings: { 'gfx.preset': 'low', 'cam.shake': false }, ...save }] as const,
   );
 }
 
@@ -69,8 +69,8 @@ export async function waitState(page: Page, state: string): Promise<void> {
   await page.waitForFunction((s) => window.__THE_RACE__?.state === s, state, { timeout: 120_000 });
 }
 
-export async function startRun(page: Page, mode = 'endless', env = 'day'): Promise<void> {
-  await page.evaluate(([m, e]) => window.__THE_RACE__.start(m, e), [mode, env]);
+export async function startRun(page: Page, mode = 'endless', map = 'highway', time?: string, weather?: string): Promise<void> {
+  await page.evaluate(([m, mp, t, w]) => window.__THE_RACE__.start(m, mp, t, w), [mode, map, time, weather] as const);
   await waitState(page, 'playing');
 }
 

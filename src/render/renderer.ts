@@ -4,8 +4,8 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import type { Quality } from '../storage/save';
-import { QUALITY, type QualityProfile } from './quality';
+import type { SettingsReader } from '../settings';
+import { profileFromSettings, type QualityProfile } from './quality';
 
 const SpeedShader = {
   uniforms: {
@@ -81,33 +81,43 @@ export class Renderer {
   private bloom: UnrealBloomPass | null = null;
   private speed: ShaderPass | null = null;
   profile: QualityProfile;
-  quality: Quality;
   private width = 1;
   private height = 1;
-  speedBlurEnabled = true;
+  private applied = '';
   /** Adaptive resolution scale applied on top of the quality preset (0.6..1). */
   private dynScale = 1;
   private fpsLow = 0;
   private fpsHigh = 0;
 
-  constructor(readonly canvas: HTMLCanvasElement, quality: Quality) {
-    this.quality = quality;
-    this.profile = QUALITY[quality];
+  constructor(
+    readonly canvas: HTMLCanvasElement,
+    readonly settings: SettingsReader,
+  ) {
+    this.profile = profileFromSettings(settings);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', stencil: false, preserveDrawingBuffer: false });
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.applyQuality(quality);
+    this.applySettings();
   }
 
-  applyQuality(q: Quality): void {
-    this.quality = q;
-    this.profile = QUALITY[q];
-    this.renderer.shadowMap.enabled = this.profile.shadows;
+  /** Re-read graphics settings; rebuilds the post-processing chain only when needed. */
+  applySettings(): void {
+    const p = profileFromSettings(this.settings);
+    const key = JSON.stringify(p);
+    if (key === this.applied) return;
+    const rebuild = !this.applied || p.postFx !== this.profile.postFx || p.bloom !== this.profile.bloom || p.msaa !== this.profile.msaa;
+    this.applied = key;
+    this.profile = p;
+    this.renderer.shadowMap.enabled = p.shadows;
     this.dynScale = 1;
     this.renderer.setPixelRatio(this.pixelRatio);
-    this.buildComposer();
+    if (rebuild) this.buildComposer();
     this.resize();
+  }
+
+  get speedBlurEnabled(): boolean {
+    return this.profile.speedBlur;
   }
 
   private buildComposer(): void {
@@ -143,6 +153,14 @@ export class Renderer {
    * couple of seconds, and restore it when there is headroom again.
    */
   adapt(fps: number, dt: number): void {
+    if (!this.profile.adaptiveResolution) {
+      if (this.dynScale !== 1) {
+        this.dynScale = 1;
+        this.renderer.setPixelRatio(this.pixelRatio);
+        this.resize();
+      }
+      return;
+    }
     if (fps < 42) {
       this.fpsLow += dt;
       this.fpsHigh = 0;

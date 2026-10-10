@@ -1,7 +1,8 @@
 export type EnvId = 'day' | 'sunset' | 'night' | 'rain';
 
 export interface EnvDef {
-  id: EnvId;
+  /** Template id (`day`, `rain`…) or a resolved `map:time:weather` id. */
+  id: string;
   name: string;
   description: string;
   /** Tyre/road friction coefficient. */
@@ -133,4 +134,4 @@ export const ENVIRONMENTS: EnvDef[] = [
   },
 ];
 
-export const ENV_BY_ID: ReadonlyMap<EnvId, EnvDef> = new Map(ENVIRONMENTS.map((e) => [e.id, e]));
+export const ENV_BY_ID: ReadonlyMap<EnvId, EnvDef> = new Map(ENVIRONMENTS.map((e) => [e.id as EnvId, e]));

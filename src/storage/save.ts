@@ -1,30 +1,17 @@
 import { BIKE_BY_ID, STARTER_BIKE_ID } from '../data/bikes';
-import { ENV_BY_ID, type EnvId } from '../data/environments';
+import { MAP_BY_ID, defaultRunConfig, type MapId, type RunConfig, type TimeOfDay, type Weather } from '../data/maps';
 import { MODE_BY_ID, type ModeId } from '../data/modes';
+import { PRESET_KEY, SETTINGS, type QualityPreset, type SettingValue } from '../settings';
 import { MAX_UPGRADE, type Upgrades } from '../physics/bike';
 import { clamp, isFiniteNumber } from '../core/math';
 
 export const SAVE_KEY = 'the-race.save';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
-export type Quality = 'low' | 'medium' | 'high' | 'ultra';
-export type CameraMode = 'helmet' | 'chase' | 'far' | 'low';
+export type Quality = QualityPreset;
 export type SpeedUnit = 'kmh' | 'mph';
-
-export interface Settings {
-  quality: Quality;
-  camera: CameraMode;
-  units: SpeedUnit;
-  autoShift: boolean;
-  masterVolume: number;
-  engineVolume: number;
-  sfxVolume: number;
-  steerSensitivity: number;
-  tiltControls: boolean;
-  speedBlur: boolean;
-  cameraShake: boolean;
-  showFps: boolean;
-}
+/** Flat, registry-validated settings record (see src/settings). */
+export type Settings = Record<string, SettingValue>;
 
 export interface SaveData {
   version: number;
@@ -39,25 +26,14 @@ export interface SaveData {
   totalNearMisses: number;
   gamesPlayed: number;
   topSpeedEver: number;
-  lastMode: ModeId;
-  lastEnv: EnvId;
+  /** The last run configuration chosen in the menus. */
+  lastRun: RunConfig;
   settings: Settings;
 }
 
-export const DEFAULT_SETTINGS: Settings = {
-  quality: 'high',
-  camera: 'chase',
-  units: 'kmh',
-  autoShift: true,
-  masterVolume: 0.8,
-  engineVolume: 0.9,
-  sfxVolume: 0.8,
-  steerSensitivity: 1,
-  tiltControls: false,
-  speedBlur: true,
-  cameraShake: true,
-  showFps: false,
-};
+export function defaultSettings(preset: QualityPreset = 'high'): Settings {
+  return SETTINGS.defaults(preset);
+}
 
 export const STARTING_CASH = 3000;
 
@@ -75,9 +51,8 @@ export function defaultSave(): SaveData {
     totalNearMisses: 0,
     gamesPlayed: 0,
     topSpeedEver: 0,
-    lastMode: 'endless',
-    lastEnv: 'day',
-    settings: { ...DEFAULT_SETTINGS },
+    lastRun: defaultRunConfig(),
+    settings: defaultSettings(),
   };
 }
 
@@ -119,28 +94,54 @@ export function detectStore(): { store: KeyValueStore; persistent: boolean } {
 
 const num = (v: unknown, def: number, lo = 0, hi = Number.MAX_SAFE_INTEGER): number =>
   isFiniteNumber(v) ? clamp(v, lo, hi) : def;
-const bool = (v: unknown, def: boolean): boolean => (typeof v === 'boolean' ? v : def);
 const oneOf = <T extends string>(v: unknown, opts: readonly T[], def: T): T =>
   typeof v === 'string' && (opts as readonly string[]).includes(v) ? (v as T) : def;
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-function sanitizeSettings(raw: unknown): Settings {
+const V2_ENV_TO_RUN: Record<string, Pick<RunConfig, 'map' | 'time' | 'weather'>> = {
+  day: { map: 'highway', time: 'day', weather: 'clear' },
+  sunset: { map: 'desert', time: 'sunset', weather: 'clear' },
+  night: { map: 'city', time: 'night', weather: 'clear' },
+  rain: { map: 'forest', time: 'day', weather: 'rain' },
+};
+
+/** v2 stored settings as named fields; v3 uses namespaced registry keys. */
+function migrateSettingsV2(r: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  // Already-namespaced keys (hand-edited or partially migrated saves) pass through.
+  for (const [k, v] of Object.entries(r)) if (k.includes('.')) out[k] = v;
+  const map: [string, string][] = [
+    ['quality', PRESET_KEY],
+    ['units', 'hud.units'],
+    ['masterVolume', 'audio.master'],
+    ['engineVolume', 'audio.engine'],
+    ['sfxVolume', 'audio.sfx'],
+    ['steerSensitivity', 'ctrl.steerSensitivity'],
+    ['tiltControls', 'ctrl.tilt'],
+    ['speedBlur', 'fx.speedBlur'],
+    ['cameraShake', 'cam.shake'],
+    ['showFps', 'hud.showFps'],
+  ];
+  for (const [from, to] of map) if (from in r) out[to] = r[from];
+  if (typeof r.autoShift === 'boolean') out['play.autoShift'] = r.autoShift ? 'auto' : 'manual';
+  return out;
+}
+
+function sanitizeRun(raw: unknown): RunConfig {
+  const d = defaultRunConfig();
   const r = isObj(raw) ? raw : {};
-  const d = DEFAULT_SETTINGS;
-  return {
-    quality: oneOf(r.quality, ['low', 'medium', 'high', 'ultra'] as const, d.quality),
-    camera: oneOf(r.camera, ['helmet', 'chase', 'far', 'low'] as const, d.camera),
-    units: oneOf(r.units, ['kmh', 'mph'] as const, d.units),
-    autoShift: bool(r.autoShift, d.autoShift),
-    masterVolume: num(r.masterVolume, d.masterVolume, 0, 1),
-    engineVolume: num(r.engineVolume, d.engineVolume, 0, 1),
-    sfxVolume: num(r.sfxVolume, d.sfxVolume, 0, 1),
-    steerSensitivity: num(r.steerSensitivity, d.steerSensitivity, 0.5, 1.5),
-    tiltControls: bool(r.tiltControls, d.tiltControls),
-    speedBlur: bool(r.speedBlur, d.speedBlur),
-    cameraShake: bool(r.cameraShake, d.cameraShake),
-    showFps: bool(r.showFps, d.showFps),
+  const map = MAP_BY_ID.get(r.map as MapId);
+  const out: RunConfig = {
+    mode: oneOf(r.mode, [...MODE_BY_ID.keys()], d.mode),
+    map: map ? map.id : d.map,
+    time: d.time,
+    weather: d.weather,
   };
+  const m = MAP_BY_ID.get(out.map)!;
+  out.time = oneOf<TimeOfDay>(r.time, m.times, m.defaultTime);
+  out.weather = oneOf<Weather>(r.weather, m.weathers, m.defaultWeather);
+  if (typeof r.missionId === 'string' && r.missionId.length < 64) out.missionId = r.missionId;
+  return out;
 }
 
 function sanitizeUpgrades(raw: unknown): Upgrades {
@@ -160,6 +161,13 @@ export function migrate(raw: Record<string, unknown>): Record<string, unknown> {
     delete out.bike;
     delete out.bestScore;
     delete out.bikes;
+  }
+  if (v < 3) {
+    if (isObj(raw.settings)) out.settings = migrateSettingsV2(raw.settings);
+    const run = V2_ENV_TO_RUN[typeof raw.lastEnv === 'string' ? raw.lastEnv : 'day'] ?? V2_ENV_TO_RUN.day;
+    out.lastRun = { mode: raw.lastMode, ...run };
+    delete out.lastMode;
+    delete out.lastEnv;
   }
   out.version = SAVE_VERSION;
   return out;
@@ -206,9 +214,8 @@ export function sanitizeSave(input: unknown): SaveData {
     totalNearMisses: Math.floor(num(raw.totalNearMisses, 0, 0, 1e9)),
     gamesPlayed: Math.floor(num(raw.gamesPlayed, 0, 0, 1e9)),
     topSpeedEver: num(raw.topSpeedEver, 0, 0, 1000),
-    lastMode: oneOf(raw.lastMode, [...MODE_BY_ID.keys()], def.lastMode),
-    lastEnv: oneOf(raw.lastEnv, [...ENV_BY_ID.keys()], def.lastEnv),
-    settings: sanitizeSettings(raw.settings),
+    lastRun: sanitizeRun(raw.lastRun),
+    settings: SETTINGS.sanitize(raw.settings),
   };
 }
 
@@ -353,8 +360,14 @@ export class SaveManager {
     return record;
   }
 
-  updateSettings(patch: Partial<Settings>): void {
-    this.data.settings = sanitizeSettings({ ...this.data.settings, ...patch });
+  /**
+   * Apply setting changes through the registry (validation, presets → "custom").
+   * Keys are applied in order, so `{ 'gfx.preset': 'ultra', 'gfx.msaa': '8' }` works.
+   */
+  updateSettings(patch: Readonly<Record<string, unknown>>): void {
+    let next = this.data.settings;
+    for (const [k, v] of Object.entries(patch)) next = SETTINGS.change(next, k, v);
+    this.data.settings = next;
     this.save();
   }
 }

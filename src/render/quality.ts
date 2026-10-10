@@ -1,5 +1,6 @@
-import type { Quality } from '../storage/save';
+import type { SettingsReader } from '../settings';
 
+/** Render parameters derived from the graphics settings. */
 export interface QualityProfile {
   /** Max device pixel ratio. */
   pixelRatio: number;
@@ -15,11 +16,24 @@ export interface QualityProfile {
   hiResTextures: boolean;
   postFx: boolean;
   rainDrops: number;
+  adaptiveResolution: boolean;
+  speedBlur: boolean;
 }
 
-export const QUALITY: Record<Quality, QualityProfile> = {
-  low: { pixelRatio: 1, shadows: false, shadowMapSize: 1024, bloom: false, msaa: 0, sceneryDensity: 0.35, viewDistance: 700, hiResTextures: false, postFx: false, rainDrops: 900 },
-  medium: { pixelRatio: 1.25, shadows: true, shadowMapSize: 1024, bloom: true, msaa: 0, sceneryDensity: 0.65, viewDistance: 950, hiResTextures: false, postFx: true, rainDrops: 1500 },
-  high: { pixelRatio: 1.5, shadows: true, shadowMapSize: 2048, bloom: true, msaa: 4, sceneryDensity: 1, viewDistance: 1200, hiResTextures: true, postFx: true, rainDrops: 2200 },
-  ultra: { pixelRatio: 2, shadows: true, shadowMapSize: 4096, bloom: true, msaa: 4, sceneryDensity: 1.35, viewDistance: 1450, hiResTextures: true, postFx: true, rainDrops: 3200 },
-};
+export function profileFromSettings(s: SettingsReader): QualityProfile {
+  const shadows = s.str('gfx.shadows');
+  return {
+    pixelRatio: s.num('gfx.pixelRatio'),
+    shadows: shadows !== 'off',
+    shadowMapSize: shadows === 'off' ? 1024 : Number(shadows),
+    bloom: s.bool('fx.bloom'),
+    msaa: Number(s.str('gfx.msaa')) || 0,
+    sceneryDensity: s.num('world.scenery'),
+    viewDistance: s.num('world.viewDistance'),
+    hiResTextures: s.bool('gfx.hiResTextures'),
+    postFx: s.bool('fx.postfx'),
+    rainDrops: s.num('fx.rainDrops'),
+    adaptiveResolution: s.bool('gfx.adaptiveRes'),
+    speedBlur: s.bool('fx.speedBlur'),
+  };
+}

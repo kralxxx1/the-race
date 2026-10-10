@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { EnvDef } from '../data/environments';
-import type { CameraMode, Settings } from '../storage/save';
+import type { SettingsReader } from '../settings';
+import type { CameraMode } from './camera';
 import type { AudioCar } from '../audio/gameAudio';
 import { clamp, damp, noise1, smoothstep } from '../core/math';
 import type { GameSession, SessionEvent } from '../game/session';
@@ -53,7 +54,7 @@ export class GameView {
     private session: GameSession,
     readonly env: EnvDef,
     liveryIndex: number,
-    private settings: Settings,
+    private settings: SettingsReader,
   ) {
     const scene = this.scene;
     const q = renderer.profile;
@@ -79,7 +80,7 @@ export class GameView {
     this.bike.riderMount.add(this.rider.root);
 
     this.cam = new CameraRig(renderer.aspect);
-    this.cam.setMode(settings.camera);
+    this.cam.setMode('helmet');
     this.glow = new GlowPoints(2400, env.fog.near, env.fog.far * 1.1);
     scene.add(this.glow.points, this.sparks.lines, this.smoke.points);
     if (env.rain) {
@@ -276,7 +277,7 @@ export class GameView {
         rpmFrac: b.curve.kind === 'electric' ? 0.2 : b.rpm / s.cfg.bike.engine.redline,
         eye,
         eyeQuat: eyeQ,
-        shakeEnabled: this.settings.cameraShake,
+        shakeEnabled: this.settings.bool('cam.shake'),
       });
     }
     const camPos = this.cam.camera.position;
@@ -311,8 +312,9 @@ export class GameView {
       this.dashTimer = 1 / 15;
       const e = s.cfg.bike.engine;
       const frac = b.curve.kind === 'electric' ? b.v / (s.cfg.bike.topSpeed / 3.6) : (b.rpm - e.idle * 0.8) / (e.limiter - e.idle * 0.8);
-      const sp = this.settings.units === 'mph' ? b.speedKmh * 0.621371 : b.speedKmh;
-      this.bike.updateDash(clamp(frac, 0, 1), b.gear, sp, b.rpm > e.redline * 0.95, this.settings.units);
+      const units = this.settings.str<'kmh' | 'mph'>('hud.units');
+      const sp = units === 'mph' ? b.speedKmh * 0.621371 : b.speedKmh;
+      this.bike.updateDash(clamp(frac, 0, 1), b.gear, sp, b.rpm > e.redline * 0.95, units);
     }
 
     // Post FX

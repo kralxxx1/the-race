@@ -29,7 +29,7 @@ describe('save data sanitising', () => {
       liveryChoice: { 'yamaha-r1': 99, ghost: 1 },
       upgrades: { 'yamaha-r1': { engine: 12, brakes: -3, handling: 2.6 } },
       highScores: { endless: 1234.7, bogus: 5, twoway: -9 },
-      settings: { quality: 'insane', masterVolume: 7, units: 'mph', autoShift: 'yes' },
+      settings: { 'gfx.preset': 'insane', 'audio.master': 7, 'hud.units': 'mph', 'play.autoShift': 'yes', 'gfx.msaa': 3, bogus: 1 },
     });
     expect(d.cash).toBe(0);
     expect(d.ownedBikes).toEqual([STARTER_BIKE_ID, 'yamaha-r1']);
@@ -38,10 +38,40 @@ describe('save data sanitising', () => {
     expect(d.liveryChoice.ghost).toBeUndefined();
     expect(d.upgrades['yamaha-r1']).toEqual({ engine: 5, brakes: 0, handling: 3 });
     expect(d.highScores).toEqual({ endless: 1234 });
-    expect(d.settings.quality).toBe('high');
-    expect(d.settings.masterVolume).toBe(1);
-    expect(d.settings.units).toBe('mph');
-    expect(d.settings.autoShift).toBe(true);
+    expect(d.settings['gfx.preset']).toBe('high');
+    expect(d.settings['audio.master']).toBe(1);
+    expect(d.settings['hud.units']).toBe('mph');
+    expect(d.settings['play.autoShift']).toBe('auto');
+    expect(d.settings['gfx.msaa']).toBe('4');
+    expect(d.settings.bogus).toBeUndefined();
+  });
+
+  it('migrates v2 settings and last environment to v3 keys', () => {
+    const d = sanitizeSave({
+      version: 2,
+      lastMode: 'twoway',
+      lastEnv: 'rain',
+      settings: { quality: 'low', units: 'mph', autoShift: false, masterVolume: 0.3, cameraShake: false, camera: 'chase' },
+    });
+    expect(d.version).toBe(SAVE_VERSION);
+    expect(d.settings['gfx.preset']).toBe('low');
+    // Preset-bearing values follow the migrated preset.
+    expect(d.settings['gfx.shadows']).toBe('off');
+    expect(d.settings['hud.units']).toBe('mph');
+    expect(d.settings['play.autoShift']).toBe('manual');
+    expect(d.settings['audio.master']).toBe(0.3);
+    expect(d.settings['cam.shake']).toBe(false);
+    expect(d.lastRun).toEqual({ mode: 'twoway', map: 'forest', time: 'day', weather: 'rain' });
+    expect((d as unknown as Record<string, unknown>).lastEnv).toBeUndefined();
+  });
+
+  it('sanitises the last run against the map', () => {
+    const d = sanitizeSave({ version: 3, lastRun: { mode: 'nope', map: 'desert', time: 'night', weather: 'snow' } });
+    expect(d.lastRun.mode).toBe('endless');
+    expect(d.lastRun.map).toBe('desert');
+    expect(d.lastRun.time).toBe('night');
+    // The desert has no snow.
+    expect(d.lastRun.weather).toBe('clear');
   });
 
   it('migrates v1 saves', () => {
@@ -60,14 +90,15 @@ describe('SaveManager', () => {
     a.save();
     expect(a.buy('ducati-panigale-v4s')).toBe(true);
     a.setLivery('ducati-panigale-v4s', 1);
-    a.updateSettings({ units: 'mph', camera: 'helmet' });
+    a.updateSettings({ 'hud.units': 'mph', 'gfx.preset': 'ultra' });
     const b = new SaveManager(store);
     expect(b.data.ownedBikes).toContain('ducati-panigale-v4s');
     expect(b.data.selectedBike).toBe('ducati-panigale-v4s');
     expect(b.livery('ducati-panigale-v4s')).toBe(1);
     expect(b.data.cash).toBe(100000 - getBike('ducati-panigale-v4s').price);
-    expect(b.data.settings.units).toBe('mph');
-    expect(b.data.settings.camera).toBe('helmet');
+    expect(b.data.settings['hud.units']).toBe('mph');
+    expect(b.data.settings['gfx.preset']).toBe('ultra');
+    expect(b.data.settings['gfx.shadows']).toBe('4096');
   });
 
   it('refuses to buy twice, unaffordable or unknown bikes', () => {
@@ -127,10 +158,10 @@ describe('SaveManager', () => {
     const m = new SaveManager(new MemoryStore());
     m.data.cash = 999999;
     m.buy(BIKES[0].id);
-    m.updateSettings({ units: 'mph' });
+    m.updateSettings({ 'hud.units': 'mph' });
     m.reset();
     expect(m.data.cash).toBe(STARTING_CASH);
     expect(m.data.ownedBikes).toEqual([STARTER_BIKE_ID]);
-    expect(m.data.settings.units).toBe('mph');
+    expect(m.data.settings['hud.units']).toBe('mph');
   });
 });

@@ -29,7 +29,7 @@ test.describe('The Race — production build', () => {
     await page.getByTestId('btn-play').click();
     await expect(page.getByTestId('mode-endless')).toBeVisible();
     await page.getByTestId('mode-endless').click();
-    await page.getByTestId('env-day').click();
+    await page.getByTestId('map-highway').click();
     await page.getByTestId('btn-start').click();
     await waitState(page, 'playing');
     await expect(page.getByTestId('hud')).toBeVisible();
@@ -99,8 +99,10 @@ test.describe('The Race — production build', () => {
     await expect(page.getByTestId('cash')).toHaveText('$69.000');
     await page.getByTestId('btn-back').click();
     await page.getByTestId('btn-settings').click();
-    await page.getByTestId('set-units-mph').click();
-    await page.getByTestId('set-camera-helmet').click();
+    await page.getByTestId('tab-hud').click();
+    await page.getByTestId('set-hud.units-mph').click();
+    await page.getByTestId('tab-graphics').click();
+    await page.getByTestId('set-gfx.preset-medium').click();
 
     await page.reload();
     await waitState(page, 'menu');
@@ -108,8 +110,9 @@ test.describe('The Race — production build', () => {
     expect(save.ownedBikes).toContain('ducati-panigale-v4s');
     expect(save.selectedBike).toBe('ducati-panigale-v4s');
     expect(save.cash).toBe(69000);
-    expect(save.settings.units).toBe('mph');
-    expect(save.settings.camera).toBe('helmet');
+    expect(save.settings['hud.units']).toBe('mph');
+    expect(save.settings['gfx.preset']).toBe('medium');
+    expect(save.settings['gfx.shadows']).toBe('1024');
     await expect(page.getByTestId('menu-bike')).toHaveText('Panigale V4 S');
     expectNoErrors(errors);
   });
@@ -132,22 +135,22 @@ test.describe('The Race — production build', () => {
   });
 
   test('storage: tampered values are sanitised', async ({ page }) => {
-    await seedSave(page, { cash: -500, ownedBikes: ['not-a-bike', 'kawasaki-h2r'], selectedBike: 'not-a-bike', settings: { quality: 'insane', masterVolume: 99 } });
+    await seedSave(page, { cash: -500, ownedBikes: ['not-a-bike', 'kawasaki-h2r'], selectedBike: 'not-a-bike', settings: { 'gfx.preset': 'insane', 'audio.master': 99 } });
     await bootToMenu(page);
     const save = await api(page, 'save');
     expect(save.cash).toBe(0);
     expect(save.ownedBikes).toEqual(['yamaha-r3', 'kawasaki-h2r']);
     expect(save.selectedBike).toBe('yamaha-r3');
-    expect(save.settings.quality).toBe('high');
-    expect(save.settings.masterVolume).toBe(1);
+    expect(save.settings['gfx.preset']).toBe('high');
+    expect(save.settings['audio.master']).toBe(1);
   });
 
   for (const [mode, env] of [
-    ['twoway', 'night'],
-    ['timetrial', 'rain'],
-    ['freeride', 'sunset'],
+    ['twoway', 'city'],
+    ['timetrial', 'forest'],
+    ['freeride', 'desert'],
   ] as const) {
-    test(`mode ${mode} in ${env} runs and can be quit`, async ({ page }) => {
+    test(`mode ${mode} on ${env} runs and can be quit`, async ({ page }) => {
       const errors = trackErrors(page);
       await seedSave(page);
       await bootToMenu(page);
@@ -171,7 +174,7 @@ test.describe('The Race — production build', () => {
   test('free ride respawns after a crash instead of ending', async ({ page }) => {
     await seedSave(page);
     await bootToMenu(page);
-    await startRun(page, 'freeride', 'day');
+    await startRun(page, 'freeride', 'highway');
     await page.evaluate(() => window.__THE_RACE__.advance(3.5));
     await page.evaluate(() => window.__THE_RACE__.crash());
     await page.evaluate(() => window.__THE_RACE__.advance(4));
@@ -180,9 +183,9 @@ test.describe('The Race — production build', () => {
   });
 
   test('manual gearbox shifts on request', async ({ page }) => {
-    await seedSave(page, { settings: { quality: 'low', autoShift: false } });
+    await seedSave(page, { settings: { 'gfx.preset': 'low', 'play.autoShift': 'manual' } });
     await bootToMenu(page);
-    await startRun(page, 'freeride', 'day');
+    await startRun(page, 'freeride', 'highway');
     await page.evaluate(() => window.__THE_RACE__.clearTraffic());
     await page.evaluate(() => window.__THE_RACE__.advance(3.5));
     await page.evaluate(() => window.__THE_RACE__.setInput({ throttle: 1 }));
@@ -238,7 +241,7 @@ test.describe('The Race — production build', () => {
     const counts: number[] = [];
     const textures: number[] = [];
     for (let i = 0; i < 3; i++) {
-      await startRun(page, 'endless', i % 2 ? 'night' : 'day');
+      await startRun(page, 'endless', i % 2 ? 'city' : 'highway');
       await page.evaluate(() => window.__THE_RACE__.advance(4));
       await frames(page, 1);
       await page.evaluate(() => window.__THE_RACE__.crash());

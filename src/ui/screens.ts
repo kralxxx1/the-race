@@ -1,9 +1,10 @@
 import { BIKES, BIKE_BY_ID, BRANDS, LAYOUT_LABEL, STYLE_LABEL, type BikeSpec, type BikeStyle } from '../data/bikes';
-import { ENVIRONMENTS, type EnvId } from '../data/environments';
+import { MAPS, MAP_BY_ID, TIME_LABELS, WEATHER_LABELS, type MapId, type RunConfig, type TimeOfDay, type Weather } from '../data/maps';
 import { MODES, type ModeId } from '../data/modes';
+import { CATEGORY_LABELS, CATEGORY_ORDER, SETTINGS, type SettingCategory, type SettingDef } from '../settings';
 import { MAX_UPGRADE, measurePerformance, type PerformanceFigures, type Upgrades } from '../physics/bike';
 import type { RunStats } from '../game/scoring';
-import { SaveManager, type SaveData, type Settings } from '../storage/save';
+import { SaveManager, type SaveData } from '../storage/save';
 import { clear, fmtDistance, fmtInt, fmtMoney, h } from './dom';
 
 export interface UiActions {
@@ -11,14 +12,14 @@ export interface UiActions {
   openGarage(): void;
   openSettings(): void;
   back(): void;
-  start(mode: ModeId, env: EnvId): void;
+  start(cfg: RunConfig): void;
   previewBike(id: string, livery: number): void;
   selectBike(id: string): boolean;
   buyBike(id: string): boolean;
   setLivery(id: string, idx: number): void;
   upgrade(id: string, kind: keyof Upgrades): boolean;
   rev(on: boolean): void;
-  applySettings(patch: Partial<Settings>): void;
+  applySettings(patch: Readonly<Record<string, unknown>>): void;
   resetProgress(): void;
   resume(): void;
   restart(): void;
@@ -38,11 +39,11 @@ function perf(b: BikeSpec, u: Upgrades): PerformanceFigures {
   return p;
 }
 
-const ENV_GRADIENT: Record<EnvId, string> = {
+const TIME_GRADIENT: Record<TimeOfDay, string> = {
+  dawn: 'linear-gradient(160deg,#3b4f7a,#f2b27a 65%,#4a4038)',
   day: 'linear-gradient(160deg,#2f6fc0,#bcd7ef 60%,#6b7d5a)',
   sunset: 'linear-gradient(160deg,#2d3561,#ff9a5a 60%,#a7643a)',
   night: 'linear-gradient(160deg,#03050c,#1d2236 60%,#ff9a3c)',
-  rain: 'linear-gradient(160deg,#4a535e,#9aa4ad 60%,#3a4236)',
 };
 
 const MAX = { hp: 320, torque: 230, weight: 400, top: 400 };
@@ -57,7 +58,10 @@ export class Screens {
   private brandFilter = 'all';
   private styleFilter: BikeStyle | 'all' = 'all';
   private modeSel: ModeId;
-  private envSel: EnvId;
+  private mapSel: MapId;
+  private timeSel: TimeOfDay;
+  private weatherSel: Weather;
+  private settingsTab: SettingCategory = 'graphics';
   private confirmReset = false;
 
   constructor(
@@ -68,8 +72,11 @@ export class Screens {
     this.root = h('div', { class: 'screens' });
     parent.append(this.root);
     this.garageSel = save.data.selectedBike;
-    this.modeSel = save.data.lastMode;
-    this.envSel = save.data.lastEnv;
+    const run = save.data.lastRun;
+    this.modeSel = run.mode;
+    this.mapSel = run.map;
+    this.timeSel = run.time;
+    this.weatherSel = run.weather;
   }
 
   get data(): SaveData {
@@ -165,25 +172,43 @@ export class Screens {
         h('div', { class: 'card-foot' }, (d.highScores[m.id] ?? 0) > 0 ? `Rekor: ${fmtInt(d.highScores[m.id] ?? 0)}` : 'Rekor yok'),
       ),
     );
-    const envCards = ENVIRONMENTS.map((e) =>
-      h('div', { class: `card env ${e.id === this.envSel ? 'sel' : ''}`, 'data-testid': `env-${e.id}`, onclick: () => { this.a.click(); this.envSel = e.id; this.modes(); } },
-        h('div', { class: 'env-swatch', style: `background:${ENV_GRADIENT[e.id]}` }),
-        h('div', { class: 'card-title' }, e.name),
-        h('div', { class: 'card-desc' }, e.description),
+    const map = MAP_BY_ID.get(this.mapSel) ?? MAPS[0];
+    if (!map.times.includes(this.timeSel)) this.timeSel = map.defaultTime;
+    if (!map.weathers.includes(this.weatherSel)) this.weatherSel = map.defaultWeather;
+    const mapCards = MAPS.map((m) =>
+      h('div', { class: `card env ${m.id === this.mapSel ? 'sel' : ''}`, 'data-testid': `map-${m.id}`, onclick: () => {
+        this.a.click();
+        this.mapSel = m.id;
+        this.timeSel = m.defaultTime;
+        this.weatherSel = m.defaultWeather;
+        this.modes();
+      } },
+        h('div', { class: 'env-swatch', style: `background:${TIME_GRADIENT[m.defaultTime]};box-shadow:inset 0 -4px 0 ${m.color}` }),
+        h('div', { class: 'card-title' }, m.name),
+        h('div', { class: 'card-sub' }, m.region),
+        h('div', { class: 'card-desc' }, m.description),
       ),
     );
+    const chips = <T extends string>(opts: readonly T[], labels: Record<T, string>, cur: T, prefix: string, set: (v: T) => void) =>
+      h('div', { class: 'seg' }, opts.map((o) => h('button', { class: o === cur ? 'sel' : '', 'data-testid': `${prefix}-${o}`, onclick: () => { this.a.click(); set(o); this.modes(); } }, labels[o])));
+    const envCards = [
+      h('div', { class: 'set-row' }, h('div', { class: 'set-label' }, 'Zaman'), chips(map.times, TIME_LABELS, this.timeSel, 'time', (v) => (this.timeSel = v))),
+      h('div', { class: 'set-row' }, h('div', { class: 'set-label' }, 'Hava'), chips(map.weathers, WEATHER_LABELS, this.weatherSel, 'weather', (v) => (this.weatherSel = v))),
+    ];
     const bike = BIKE_BY_ID.get(d.selectedBike)!;
     p.append(
       h('div', { class: 'header' }, this.btn('‹ GERİ', () => this.a.back(), 'ghost'), h('div', { class: 'title' }, 'SÜRÜŞ MODU'), h('div', { class: 'cash' }, fmtMoney(d.cash))),
       h('div', { class: 'scroll' },
         h('div', { class: 'section-title' }, 'Mod'),
         h('div', { class: 'grid4' }, modeCards),
-        h('div', { class: 'section-title' }, 'Yol ve hava'),
-        h('div', { class: 'grid4' }, envCards),
+        h('div', { class: 'section-title' }, 'Harita'),
+        h('div', { class: 'grid4' }, mapCards),
+        h('div', { class: 'section-title' }, 'Zaman ve hava'),
+        envCards,
       ),
       h('div', { class: 'footer' },
         h('div', { class: 'footer-bike' }, `${bike.brand} ${bike.model}`),
-        this.btn('YOLA ÇIK ›', () => this.a.start(this.modeSel, this.envSel), 'primary big', 'btn-start'),
+        this.btn('YOLA ÇIK ›', () => this.a.start({ mode: this.modeSel, map: this.mapSel, time: this.timeSel, weather: this.weatherSel }), 'primary big', 'btn-start'),
       ),
     );
     this.show('modes');
@@ -297,57 +322,74 @@ export class Screens {
   settings(inGame = false): void {
     const p = this.panel('settings');
     clear(p);
-    const s = this.data.settings;
-    const seg = <T extends string>(label: string, key: keyof Settings, opts: [T, string][], value: T) =>
-      h('div', { class: 'set-row' },
-        h('div', { class: 'set-label' }, label),
-        h('div', { class: 'seg' }, opts.map(([v, t]) => h('button', { class: v === value ? 'sel' : '', 'data-testid': `set-${String(key)}-${v}`, onclick: () => {
+    const values = this.data.settings;
+    const rerender = () => this.settings(inGame);
+    const control = (d: SettingDef): HTMLElement => {
+      const v = values[d.key];
+      if (d.type === 'toggle') {
+        const on = v === true;
+        return h('button', { class: `toggle ${on ? 'on' : ''}`, 'aria-pressed': on ? 'true' : 'false', 'aria-label': d.label, 'data-testid': `set-${d.key}`, onclick: async () => {
           this.a.click();
-          const val: unknown = key === 'autoShift' ? v === 'true' : v;
-          this.a.applySettings({ [key]: val } as Partial<Settings>);
-          this.settings(inGame);
-        } }, t))),
-      );
-    const toggle = (label: string, key: keyof Settings, value: boolean) =>
-      h('div', { class: 'set-row' },
-        h('div', { class: 'set-label' }, label),
-        h('button', { class: `toggle ${value ? 'on' : ''}`, 'aria-pressed': value ? 'true' : 'false', onclick: async () => {
-          this.a.click();
-          if (key === 'tiltControls' && !value) {
+          if (d.key === 'ctrl.tilt' && !on) {
             const ok = await this.a.enableTilt();
             if (!ok) return;
           }
-          this.a.applySettings({ [key]: !value } as Partial<Settings>);
-          this.settings(inGame);
-        } }, h('i', {})),
-      );
-    const slider = (label: string, key: keyof Settings, value: number, min: number, max: number) => {
-      const out = h('span', { class: 'set-val' }, `${Math.round(value * 100)}%`);
-      const input = h('input', { type: 'range', min, max, step: 0.05, value, 'aria-label': label });
+          this.a.applySettings({ [d.key]: !on });
+          rerender();
+        } }, h('i', {}));
+      }
+      if (d.type === 'select') {
+        if (d.options.length <= 6) {
+          return h('div', { class: 'seg' }, d.options.map((o) => h('button', { class: o.value === v ? 'sel' : '', title: o.help, 'data-testid': `set-${d.key}-${o.value}`, onclick: () => {
+            this.a.click();
+            this.a.applySettings({ [d.key]: o.value });
+            rerender();
+          } }, o.label)));
+        }
+        const sel = h('select', { 'aria-label': d.label, 'data-testid': `set-${d.key}` }, d.options.map((o) => h('option', { value: o.value, selected: o.value === v }, o.label)));
+        sel.addEventListener('change', () => {
+          this.a.applySettings({ [d.key]: sel.value });
+          rerender();
+        });
+        return sel;
+      }
+      const fmt = (x: number) => (d.format ? d.format(x) : `${Number(x.toFixed(2))}${d.unit ?? ''}`);
+      const cur = typeof v === 'number' ? v : d.default;
+      const out = h('span', { class: 'set-val' }, fmt(cur));
+      const input = h('input', { type: 'range', min: d.min, max: d.max, step: d.step, value: cur, 'aria-label': d.label, 'data-testid': `set-${d.key}` });
       input.addEventListener('input', () => {
-        out.textContent = `${Math.round(Number(input.value) * 100)}%`;
-        this.a.applySettings({ [key]: Number(input.value) } as Partial<Settings>);
+        out.textContent = fmt(Number(input.value));
+        this.a.applySettings({ [d.key]: Number(input.value) });
       });
-      return h('div', { class: 'set-row' }, h('div', { class: 'set-label' }, label), h('div', { class: 'slider' }, input, out));
+      // Preset may have switched to "custom": refresh once the drag ends.
+      input.addEventListener('change', () => rerender());
+      return h('div', { class: 'slider' }, input, out);
     };
+    const tabs = CATEGORY_ORDER.filter((c) => SETTINGS.byCategory(c).length > 0);
+    if (!tabs.includes(this.settingsTab)) this.settingsTab = tabs[0];
+    const defs = SETTINGS.byCategory(this.settingsTab).filter((d) => !d.visibleIf || d.visibleIf(values));
+    const groups = new Map<string, SettingDef[]>();
+    for (const d of defs) {
+      const g = groups.get(d.group) ?? [];
+      g.push(d);
+      groups.set(d.group, g);
+    }
+    const body: HTMLElement[] = [];
+    for (const [g, list] of groups) {
+      body.push(h('div', { class: 'section-title' }, g));
+      for (const d of list) {
+        body.push(h('div', { class: 'set-row', 'data-setting': d.key },
+          h('div', { class: 'set-label' }, d.label, d.restart ? h('span', { class: 'set-note' }, ' (sonraki sürüşte)') : null, d.help ? h('div', { class: 'set-help' }, d.help) : null),
+          control(d),
+        ));
+      }
+    }
+    const tabBar = h('div', { class: 'tabs' }, tabs.map((c) => h('button', { class: c === this.settingsTab ? 'sel' : '', 'data-testid': `tab-${c}`, onclick: () => { this.a.click(); this.settingsTab = c; rerender(); } }, CATEGORY_LABELS[c])));
     p.append(
       h('div', { class: 'header' }, this.btn('‹ GERİ', () => this.a.back(), 'ghost', 'btn-back'), h('div', { class: 'title' }, 'AYARLAR'), h('div', {})),
       h('div', { class: 'scroll settings-body' },
-        h('div', { class: 'section-title' }, 'Grafik'),
-        seg('Kalite', 'quality', [['low', 'Düşük'], ['medium', 'Orta'], ['high', 'Yüksek'], ['ultra', 'Ultra']], s.quality),
-        toggle('Hız bulanıklığı', 'speedBlur', s.speedBlur),
-        toggle('Kamera sarsıntısı', 'cameraShake', s.cameraShake),
-        toggle('FPS göstergesi', 'showFps', s.showFps),
-        h('div', { class: 'section-title' }, 'Sürüş'),
-        seg('Kamera', 'camera', [['helmet', 'Kask içi'], ['chase', 'Takip'], ['far', 'Uzak'], ['low', 'Alçak']], s.camera),
-        seg('Vites', 'autoShift', [['true', 'Otomatik'], ['false', 'Manuel (Q/E)']], String(s.autoShift) as 'true' | 'false'),
-        seg('Hız birimi', 'units', [['kmh', 'km/s'], ['mph', 'mph']], s.units),
-        slider('Direksiyon hassasiyeti', 'steerSensitivity', s.steerSensitivity, 0.5, 1.5),
-        toggle('Eğim kontrolü (telefon)', 'tiltControls', s.tiltControls),
-        h('div', { class: 'section-title' }, 'Ses'),
-        slider('Genel ses', 'masterVolume', s.masterVolume, 0, 1),
-        slider('Motor sesi', 'engineVolume', s.engineVolume, 0, 1),
-        slider('Efektler', 'sfxVolume', s.sfxVolume, 0, 1),
+        tabBar,
+        body,
         inGame ? null : h('div', { class: 'section-title' }, 'İlerleme'),
         inGame ? null : h('div', { class: 'set-row' },
           h('div', { class: 'set-label' }, this.confirmReset ? 'Emin misin? Tüm motorlar ve para silinecek.' : 'İlerlemeyi sıfırla'),
@@ -394,7 +436,7 @@ export class Screens {
         h('div', { class: 'go-score', 'data-testid': 'final-score' }, fmtInt(stats.score)),
         h('div', { class: 'go-grid' },
           cell(fmtDistance(stats.distance), 'Mesafe'),
-          cell(`${Math.round(this.data.settings.units === 'mph' ? stats.topSpeed * 0.621371 : stats.topSpeed)} ${this.data.settings.units === 'mph' ? 'mph' : 'km/s'}`, 'Azami hız'),
+          cell(`${Math.round(this.data.settings['hud.units'] === 'mph' ? stats.topSpeed * 0.621371 : stats.topSpeed)} ${this.data.settings['hud.units'] === 'mph' ? 'mph' : 'km/s'}`, 'Azami hız'),
           cell(String(stats.nearMisses), 'Kıl payı'),
           cell(`x${stats.maxCombo}`, 'En iyi kombo'),
           cell(String(stats.overtakes), 'Sollama'),
