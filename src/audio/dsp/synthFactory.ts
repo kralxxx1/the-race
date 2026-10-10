@@ -20,7 +20,7 @@ export interface RenderPlan {
   throttle: (t: number) => number;
   load?: (t: number) => number;
   speed?: (t: number) => number;
-  events?: { t: number; e: EngineEvent; value?: number }[];
+  events?: { t: number; e: EngineEvent; v?: number }[];
   /** Starter motor runs while this returns true. */
   starter?: (t: number) => boolean;
 }
@@ -72,7 +72,7 @@ export function renderOffline(
       }
     }
     while (ei < events.length && events[ei].t <= t) {
-      synth.trigger(events[ei].e, events[ei].value);
+      synth.trigger(events[ei].e, events[ei].v);
       ei++;
     }
     const n = Math.min(Q, total - pos);

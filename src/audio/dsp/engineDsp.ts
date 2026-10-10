@@ -626,7 +626,8 @@ export class EngineDSP implements EngineSynthesizer {
     let intake = bandpass(b, R_HELM, suction) * 2.2 + (this.q.intakeFormants > 1 ? bandpass(b, R_RUNNER, suction) * 0.9 : 0);
     intake *= it.gain * open;
     const roarEnv = this.roarEnv.process(suction);
-    const roarLevel = it.roar * Math.pow(thr, 1.4) * Math.pow(Math.min(1.1, rpmFrac), 1.1) * (0.35 + roarEnv);
+    // Without ignition (quickshifter / limiter cut) the engine still pumps air, but the load-driven roar sags.
+    const roarLevel = it.roar * Math.pow(thr, 1.4) * Math.pow(Math.min(1.1, rpmFrac), 1.1) * (0.35 + roarEnv) * (this.cutSamples > 0 ? 0.5 : 1);
     if (roarLevel > 1e-4) {
       const w = this.pink.next();
       intake += (bandpass(b, R_ROAR_A, w) * 0.2 + bandpass(b, R_ROAR_B, w) * 0.04) * roarLevel;
@@ -794,7 +795,7 @@ export class EngineDSP implements EngineSynthesizer {
           amp = 0.07;
         } else if (cutting) {
           amp = 0.09;
-          if (rpmFrac > 0.5 && rng.next() < p.crackle * 0.22 * this.crackleScale) {
+          if (rpmFrac > 0.5 && rng.next() < p.crackle * 0.1 * this.crackleScale) {
             pop = 1.2 + rng.next();
             this.cutPopCount++;
           }

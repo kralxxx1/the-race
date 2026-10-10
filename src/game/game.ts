@@ -659,6 +659,9 @@ export class Game {
       get audioLevel() {
         return audio.level();
       },
+      get audioBackend() {
+        return audio.ctx ? (audio.workletReady ? 'worklet' : 'script') : 'none';
+      },
       get memory() {
         const m = game.renderer.renderer.info.memory;
         return { geometries: m.geometries, textures: m.textures };
