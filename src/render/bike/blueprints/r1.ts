@@ -350,6 +350,7 @@ export function r1Blueprint(spec: BikeSpec): BikeBlueprint {
       finned: false,
       liquidCooled: true,
       radiator: { w: 0.44, h: 0.34, z: -1.22, y: 0.62, tiltDeg: 14, curved: true },
+      filterColor: '#1d3b8a',
       width: 0.42,
     },
     exhaust: { route: 'underslung', side: 'right', can: 'stubby', canLength: 0.22, canDia: 0.115, canFinish: 'titanium', headerFinish: 'titanium' },

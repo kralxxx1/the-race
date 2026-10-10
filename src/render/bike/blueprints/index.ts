@@ -1,6 +1,7 @@
 import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
 import { autoBlueprint } from './auto';
+import { panigaleV4Blueprint } from './panigaleV4';
 import { r1Blueprint } from './r1';
 
 /**
@@ -14,6 +15,7 @@ const AUTHORED = new Map<string, Factory>();
 const cache = new Map<string, BikeBlueprint>();
 
 AUTHORED.set('yamaha-r1', r1Blueprint);
+AUTHORED.set('ducati-panigale-v4s', panigaleV4Blueprint);
 
 export function registerBlueprint(id: string, f: Factory): void {
   AUTHORED.set(id, f);

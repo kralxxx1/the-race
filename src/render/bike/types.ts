@@ -139,6 +139,8 @@ export interface EngineVisual {
   liquidCooled: boolean;
   radiator?: { w: number; h: number; z: number; y: number; tiltDeg: number; curved?: boolean; side?: boolean };
   supercharger?: boolean;
+  /** Oil filter colour (default dark; Yamaha-style blue on some bikes). */
+  filterColor?: string;
   /** Overall width of the crankcase (m). */
   width?: number;
 }

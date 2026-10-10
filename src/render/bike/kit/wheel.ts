@@ -240,9 +240,10 @@ function buildCastSpokes(ctx: KitContext, g: WheelGeom, d: WheelDesign, front: b
     const a = (i / n) * Math.PI * 2 + (front ? 0 : 0.21);
     switch (d.shape) {
       case 'y': {
-        const rs = r0 + (r1 - r0) * 0.52;
-        out.append(spokeArm(a, a, r0, rs + 0.01, wHub, wHub * 0.85, 0, 0.004));
-        const spread = (n <= 3 ? 0.42 : n <= 5 ? 0.21 : 0.13) * (0.3 / g.tyre.rimR);
+        // Few-spoke wheels split late so they still read as n spokes (Marchesini 3-spoke "Y").
+        const rs = r0 + (r1 - r0) * (n <= 3 ? 0.66 : 0.52);
+        out.append(spokeArm(a, a, r0, rs + 0.01, wHub * (n <= 3 ? 1.15 : 1), wHub * 0.85, 0, 0.004));
+        const spread = (n <= 3 ? 0.28 : n <= 5 ? 0.21 : 0.13) * (0.3 / g.tyre.rimR);
         out.append(spokeArm(a, a - spread, rs, r1, wHub * 0.6, wRim * 0.85, 0, 0.002));
         out.append(spokeArm(a, a + spread, rs, r1, wHub * 0.6, wRim * 0.85, 0, 0.002));
         break;

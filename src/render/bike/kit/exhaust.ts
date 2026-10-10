@@ -201,7 +201,8 @@ export function buildExhaust(ctx: KitContext, ports: Port[]): void {
     return;
   }
   // Merge all headers into the collector.
-  for (const p of ports) header(p, collector.clone().add(V(p.pos[0] * 0.15, 0.0, -0.06)), e.layout !== 'BOXER' || true);
+  // Forward-facing ports loop round the front of the engine; rearward ones (V rear bank) drop straight down.
+  for (const p of ports) header(p, collector.clone().add(V(p.pos[0] * 0.15, 0.0, -0.06)), p.dir[2] <= 0.05);
   ctx.add('chassis', lathe([[0, -0.05], [r * 2.6, -0.04], [r * 2.6, 0.06], [r * 1.6, 0.1], [0, 0.11]], { segs: ctx.seg(20, 8), axis: 'z' }), vary(pf, { color: heatColour(heat, 0.55) }), T(collector.x, collector.y, collector.z));
   const can = ex.can;
   if (route === 'underslung' || route === 'underbelly') {

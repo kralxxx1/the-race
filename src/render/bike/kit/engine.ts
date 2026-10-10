@@ -133,7 +133,7 @@ function buildCrankcase(ctx: KitContext, c: THREE.Vector3, k: number, width: num
   // Oil filter (front, angled down)
   const ofA = V(0.06 * k, c.y - 0.06 * k, zf - 0.005);
   const ofB = ofA.clone().add(V(0.0, -0.045, -0.06));
-  ctx.add('chassis', lathe([[0, 0], [0.036, 0], [0.038, 0.006], [0.038, 0.07], [0.034, 0.078], [0, 0.08]], { segs: ctx.seg(24, 10), axis: 'y', sharp: [1, 3] }), hard(boxer ? '#1b1c1f' : '#1d3b8a', 0.2, 0.3, 0.8), alongY(P(ofA), P(ofB)));
+  ctx.add('chassis', lathe([[0, 0], [0.036, 0], [0.038, 0.006], [0.038, 0.07], [0.034, 0.078], [0, 0.08]], { segs: ctx.seg(24, 10), axis: 'y', sharp: [1, 3] }), hard(ctx.bp.engine.filterColor ?? '#1b1c1f', 0.2, 0.3, 0.8), alongY(P(ofA), P(ofB)));
   if (boxer) return;
   // Side covers: clutch (right), alternator + sprocket (left)
   const cover = (x: number, y: number, z: number, r: number, depth: number, side: number, f: Finish) => {
