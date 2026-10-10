@@ -251,6 +251,8 @@ export function cut(mesh: MeshData, field: Field): MeshData {
   const f = new Float64Array(V);
   for (let i = 0; i < V; i++) f[i] = field(p[i * 3], p[i * 3 + 1], p[i * 3 + 2]);
   const out = new MeshData();
+  const src = mesh.col;
+  if (src) out.col = [];
   const map = new Int32Array(V).fill(-1);
   const keep = (i: number): number => {
     if (map[i] >= 0) return map[i];
@@ -259,6 +261,7 @@ export function cut(mesh: MeshData, field: Field): MeshData {
       mesh.nrm[i * 3], mesh.nrm[i * 3 + 1], mesh.nrm[i * 3 + 2],
       mesh.uv[i * 2], mesh.uv[i * 2 + 1], mesh.shade[i],
     );
+    if (src && out.col) out.col.splice(k * 3, 3, src[i * 3], src[i * 3 + 1], src[i * 3 + 2]);
     map[i] = k;
     return k;
   };
@@ -275,6 +278,7 @@ export function cut(mesh: MeshData, field: Field): MeshData {
     ny /= l;
     nz /= l;
     const k = out.v(L(p, 3, 0), L(p, 3, 1), L(p, 3, 2), nx, ny, nz, L(mesh.uv, 2, 0), L(mesh.uv, 2, 1), L(mesh.shade, 1, 0));
+    if (src && out.col) out.col.splice(k * 3, 3, L(src, 3, 0), L(src, 3, 1), L(src, 3, 2));
     edgeCache.set(key, k);
     return k;
   };

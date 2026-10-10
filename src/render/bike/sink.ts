@@ -31,6 +31,25 @@ export const SLOTS: readonly Slot[] = ['hard', 'paint', 'carbon', 'tyre', 'seat'
 /** Slots whose shaders project textures in bike space and need rest-pose bike coordinates. */
 const BIKE_SPACE: ReadonlySet<Slot> = new Set<Slot>(['paint', 'carbon', 'seat']);
 
+/**
+ * Procedural micro-surface applied by the `hard` shader (keeps hundreds of parts in one
+ * draw call while still reading as different materials up close).
+ */
+export const Micro = {
+  plain: 0,
+  /** Directional brushing (machined clamps, levers, footpegs). */
+  brushed: 1,
+  /** Sand-cast speckle (frames, swingarms, engine cases). */
+  cast: 2,
+  /** Fine grain (textured plastics, rubber, crinkle paint). */
+  grain: 3,
+  /** Cross knurling (footpegs, adjusters, grips). */
+  knurl: 4,
+  /** Anodised: tiny colour/roughness variation. */
+  anodised: 5,
+} as const;
+export type Micro = (typeof Micro)[keyof typeof Micro];
+
 export interface Finish {
   slot: Slot;
   /** Linear RGB. */
@@ -39,46 +58,48 @@ export interface Finish {
   rough: number;
   /** Clear-coat amount (0..1). */
   coat: number;
+  micro: Micro;
 }
 
 const _c = new THREE.Color();
 
 /** Finish from an sRGB hex colour. */
-export function fin(slot: Slot, hex: string, metal = 0, rough = 0.5, coat = 0): Finish {
+export function fin(slot: Slot, hex: string, metal = 0, rough = 0.5, coat = 0, micro: Micro = Micro.plain): Finish {
   _c.set(hex); // three converts sRGB hex → linear working space
-  return { slot, color: [_c.r, _c.g, _c.b], metal, rough, coat };
+  return { slot, color: [_c.r, _c.g, _c.b], metal, rough, coat, micro };
 }
 
-export const hard = (hex: string, metal: number, rough: number, coat = 0): Finish => fin('hard', hex, metal, rough, coat);
+export const hard = (hex: string, metal: number, rough: number, coat = 0, micro: Micro = Micro.plain): Finish => fin('hard', hex, metal, rough, coat, micro);
 
 /** Common finishes. */
 export const F = {
-  black: hard('#0c0d0f', 0, 0.55),
+  black: hard('#0c0d0f', 0, 0.55, 0, Micro.grain),
   satinBlack: hard('#121315', 0.15, 0.42, 0.3),
   glossBlack: hard('#0a0b0c', 0.1, 0.18, 1),
-  texturedBlack: hard('#151618', 0, 0.82),
-  rubber: hard('#101010', 0, 0.9),
-  hose: hard('#16171a', 0, 0.62),
-  castAlu: hard('#a9adb2', 1, 0.42),
-  brushedAlu: hard('#c3c7cc', 1, 0.3),
+  texturedBlack: hard('#151618', 0, 0.82, 0, Micro.grain),
+  rubber: hard('#101010', 0, 0.9, 0, Micro.grain),
+  hose: hard('#16171a', 0, 0.62, 0, Micro.grain),
+  castAlu: hard('#a9adb2', 1, 0.42, 0, Micro.cast),
+  brushedAlu: hard('#c3c7cc', 1, 0.3, 0, Micro.brushed),
   polishedAlu: hard('#d9dce0', 1, 0.12),
-  darkAlu: hard('#5d6168', 1, 0.38),
-  gunmetal: hard('#3a3d42', 1, 0.36),
-  magnesium: hard('#6f7176', 0.9, 0.5),
-  steel: hard('#8e9399', 1, 0.3),
-  discSteel: hard('#b8bcc1', 1, 0.24),
+  darkAlu: hard('#5d6168', 1, 0.38, 0, Micro.cast),
+  gunmetal: hard('#3a3d42', 1, 0.36, 0, Micro.anodised),
+  magnesium: hard('#6f7176', 0.9, 0.5, 0, Micro.cast),
+  steel: hard('#8e9399', 1, 0.3, 0, Micro.brushed),
+  discSteel: hard('#b8bcc1', 1, 0.24, 0, Micro.brushed),
   chrome: hard('#f2f4f7', 1, 0.05),
-  titanium: hard('#9a948a', 1, 0.3),
-  gold: hard('#d9a63a', 1, 0.24, 0.4),
-  goldAnod: hard('#c99a2c', 1, 0.3, 0.5),
-  bronze: hard('#8c6a3a', 1, 0.35),
+  titanium: hard('#9a948a', 1, 0.3, 0, Micro.brushed),
+  gold: hard('#d9a63a', 1, 0.24, 0.4, Micro.anodised),
+  goldAnod: hard('#c99a2c', 1, 0.3, 0.5, Micro.anodised),
+  bronze: hard('#8c6a3a', 1, 0.35, 0, Micro.cast),
   red: hard('#b3121b', 0.2, 0.32, 1),
   white: hard('#e8e9ea', 0, 0.4, 0.4),
-  engineBlack: hard('#1c1d20', 0.35, 0.55),
-  engineGrey: hard('#4a4d52', 0.6, 0.45),
+  engineBlack: hard('#1c1d20', 0.35, 0.55, 0, Micro.cast),
+  engineGrey: hard('#4a4d52', 0.6, 0.45, 0, Micro.cast),
   paintedSilver: hard('#9fa3a8', 0.7, 0.35, 0.6),
   copper: hard('#b36a3a', 1, 0.3),
   yellow: hard('#f2c200', 0.1, 0.35, 0.6),
+  knurled: hard('#9ea3a9', 1, 0.34, 0, Micro.knurl),
   paint: fin('paint', '#ffffff'),
   carbon: fin('carbon', '#ffffff', 0.25, 0.35, 1),
   tyre: fin('tyre', '#ffffff', 0, 0.85),
@@ -101,6 +122,11 @@ export const F = {
 export function tint(base: Finish, hex: string): Finish {
   _c.set(hex);
   return { ...base, color: [_c.r, _c.g, _c.b] };
+}
+
+/** Same finish with a different micro-surface or PBR tweak. */
+export function vary(base: Finish, o: Partial<Pick<Finish, 'metal' | 'rough' | 'coat' | 'micro' | 'color'>>): Finish {
+  return { ...base, ...o };
 }
 
 export class Bucket {
@@ -157,10 +183,12 @@ export class GroupSink {
     for (let i = 0; i < src.pos.length; i++) b.pos.push(src.pos[i]);
     for (let i = 0; i < src.nrm.length; i++) b.nrm.push(src.nrm[i]);
     for (let i = 0; i < src.uv.length; i++) b.uv.push(src.uv[i]);
+    const vc = src.col;
     for (let i = 0; i < src.shade.length; i++) {
       const s = src.shade[i];
-      b.col.push(r * s, g * s, bl * s);
-      b.pbr.push(f.metal, f.rough, f.coat);
+      if (vc) b.col.push(r * s * vc[i * 3], g * s * vc[i * 3 + 1], bl * s * vc[i * 3 + 2]);
+      else b.col.push(r * s, g * s, bl * s);
+      b.pbr.push(f.metal, f.rough, f.coat, f.micro);
     }
     for (let i = 0; i < src.idx.length; i++) b.idx.push(src.idx[i] + base);
   }
@@ -191,7 +219,7 @@ export class GroupSink {
       g.setAttribute('normal', new THREE.Float32BufferAttribute(b.nrm, 3));
       g.setAttribute('uv', new THREE.Float32BufferAttribute(b.uv, 2));
       g.setAttribute('color', new THREE.Float32BufferAttribute(b.col, 3));
-      g.setAttribute('pbr', new THREE.Float32BufferAttribute(b.pbr, 3));
+      g.setAttribute('pbr', new THREE.Float32BufferAttribute(b.pbr, 4));
       if (BIKE_SPACE.has(slot)) {
         const V = b.vcount;
         const bp = new Float32Array(V * 3);

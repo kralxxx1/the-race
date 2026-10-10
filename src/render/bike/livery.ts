@@ -21,17 +21,17 @@ export const ALL_VIEWS: readonly LiveryView[] = ['right', 'left', 'top', 'front'
 export const SIDE_VIEWS: readonly LiveryView[] = ['right', 'left'];
 
 /** Bike-space box covered by the atlas. */
-export const LV_BOX = { xmin: -0.6, xmax: 0.6, ymin: 0, ymax: 1.4, zmin: -2.0, zmax: 0.6 } as const;
+export const LV_BOX = { xmin: -0.6, xmax: 0.6, ymin: 0, ymax: 1.6, zmin: -2.3, zmax: 0.75 } as const;
 /** Atlas size in "metres" (rect units) — W:H = 1:2. */
-const AW = 2.7;
-const AH = 5.4;
+export const AW = 3.15;
+export const AH = 6.3;
 /** Region rects in atlas metres: [x0, y0, x1, y1] (canvas orientation, y down). */
 const RECT: Record<LiveryView, [number, number, number, number]> = {
-  right: [0.05, 0.0, 2.65, 1.4],
-  left: [0.05, 1.4, 2.65, 2.8],
-  top: [0.05, 2.8, 2.65, 4.0],
-  front: [0.05, 4.0, 1.25, 5.4],
-  rear: [1.4, 4.0, 2.6, 5.4],
+  right: [0.05, 0.0, 3.1, 1.6],
+  left: [0.05, 1.6, 3.1, 3.2],
+  top: [0.05, 3.2, 3.1, 4.4],
+  front: [0.05, 4.45, 1.25, 6.05],
+  rear: [1.4, 4.45, 2.6, 6.05],
 };
 
 /** Normalised rects for the shader, in the order right, left, top, front, rear. */
@@ -316,6 +316,8 @@ export interface LiveryEnv {
   spec: BikeSpec;
   hp: Hardpoints;
   zones: LiveryZones;
+  /** Index of the livery in spec.liveries (authored painters switch on it). */
+  index: number;
 }
 
 export type LiveryPainter = (c: LiveryCanvas, livery: Livery, env: LiveryEnv) => void;

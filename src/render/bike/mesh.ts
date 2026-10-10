@@ -20,6 +20,8 @@ export class MeshData {
   uv: number[] = [];
   /** Per-vertex shade multiplier on the finish colour (cheap baked occlusion for gaps and recesses). */
   shade: number[] = [];
+  /** Optional per-vertex RGB multiplier on the finish colour (heat tint, two-tone parts). */
+  col: number[] | null = null;
   idx: number[] = [];
 
   get vcount(): number {
@@ -36,7 +38,29 @@ export class MeshData {
     this.nrm.push(nx, ny, nz);
     this.uv.push(u, w);
     this.shade.push(shade);
+    if (this.col) this.col.push(1, 1, 1);
     return i;
+  }
+
+  /** Per-vertex colour multipliers (created on demand, initialised to white). */
+  colors(): number[] {
+    if (!this.col) {
+      this.col = new Array<number>(this.vcount * 3).fill(1);
+    }
+    return this.col;
+  }
+
+  /** Multiply the colour of every vertex by fn(x, y, z) → [r, g, b]. */
+  tintBy(fn: (x: number, y: number, z: number, i: number) => readonly [number, number, number]): this {
+    const c = this.colors();
+    const p = this.pos;
+    for (let i = 0; i < this.vcount; i++) {
+      const t = fn(p[i * 3], p[i * 3 + 1], p[i * 3 + 2], i);
+      c[i * 3] *= t[0];
+      c[i * 3 + 1] *= t[1];
+      c[i * 3 + 2] *= t[2];
+    }
+    return this;
   }
 
   t(a: number, b: number, c: number): void {
@@ -58,6 +82,12 @@ export class MeshData {
     for (let i = 0; i < o.nrm.length; i++) this.nrm.push(o.nrm[i]);
     for (let i = 0; i < o.uv.length; i++) this.uv.push(o.uv[i]);
     for (let i = 0; i < o.shade.length; i++) this.shade.push(o.shade[i]);
+    if (o.col || this.col) {
+      const c = this.col ?? new Array<number>(base * 3).fill(1);
+      if (o.col) for (let i = 0; i < o.col.length; i++) c.push(o.col[i]);
+      else for (let i = 0; i < o.vcount * 3; i++) c.push(1);
+      this.col = c;
+    }
     for (let i = 0; i < o.idx.length; i++) this.idx.push(o.idx[i] + base);
     return this;
   }
@@ -68,6 +98,7 @@ export class MeshData {
     c.nrm = this.nrm.slice();
     c.uv = this.uv.slice();
     c.shade = this.shade.slice();
+    c.col = this.col ? this.col.slice() : null;
     c.idx = this.idx.slice();
     return c;
   }

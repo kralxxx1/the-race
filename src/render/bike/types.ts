@@ -1,26 +1,30 @@
 import type { BikeSpec, EngineLayout, Livery } from '../../data/bikes';
 import type { P3 } from './mesh';
-import type { BodyContext } from './context';
-import type { LiveryPainter } from './livery';
+import type { KitContext } from './context';
+import type { LiveryPainter, LiveryZones } from './livery';
 
 /**
  * A BikeBlueprint describes one real motorcycle with real-world hardpoints and
- * dimensions. Everything is in metres / degrees in bike space:
+ * dimensions. Everything is in metres (angles in degrees) in bike space:
  * +Y up, −Z forward, +X = rider's right, rear axle at z = 0, ground at y = 0.
  * See docs/dev/BIKE_BLUEPRINTS.md for the authoring checklist.
  */
 
 export interface WheelDesign {
-  /** cast / forged alloy, wire-spoked, solid disc (custom cruisers) or small scooter wheels. */
+  /** Cast / forged alloy, cross-laced wire spokes, solid disc (custom cruisers) or small scooter wheels. */
   type: 'cast' | 'forged' | 'wire' | 'disc' | 'scooter';
-  /** Number of spoke arms (a split/Y spoke counts once). Wire wheels: spoke count (32/36/40). */
+  /** Number of spoke arms (a Y/split spoke counts once). Wire wheels: spoke count (32/36/40). */
   spokes: number;
+  /** straight: plain arm; y: splits into two near the rim; split: two parallel thin arms; twin: pairs of arms
+   *  converging at the hub; curved: swept arms; blade: wide flat arms. */
   shape: 'straight' | 'split' | 'y' | 'twin' | 'curved' | 'blade';
   color: string;
   /** Machined (bright) rim edge. */
   machinedLip?: boolean;
   /** Thin rim stripe colour. */
   stripe?: string;
+  /** Tubeless-style cross-spoke rims (spokes anchored on the rim edge, BMW GS / Africa Twin). */
+  crossSpoke?: boolean;
 }
 
 export interface WheelEnd {
@@ -28,13 +32,15 @@ export interface WheelEnd {
   tyre: string;
   /** Rim width in inches (3.5 → MT3.50). */
   rimWidthIn: number;
-  /** Tread label printed on the sidewall (generic, no tyre brands). */
+  /** Generic tread name printed on the sidewall (no tyre brands). */
   tyreLabel?: string;
   /** Profile crown shape (<1 triangular race, >1 round touring). */
   crown?: number;
   /** Tread pattern style. */
-  tread?: 'slickish' | 'sport' | 'touring' | 'dual' | 'knobbly' | 'scooter';
+  tread?: TreadStyle;
 }
+
+export type TreadStyle = 'slickish' | 'sport' | 'touring' | 'dual' | 'knobbly' | 'scooter' | 'cruiser';
 
 export interface BrakeSpec {
   discs: 0 | 1 | 2;
@@ -46,43 +52,51 @@ export interface BrakeSpec {
   caliperColor: string;
   caliperText?: string;
   caliperTextColor?: string;
+  /** Caliper position on the disc, degrees from straight up, positive towards the rear. */
+  caliperAngleDeg?: number;
 }
 
 export interface ForkSpec {
-  type: 'usd' | 'rwu' | 'telelever' | 'duolever' | 'springer';
+  type: 'usd' | 'rwu' | 'telelever' | 'springer';
   /** Stanchion (inner tube) diameter (m). */
   stanchion: number;
   /** Fork tube centre spacing (m). */
   spacing: number;
-  /** Upper/outer tube colour (USD) or upper stanchion colour (RWU). */
+  /** Outer (upper on USD) tube colour. */
   outerColor: string;
-  /** Lower sliding tube / stanchion colour (TiN gold, chrome, DLC black…). */
+  /** Sliding tube colour (TiN gold, chrome, DLC black…). */
   innerColor: string;
   /** Axle clamp / fork foot colour. */
   footColor: string;
   capColor: string;
-  /** Adjuster colour (preload/rebound on the caps). */
+  /** Preload / damping adjuster colour. */
   adjusterColor?: string;
   gaiters?: boolean;
   /** Small printed label on the outer tube. */
   label?: string;
   labelColor?: string;
+  /** Fork tube length above the top clamp (m). */
+  aboveClamp?: number;
+  /** Top clamp → bottom clamp distance (m). */
+  clampGap?: number;
 }
 
 export interface FrameSpec {
-  type: 'twinSpar' | 'trellis' | 'cradle' | 'monocoque' | 'backbone' | 'perimeter' | 'scooter' | 'boxer';
+  type: 'twinSpar' | 'trellis' | 'cradle' | 'monocoque' | 'backbone' | 'scooter' | 'boxer';
   color: string;
   metal: number;
   rough: number;
   subframe: 'tubular' | 'cast' | 'integrated' | 'trellis';
   subframeColor: string;
+  /** Beam outer width at the widest point (m). */
+  width?: number;
 }
 
 export interface SwingarmSpec {
   type: 'braced' | 'banana' | 'box' | 'singleSided' | 'shaft' | 'tubular' | 'scooter';
   /** Pivot → axle length (m). */
   length: number;
-  /** Rest angle below horizontal from pivot to axle (degrees). */
+  /** Rest angle below horizontal from pivot to axle (degrees, positive = pivot higher than axle). */
   angleDeg: number;
   /** Arm side for single-sided / shaft swingarms. */
   side?: 'left' | 'right';
@@ -114,7 +128,7 @@ export interface EngineVisual {
   cc: number;
   /** Crankshaft position (bike space). */
   crank: P3;
-  /** Cylinder bank tilt forward from vertical (degrees). For V engines: bank angle bisector tilt. */
+  /** Cylinder tilt forward from vertical (degrees). V engines: front-bank angle above horizontal. */
   tiltDeg: number;
   caseColor: string;
   coverColor: string;
@@ -123,23 +137,25 @@ export interface EngineVisual {
   camCoverText?: string;
   finned: boolean;
   liquidCooled: boolean;
-  radiator?: { w: number; h: number; z: number; y: number; tiltDeg: number; curved?: boolean };
+  radiator?: { w: number; h: number; z: number; y: number; tiltDeg: number; curved?: boolean; side?: boolean };
   supercharger?: boolean;
+  /** Overall width of the crankcase (m). */
+  width?: number;
 }
 
 export interface ExhaustSpec {
-  route: 'underslung' | 'sideCan' | 'underbelly' | 'highTwin' | 'underseatTwin' | 'dualSide' | 'peashooter' | 'megaphone' | 'shotgun' | 'scooter' | 'organ' | 'highSingle' | 'none';
+  route: 'underslung' | 'sideCan' | 'underbelly' | 'highTwin' | 'underseatTwin' | 'dualSide' | 'peashooter' | 'megaphone' | 'shotgun' | 'scooter' | 'highSingle' | 'none';
   side: 'right' | 'left' | 'both';
   can: 'stubby' | 'round' | 'hex' | 'slash' | 'megaphone' | 'fishtail' | 'tri' | 'box' | 'oval';
   canLength: number;
   canDia: number;
   canFinish: 'titanium' | 'carbon' | 'chrome' | 'black' | 'steel';
   headerFinish: 'titanium' | 'steel' | 'chrome' | 'black';
-  /** Where the silencer outlet ends (bike space, right-side mirror for 'left'). */
+  /** Silencer outlet centre (bike space, right side; mirrored for left). */
   outlet?: P3;
 }
 
-export type DashKind = 'tftR1' | 'tftDucati' | 'tft' | 'tftRound' | 'lcd' | 'analog' | 'analogTwin' | 'scooter';
+export type DashKind = 'tftR1' | 'tftDucati' | 'tftBmw' | 'tftWide' | 'tft' | 'tftRound' | 'lcd' | 'analog' | 'analogTwin' | 'scooter' | 'harley';
 
 export interface CockpitSpec {
   bars: 'clipon' | 'tubular' | 'tall' | 'cruiser' | 'scooter';
@@ -155,7 +171,7 @@ export interface CockpitSpec {
   /** 'fairing' = frame-mounted behind the screen; 'bars' = turns with the steering. */
   dashMount: 'fairing' | 'bars';
   mirrors: 'fairing' | 'bar' | 'barEnd' | 'none';
-  /** Right mirror head centre (bike space). */
+  /** Right mirror glass centre (bike space). */
   mirrorPos?: P3;
   mirrorSize?: [number, number];
   mirrorIndicators?: boolean;
@@ -163,11 +179,17 @@ export interface CockpitSpec {
   steeringDamper?: 'top' | 'side' | 'none';
   leverColor: string;
   reservoirs: boolean;
+  switchColor?: string;
+  gripColor?: string;
+  clutch?: 'cable' | 'hydraulic';
+  ignition?: 'clamp' | 'tank' | 'keyless';
+  /** Bar-end weights / bar-end mirrors colour. */
+  barEndColor?: string;
 }
 
 export interface LightsSpec {
-  head: 'r1' | 'panigale' | 'sportTwin' | 'round' | 'angular' | 'ledBar' | 'beak' | 'touring' | 'scooter' | 'batwing';
-  tail: 'r1' | 'panigale' | 'strip' | 'compact' | 'round' | 'bar' | 'scooter';
+  head: 'r1' | 'panigale' | 'sportTwin' | 'round' | 'angular' | 'ledBar' | 'beak' | 'touring' | 'scooter' | 'batwing' | 'custom';
+  tail: 'r1' | 'panigale' | 'strip' | 'compact' | 'round' | 'bar' | 'scooter' | 'custom';
   /** Separate stalk indicators on the plate hanger. */
   rearIndicators: 'stalk' | 'integrated';
 }
@@ -199,7 +221,9 @@ export interface PlateSpec {
   tiltDeg: number;
 }
 
-export type BodyBuilder = (ctx: BodyContext) => void;
+export type BodyBuilder = (ctx: KitContext) => void;
+
+export type FootrestType = 'rearset' | 'peg' | 'floorboard' | 'scooter';
 
 export interface BikeBlueprint {
   id: string;
@@ -209,8 +233,9 @@ export interface BikeBlueprint {
   overall?: [number, number, number];
   wheelbase: number;
   rakeDeg: number;
+  /** Trail (m). */
   trail: number;
-  /** Axle → top of fork tubes, along the fork axis (m, static sag included). */
+  /** Axle → top of the fork tubes, along the fork axis (m, static sag included). */
   forkLength: number;
   front: WheelEnd;
   rear: WheelEnd;
@@ -229,13 +254,18 @@ export interface BikeBlueprint {
   lights: LightsSpec;
   seat: SeatSpec;
   rider: RiderSpec;
+  footrests: FootrestType;
   plate: PlateSpec;
-  /** Builds all painted bodywork, screen, tank, seat and tail. */
+  /** Builds the painted bodywork, screen, tank, seat, tail and model-specific parts. */
   body: BodyBuilder;
-  /** Paints the livery atlas. */
+  /** Paints the livery atlas (index = livery index in the BikeSpec). */
   livery: LiveryPainter;
+  /** Livery zone overrides for the painter. */
+  zones?: Partial<LiveryZones>;
   /** Ground clearance (m) for validation. */
   groundClearance?: number;
+  /** Feature flags understood by the generic body builder and kit (crash bars, panniers…). */
+  features?: readonly string[];
 }
 
 export interface BlueprintSource {
