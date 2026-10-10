@@ -5,6 +5,7 @@ import { ninjaH2Blueprint } from './ninjaH2';
 import { panigaleV4Blueprint } from './panigaleV4';
 import { r1Blueprint } from './r1';
 import { s1000rrBlueprint } from './s1000rr';
+import { streetGlideBlueprint } from './streetGlide';
 
 /**
  * Blueprint registry. Authored blueprints (hand-built from spec sheets and
@@ -20,6 +21,7 @@ AUTHORED.set('yamaha-r1', r1Blueprint);
 AUTHORED.set('ducati-panigale-v4s', panigaleV4Blueprint);
 AUTHORED.set('kawasaki-h2', ninjaH2Blueprint);
 AUTHORED.set('bmw-s1000rr', s1000rrBlueprint);
+AUTHORED.set('harley-street-glide', streetGlideBlueprint);
 
 export function registerBlueprint(id: string, f: Factory): void {
   AUTHORED.set(id, f);
