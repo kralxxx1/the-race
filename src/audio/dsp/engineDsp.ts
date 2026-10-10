@@ -321,6 +321,8 @@ export class EngineDSP implements EngineSynthesizer {
   private phDrive = 0;
   private phStarter = 0;
   private phCharger = 0;
+  private phWob1 = 0.31;
+  private phWob2 = 0.77;
   private phBov = 0;
   private bovEnv = 0;
   private thrPeak = 0;
@@ -562,7 +564,14 @@ export class EngineDSP implements EngineSynthesizer {
     const ci = this.theta | 0;
     const cf = this.theta - ci;
     const speedMod = this.crank[ci] + (this.crank[ci + 1] - this.crank[ci]) * cf;
-    const dTheta = (rpm * 6 * (1 + ripple * speedMod)) / isr;
+    // Slow speed hunting (combustion scatter, idle governor): real engines never hold a perfectly steady rpm.
+    this.phWob1 += 0.83 / isr;
+    this.phWob2 += 3.4 / isr;
+    if (this.phWob1 > 1e6) this.phWob1 -= 1e6;
+    if (this.phWob2 > 1e6) this.phWob2 -= 1e6;
+    const idleLike = clamp01(1 - (rpm - p.idle) / (p.idle * 1.2));
+    const wob = (0.6 * sinCycles(this.phWob1) + 0.4 * sinCycles(this.phWob2)) * (0.0012 + 0.011 * idleLike) * (0.4 + p.roughness + p.idleLope * 0.5);
+    const dTheta = (rpm * 6 * (1 + ripple * speedMod + wob)) / isr;
     if (dTheta > 0) this.advance(dTheta, rpm, thr, load, rpmFrac);
 
     // ── exhaust pulses into the headers ──
