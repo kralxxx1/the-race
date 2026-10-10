@@ -97,9 +97,20 @@ export function spectrogram(x: Float32Array, sr: number, size: number, hop: numb
 /** Octave-ish band edges (Hz) used for the distinctness feature vector. */
 export const FEATURE_BANDS: readonly number[] = [40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000];
 
+/** Third-octave band edges (Hz), 50 Hz … 10 kHz, for the finer "timbre" part of the fingerprint. */
+export const FEATURE_THIRDS: readonly number[] = (() => {
+  const e: number[] = [];
+  for (let f = 50; f <= 10100; f *= Math.cbrt(2)) e.push(f);
+  return e;
+})();
+
 export interface SpectralFeatures {
   /** Level (dB re 1.0 RMS) per band between FEATURE_BANDS edges. */
   bandDb: number[];
+  /** Level (dB) per third-octave band between FEATURE_THIRDS edges. */
+  thirdDb: number[];
+  /** Peak-to-median spectral level (dB) within 1.2–6 kHz: high for whines and tones, low for noise. */
+  tonality: number;
   rmsDb: number;
   /** log2 of the spectral centroid in Hz. */
   centroidLog2: number;
@@ -121,6 +132,18 @@ export function spectralFeatures(x: Float32Array, sr: number): SpectralFeatures 
     total += e;
     bandDb.push(10 * Math.log10(e + 1e-12));
   }
+  const thirdDb: number[] = [];
+  for (let b = 0; b < FEATURE_THIRDS.length - 1; b++) {
+    const k0 = Math.round(FEATURE_THIRDS[b] / binHz);
+    const k1 = Math.max(k0 + 1, Math.round(FEATURE_THIRDS[b + 1] / binHz));
+    let e = 0;
+    for (let k = k0; k < k1; k++) e += p[k];
+    thirdDb.push(10 * Math.log10(e + 1e-12));
+  }
+  const hiVals: number[] = [];
+  for (let k = Math.round(1200 / binHz); k < Math.round(6000 / binHz); k++) hiVals.push(p[k]);
+  const sortedHi = [...hiVals].sort((a, b) => a - b);
+  const tonality = sortedHi.length ? 10 * Math.log10((sortedHi[sortedHi.length - 1] + 1e-14) / (sortedHi[sortedHi.length >> 1] + 1e-14)) : 0;
   let num = 0;
   let den = 0;
   let logSum = 0;
@@ -135,7 +158,7 @@ export function spectralFeatures(x: Float32Array, sr: number): SpectralFeatures 
   }
   const centroid = den > 0 ? num / den : 0;
   const flat = den > 0 ? Math.exp(logSum / cnt) / (den / cnt) : 0;
-  return { bandDb, rmsDb: 10 * Math.log10(total + 1e-12), centroidLog2: Math.log2(Math.max(20, centroid)), flatness: Math.min(1, flat) };
+  return { bandDb, thirdDb, tonality, rmsDb: 10 * Math.log10(total + 1e-12), centroidLog2: Math.log2(Math.max(20, centroid)), flatness: Math.min(1, flat) };
 }
 
 /** Amplitude envelope: |x| smoothed by a one-pole low-pass (corner `hz`), decimated by `dec`. */

@@ -8,8 +8,10 @@ import { renderOffline, type Rendered } from './synthFactory';
  * 6k cruiser are compared at "idle / mid / high"), on and off throttle.
  */
 export interface ConditionFeatures {
-  /** Spectrum shape: band levels (dB) minus their mean — independent of overall loudness. */
+  /** Spectrum shape: third-octave band levels (dB) minus their mean — independent of overall loudness. */
   shape: number[];
+  /** Peak-to-median level (dB) in 1.2–6 kHz: whines and tones stand out from noise. */
+  tonality: number;
   /** A-weighted level (dB). */
   level: number;
   /** log2 spectral centroid. */
@@ -44,10 +46,12 @@ function condition(params: EngineVoiceParams, rpm: number, thr: number, speed: n
   const skip = Math.round(sr * 0.5);
   const m = monoOf(r, skip);
   const sf = spectralFeatures(m, sr);
-  const mean = sf.bandDb.reduce((a, c) => a + c, 0) / sf.bandDb.length;
+  const mean = sf.thirdDb.reduce((a, c) => a + c, 0) / sf.thirdDb.length;
   const env = envelope(m, sr, Math.max(300, (rpm / 60) * 4), 8);
   const rhythm = params.kind === 'electric' ? new Float64Array(24) : cycleProfile(env, sr / 8, Math.max(rpm, 300), 24);
-  return { shape: sf.bandDb.map((b) => b - mean), level: aWeightedDb(m, sr), centroid: sf.centroidLog2, rhythm: Array.from(rhythm) };
+  // Level as the player hears it: raw level plus the loudness calibration and the voice's own trim.
+  const level = aWeightedDb(m, sr) + 20 * Math.log10(params.calib * Math.pow(10, params.loudness / 20));
+  return { shape: sf.thirdDb.map((b) => b - mean), tonality: sf.tonality, level, centroid: sf.centroidLog2, rhythm: Array.from(rhythm) };
 }
 
 export function bikeFeatures(params: EngineVoiceParams, range: EngineRange, sr = 32000, seconds = 1.5): BikeFeatures {
@@ -66,12 +70,13 @@ function condDistance(a: ConditionFeatures, b: ConditionFeatures): number {
   let shape = 0;
   for (let i = 0; i < a.shape.length; i++) shape += ((a.shape[i] - b.shape[i]) / 6) ** 2;
   shape = Math.sqrt(shape / a.shape.length) * 2.2;
+  const tonal = Math.abs(a.tonality - b.tonality) / 9;
   const level = Math.abs(a.level - b.level) / 6;
   const centroid = Math.abs(a.centroid - b.centroid) * 1.4;
   let rhythm = 0;
   for (let i = 0; i < a.rhythm.length; i++) rhythm += (a.rhythm[i] - b.rhythm[i]) ** 2;
-  rhythm = Math.sqrt(rhythm / a.rhythm.length) * 1.6;
-  return Math.sqrt(shape * shape + level * level + centroid * centroid + rhythm * rhythm);
+  rhythm = Math.sqrt(rhythm / a.rhythm.length) * 2.4;
+  return Math.sqrt(shape * shape + level * level + centroid * centroid + rhythm * rhythm + tonal * tonal);
 }
 
 const WEIGHTS = { idle: 1, mid: 1, high: 1, overrun: 0.6 } as const;

@@ -357,7 +357,7 @@ export class EngineDSP implements EngineSynthesizer {
     this.crank = crankSpeedTable(params.firing.length ? params.firing : [0]);
     this.sizeScale = Math.sqrt(Math.max(50, params.ccPerCyl) / 250);
     // Bigger bores and valves open slower: ~0.35 ms for a 100 cc/cyl 600, ~0.9 ms for a 600 cc V-twin cylinder.
-    this.spikeTau = clampN(0.00028 + 0.00000105 * params.ccPerCyl, 0.0003, 0.001);
+    this.spikeTau = clampN(0.00022 + 0.0000016 * params.ccPerCyl, 0.0003, 0.0013);
     this.riseDecay = Math.exp(-1 / (isr * 0.00006));
 
     // Events.
@@ -705,7 +705,7 @@ export class EngineDSP implements EngineSynthesizer {
       let whine = sinCycles(ph) * 0.5 + sinCycles(ph * 2) * 0.32;
       const bladeHz = (rpm / 60) * ch.ratio * ch.blades;
       if (bladeHz < isr * 0.45) whine += sinCycles(ph * ch.blades) * 0.12;
-      intake += whine * ch.whine * boost * 0.05 + bandpass(b, R_CHG_HISS, rng.white()) * boost * ch.whine * 0.05;
+      intake += whine * ch.whine * boost * 0.14 + bandpass(b, R_CHG_HISS, rng.white()) * boost * ch.whine * 0.1;
       // Surge chirp when the throttle snaps shut at boost.
       if (thr > this.thrPeak) this.thrPeak = thr;
       else this.thrPeak -= (this.thrPeak - thr) * 0.0004;

@@ -182,6 +182,20 @@ try {
     const nn = feats.map((f, i) => { let best = [1e9, '']; feats.forEach((g, j) => { if (i !== j) { const d = bikeDistance(f, g); if (d < best[0]) best = [d, g.id]; } }); return [best[0], f.id, best[1]]; }).sort((a, b) => a[0] - b[0]);
     console.log('--- nearest neighbour per bike (lowest first)');
     for (const [d, a, b] of nn.slice(0, 20)) console.log(d.toFixed(2), a, '→', b);
+  } else if (cmd === 'pair') {
+    const { BIKES } = await load('/src/data/bikes.ts');
+    const { voiceParams } = await load('/src/audio/voices.ts');
+    const { bikeFeatures, bikeDistance } = await load('/src/audio/dsp/features.ts');
+    const get = (id) => { const b = BIKES.find((x) => x.id === id); return bikeFeatures(voiceParams(b), b.engine); };
+    const a = get(args[0]);
+    const b = get(args[1]);
+    console.log('distance', bikeDistance(a, b).toFixed(2));
+    for (const k of ['idle', 'mid', 'high', 'overrun']) {
+      const x = a[k], y = b[k];
+      let shape = 0; for (let i = 0; i < x.shape.length; i++) shape += ((x.shape[i] - y.shape[i]) / 6) ** 2;
+      let rh = 0; for (let i = 0; i < x.rhythm.length; i++) rh += (x.rhythm[i] - y.rhythm[i]) ** 2;
+      console.log(k.padEnd(8), 'shape', (Math.sqrt(shape / x.shape.length) * 2.2).toFixed(2), 'level', (Math.abs(x.level - y.level) / 6).toFixed(2), 'centroid', (Math.abs(x.centroid - y.centroid) * 1.4).toFixed(2), 'rhythm', (Math.sqrt(rh / 24) * 2.4).toFixed(2), 'tonal', (Math.abs(x.tonality - y.tonality) / 9).toFixed(2), '| lvl', x.level.toFixed(1), y.level.toFixed(1));
+    }
   } else {
     console.log('usage: see header');
   }
