@@ -89,14 +89,18 @@ test.describe('The Race — production build', () => {
 
   test('storage: purchases, liveries and settings survive a reload', async ({ page }) => {
     const errors = trackErrors(page);
-    await seedSave(page, { cash: 100000 });
+    // The Panigale V4 S is a level-31 bike: seed enough XP to be allowed to buy it.
+    await seedSave(page, { cash: 100000, xp: 75000 });
     await bootToMenu(page);
     await page.getByTestId('btn-garage').click();
     await expect(page.getByTestId('cash')).toHaveText('$100.000');
     await page.getByTestId('bike-ducati-panigale-v4s').click();
     await expect(page.getByTestId('garage-model')).toHaveText('Panigale V4 S');
     await page.getByTestId('btn-buy').click();
-    await expect(page.getByTestId('cash')).toHaveText('$69.000');
+    // Buying can unlock achievements whose rewards top the balance up.
+    const cashAfterBuy = (await api(page, 'save')).cash;
+    expect(cashAfterBuy).toBeGreaterThanOrEqual(69000);
+    await expect(page.getByTestId('cash')).toHaveText(`$${cashAfterBuy.toLocaleString('tr-TR')}`);
     await page.getByTestId('btn-back').click();
     await page.getByTestId('btn-settings').click();
     await page.getByTestId('tab-hud').click();
@@ -109,7 +113,7 @@ test.describe('The Race — production build', () => {
     const save = await api(page, 'save');
     expect(save.ownedBikes).toContain('ducati-panigale-v4s');
     expect(save.selectedBike).toBe('ducati-panigale-v4s');
-    expect(save.cash).toBe(69000);
+    expect(save.cash).toBe(cashAfterBuy);
     expect(save.settings['hud.units']).toBe('mph');
     expect(save.settings['gfx.preset']).toBe('medium');
     expect(save.settings['gfx.shadows']).toBe('1024');

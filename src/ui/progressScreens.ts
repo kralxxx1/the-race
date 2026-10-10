@@ -111,7 +111,7 @@ export class ProgressScreens {
     }
     p.append(
       h('div', { class: 'header' },
-        h('button', { class: 'btn ghost', 'data-testid': 'btn-back', onclick: () => { a.click(); a.back(); } }, '‹ GERİ'),
+        h('button', { class: 'btn ghost', 'data-testid': 'progress-back', onclick: () => { a.click(); a.back(); } }, '‹ GERİ'),
         h('div', { class: 'title' }, TAB_LABEL[this.tab].toLocaleUpperCase('tr-TR')),
         h('div', { class: 'cash' }, fmtMoney(d.cash)),
       ),

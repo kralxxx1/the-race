@@ -56,6 +56,8 @@
 .gp-starrules { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #dfe6ef; }
 
 /* ───────────── results ───────────── */
+.go-buttons .btn { white-space: nowrap; padding-left: 10px; padding-right: 10px; }
+.menu-daily { margin-top: 12px; max-width: 420px; }
 .gp-result-stars { text-align: center; font-size: 44px; color: var(--accent-2); letter-spacing: 0.15em; text-shadow: 0 4px 24px rgba(255, 176, 32, 0.4); }
 .gp-result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .gp-lines { display: flex; flex-direction: column; gap: 4px; }
@@ -82,8 +84,6 @@
 .gp-day:hover { transform: none; border-color: var(--line); }
 .gp-day.done { opacity: 0.55; }
 .gp-day.sel { opacity: 1; }
-.menu-daily { margin-top: 10px; }
-.menu-daily .btn { width: 100%; max-width: 320px; }
 .menu-daily-dot { display: inline-block; width: 9px; height: 9px; margin-left: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); vertical-align: middle; }
 
 /* ───────────── HUD: mission panel and toasts ───────────── */

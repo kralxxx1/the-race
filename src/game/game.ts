@@ -118,7 +118,10 @@ export class Game {
   start(): void {
     const sel = this.save.data.selectedBike;
     this.showroom.setBike(getBike(sel), this.save.livery(sel));
+    // Riders upgrading from an older save may already qualify for early achievements.
+    const welcome = this.save.reconcileAchievements();
     this.toMenu();
+    if (welcome.length) this.screens.toast(`${welcome.length} başarım açıldı: ${welcome.slice(0, 2).map((a) => a.title).join(', ')}${welcome.length > 2 ? '…' : ''}`);
     this.last = performance.now();
     const loop = (t: number) => {
       requestAnimationFrame(loop);
@@ -453,7 +456,7 @@ export class Game {
       if (out.record || (out.mission && out.mission.result.status === 'complete' && out.mission.newStars > 0)) this.uiSounds.record();
     };
     // A clean finish keeps the world rolling for a moment before the card covers it.
-    if (reason === 'missionComplete' || reason === 'timeUp') this.pendingResult = { timer: RESULT_DELAY, show };
+    if (reason === 'missionComplete' || reason === 'timeUp' || (reason === 'missionFailed' && !s.bike.crashed)) this.pendingResult = { timer: RESULT_DELAY, show };
     else show();
   }
 

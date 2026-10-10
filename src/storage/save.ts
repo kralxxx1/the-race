@@ -369,6 +369,17 @@ export class SaveManager {
   /** Achievements unlocked by the last non-run action (purchase, daily reward). */
   lastUnlocks: AchievementDef[] = [];
 
+  /**
+   * Unlock achievements the loaded save already qualifies for (e.g. riders migrating from v3
+   * whose old totals reach early tiers). Pays the rewards once and persists; returns the unlocks.
+   */
+  reconcileAchievements(): AchievementDef[] {
+    const unlocked = this.checkAchievements();
+    if (unlocked.length) this.save();
+    this.lastUnlocks = unlocked;
+    return unlocked;
+  }
+
   owns(bikeId: string): boolean {
     return this.data.ownedBikes.includes(bikeId);
   }

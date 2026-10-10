@@ -124,6 +124,21 @@ describe('migration v3 -> v4', () => {
     expect(b.stats.lifetime.distance).toBe(1500);
   });
 
+  it('riders with big old totals get the early achievements once, with their rewards', () => {
+    const store = new MemoryStore();
+    store.setItem(SAVE_KEY, JSON.stringify(v3()));
+    const m = new SaveManager(store);
+    expect(Object.keys(m.data.achievements)).toHaveLength(0); // loading alone changes nothing
+    const cash = m.data.cash;
+    const unlocked = m.reconcileAchievements();
+    const ids = unlocked.map((a) => a.id);
+    expect(ids).toEqual(expect.arrayContaining(['dist-1', 'dist-2', 'near-1', 'near-2', 'speed-1', 'bike-1']));
+    expect(m.data.cash).toBe(cash + unlocked.reduce((a, x) => a + x.reward.cash, 0));
+    expect(new SaveManager(store).data.achievements['dist-1']).toBeGreaterThan(0); // persisted
+    expect(m.reconcileAchievements()).toHaveLength(0); // never twice
+    expect(new SaveManager(new MemoryStore()).reconcileAchievements()).toHaveLength(0); // fresh install: nothing
+  });
+
   it('survives a full SaveManager round trip from a v3 string in storage', () => {
     const store = new MemoryStore();
     store.setItem(SAVE_KEY, JSON.stringify(v3()));

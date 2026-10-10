@@ -18,6 +18,14 @@ export interface DebugApi {
   audioState: string;
   audioLevel: number;
   memory: { geometries: number; textures: number };
+  level: number;
+  xp: number;
+  achievementCount: number;
+  /** Live state of the running career mission (null outside missions). */
+  mission: { id: string; number: number; type: string; status: 'running' | 'complete' | 'failed'; failReason: string | null; progress: number; stars: number; timeLeft: number | null; text: string; objective: string } | null;
+  lastOutcome: { cash: number; xp: number; achievements: { id: string }[]; mission: { firstClear: boolean; newStars: number; nextMissionId: string | null } | null } | null;
+  startMission(id: string): Promise<void>;
+  claimDaily(): boolean;
   setInput(o: Record<string, unknown>): void;
   clearInput(): void;
   start(mode?: string, map?: string, time?: string, weather?: string): Promise<void>;

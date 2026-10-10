@@ -237,7 +237,7 @@ export class Screens {
     ];
     const bike = BIKE_BY_ID.get(d.selectedBike)!;
     p.append(
-      h('div', { class: 'header' }, this.btn('‹ GERİ', () => this.a.back(), 'ghost'), h('div', { class: 'title' }, 'SÜRÜŞ MODU'), h('div', { class: 'cash' }, fmtMoney(d.cash))),
+      h('div', { class: 'header' }, this.btn('‹ GERİ', () => this.a.back(), 'ghost', 'modes-back'), h('div', { class: 'title' }, 'SÜRÜŞ MODU'), h('div', { class: 'cash' }, fmtMoney(d.cash))),
       h('div', { class: 'scroll' },
         h('div', { class: 'section-title' }, 'Mod'),
         h('div', { class: 'grid4' }, modeCards),

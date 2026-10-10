@@ -384,7 +384,8 @@ export class GameSession {
     }
     this.state = 'finished';
     this.finishReason = reason;
-    if (reason === 'missionComplete' || reason === 'timeUp') this.coast = COAST_SECONDS;
+    // A clean ending (not a crash or quit) lets the world roll on for a moment before the result card.
+    if (reason === 'missionComplete' || reason === 'timeUp' || (reason === 'missionFailed' && m?.failReason !== 'crash')) this.coast = COAST_SECONDS;
     this.events.push({ type: 'finish', reason });
   }
 

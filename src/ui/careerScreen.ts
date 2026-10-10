@@ -104,7 +104,7 @@ export class CareerScreen {
     const sel = MISSION_BY_ID.get(this.missionSel)!;
     p.append(
       h('div', { class: 'header' },
-        h('button', { class: 'btn ghost', 'data-testid': 'btn-back', onclick: () => { a.click(); a.back(); } }, '‹ GERİ'),
+        h('button', { class: 'btn ghost', 'data-testid': 'career-back', onclick: () => { a.click(); a.back(); } }, '‹ GERİ'),
         h('div', { class: 'title' }, 'KARİYER'),
         h('div', { class: 'cash', 'data-testid': 'career-stars' }, `★ ${totalStars(career)}/${MAX_STARS}`),
       ),
