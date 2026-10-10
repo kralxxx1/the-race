@@ -205,7 +205,9 @@ function hookHard(sh: THREE.WebGLProgramParametersWithUniforms): void {
       '#include <metalnessmap_fragment>',
       `#include <metalnessmap_fragment>
   float kitH = kitMicro(vPbr.w, vLocal);
-  float kitFade = 1.0 - smoothstep(0.00025, 0.0016, length(fwidth(vLocal)));
+  // Fade each micro pattern out before its cell size drops below ~3 px (otherwise it aliases into sparkle).
+  float kitCell = vPbr.w < 1.5 ? 0.0012 : vPbr.w < 2.5 ? 0.0011 : vPbr.w < 3.5 ? 0.0006 : vPbr.w < 4.5 ? 0.0033 : 0.0024;
+  float kitFade = 1.0 - smoothstep(kitCell * 0.12, kitCell * 0.4, length(fwidth(vLocal)));
   metalnessFactor = vPbr.x;
   roughnessFactor = clamp(vPbr.y * (1.0 + (kitH - 0.5) * 0.35 * kitFade), 0.02, 1.0);`,
     )

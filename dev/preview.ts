@@ -94,7 +94,7 @@ switch (view) {
     place(0, 0.85, 6.2, 22);
     break;
   case 'rear34':
-    place(0.75, 1.15, 4.6, 30);
+    place(0.75, 1.15, 3.7, 30);
     break;
   case 'top':
     cam.fov = num('fov', 28);
@@ -124,14 +124,16 @@ switch (view) {
     eq.multiply(rider.eyeQuat);
     const e = new THREE.Euler().setFromQuaternion(eq, 'YXZ');
     e.z *= 0.75;
-    e.x -= 0.16 + num('look', 0);
+    // Same pitch as the game's helmet camera; `look` adds a downward glance (default: a glance at the dash).
+    e.x -= 0.16 + num('look', 0.45);
     cam.position.copy(eye);
     cam.quaternion.setFromEuler(e);
+    console.log('[preview] eye', eye.toArray().map((v) => v.toFixed(3)).join(','), 'euler', e.x.toFixed(2), e.y.toFixed(2), e.z.toFixed(2));
     cam.fov = num('fov', 74);
     break;
   }
   default:
-    place(num('yaw', -0.85) + (view === 'front34' ? Math.PI : 0), num('h', 1.15), num('dist', 4.6), 30);
+    place(num('yaw', -0.85) + (view === 'front34' ? Math.PI : 0), num('h', 1.15), num('dist', 3.7), 30);
 }
 if (q.has('yaw') && view === 'free') place(num('yaw', 0), num('h', 1.1), num('dist', 4.4), 30);
 cam.updateProjectionMatrix();

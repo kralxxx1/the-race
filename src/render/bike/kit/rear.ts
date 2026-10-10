@@ -382,7 +382,7 @@ export function plateHanger(ctx: KitContext, opts: { fromZ?: number; fromY?: num
   const fromY = opts.fromY ?? bp.seat.height - 0.08;
   const top = new THREE.Vector3(0, H / 2 + 0.01, -0.01).applyMatrix4(m);
   const arm = smooth2([[fromZ - 0.08, fromY], [fromZ + 0.02, fromY + 0.01], [top.z + 0.02, top.y + 0.02], [top.z - 0.03, top.y], [fromZ - 0.06, fromY - 0.05]], ctx.micro ? 3 : 2, true);
-  ctx.add(group, extrude(arm, 0.12, { plane: 'zy', bevel: 0.006 }), F.texturedBlack);
+  ctx.add(group, extrude(arm, 0.085, { plane: 'zy', bevel: 0.008 }), F.texturedBlack);
   // Plate light
   ctx.add(group, roundBox(0.04, 0.012, 0.02, 0.004), F.lens, mul(m, T(0, H / 2 + 0.012, 0.012)));
   // Stalk indicators

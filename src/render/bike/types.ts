@@ -175,6 +175,10 @@ export interface CockpitSpec {
   mirrorPos?: P3;
   mirrorSize?: [number, number];
   mirrorIndicators?: boolean;
+  /** Mirror outline: oval (default), sport (tapered wedge, outer end high), rect (rounded rectangle), round. */
+  mirrorShape?: 'oval' | 'sport' | 'rect' | 'round';
+  /** Mirror housing colour (default: body paint for fairing mirrors, gloss black for bar mirrors). */
+  mirrorColor?: string;
   topClamp: 'milled' | 'cast' | 'riser';
   steeringDamper?: 'top' | 'side' | 'none';
   leverColor: string;

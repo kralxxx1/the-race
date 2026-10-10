@@ -148,6 +148,30 @@ export function surfaceAt(ob: OutlineBody, z: number, x: number): { p: P3; n: P3
   return { p: [Math.sign(x || 1) * ax, y, z], n: [Math.sign(x || 1) * nx, ny, nz] };
 }
 
+/**
+ * Point on the outer side of the surface at (z, y) on the given side — searches the
+ * section polyline from the bottom edge upwards for the outermost crossing of y.
+ */
+export function sideAt(ob: OutlineBody, z: number, y: number, side: number): { p: P3; n: P3 } {
+  const pts = stationPts(ob, z);
+  let best: { x: number; nx: number; ny: number } | null = null;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1];
+    if ((a[1] - y) * (b[1] - y) > 0 || Math.abs(b[1] - a[1]) < 1e-9) continue;
+    const t = (y - a[1]) / (b[1] - a[1]);
+    const x = a[0] + (b[0] - a[0]) * t;
+    if (best && x <= best.x) continue;
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const l = Math.hypot(dx, dy) || 1;
+    let nx = -dy / l, ny = dx / l;
+    if (nx < 0) (nx = -nx), (ny = -ny);
+    best = { x, nx, ny };
+  }
+  const sg = side < 0 ? -1 : 1;
+  if (!best) return { p: [sg * ob.half(z), y, z], n: [sg, 0, 0] };
+  return { p: [sg * best.x, y, z], n: [sg * best.nx, best.ny, 0] };
+}
+
 /** Common section templates (top centre → bottom edge). */
 export const SECTIONS = {
   /** Round-shouldered fairing / tank (7 points). */

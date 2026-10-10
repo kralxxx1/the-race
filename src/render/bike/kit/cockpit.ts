@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { T, mul, type KitContext } from '../context';
-import { MeshData, alongY, bolt, catmull, flat, lathe, rod, roundBox, sweep, circle, type P2, type P3 } from '../mesh';
+import { MeshData, alongY, bolt, catmull, flat, lathe, rod, roundBox, roundRect, smooth2, sweep, circle, type P2, type P3 } from '../mesh';
 import { F, hard, Micro, tint, vary, type Finish, type GroupName } from '../sink';
 import { lever, masterCylinder } from './brakes';
 import type { ForkLayout } from './front';
@@ -206,6 +206,72 @@ function rodPath(pts: P3[], r: number, ctx: KitContext): MeshData {
   return sweep(path, circle(r, ctx.micro ? 6 : 4), {});
 }
 
+/** Mirror glass outline (right mirror, x outward), centred on the glass. */
+function mirrorOutline(kind: 'oval' | 'sport' | 'rect' | 'round', w: number, h: number, n: number): P2[] {
+  const hw = w / 2, hh = h / 2;
+  switch (kind) {
+    case 'sport':
+      // Tapered wedge: tall inner end, the outer tip swept up (R1 / Panigale style).
+      return smooth2([[-hw, -hh * 0.75], [hw * 0.55, -hh], [hw, -hh * 0.35], [hw * 0.98, hh * 0.8], [hw * 0.35, hh], [-hw, hh * 0.85]], Math.max(2, Math.round(n / 6)), true).map(([x, y]: number[]) => [x, y] as P2);
+    case 'rect':
+      return roundRect(w, h, Math.min(w, h) * 0.3, Math.max(2, Math.round(n / 8))).map(([x, y]: number[]) => [x, y] as P2);
+    case 'round':
+      return circle(Math.min(hw, hh) * 1.0, n).map(([x, y]) => [x, y] as P2);
+    default:
+      return circle(1, n).map(([x, y]) => [x * hw, y * hh] as P2);
+  }
+}
+
+/** Cup-shaped housing from a glass outline (z = 0) to a rounded nose at z = −depth. */
+function mirrorPod(outline: readonly P2[], depth: number, lip: number, rings: number): MeshData {
+  const m = new MeshData();
+  const n = outline.length;
+  let cx = 0, cy = 0;
+  for (const [x, y] of outline) (cx += x / n), (cy += y / n);
+  // Grow the outline by `lip` so the housing frames the glass.
+  const grown = outline.map(([x, y]) => {
+    const dx = x - cx, dy = y - cy;
+    const l = Math.hypot(dx, dy) || 1;
+    return [x + (dx / l) * lip, y + (dy / l) * lip] as P2;
+  });
+  for (let r = 0; r <= rings; r++) {
+    const t = r / rings;
+    const k = Math.pow(Math.max(0, 1 - t * t), 0.6);
+    for (const [x, y] of grown) m.v(cx + (x - cx) * k, cy + (y - cy) * k, -t * depth);
+  }
+  for (let r = 0; r < rings; r++) {
+    for (let i = 0; i < n; i++) {
+      const a = r * n + i, b = r * n + ((i + 1) % n);
+      m.quad(a, b, b + n, a + n);
+    }
+  }
+  m.computeNormals();
+  // Outward = away from the glass centre on the first ring.
+  const i0 = n;
+  if ((m.pos[i0 * 3] - cx) * m.nrm[i0 * 3] + (m.pos[i0 * 3 + 1] - cy) * m.nrm[i0 * 3 + 1] < 0) m.flip();
+  return m;
+}
+
+function mirrorRim(outline: readonly P2[], lip: number, d: number): MeshData {
+  const m = new MeshData();
+  const n = outline.length;
+  let cx = 0, cy = 0;
+  for (const [x, y] of outline) (cx += x / n), (cy += y / n);
+  for (const [x, y] of outline) {
+    const dx = x - cx, dy = y - cy;
+    const l = Math.hypot(dx, dy) || 1;
+    m.v(x + (dx / l) * lip, y + (dy / l) * lip, 0, 0, 0, 1);
+    m.v(x + (dx / l) * lip, y + (dy / l) * lip, d, 0, 0, 1);
+    m.v(x, y, d, 0, 0, 1);
+  }
+  for (let i = 0; i < n; i++) {
+    const a = i * 3, b = ((i + 1) % n) * 3;
+    m.quad(a, b, b + 1, a + 1);
+    m.quad(a + 1, b + 1, b + 2, a + 2);
+  }
+  return m.computeNormals();
+}
+
 /** Mirror pods with glass in their own slot (so the game can render reflections into them later). */
 function buildMirrors(ctx: KitContext): void {
   const c = ctx.bp.cockpit;
@@ -219,22 +285,16 @@ function buildMirrors(ctx: KitContext): void {
     const basis = new THREE.Matrix4().makeRotationY(yaw);
     basis.setPosition(M);
     const depth = 0.05;
-    // Pod: superellipse cup from the glass plane (z = 0) to the nose (z = −depth).
-    const prof: P2[] = [];
-    const n = ctx.seg(10, 5);
-    for (let i = 0; i <= n; i++) {
-      const t = i / n;
-      prof.push([Math.pow(Math.max(0, 1 - t * t), 0.6), -t]);
-    }
-    const podRaw = lathe(prof.slice().reverse() as P2[], { segs: ctx.seg(28, 10), axis: 'z' });
-    const pod = podRaw.transform(new THREE.Matrix4().makeScale(w / 2 + 0.006, h / 2 + 0.006, depth));
+    // Glass outline in the glass plane (x outward on the right mirror), then a cup from it to the nose.
+    const shape = mirrorOutline(c.mirrorShape ?? 'oval', w, h, ctx.seg(32, 12)).map(([x, y]) => [x * s, y] as P2);
+    const pod = mirrorPod(shape, depth, 0.006, ctx.seg(8, 4));
     // Back rim (glass bezel)
-    const rim = lathe([[1, 0.0], [1, 0.006], [0.96, 0.006]], { segs: ctx.seg(28, 10), axis: 'z' }).transform(new THREE.Matrix4().makeScale(w / 2 + 0.006, h / 2 + 0.006, 1));
-    const paint: Finish = c.mirrors === 'fairing' ? F.paint : F.glossBlack;
+    const rim = mirrorRim(shape, 0.006, 0.005);
+    const paint: Finish = c.mirrorColor ? hard(c.mirrorColor, 0.1, 0.22, 1) : c.mirrors === 'fairing' ? F.paint : F.glossBlack;
     ctx.add(group, pod, paint, basis);
     ctx.add(group, rim, F.texturedBlack, basis);
     // Glass
-    const glass: P2[] = circle(1, ctx.seg(32, 12)).map(([x, y]) => [x * (w / 2), y * (h / 2)] as P2);
+    const glass: P2[] = s < 0 ? shape.slice().reverse() : shape;
     ctx.add(group, flat(glass, 'xy', 0.003, 1), { ...F.mirrorL, slot: s < 0 ? 'mirrorL' : 'mirrorR' }, basis);
     ctx.anchor(s < 0 ? 'mirrorL' : 'mirrorR', P(M));
     // Integrated LED indicator along the outer front edge

@@ -48,6 +48,10 @@ export interface TankOpts {
   /** Knee recess depth (fraction of half width). */
   knee?: number;
   capZ?: number;
+  /** Optional authored side-view top line / plan-view half-width line (override the style defaults). */
+  topLine?: readonly P2[];
+  bottomLine?: readonly P2[];
+  halfLine?: readonly P2[];
 }
 
 export function tankBody(o: TankOpts): OutlineBody {
@@ -56,20 +60,20 @@ export function tankBody(o: TankOpts): OutlineBody {
   const hw = o.width / 2;
   const tear = o.style === 'teardrop' || o.style === 'round';
   return {
-    zs: stationsBetween(zf, zb, 9, 0.6),
-    top: curve([
+    zs: stationsBetween(zf, zb, 11, 0.6),
+    top: o.topLine ? curve(o.topLine) : curve([
       [zf, top - 0.07],
       [zf + L * 0.12, top - 0.02],
       [zf + L * 0.4, top],
       [zf + L * 0.75, top - (tear ? 0.03 : 0.035)],
       [zb, top - (tear ? 0.12 : 0.12)],
     ]),
-    bottom: curve([
+    bottom: o.bottomLine ? curve(o.bottomLine) : curve([
       [zf, o.bottomFront],
       [zf + L * 0.5, (o.bottomFront + o.bottomBack) / 2 - 0.02],
       [zb, o.bottomBack],
     ]),
-    half: curve([
+    half: o.halfLine ? curve(o.halfLine) : curve([
       [zf, hw * (tear ? 0.55 : 0.7)],
       [zf + L * 0.2, hw * 0.97],
       [zf + L * 0.45, hw],

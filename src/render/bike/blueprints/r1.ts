@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import type { BikeSpec, Livery } from '../../../data/bikes';
-import { RX, T, mul, type KitContext } from '../context';
-import { addPanel, bodyQ, buildSeat, buildTank, frontFender, PAINT, screen, seatFinish, shell } from '../kit/body';
+import { RX, S, T, mul, type KitContext } from '../context';
+import { addPanel, bodyQ, buildSeat, buildTank, frontFender, PAINT, screen, seatFinish } from '../kit/body';
 import { lamp, ledStrip } from '../kit/lights';
 import { hugger, plateHanger } from '../kit/rear';
-import { curve, outlineLoft, stationsBetween, surfaceAt, type OutlineBody } from '../kit/shape';
+import { curve, outlineLoft, sideAt, stationsBetween, surfaceAt, type OutlineBody } from '../kit/shape';
 import { ALL_VIEWS, lum, type LiveryCanvas, type LiveryEnv, type Pen } from '../livery';
 import { extrude, lathe, roundBox, smooth2, type P2, type P3 } from '../mesh';
 import { F, hard, tint } from '../sink';
@@ -22,227 +22,234 @@ import type { BikeBlueprint } from '../types';
  */
 
 // Key side-view hardpoints of the bodywork (bike space, metres).
-const NOSE = -1.625;
-const SCREEN_BASE = -1.255;
-const SIDE_END = -0.43;
+const NOSE = -1.632;
+const SCREEN_BASE = -1.5;
+const SCREEN_TOP_Z = -1.13;
+
+/** Side-panel rear edge (side view): from the tank front down to the back of the belly pan. */
+const SIDE_EDGE: P2[] = [
+  [-1.16, 0.975],
+  [-1.08, 0.94],
+  [-1.0, 0.9],
+  [-0.9, 0.83],
+  [-0.8, 0.68],
+  [-0.73, 0.5],
+  [-0.67, 0.36],
+  [-0.6, 0.27],
+  [-0.52, 0.2],
+  [-0.46, 0.16],
+];
 
 function r1Fairing(): OutlineBody {
-  // Dense stations at the nose: the beak tip, then the wide, almost flat face that carries the M intake.
-  const zs = [NOSE, -1.617, -1.6, -1.575, -1.54, -1.49, -1.42, -1.34, -1.25, -1.15, -1.05, -0.94, -0.82, -0.7, -0.58, SIDE_END];
+  const zs = [NOSE, -1.626, -1.615, -1.6, -1.58, -1.55, -1.51, -1.46, -1.4, -1.33, -1.25, -1.16, -1.06, -0.96, -0.86, -0.76, -0.66, -0.56, -0.46];
+  // Section templates, top centre → bottom edge (x / half-width, height fraction).
+  // Trapezoid sections: narrow creased shoulders under the screen, widest low down around the radiator.
+  const face: P2[] = [[0, 1], [0.3, 0.96], [0.62, 0.86], [0.85, 0.68], [0.97, 0.46], [0.98, 0.24], [0.86, 0.06], [0.66, 0]];
+  const cowl: P2[] = [[0, 1], [0.35, 0.985], [0.64, 0.935], [0.82, 0.8], [0.95, 0.6], [1, 0.38], [0.95, 0.12], [0.75, 0]];
+  const side: P2[] = [[0, 1], [0.38, 0.99], [0.68, 0.95], [0.86, 0.82], [0.97, 0.6], [1, 0.36], [0.93, 0.1], [0.6, 0]];
+  const back: P2[] = [[0, 1], [0.42, 0.99], [0.72, 0.95], [0.9, 0.82], [0.98, 0.6], [1, 0.36], [0.92, 0.1], [0.5, 0]];
   return {
     zs,
     top: curve([
-      [NOSE, 0.786],
-      [-1.61, 0.81],
-      [-1.56, 0.845],
-      [-1.46, 0.895],
-      [SCREEN_BASE, 0.952],
-      [-1.13, 0.972],
-      [-0.95, 0.94],
-      [-0.72, 0.84],
-      [SIDE_END, 0.67],
+      [NOSE, 0.79],
+      [-1.6, 0.835],
+      [-1.55, 0.862],
+      [-1.46, 0.896],
+      [-1.36, 0.925],
+      [-1.25, 0.95],
+      [-1.15, 0.965],
+      [-1.02, 0.955],
+      [-0.86, 0.91],
+      [-0.66, 0.83],
+      [-0.46, 0.74],
     ]),
     bottom: curve([
-      [NOSE, 0.765],
-      [-1.617, 0.66],
-      [-1.6, 0.605],
-      [-1.56, 0.585],
-      [-1.47, 0.565],
-      [-1.36, 0.53],
-      [-1.22, 0.45],
-      [-1.08, 0.33],
-      [-0.92, 0.225],
-      [-0.72, 0.19],
-      [-0.55, 0.2],
-      [SIDE_END, 0.26],
+      [NOSE, 0.775],
+      [-1.625, 0.71],
+      [-1.61, 0.665],
+      [-1.585, 0.635],
+      [-1.54, 0.615],
+      [-1.44, 0.6],
+      [-1.33, 0.5],
+      [-1.2, 0.33],
+      [-1.07, 0.2],
+      [-0.94, 0.15],
+      [-0.76, 0.14],
+      [-0.6, 0.15],
+      [-0.46, 0.18],
     ]),
     half: curve([
-      [NOSE, 0.026],
-      [-1.617, 0.07],
-      [-1.6, 0.1],
-      [-1.56, 0.125],
-      [-1.48, 0.16],
-      [-1.38, 0.2],
-      [-1.24, 0.248],
-      [-1.08, 0.272],
-      [-0.88, 0.28],
-      [-0.68, 0.26],
-      [SIDE_END, 0.19],
+      [NOSE, 0.008],
+      [-1.626, 0.06],
+      [-1.61, 0.1],
+      [-1.58, 0.14],
+      [-1.52, 0.188],
+      [-1.44, 0.228],
+      [-1.34, 0.27],
+      [-1.22, 0.295],
+      [-1.06, 0.3],
+      [-0.9, 0.29],
+      [-0.72, 0.255],
+      [-0.46, 0.2],
     ]),
     sections: [
-      // Face: beak ridge on top, sharp eye corner, flat intake flanks down to the chin.
-      { z: NOSE, pts: [[0, 1], [0.32, 0.93], [0.7, 0.8], [0.92, 0.6], [1, 0.38], [0.96, 0.14], [0.88, 0]] },
-      { z: -1.56, pts: [[0, 1], [0.32, 0.93], [0.7, 0.8], [0.92, 0.6], [1, 0.38], [0.96, 0.14], [0.88, 0]] },
-      { z: -1.38, pts: [[0, 1], [0.38, 0.95], [0.7, 0.85], [0.92, 0.66], [1, 0.42], [0.97, 0.18], [0.86, 0]] },
-      // Mid fairing: shield section — narrow creased shoulders, widest low at the radiator, tucked bottom.
-      { z: -1.0, pts: [[0, 1], [0.42, 0.965], [0.7, 0.88], [0.92, 0.7], [1, 0.48], [0.95, 0.25], [0.78, 0.04]] },
-      { z: SIDE_END, pts: [[0, 1], [0.5, 0.97], [0.78, 0.86], [0.95, 0.66], [1, 0.44], [0.94, 0.16], [0.75, 0]] },
+      { z: NOSE, pts: face },
+      { z: -1.56, pts: face },
+      { z: -1.36, pts: cowl },
+      { z: -1.0, pts: side },
+      { z: -0.46, pts: back },
     ],
   };
 }
 
 function r1Tail(): OutlineBody {
   return {
-    zs: stationsBetween(-0.66, 0.13, 12, 0.55),
-    top: curve([[-0.66, 0.85], [-0.42, 0.868], [-0.16, 0.915], [0.02, 0.99], [0.13, 1.03]]),
-    bottom: curve([[-0.66, 0.66], [-0.36, 0.69], [-0.1, 0.77], [0.06, 0.9], [0.13, 0.97]]),
-    half: curve([[-0.66, 0.155], [-0.42, 0.142], [-0.16, 0.115], [0.02, 0.078], [0.13, 0.028]]),
+    zs: stationsBetween(-0.68, 0.135, 14, 0.5),
+    top: curve([[-0.68, 0.84], [-0.5, 0.848], [-0.3, 0.872], [-0.22, 0.925], [-0.06, 0.968], [0.06, 1.0], [0.135, 1.032]]),
+    bottom: curve([[-0.68, 0.7], [-0.4, 0.72], [-0.15, 0.77], [0.02, 0.86], [0.1, 0.95], [0.135, 0.995]]),
+    half: curve([[-0.68, 0.16], [-0.45, 0.148], [-0.22, 0.125], [0.0, 0.088], [0.1, 0.05], [0.135, 0.022]]),
     sections: [
-      { z: -0.66, pts: [[0, 1], [0.6, 0.97], [0.93, 0.8], [1, 0.5], [0.92, 0.2], [0.55, 0.02], [0, 0]] },
-      { z: 0.13, pts: [[0, 1], [0.7, 0.97], [1, 0.72], [0.98, 0.45], [0.85, 0.2], [0.45, 0.02], [0, 0]] },
+      { z: -0.68, pts: [[0, 1], [0.6, 0.98], [0.95, 0.84], [1, 0.55], [0.93, 0.22], [0.6, 0.02], [0, 0]] },
+      { z: 0.135, pts: [[0, 1], [0.72, 0.97], [1, 0.74], [0.98, 0.46], [0.84, 0.2], [0.42, 0.02], [0, 0]] },
     ],
   };
 }
 
 function r1Body(ctx: KitContext): void {
   const ob = r1Fairing();
-  const q = bodyQ(ctx, 1.6);
-  const master = outlineLoft(ob, { su: q.su, sv: q.sv, creases: [2, 4] });
+  const q = bodyQ(ctx, 1.7);
+  const master = outlineLoft(ob, { su: q.su, sv: q.sv, creases: [2], capFront: true });
   const blackGloss = hard('#0b0c0e', 0.15, 0.2, 1);
-  // Cockpit / tank opening above the shoulder line behind the screen base.
-  // The side fairing ends in a diagonal ahead of the rider's knees, exposing the Deltabox beam and engine.
-  const open = sideRegion([
-    [SCREEN_BASE + 0.02, 1.6],
-    [SCREEN_BASE + 0.02, 0.945],
-    [-1.13, 0.925],
-    [-1.0, 0.875],
-    [-0.88, 0.74],
-    [-0.74, 0.56],
-    [-0.6, 0.4],
-    [-0.52, 0.335],
-    [SIDE_END + 0.4, 0.335],
-    [SIDE_END + 0.4, 1.6],
-  ]);
-  // M-shaped centre intake (front view) — only on the nose.
-  // M-shaped centre intake drawn in front view: outer corners, two humps, the beak tip in the middle.
-  const intakeFront: P2[] = [[0, 0.694], [0.024, 0.712], [0.055, 0.738], [0.08, 0.745], [0.102, 0.724], [0.112, 0.68], [0.106, 0.635], [0.09, 0.615], [0, 0.611]];
-  const intake = fAnd(frontRegion(intakeFront), (_x, _y, z) => -1.52 - z);
-  const body = cut(master, fAnd(fNot(open), fNot(intake)));
-  // Panels: nose cowl, side panels (with the big outlet behind the front wheel), lower belly.
-  const cowl = sideRegion([[-2, 2], [-1.2, 2], [-1.2, 0.93], [-1.235, 0.72], [-1.3, 0.62], [-1.42, 0.52], [-2, 0.5]]);
-  const radWindow = sideRegion([[-1.36, 0.595], [-1.245, 0.61], [-1.215, 0.5], [-1.2, 0.37], [-1.3, 0.4], [-1.37, 0.5]]);
-  const belly = sideRegion([[-1.3, 0.37], [-1.0, 0.34], [-0.72, 0.33], [SIDE_END + 0.2, 0.33], [SIDE_END + 0.2, -1], [-1.3, -1]]);
-  // Upper side recess: the dark air outlet between the cowl and the tank.
-  const outlet = sideRegion(smooth2([[-1.17, 0.885], [-1.02, 0.85], [-0.95, 0.78], [-1.0, 0.66], [-1.1, 0.68], [-1.17, 0.76]], 4, true));
-  const side = fAnd(fNot(cowl), fNot(belly), fNot(outlet), fNot(radWindow));
-  addPanel(ctx, 'chassis', body, cowl, PAINT, 0.0035, 0.014);
-  addPanel(ctx, 'chassis', body, side, PAINT, 0.0035, 0.014);
-  addPanel(ctx, 'chassis', body, fAnd(belly, fNot(cowl)), PAINT, 0.0035, 0.014);
-  // Dark inner ducts behind the side outlet (stacked louvres)
+  const A = ctx.hp.frontAxle;
+  // Openings: cockpit/tank area and everything behind the side-panel edge; the front-wheel arch.
+  const open = sideRegion([[-1.16, 2], ...SIDE_EDGE, [-0.3, 0.1], [-0.3, 2]]);
+  const arch = (_x: number, y: number, z: number) => 0.362 - Math.hypot(z - A[2], y - A[1]);
+  // Cockpit opening under the screen: look through the screen at the inner panel and dash.
+  const underScreen = fAnd(planRegion([[SCREEN_BASE + 0.07, -1], [-1.0, -1], [-1.0, 0.15], [-1.3, 0.165], [SCREEN_BASE + 0.07, 0.11]]), (_x, y) => y - 0.86);
+  // M-shaped centre intake drawn in front view (x ≥ 0 half): two humps meeting at the beak.
+  const intakeFront: P2[] = [[0, 0.7], [0.022, 0.713], [0.05, 0.736], [0.078, 0.743], [0.1, 0.727], [0.112, 0.692], [0.106, 0.66], [0.088, 0.642], [0, 0.638]];
+  const intake = fAnd(frontRegion(intakeFront), (_x, _y, z) => -1.55 - z);
+  const body = cut(master, fAnd(fNot(open), fNot(arch), fNot(underScreen), fNot(intake)));
+  // Panel lines: nose cowl / side panel (diagonal from the screen corner to the vent), belly pan.
+  const cowl = sideRegion([[-2, 2], [-1.29, 2], [-1.29, 0.93], [-1.33, 0.78], [-1.39, 0.66], [-1.47, 0.6], [-2, 0.58]]);
+  // Slim dart-shaped air exit under the shoulder crease.
+  const ventPoly: P2[] = [[-1.26, 0.862], [-1.12, 0.858], [-0.99, 0.826], [-0.955, 0.8], [-1.04, 0.78], [-1.2, 0.79]];
+  const vent = sideRegion(smooth2(ventPoly, 4, true));
+  const belly = sideRegion([[-1.12, 0.32], [-0.94, 0.3], [-0.72, 0.29], [-0.4, 0.29], [-0.4, -1], [-1.12, -1]]);
+  addPanel(ctx, 'chassis', body, cowl, PAINT, 0.003, 0.014);
+  addPanel(ctx, 'chassis', body, fAnd(fNot(cowl), fNot(belly), fNot(vent)), PAINT, 0.003, 0.014);
+  addPanel(ctx, 'chassis', body, fAnd(belly, fNot(cowl)), PAINT, 0.003, 0.014);
+  // Vent: dark inner duct with three louvres, set back from the skin.
   for (const s of [-1, 1]) {
-    const p = surfaceAt(ob, -1.06, s * 0.27);
-    const back = smooth2([[-1.19, 0.9], [-1.0, 0.86], [-0.93, 0.77], [-0.99, 0.64], [-1.12, 0.66], [-1.19, 0.76]], 3, true);
-    ctx.add('chassis', extrude(back, 0.006, { plane: 'zy', center: p.p[0] - s * 0.035 }), F.texturedBlack);
-    for (let i = 0; i < 3; i++) {
-      const y = 0.83 - i * 0.05;
-      const louvre: P2[] = [[-1.16, y], [-0.98, y - 0.012], [-0.98, y - 0.02], [-1.16, y - 0.008]];
-      ctx.add('chassis', extrude(louvre, 0.03, { plane: 'zy', center: p.p[0] - s * 0.016 }), F.texturedBlack);
-    }
+    const p = sideAt(ob, -1.1, 0.74, s);
+    const back = smooth2(ventPoly.map(([z, y]) => [z + (z < -1.1 ? -0.01 : 0.01), y + (y > 0.75 ? 0.01 : -0.01)] as P2), 3, true);
+    ctx.add('chassis', extrude(back, 0.006, { plane: 'zy', center: p.p[0] - s * 0.04 }), F.texturedBlack);
+    const fin: P2[] = [[-1.22, 0.83], [-1.0, 0.808], [-1.0, 0.8], [-1.22, 0.822]];
+    ctx.add('chassis', extrude(fin, 0.03, { plane: 'zy', center: p.p[0] - s * 0.024 }), blackGloss);
   }
-  // Inner fairing panel (unpainted black) behind the cowl, framing the dash.
+  // Inner panels (unpainted black) seen through the screen and around the cockpit.
   const inner = outlineLoft(
     {
-      zs: stationsBetween(-1.3, -1.12, 5, 0.3),
-      top: curve([[-1.3, 0.94], [-1.12, 0.955]]),
-      bottom: curve([[-1.3, 0.8], [-1.12, 0.82]]),
-      half: curve([[-1.3, 0.17], [-1.12, 0.21]]),
+      zs: stationsBetween(SCREEN_BASE + 0.05, -1.14, 6, 0.3),
+      top: curve([[SCREEN_BASE + 0.05, 0.87], [-1.3, 0.9], [-1.14, 0.93]]),
+      bottom: curve([[SCREEN_BASE + 0.05, 0.75], [-1.14, 0.8]]),
+      half: curve([[SCREEN_BASE + 0.05, 0.15], [-1.3, 0.2], [-1.14, 0.24]]),
       sections: [{ z: 0, pts: [[0, 1], [0.5, 0.98], [0.86, 0.88], [0.98, 0.65], [1, 0.4], [0.97, 0.15], [0.9, 0]] }],
     },
-    { su: ctx.seg(5, 2), sv: ctx.seg(4, 2) },
+    { su: ctx.seg(6, 2), sv: ctx.seg(4, 2) },
   );
-  ctx.add('chassis', cut(inner, fNot(planRegion([[-2, -1], [0, -1], [0, 0.15], [-2, 0.15]]))), F.texturedBlack);
-  // Intake duct (black) behind the M opening, with the two LED projectors inside.
+  ctx.add('chassis', inner, F.texturedBlack);
+  // Intake duct (black) behind the M opening, with the bi-LED projector inside.
   const duct = outlineLoft(
     {
-      zs: stationsBetween(-1.605, -1.42, 5, 0.2),
-      top: curve([[-1.605, 0.752], [-1.42, 0.74]]),
-      bottom: curve([[-1.605, 0.606], [-1.42, 0.62]]),
-      half: curve([[-1.605, 0.115], [-1.42, 0.1]]),
+      zs: stationsBetween(-1.592, -1.44, 5, 0.2),
+      top: curve([[-1.592, 0.748], [-1.44, 0.735]]),
+      bottom: curve([[-1.592, 0.636], [-1.44, 0.628]]),
+      half: curve([[-1.592, 0.115], [-1.44, 0.1]]),
       sections: [{ z: 0, pts: [[0, 1], [0.6, 0.98], [0.95, 0.8], [1, 0.5], [0.95, 0.15], [0.55, 0.0], [0, 0]] }],
     },
     { su: ctx.seg(4, 2), sv: ctx.seg(4, 2) },
   ).flip();
   ctx.add('chassis', duct, F.texturedBlack);
-  for (const s of [-1, 1]) {
-    const pr = 0.026;
-    const at: P3 = [s * 0.046, 0.65, -1.575];
-    ctx.add('chassis', lathe([[0, -0.03], [pr * 1.15, -0.02], [pr * 1.3, 0.0]], { segs: ctx.seg(24, 10), axis: 'z' }).transform(new THREE.Matrix4().makeScale(1, 1, -1)), F.chrome, T(...at));
-    ctx.add('chassis', lathe(([[0, 0.012], [pr * 0.65, 0.009], [pr, 0.0]] as P2[]).reverse(), { segs: ctx.seg(24, 10), axis: 'z' }).transform(new THREE.Matrix4().makeScale(1, 1, -1)), F.head, T(...at));
-    ctx.add('chassis', lathe([[pr * 1.05, -0.004], [pr * 1.2, -0.004], [pr * 1.2, 0.004], [pr * 1.05, 0.004]], { segs: ctx.seg(24, 10), axis: 'z', sharp: true }), F.texturedBlack, T(at[0], at[1], at[2] - 0.004));
+  // Central bi-LED projector (single lens on the 2020 bike, flanked by the duct walls).
+  {
+    const pr = 0.03;
+    const at: P3 = [0, 0.682, -1.565];
+    const seg = ctx.seg(28, 12);
+    ctx.add('chassis', lathe([[0, -0.04], [pr * 1.1, -0.03], [pr * 1.35, 0.0]], { segs: seg, axis: 'z' }).transform(S(1, 1, -1)), F.chrome, T(...at));
+    ctx.add('chassis', lathe(([[0, 0.014], [pr * 0.65, 0.011], [pr, 0.0]] as P2[]).reverse(), { segs: seg, axis: 'z' }).transform(S(1, 1, -1)), F.head, T(...at));
+    ctx.add('chassis', lathe([[pr * 1.02, -0.004], [pr * 1.25, -0.004], [pr * 1.25, 0.006], [pr * 1.02, 0.006]], { segs: seg, axis: 'z', sharp: true }), F.texturedBlack, T(at[0], at[1], at[2] - 0.006));
   }
-  // Mesh grille across the bottom of the intake
-  ctx.add('chassis', roundBox(0.19, 0.006, 0.04, 0.002), F.texturedBlack, T(0, 0.616, -1.585));
-  // LED position "eyes" at the upper nose corners.
+  // Mesh grille across the lower duct
+  ctx.add('chassis', roundBox(0.17, 0.006, 0.04, 0.002), F.texturedBlack, T(0, 0.645, -1.595));
+  // LED position "eyes": slim slits at the upper corners of the face, under the screen edge.
   for (const s of [-1, 1]) {
     const pts: P3[] = [];
-    for (let i = 0; i <= 4; i++) {
-      const t = i / 4;
-      // Slim slit from above the intake hump out to the face corner, dropping slightly.
-      const x = s * (0.072 + t * 0.05);
-      const y = 0.776 - t * 0.022;
-      const z = -1.6 + t * 0.035;
-      pts.push([x, y, z]);
+    for (let i = 0; i <= 5; i++) {
+      const t = i / 5;
+      const z = -1.6 + t * 0.07;
+      const sp = surfaceAt(ob, z, s * ob.half(z) * (0.55 + t * 0.2));
+      pts.push([sp.p[0] + sp.n[0] * 0.002, sp.p[1] - 0.004 - t * 0.01, z]);
     }
-    ledStrip(ctx, 'chassis', pts, 0.008, 0.004, 'drl', [0, 1, 0]);
+    ledStrip(ctx, 'chassis', pts, 0.009, 0.004, 'drl', [0, 1, 0]);
   }
-  // Screen: tall, smoked, with the double-bubble top edge.
+  // Screen: smoked double-bubble, rising steeply from the nose.
   screen(ctx, 'chassis', {
-    zs: stationsBetween(SCREEN_BASE - 0.005, -1.025, 7, 0.35),
-    top: curve([[SCREEN_BASE - 0.005, 0.96], [-1.2, 1.05], [-1.11, 1.125], [-1.05, 1.15], [-1.025, 1.15]]),
-    bottom: curve([[SCREEN_BASE - 0.005, 0.945], [-1.1, 0.96], [-1.025, 0.975]]),
-    half: curve([[SCREEN_BASE - 0.005, 0.17], [-1.15, 0.16], [-1.025, 0.125]]),
+    zs: stationsBetween(SCREEN_BASE, SCREEN_TOP_Z, 8, 0.35),
+    top: curve([[SCREEN_BASE, 0.895], [-1.42, 0.95], [-1.32, 1.04], [-1.22, 1.12], [-1.16, 1.155], [SCREEN_TOP_Z, 1.162]]),
+    bottom: curve([[SCREEN_BASE, 0.882], [-1.3, 0.93], [SCREEN_TOP_Z, 0.97]]),
+    half: curve([[SCREEN_BASE, 0.15], [-1.36, 0.19], [-1.22, 0.175], [SCREEN_TOP_Z, 0.13]]),
     sections: [{ z: 0, pts: [[0, 1], [0.45, 0.985], [0.8, 0.93], [0.95, 0.8], [1, 0.55], [1, 0.25], [0.98, 0]] }],
-  }, tint(F.screen, '#44505e'));
-  // Tank + airbox cover
-  buildTank(ctx, { front: -1.03, back: -0.6, top: 1.06, bottomFront: 0.88, bottomBack: 0.85, width: 0.43, style: 'sport', knee: 0.16, capZ: -0.88 });
-  const airbox = outlineLoft(
-    {
-      zs: stationsBetween(-1.1, -0.98, 4, 0.2),
-      top: curve([[-1.1, 0.985], [-0.98, 1.02]]),
-      bottom: curve([[-1.1, 0.9], [-0.98, 0.88]]),
-      half: curve([[-1.1, 0.1], [-0.98, 0.18]]),
-      sections: [{ z: 0, pts: [[0, 1], [0.6, 0.97], [0.92, 0.8], [1, 0.5], [0.96, 0.2], [0.9, 0.0], [0.85, 0]] }],
-    },
-    { su: ctx.seg(4, 2), sv: ctx.seg(4, 2) },
-  );
-  shell(ctx, 'chassis', airbox, F.texturedBlack, 0.01);
+  }, tint(F.screen, '#3a4450'));
+  // Tank (with the airbox cover forming its front) — the R1 tank is tall and wide at the knees.
+  buildTank(ctx, {
+    front: -1.14,
+    back: -0.6,
+    top: 1.07,
+    bottomFront: 0.9,
+    bottomBack: 0.8,
+    width: 0.45,
+    style: 'sport',
+    knee: 0.16,
+    capZ: -0.9,
+    topLine: [[-1.14, 0.958], [-1.06, 0.99], [-0.96, 1.04], [-0.86, 1.066], [-0.77, 1.056], [-0.69, 1.005], [-0.63, 0.94], [-0.6, 0.9]],
+    bottomLine: [[-1.14, 0.9], [-0.98, 0.865], [-0.78, 0.825], [-0.6, 0.8]],
+    halfLine: [[-1.14, 0.12], [-1.04, 0.185], [-0.92, 0.222], [-0.8, 0.218], [-0.7, 0.185], [-0.6, 0.12]],
+  });
   // Seats: rider + pillion
-  buildSeat(ctx, { front: -0.64, back: -0.26, yFront: 0.85, y: 0.855, yBack: 0.885, width: 0.28, thick: 0.07, frontWidth: 0.18 });
-  buildSeat(ctx, { front: -0.24, back: 0.02, yFront: 0.935, y: 0.95, yBack: 0.97, width: 0.2, thick: 0.05, frontWidth: 0.16 }, tint(seatFinish(ctx), '#141414'));
-  // Tail with seat recesses, side intakes and the undertray.
+  buildSeat(ctx, { front: -0.64, back: -0.27, yFront: 0.85, y: 0.855, yBack: 0.88, width: 0.28, thick: 0.07, frontWidth: 0.18 });
+  buildSeat(ctx, { front: -0.25, back: 0.0, yFront: 0.94, y: 0.952, yBack: 0.968, width: 0.2, thick: 0.05, frontWidth: 0.15 }, tint(seatFinish(ctx), '#141414'));
+  // Tail with seat recesses, the through-duct and the undertray.
   const tail = r1Tail();
   const tm = outlineLoft(tail, { su: ctx.seg(12, 4), sv: ctx.seg(6, 2), capBack: true });
   const seatHole: Field = fAnd(
-    fOr(
-      sideRegion([[-0.75, 0.84], [-0.255, 0.84], [-0.255, 1.4], [-0.75, 1.4]]),
-      sideRegion([[-0.25, 0.925], [0.02, 0.925], [0.02, 1.4], [-0.25, 1.4]]),
-    ),
-    planRegion([[-0.8, -0.01], [0.03, -0.01], [0.03, 0.098], [-0.25, 0.098], [-0.26, 0.14], [-0.8, 0.14]]),
+    fOr(sideRegion([[-0.8, 0.83], [-0.262, 0.83], [-0.262, 1.4], [-0.8, 1.4]]), sideRegion([[-0.252, 0.93], [0.01, 0.93], [0.01, 1.4], [-0.252, 1.4]])),
+    planRegion([[-0.8, -0.01], [0.02, -0.01], [0.02, 0.1], [-0.25, 0.1], [-0.26, 0.142], [-0.8, 0.142]]),
   );
-  const tailVent = sideRegion(smooth2([[-0.2, 0.83], [-0.05, 0.89], [0.0, 0.86], [-0.16, 0.8]], 3, true));
+  const tailVent = sideRegion(smooth2([[-0.24, 0.8], [-0.06, 0.875], [0.03, 0.9], [0.0, 0.86], [-0.16, 0.79]], 3, true));
   addPanel(ctx, 'chassis', tm, fAnd(fNot(seatHole), fNot(tailVent)), PAINT, 0.0025, 0.012);
-  // Undertray (black) with the LED tail light band under the tip.
+  // Undertray (black) with the LED tail light under the tip.
   const ut: OutlineBody = {
-    zs: stationsBetween(-0.4, 0.1, 7, 0.4),
-    top: curve([[-0.4, 0.72], [0.1, 0.93]]),
-    bottom: curve([[-0.4, 0.665], [-0.1, 0.735], [0.1, 0.9]]),
-    half: curve([[-0.4, 0.13], [0.1, 0.03]]),
+    zs: stationsBetween(-0.45, 0.11, 7, 0.4),
+    top: curve([[-0.45, 0.74], [0.11, 0.96]]),
+    bottom: curve([[-0.45, 0.69], [-0.1, 0.745], [0.11, 0.92]]),
+    half: curve([[-0.45, 0.14], [0.11, 0.035]]),
     sections: [{ z: 0, pts: [[0, 1], [0.6, 0.95], [0.95, 0.7], [1, 0.45], [0.9, 0.2], [0.5, 0.02], [0, 0]] }],
   };
   ctx.add('chassis', outlineLoft(ut, { su: ctx.seg(5, 2), sv: ctx.seg(3, 2) }), F.texturedBlack);
-  const tl: P2[] = smooth2([[-0.075, -0.006], [0.075, -0.006], [0.082, 0.004], [0.0, 0.009], [-0.082, 0.004]], 4, true);
-  lamp(ctx, 'chassis', tl, mul(T(0, 0.93, 0.085), RX(-0.62)), { kind: 'tail', inner: 'led', count: 1, depth: 0.03, rim: 0.003, lensSmoked: true });
+  const tl: P2[] = smooth2([[-0.07, -0.006], [0.07, -0.006], [0.078, 0.004], [0.0, 0.009], [-0.078, 0.004]], 4, true);
+  lamp(ctx, 'chassis', tl, mul(T(0, 0.945, 0.1), RX(-0.62)), { kind: 'tail', inner: 'led', count: 1, depth: 0.03, rim: 0.003, lensSmoked: true });
   // Front mudguard (short, painted)
   frontFender(ctx, { from: -0.62, to: 0.82, gap: 0.02, width: 0.155 });
   hugger(ctx, blackGloss);
   plateHanger(ctx, { fromZ: -0.02, fromY: 0.79 });
-  // Fairing stays / small fasteners on the side panels
+  // Fairing fasteners on the side panels
   if (ctx.micro) {
     for (const s of [-1, 1]) {
-      for (const [z, y] of [[-1.17, 0.88], [-0.98, 0.79], [-0.72, 0.42], [-1.0, 0.37]] as const) {
-        const sp = surfaceAt(ob, z, s * ob.half(z) * 0.98);
+      for (const [z, y] of [[-1.24, 0.86], [-1.0, 0.8], [-0.8, 0.55], [-0.98, 0.33], [-0.62, 0.3]] as const) {
+        const sp = sideAt(ob, z, y, s);
         const m = new THREE.Matrix4().lookAt(new THREE.Vector3(), new THREE.Vector3(...sp.n).negate(), new THREE.Vector3(0, 1, 0));
-        m.setPosition(sp.p[0] + sp.n[0] * 0.001, y, sp.p[2]);
+        m.setPosition(sp.p[0] + sp.n[0] * 0.001, sp.p[1], sp.p[2]);
         ctx.add('chassis', lathe([[0, 0], [0.0055, 0], [0.005, 0.0025], [0, 0.003]], { segs: 10, axis: 'z' }), F.texturedBlack, m);
       }
     }
@@ -253,7 +260,7 @@ function r1Body(ctx: KitContext): void {
 function r1Lettering(p: Pen, color: string, dark: boolean): void {
   if (p.view === 'right' || p.view === 'left') {
     // Big "R1" on the side fairing below the shoulder, italic, outlined.
-    p.text('R1', -1.0, 0.56, { color, size: 0.12, italic: true, weight: '900', stretch: 1.05, stroke: dark ? undefined : '#0b0c0e', strokeWidth: 0.004 });
+    p.text('R1', -0.9, 0.46, { color, size: 0.12, italic: true, weight: '900', stretch: 1.05, stroke: dark ? undefined : '#0b0c0e', strokeWidth: 0.004 });
     p.text('YAMAHA', -1.28, 0.8, { color, size: 0.03, italic: false, weight: '900', spacing: 0.08 });
     p.text('YZF-R1', -0.02, 0.9, { color, size: 0.024, italic: true, weight: '800' });
   }
@@ -326,8 +333,8 @@ export function r1Blueprint(spec: BikeSpec): BikeBlueprint {
     fork: { type: 'usd', stanchion: 0.043, spacing: 0.21, outerColor: '#b9902f', innerColor: '#c9a65a', footColor: '#1e1f22', capColor: '#2a2c30', adjusterColor: '#c99a2c', aboveClamp: 0.008, clampGap: 0.205 },
     frontBrake: { discs: 2, discDia: 0.32, disc: 'floating', carrierColor: '#2b2d31', caliper: 'radialMono4', caliperColor: '#2b2d31', caliperAngleDeg: 76 },
     rearBrake: { discs: 1, discDia: 0.22, disc: 'fixed', carrierColor: '#2b2d31', caliper: 'axial1', caliperColor: '#2b2d31', caliperAngleDeg: 200 },
-    frame: { type: 'twinSpar', color: '#4a4d52', metal: 0.85, rough: 0.36, subframe: 'cast', subframeColor: '#2a2c30', width: 0.37 },
-    swingarm: { type: 'braced', length: 0.575, angleDeg: 9.5, color: '#4a4d52', metal: 0.85, rough: 0.38 },
+    frame: { type: 'twinSpar', color: '#2c2e33', metal: 0.8, rough: 0.4, subframe: 'cast', subframeColor: '#232428', width: 0.37 },
+    swingarm: { type: 'braced', length: 0.575, angleDeg: 9.5, color: '#2c2e33', metal: 0.8, rough: 0.4 },
     shock: { layout: 'mono', springColor: '#2b4fa8', bodyColor: '#2a2c30', reservoir: true },
     drive: { type: 'chain', side: 'left', frontTeeth: 16, rearTeeth: 41, pitch: 0.015875, sprocketColor: '#1e1f22' },
     engine: {
@@ -338,7 +345,7 @@ export function r1Blueprint(spec: BikeSpec): BikeBlueprint {
       caseColor: '#232428',
       coverColor: '#3a3d42',
       headColor: '#2a2c30',
-      camCoverColor: '#1d3b8a',
+      camCoverColor: '#1a1b1e',
       camCoverText: 'YAMAHA',
       finned: false,
       liquidCooled: true,
@@ -359,6 +366,8 @@ export function r1Blueprint(spec: BikeSpec): BikeBlueprint {
       mirrorPos: [0.335, 1.02, -1.19],
       mirrorSize: [0.14, 0.062],
       mirrorIndicators: true,
+      mirrorColor: '#0d0e10',
+      mirrorShape: 'sport',
       topClamp: 'milled',
       steeringDamper: 'none',
       leverColor: '#1e1f22',
