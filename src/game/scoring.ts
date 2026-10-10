@@ -3,6 +3,8 @@ import { clamp } from '../core/math';
 export const BONUS_SPEED_KMH = 100;
 export const NEAR_MISS_CLEARANCE = 0.9;
 export const COMBO_WINDOW = 3.2;
+/** A wheelie only counts as distance above this speed (no "walking pace" wheelies). */
+export const WHEELIE_MIN_KMH = 30;
 
 export interface ScoreContext {
   speedKmh: number;
@@ -22,6 +24,30 @@ export interface RunStats {
   oppositeLaneTime: number;
   wheelieTime: number;
   highSpeedTime: number;
+  /** Metres ridden in the oncoming lanes (any speed). */
+  oppositeDistance: number;
+  /** Metres ridden on the rear wheel. */
+  wheelieDistance: number;
+  /** Longest single wheelie (m). */
+  longestWheelie: number;
+}
+
+export function emptyRunStats(): RunStats {
+  return {
+    score: 0,
+    distance: 0,
+    time: 0,
+    topSpeed: 0,
+    nearMisses: 0,
+    overtakes: 0,
+    maxCombo: 0,
+    oppositeLaneTime: 0,
+    wheelieTime: 0,
+    highSpeedTime: 0,
+    oppositeDistance: 0,
+    wheelieDistance: 0,
+    longestWheelie: 0,
+  };
 }
 
 /** Pure scoring rules (Traffic-Rider style), independent of rendering. */
@@ -38,6 +64,11 @@ export class ScoreKeeper {
   oppositeLaneTime = 0;
   wheelieTime = 0;
   highSpeedTime = 0;
+  oppositeDistance = 0;
+  wheelieDistance = 0;
+  /** Length of the wheelie in progress (0 when the front wheel is down). */
+  currentWheelie = 0;
+  longestWheelie = 0;
   /** Score gained from continuous sources this frame (for HUD flourish). */
   lastRate = 0;
 
@@ -48,8 +79,15 @@ export class ScoreKeeper {
   update(dt: number, ctx: ScoreContext): void {
     if (dt <= 0) return;
     this.time += dt;
-    this.distance += Math.max(0, ctx.distanceDelta);
+    const dd = Math.max(0, ctx.distanceDelta);
+    this.distance += dd;
     this.topSpeed = Math.max(this.topSpeed, ctx.speedKmh);
+    if (ctx.oppositeLane) this.oppositeDistance += dd;
+    if (ctx.wheelie && ctx.speedKmh >= WHEELIE_MIN_KMH) {
+      this.wheelieDistance += dd;
+      this.currentWheelie += dd;
+      if (this.currentWheelie > this.longestWheelie) this.longestWheelie = this.currentWheelie;
+    } else this.currentWheelie = 0;
     let rate = Math.max(0, ctx.speedKmh - 40) * 0.6;
     if (ctx.speedKmh >= BONUS_SPEED_KMH) {
       this.highSpeedTime += dt;
@@ -107,6 +145,9 @@ export class ScoreKeeper {
       oppositeLaneTime: this.oppositeLaneTime,
       wheelieTime: this.wheelieTime,
       highSpeedTime: this.highSpeedTime,
+      oppositeDistance: this.oppositeDistance,
+      wheelieDistance: this.wheelieDistance,
+      longestWheelie: this.longestWheelie,
     };
   }
 }

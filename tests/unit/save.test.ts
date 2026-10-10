@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BIKES, STARTER_BIKE_ID, getBike } from '../../src/data/bikes';
+import { emptyRunStats, type RunStats } from '../../src/game/scoring';
 import {
   MemoryStore,
   SAVE_KEY,
@@ -87,6 +88,7 @@ describe('SaveManager', () => {
     const store = new MemoryStore();
     const a = new SaveManager(store);
     a.data.cash = 100000;
+    a.data.xp = 1_000_000; // the Panigale V4 S is a level-31 bike
     a.save();
     expect(a.buy('ducati-panigale-v4s')).toBe(true);
     a.setLivery('ducati-panigale-v4s', 1);
@@ -95,7 +97,9 @@ describe('SaveManager', () => {
     expect(b.data.ownedBikes).toContain('ducati-panigale-v4s');
     expect(b.data.selectedBike).toBe('ducati-panigale-v4s');
     expect(b.livery('ducati-panigale-v4s')).toBe(1);
-    expect(b.data.cash).toBe(100000 - getBike('ducati-panigale-v4s').price);
+    // Achievement rewards (garage, level) may top the balance up after the purchase.
+    expect(b.data.cash).toBe(a.data.cash);
+    expect(b.data.cash).toBeGreaterThanOrEqual(100000 - getBike('ducati-panigale-v4s').price);
     expect(b.data.settings['hud.units']).toBe('mph');
     expect(b.data.settings['gfx.preset']).toBe('ultra');
     expect(b.data.settings['gfx.shadows']).toBe('4096');
@@ -121,15 +125,32 @@ describe('SaveManager', () => {
     expect(m.upgrade('kawasaki-h2r', 'engine')).toBe(false);
   });
 
-  it('records runs, high scores and cash', () => {
+  it('commits runs: high scores, cash, totals and statistics', () => {
     const m = new SaveManager(new MemoryStore());
-    expect(m.recordRun('endless', { score: 5000, distance: 3000, nearMisses: 7, topSpeed: 210 }, 500)).toBe(true);
-    expect(m.recordRun('endless', { score: 4000, distance: 1000, nearMisses: 1, topSpeed: 150 }, 100)).toBe(false);
+    const run = (s: Partial<RunStats>) => ({
+      mode: 'endless' as const,
+      map: 'highway' as const,
+      time: 'day' as const,
+      weather: 'clear' as const,
+      bikeId: STARTER_BIKE_ID,
+      stats: { ...emptyRunStats(), ...s },
+      crashed: true,
+      mission: null,
+      now: 1_700_000_000_000,
+    });
+    const a = m.commitRun(run({ score: 5000, distance: 3000, nearMisses: 7, topSpeed: 210 }));
+    const b = m.commitRun(run({ score: 4000, distance: 1000, nearMisses: 1, topSpeed: 150 }));
+    expect(a.record).toBe(true);
+    expect(b.record).toBe(false);
     expect(m.data.highScores.endless).toBe(5000);
-    expect(m.data.cash).toBe(STARTING_CASH + 600);
+    expect(m.data.cash).toBe(STARTING_CASH + a.cash + b.cash);
+    expect(m.data.xp).toBe(a.xp + b.xp);
     expect(m.data.gamesPlayed).toBe(2);
     expect(m.data.totalNearMisses).toBe(8);
     expect(m.data.topSpeedEver).toBe(210);
+    expect(m.data.stats.lifetime.runs).toBe(2);
+    expect(m.data.stats.lifetime.crashes).toBe(2);
+    expect(m.data.leaderboards['endless:highway']?.map((e) => e.score)).toEqual([5000, 4000]);
   });
 
   it('survives corrupted JSON and keeps a backup', () => {

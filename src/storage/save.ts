@@ -1,12 +1,21 @@
 import { BIKE_BY_ID, STARTER_BIKE_ID } from '../data/bikes';
+import { MISSION_BY_ID } from '../data/career';
 import { MAP_BY_ID, defaultRunConfig, type MapId, type RunConfig, type TimeOfDay, type Weather } from '../data/maps';
 import { MODE_BY_ID, type ModeId } from '../data/modes';
 import { PRESET_KEY, SETTINGS, type QualityPreset, type SettingValue } from '../settings';
 import { MAX_UPGRADE, type Upgrades } from '../physics/bike';
 import { clamp, isFiniteNumber } from '../core/math';
+import type { AchievementDef } from '../data/achievements';
+import { achContext, grantAchievements, reachedAchievements, sanitizeAchievements } from '../game/achievements';
+import { emptyCareer, sanitizeCareer, type CareerSave } from '../game/careerProgress';
+import { claimDaily, emptyDaily, sanitizeDaily, type DailyState } from '../game/daily';
+import { sanitizeLeaderboards, type Leaderboards } from '../game/leaderboard';
+import { applyRun, type RunOutcome, type RunRecordInput } from '../game/progress';
+import { isBikeUnlocked, levelForXp } from '../game/progression';
+import { emptyStatsSave, sanitizeStatsSave, type StatsSave } from '../game/stats';
 
 export const SAVE_KEY = 'the-race.save';
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export type Quality = QualityPreset;
 export type SpeedUnit = 'kmh' | 'mph';
@@ -29,6 +38,15 @@ export interface SaveData {
   /** The last run configuration chosen in the menus. */
   lastRun: RunConfig;
   settings: Settings;
+  // ── v4: progression ──
+  /** Rider experience; the level is derived from it (src/game/progression.ts). */
+  xp: number;
+  career: CareerSave;
+  /** Unlocked achievement id → unlock time (epoch ms, 0 if unknown). */
+  achievements: Record<string, number>;
+  stats: StatsSave;
+  leaderboards: Leaderboards;
+  daily: DailyState;
 }
 
 export function defaultSettings(preset: QualityPreset = 'high'): Settings {
@@ -53,6 +71,12 @@ export function defaultSave(): SaveData {
     topSpeedEver: 0,
     lastRun: defaultRunConfig(),
     settings: defaultSettings(),
+    xp: 0,
+    career: emptyCareer(),
+    achievements: {},
+    stats: emptyStatsSave(),
+    leaderboards: {},
+    daily: emptyDaily(),
   };
 }
 
@@ -140,7 +164,17 @@ function sanitizeRun(raw: unknown): RunConfig {
   const m = MAP_BY_ID.get(out.map)!;
   out.time = oneOf<TimeOfDay>(r.time, m.times, m.defaultTime);
   out.weather = oneOf<Weather>(r.weather, m.weathers, m.defaultWeather);
-  if (typeof r.missionId === 'string' && r.missionId.length < 64) out.missionId = r.missionId;
+  // A career run is only meaningful with a known mission; otherwise fall back to free play.
+  if (out.mode === 'career') {
+    const def = typeof r.missionId === 'string' ? MISSION_BY_ID.get(r.missionId) : undefined;
+    if (def) {
+      out.missionId = def.id;
+      out.map = def.map;
+      out.time = def.time;
+      out.weather = def.weather;
+    } else out.mode = d.mode;
+  }
+  if (isFiniteNumber(r.seed) && Number.isInteger(r.seed) && r.seed > 0 && r.seed < 2 ** 31) out.seed = r.seed;
   return out;
 }
 
@@ -168,6 +202,26 @@ export function migrate(raw: Record<string, unknown>): Record<string, unknown> {
     out.lastRun = { mode: raw.lastMode, ...run };
     delete out.lastMode;
     delete out.lastEnv;
+  }
+  if (v < 4) {
+    // v4 adds statistics, XP, career, achievements, leaderboards and the daily reward.
+    // Seed the lifetime statistics and some XP from the totals older versions kept,
+    // so experienced riders do not start again at level 1.
+    const dist = num(raw.totalDistance, 0, 0, 1e12);
+    const near = Math.floor(num(raw.totalNearMisses, 0, 0, 1e9));
+    if (!isObj(out.stats)) {
+      out.stats = {
+        lifetime: {
+          runs: Math.floor(num(raw.gamesPlayed, 0, 0, 1e9)),
+          distance: dist,
+          nearMisses: near,
+          topSpeed: num(raw.topSpeedEver, 0, 0, 1000),
+          bestDistance: num(raw.bestDistance, 0, 0, 1e9),
+          bestScore: Math.max(0, ...Object.values(isObj(raw.highScores) ? raw.highScores : {}).filter(isFiniteNumber)),
+        },
+      };
+    }
+    if (!isFiniteNumber(out.xp)) out.xp = Math.floor(dist * 0.1 + near * 10);
   }
   out.version = SAVE_VERSION;
   return out;
@@ -216,6 +270,12 @@ export function sanitizeSave(input: unknown): SaveData {
     topSpeedEver: num(raw.topSpeedEver, 0, 0, 1000),
     lastRun: sanitizeRun(raw.lastRun),
     settings: SETTINGS.sanitize(raw.settings),
+    xp: Math.floor(num(raw.xp, 0, 0, 1e9)),
+    career: sanitizeCareer(raw.career),
+    achievements: sanitizeAchievements(raw.achievements),
+    stats: sanitizeStatsSave(raw.stats),
+    leaderboards: sanitizeLeaderboards(raw.leaderboards),
+    daily: sanitizeDaily(raw.daily),
   };
 }
 
@@ -284,9 +344,43 @@ export class SaveManager {
 
   reset(): void {
     const settings = this.data.settings;
+    // The daily reward state survives a reset so resetting cannot be used to claim twice a day.
+    const daily = this.data.daily;
     this.data = defaultSave();
     this.data.settings = settings;
+    this.data.daily = daily;
     this.save();
+  }
+
+  get level(): number {
+    return levelForXp(this.data.xp);
+  }
+
+  /** Can `bikeId` be bought (rider level or career milestone)? */
+  isBikeUnlocked(bikeId: string): boolean {
+    return isBikeUnlocked(this.data, bikeId);
+  }
+
+  /** Achievements unlocked since the last check (e.g. after buying a bike); rewards are paid. */
+  private checkAchievements(): AchievementDef[] {
+    return grantAchievements(this.data, Date.now()).unlocked;
+  }
+
+  /** Achievements unlocked by the last non-run action (purchase, daily reward). */
+  lastUnlocks: AchievementDef[] = [];
+
+  /**
+   * Mark the achievements the loaded save already qualifies for as unlocked (e.g. riders upgrading
+   * from v3 whose old totals reach early tiers). Retroactive unlocks pay no reward, so loading a
+   * save can never create money or XP; returns the newly marked achievements.
+   */
+  reconcileAchievements(): AchievementDef[] {
+    const fresh = reachedAchievements(this.data.achievements, achContext(this.data));
+    const now = Date.now();
+    for (const a of fresh) this.data.achievements[a.id] = now;
+    if (fresh.length) this.save();
+    this.lastUnlocks = fresh;
+    return fresh;
   }
 
   owns(bikeId: string): boolean {
@@ -296,12 +390,31 @@ export class SaveManager {
   /** Attempt to buy a bike. Returns false if unknown, already owned or unaffordable. */
   buy(bikeId: string): boolean {
     const bike = BIKE_BY_ID.get(bikeId);
-    if (!bike || this.owns(bikeId) || this.data.cash < bike.price) return false;
+    if (!bike || this.owns(bikeId) || this.data.cash < bike.price || !this.isBikeUnlocked(bikeId)) return false;
     this.data.cash -= bike.price;
     this.data.ownedBikes.push(bikeId);
     this.data.selectedBike = bikeId;
+    this.lastUnlocks = this.checkAchievements();
     this.save();
     return true;
+  }
+
+  /** Claim today's daily reward (`now` injectable for tests). Null if not available. */
+  claimDaily(now: Date = new Date()): { cash: number; xp: number; streak: number } | null {
+    const r = claimDaily(this.data.daily, now);
+    if (!r) return null;
+    this.data.cash += r.cash;
+    this.data.xp += r.xp;
+    this.lastUnlocks = this.checkAchievements();
+    this.save();
+    return r;
+  }
+
+  /** Commit a finished run (rewards, statistics, career, achievements) and persist it. */
+  commitRun(rec: RunRecordInput): RunOutcome {
+    const out = applyRun(this.data, rec);
+    this.save();
+    return out;
   }
 
   select(bikeId: string): boolean {
@@ -342,22 +455,6 @@ export class SaveManager {
     this.data.upgrades[bikeId] = u;
     this.save();
     return true;
-  }
-
-  /** Record a finished run; returns whether it set a new high score. */
-  recordRun(mode: ModeId, stats: { score: number; distance: number; nearMisses: number; topSpeed: number }, cash: number): boolean {
-    const d = this.data;
-    const prev = d.highScores[mode] ?? 0;
-    const record = stats.score > prev;
-    if (record) d.highScores[mode] = Math.floor(stats.score);
-    d.cash += Math.max(0, Math.floor(cash));
-    d.bestDistance = Math.max(d.bestDistance, stats.distance);
-    d.totalDistance += Math.max(0, stats.distance);
-    d.totalNearMisses += Math.max(0, stats.nearMisses);
-    d.topSpeedEver = Math.max(d.topSpeedEver, stats.topSpeed);
-    d.gamesPlayed++;
-    this.save();
-    return record;
   }
 
   /**

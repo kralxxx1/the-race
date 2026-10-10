@@ -65,6 +65,21 @@ Oyun kolu: RT gaz, LT fren, sol çubuk direksiyon, A wheelie, LB/RB vites, Y kam
 - Çift yönlü yolda **ters şeritte** 100 km/s üstü ×2 puan; karşıdan gelen araçla kıl payı ×1,5.
 - Wheelie ve rüzgâr tüneli de puan/hız kazandırır. Kazanılan para ile yeni motosiklet ve yükseltme alınır.
 
+## Kariyer ve ilerleme
+
+- **Kariyer:** 8 haritada 10'ar, toplam **80 görev** (`src/data/career.ts`). Bir haritanın ilk görevi, önceki haritanın son görevi
+  bitince açılır. 11 hedef türü vardır: mesafe (süreli/süresiz), kontrol noktaları, sollama, kıl payı, ters şeritte sürüş,
+  hız koruma, azami hız, wheelie (toplam/tek seferde), puan, hayatta kalma ve kombo. Her görev 1 yıldız (tamamla) + 2/3 yıldız
+  (daha hızlı / daha fazla pay) verir; para, XP, ilk tamamlama bonusu ve harita finallerinde motosiklet kilidi kazandırır.
+- **Sürücü seviyesi (1-50):** mesafe, kıl payı, sollama, görev yıldızları, başarımlar ve günlük ödül XP verir. Her motosikletin bir
+  seviyesi vardır (fiyat basamağına göre, başlangıç motorları seviye 1); satın almak için seviye ya da kariyer kilidi gerekir.
+  Kariyer dışı haritalar `MapDef.unlockLevel` ile açılır.
+- **Başarımlar (50), istatistikler (toplam/motor/harita), yerel skor tabloları (mod × harita, ilk 10) ve günlük ödül**
+  (yerel takvim gününe göre, seri büyür, kaçırılan gün seriyi sıfırlar, saat geri alınsa bile ikinci kez alınamaz).
+- Görevler tarayıcıdan bağımsız `MissionTracker` ile ölçülür (`src/game/missions.ts`); görev sayıları, yıldız eşikleri ve kısıtlar,
+  başsız bir **referans sürücü** (`tests/unit/helpers/pilot.ts`) ile gerçek trafik simülasyonunda kalibre edilmiştir.
+- Hata ayıklama: `window.__THE_RACE__.startMission('suburb-01')`, `.mission`, `.level`, `.xp`, `.achievementCount`, `.lastOutcome`.
+
 ## Geliştirme
 
 ```bash
