@@ -98,6 +98,13 @@ export function setBandpass(bank: Float64Array, i: number, hz: number, q: number
   bank[o + 2] = (1 - alpha) / a0;
 }
 
+/** Input gain that makes a unit impulse ring through a band-pass (`hz`, `q`) with roughly unit peak amplitude. */
+export function bandpassImpulseGain(hz: number, q: number, sr: number): number {
+  const w = (TWO_PI * Math.min(hz, sr * 0.45)) / sr;
+  const alpha = Math.sin(w) / (2 * Math.max(0.05, q));
+  return (1 + alpha) / alpha;
+}
+
 /** Process one sample through band-pass `i` of `bank` (transposed direct form II). */
 export function bandpass(bank: Float64Array, i: number, x: number): number {
   const o = i * BQ_STRIDE;

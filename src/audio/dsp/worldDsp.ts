@@ -1,4 +1,4 @@
-import { BQ_STRIDE, Biquad, HighPass1, LowPass1, Noise, PinkNoise, bandpass, clamp01, clampN, flushBank, setBandpass, sinCycles, softClip } from './util';
+import { BQ_STRIDE, Biquad, HighPass1, LowPass1, Noise, PinkNoise, bandpass, bandpassImpulseGain, clamp01, clampN, flushBank, setBandpass, sinCycles, softClip } from './util';
 
 /** Surface the tyres run on, as blend weights (they need not sum to one). */
 export interface WorldControls {
@@ -124,16 +124,26 @@ export class WorldDSP {
   private readonly t: WorldControls = { ...WORLD_DEFAULTS };
   private phRumble = 0;
   private phJoint = 0;
+  private phSqueal = 0;
   private jointEnv = 0;
   private blocks = 0;
   private lastHelmet = -1;
   private readonly sr: number;
   private readonly blockK: number;
+  // Impulse-excited resonators need their input scaled up to ring audibly.
+  private readonly gRum1: number;
+  private readonly gRum2: number;
+  private readonly gJoint: number;
+  private readonly gGravel: number;
 
   constructor(sampleRate: number, seed = 0x51f15e) {
     this.sr = sampleRate;
     this.ch = [new Channel(seed, sampleRate), new Channel(seed ^ 0x9e3779b9, sampleRate)];
     this.blockK = 1 - Math.exp(-128 / (sampleRate * 0.06));
+    this.gRum1 = bandpassImpulseGain(92, 2.2, sampleRate);
+    this.gRum2 = bandpassImpulseGain(640, 1.8, sampleRate);
+    this.gJoint = bandpassImpulseGain(70, 1.4, sampleRate);
+    this.gGravel = bandpassImpulseGain(1500, 0.8, sampleRate);
   }
 
   setControls(c: Partial<WorldControls>): void {
@@ -251,6 +261,12 @@ export class WorldDSP {
       }
       const jointNow = this.jointEnv;
       this.jointEnv *= 0.9985;
+      // Tyre squeal: a stick-slip whistle with a few harmonics, wandering a little in pitch.
+      let squeal = 0;
+      if (squealLvl > 1e-4) {
+        this.phSqueal += (squealHz * (1 + 0.012 * sinCycles(this.blocks * 0.07 + s * 1e-4))) / sr;
+        squeal = sinCycles(this.phSqueal) + 0.4 * sinCycles(this.phSqueal * 2) + 0.15 * sinCycles(this.phSqueal * 3);
+      }
 
       for (let i = 0; i < 2; i++) {
         const ch = this.ch[i];
@@ -271,19 +287,20 @@ export class WorldDSP {
         let tyre = bandpass(b, T_HUM, wp) * humLvl * 3.2 + bandpass(b, T_BUZZ, ww) * buzzLvl * 2.5;
         if (wetLvl > 1e-4) tyre += bandpass(b, T_WET, ww) * wetLvl * 3.5;
         if (gravelLvl > 1e-4) {
-          const crack = rng.next() < 0.004 + 0.02 * Math.min(1, v / 25) ? rng.white() * 5 : 0;
-          tyre += (bandpass(b, T_GRAVEL, ww * 0.35 + crack) + bandpass(b, T_GRAVEL2, crack)) * gravelLvl * 2;
+          // Stones popping out from under the tyre: random impulses ringing the tread/stone resonances.
+          const crack = rng.next() < 0.004 + 0.02 * Math.min(1, v / 25) ? rng.white() * this.gGravel * 0.1 : 0;
+          tyre += (bandpass(b, T_GRAVEL, ww * 0.35 + crack) + bandpass(b, T_GRAVEL2, crack * 0.6)) * gravelLvl * 2;
         }
         if (snowLvl > 1e-4) tyre += ch.snowLp.process(wp) * snowLvl * 2.4 + (rng.next() < 0.01 ? rng.white() * snowLvl * 0.8 : 0);
         if (rumbleLvl > 1e-4) {
           const imp = rumblePulse * (0.7 + 0.6 * rng.next());
-          tyre += (bandpass(b, T_RUMBLE, imp) * 4 + bandpass(b, T_RUMBLE2, imp) * 2.2) * rumbleLvl;
+          tyre += (bandpass(b, T_RUMBLE, imp * this.gRum1) + bandpass(b, T_RUMBLE2, imp * this.gRum2) * 0.4) * rumbleLvl * 1.3;
         }
         if (jointLvl > 1e-3) {
           const imp = jointPulse * (0.6 + 0.4 * rng.next());
-          tyre += bandpass(b, T_JOINT, imp) * jointLvl * 3 + ww * jointNow * jointLvl * 0.012;
+          tyre += bandpass(b, T_JOINT, imp * this.gJoint) * jointLvl * 0.35 + ww * jointNow * jointLvl * 0.012;
         }
-        if (squealLvl > 1e-4) tyre += bandpass(b, T_SQUEAL, ww) * squealLvl * 5 * (0.75 + 0.25 * sinCycles(this.blocks * 0.31 + i));
+        if (squealLvl > 1e-4) tyre += (squeal + bandpass(b, T_SQUEAL, ww) * 2.5) * squealLvl * 3 * (0.75 + 0.25 * sinCycles(this.blocks * 0.31 + i));
         tyre *= tG * TYRE_TRIM;
 
         // scrapes / slides

@@ -4,7 +4,7 @@ import { BQ_STRIDE, HighPass1, LowPass1, Noise, PinkNoise, bandpass, clamp01, fl
 /** Typical voices for traffic, keyed by engine type. */
 export const VEHICLE_VOICES: Record<VehicleEngineType, Omit<VehicleVoiceParams, 'seed'>> = {
   // Modern petrol hatch/sedan: 4 cylinders, catalytic converter + two silencers.
-  car: { type: 'car', cylinders: 4, idle: 800, gearRpmPerMs: [150, 95, 68, 52, 43, 36], mufflerHz: 420, resonanceHz: 95, engineGain: 0.55, tyreGain: 1, clatter: 0, turbo: 0.1, aero: 0.15 },
+  car: { type: 'car', cylinders: 4, idle: 800, gearRpmPerMs: [150, 95, 68, 52, 43, 36], mufflerHz: 520, resonanceHz: 95, engineGain: 0.55, tyreGain: 1, clatter: 0, turbo: 0.1, aero: 0.15 },
   // Light diesel van / pickup: clattery 4-cylinder with a turbo, a little boomy body.
   van: { type: 'van', cylinders: 4, idle: 780, gearRpmPerMs: [165, 105, 74, 56, 46, 39], mufflerHz: 520, resonanceHz: 78, engineGain: 0.7, tyreGain: 1.15, clatter: 0.5, turbo: 0.35, aero: 0.35 },
   // Taxi/police sedans run harder.
@@ -37,6 +37,7 @@ export class VehicleDSP {
   private readonly lp: LowPass1;
   private readonly air: LowPass1;
   private readonly hp: HighPass1;
+  private readonly roadLp: LowPass1;
   private gear = 0;
   private rpm = 800;
   private phase = 0;
@@ -65,6 +66,7 @@ export class VehicleDSP {
     this.lp = new LowPass1(params.mufflerHz, sampleRate);
     this.air = new LowPass1(16000, sampleRate);
     this.hp = new HighPass1(30, sampleRate);
+    this.roadLp = new LowPass1(2300, sampleRate);
     this.kCtl = onePoleCoef(6, sampleRate);
     this.configure(params);
   }
@@ -104,16 +106,16 @@ export class VehicleDSP {
     else if (this.gear > 0 && p.idle + ratios[this.gear - 1] * v < shiftUp * 0.62) this.gear--;
     target = Math.max(p.idle, ratios[this.gear] * v);
     this.rpm += (target - this.rpm) * 0.08;
-    const tyreHz = (320 + v * 11) * dop;
+    const tyreHz = (430 + v * 14) * dop;
     setBandpass(this.bank, R_TYRE, Math.min(4000, tyreHz), 0.55, sr);
     setBandpass(this.bank, R_TYRE_HI, Math.min(9000, tyreHz * 4), 0.8, sr);
     setBandpass(this.bank, R_RES, p.resonanceHz * dop, 2.2, sr);
     setBandpass(this.bank, R_AERO, 160 * dop, 0.7, sr);
     this.air.set(Math.max(1500, 19000 / (1 + this.distance / 45)), sr);
     const pulseHz = ((this.rpm / 60) * p.cylinders) / 2;
-    const tyreLvl = p.tyreGain * Math.pow(v / 25, 1.7) * 0.12;
-    const aeroLvl = p.aero * (v / 25) * (v / 25) * 0.08;
-    const engLvl = p.engineGain * (0.35 + 0.65 * this.load) * 0.5;
+    const tyreLvl = p.tyreGain * Math.pow(v / 25, 1.6) * 0.34;
+    const aeroLvl = p.aero * (v / 25) * (v / 25) * 0.1;
+    const engLvl = p.engineGain * (0.35 + 0.65 * this.load) * 0.3;
     const target01 = this.active ? 1 : 0;
     this.blockCount++;
 
@@ -143,7 +145,8 @@ export class VehicleDSP {
       }
       // Tyres and aerodynamic rumble.
       const pk = this.pink.next();
-      let s = eng + bandpass(this.bank, R_TYRE, pk) * tyreLvl + bandpass(this.bank, R_TYRE_HI, this.rng.white()) * tyreLvl * 0.25;
+      // Road noise rolls off above ~2 kHz (tread rubber and the car body absorb the highs).
+      let s = eng + this.roadLp.process(bandpass(this.bank, R_TYRE, pk) * tyreLvl + bandpass(this.bank, R_TYRE_HI, this.rng.white()) * tyreLvl * 0.4);
       if (aeroLvl > 1e-5) s += bandpass(this.bank, R_AERO, pk) * aeroLvl;
       // Air-brake hiss on heavy vehicles.
       if (this.brake > 0.5 && (p.type === 'diesel' || p.type === 'bus')) s += this.rng.white() * 0.015 * this.brake;
