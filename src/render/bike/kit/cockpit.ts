@@ -312,7 +312,8 @@ function buildMirrors(ctx: KitContext): void {
       : M.clone().add(new THREE.Vector3(-s * 0.09, -0.2, 0.08));
     const mid = M.clone().lerp(base, 0.5).add(new THREE.Vector3(0, 0.01, -0.02));
     const stalk = catmull([P(M.clone().add(new THREE.Vector3(-s * w * 0.25, -h * 0.25, -depth * 0.6))), P(mid), P(base)], 6).map((q) => [q[0], q[1], q[2]] as P3);
-    ctx.add(group, sweep(stalk, circle(c.mirrors === 'fairing' ? 0.008 : 0.006, 8), { capStart: true, capEnd: true }), c.mirrors === 'fairing' ? F.texturedBlack : F.chrome);
+    const chromeStalk = ctx.bp.cockpit.bars === 'cruiser' || ctx.spec.style === 'classic';
+    ctx.add(group, sweep(stalk, circle(c.mirrors === 'fairing' ? 0.008 : 0.006, 8), { capStart: true, capEnd: true }), c.mirrors === 'fairing' || !chromeStalk ? F.texturedBlack : F.chrome);
     ctx.add(group, roundBox(0.03, 0.02, 0.03, 0.008), F.texturedBlack, T(base.x, base.y, base.z));
   }
 }

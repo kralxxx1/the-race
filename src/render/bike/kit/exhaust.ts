@@ -14,7 +14,7 @@ type Heat = 'titanium' | 'steel' | 'chrome' | 'black';
 function heatColour(kind: Heat, t: number): [number, number, number] {
   const stops: Record<Heat, [number, string][]> = {
     titanium: [[0, '#c9a65e'], [0.14, '#b48a4c'], [0.28, '#8c6e70'], [0.4, '#5f6d8c'], [0.54, '#878e98'], [0.75, '#a39e95'], [1, '#a29d93']],
-    steel: [[0, '#c9a15a'], [0.15, '#9a6a3a'], [0.3, '#4a4a78'], [0.45, '#5b6068'], [1, '#6a6e74']],
+    steel: [[0, '#b39a6a'], [0.15, '#8f7356'], [0.3, '#5d5a6e'], [0.45, '#62666c'], [1, '#6a6e74']],
     chrome: [[0, '#d8c8a0'], [0.12, '#c8c0d8'], [0.3, '#f2f4f7'], [1, '#f2f4f7']],
     black: [[0, '#2a2622'], [1, '#18191b']],
   };

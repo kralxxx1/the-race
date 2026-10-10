@@ -5,7 +5,7 @@ import { F, fin, hard, Micro, tint, vary, type Finish, type GroupName } from '..
 import { cut, fAnd, fNot, flange, panel, planRegion, sideRegion, type Field } from '../surface';
 import { lamp, ledStrip, roundHeadlight, indicatorPod } from './lights';
 import { hugger, plateHanger } from './rear';
-import { curve, outlineLoft, SECTIONS, stationsBetween, surfaceAt, type OutlineBody } from './shape';
+import { curve, outlineLoft, SECTIONS, stationPts, stationsBetween, surfaceAt, type OutlineBody } from './shape';
 
 /** Painted / carbon / black plastic finishes for bodywork. */
 export const PAINT = F.paint;
@@ -520,11 +520,17 @@ function nakedFront(ctx: KitContext, style: string, fly: boolean): void {
   if (style === 'naked') {
     // Radiator shrouds / tank scoops
     const hy = hp.head[1], hz = hp.head[2];
-    for (const s of [-1, 1]) {
-      const sc = smooth2([[hz + 0.02, hy - 0.06], [hz + 0.3, hy - 0.1], [hz + 0.32, hy - 0.28], [hz + 0.12, hy - 0.36]], 4, true);
-      const m = extrude(sc, 0.03, { plane: 'zy', bevel: 0.01, center: s * 0.25, curveSegs: 1 });
-      ctx.add('chassis', m, PAINT);
-    }
+    // Curved side shells wrapping the radiator and the front of the tank (right half, then mirrored).
+    const ob: OutlineBody = {
+      zs: stationsBetween(hz + 0.02, hz + 0.36, 7, 0.4),
+      top: curve([[hz + 0.02, hy - 0.05], [hz + 0.2, hy - 0.06], [hz + 0.36, hy - 0.12]]),
+      bottom: curve([[hz + 0.02, hy - 0.26], [hz + 0.18, hy - 0.4], [hz + 0.36, hy - 0.3]]),
+      half: curve([[hz + 0.02, 0.19], [hz + 0.16, 0.255], [hz + 0.36, 0.235]]),
+      sections: [{ z: 0, pts: [[0.7, 1], [0.88, 0.92], [0.98, 0.7], [1, 0.42], [0.96, 0.15], [0.88, 0]] }],
+    };
+    const shroud = outlineLoft(ob, { ...bodyQ(ctx), mirror: false });
+    shell(ctx, 'chassis', shroud, PAINT, 0.006);
+    shell(ctx, 'chassis', shroud.mirrored(), PAINT, 0.006);
   }
 }
 
@@ -693,6 +699,13 @@ function scooterBody(ctx: KitContext): void {
     sections: [{ z: 0, pts: SECTIONS.closed }],
   };
   shell(ctx, 'chassis', outlineLoft(rear, bodyQ(ctx)), PAINT);
+  // Close the front of the rear body (the panel under the seat nose) with a painted bulkhead.
+  {
+    const z0 = hz + 0.62;
+    const half = stationPts(rear, z0 + 0.004);
+    const full: P2[] = [...half.map(([x, y]) => [x, y] as P2), ...half.slice(1, -1).reverse().map(([x, y]) => [-x, y] as P2)];
+    ctx.add('chassis', extrude(full, 0.008, { plane: 'xy', center: z0 + 0.008, bevel: 0.002, curveSegs: 1 }), PAINT);
+  }
   buildSeat(ctx, { front: hz + 0.66, back: 0.25, yFront: sy - 0.02, y: sy, yBack: sy + 0.04, width: 0.32, thick: 0.09 });
   // Handlebar cowl with the headlight (steer)
   const at = ctx.fromSteer([0, 0.02, -0.06]);

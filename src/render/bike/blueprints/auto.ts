@@ -244,7 +244,7 @@ export function autoBlueprint(spec: BikeSpec): BikeBlueprint {
       dashTiltDeg: cockpitFaired ? 52 : 40,
       dashMount: cockpitFaired ? 'fairing' : 'bars',
       mirrors: k.fairing === 'full' || k.fairing === 'touring' ? 'fairing' : style === 'scooter' ? 'bar' : 'bar',
-      mirrorPos: k.fairing === 'full' || k.fairing === 'touring' ? [0.31, head[1] + 0.06, head[2] - 0.1] : [g[0] - 0.02, head[1] + g[1] + 0.2, head[2] + g[2] - 0.06],
+      mirrorPos: k.fairing === 'full' || k.fairing === 'touring' ? [0.31, head[1] + 0.06, head[2] - 0.1] : [g[0] - 0.02, head[1] + g[1] + 0.17, head[2] + g[2] - 0.05],
       mirrorSize: style === 'touring' ? [0.17, 0.09] : [0.13, 0.065],
       mirrorIndicators: sportish,
       topClamp: sportish ? 'milled' : 'cast',
