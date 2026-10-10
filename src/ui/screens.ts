@@ -3,12 +3,22 @@ import { MAPS, MAP_BY_ID, TIME_LABELS, WEATHER_LABELS, type MapId, type RunConfi
 import { MODES, type ModeId } from '../data/modes';
 import { CATEGORY_LABELS, CATEGORY_ORDER, SETTINGS, type SettingCategory, type SettingDef } from '../settings';
 import { MAX_UPGRADE, measurePerformance, type PerformanceFigures, type Upgrades } from '../physics/bike';
+import { isCareerMapUnlocked } from '../game/careerProgress';
+import { dailyStatus } from '../game/daily';
+import type { RunOutcome } from '../game/progress';
+import { bikeLockText, bikeUnlockLevel, levelForXp } from '../game/progression';
 import type { RunStats } from '../game/scoring';
 import { SaveManager, type SaveData } from '../storage/save';
+import { CareerScreen, levelBar, renderMissionResult } from './careerScreen';
 import { clear, fmtDistance, fmtInt, fmtMoney, h } from './dom';
+import { ProgressScreens, type ProgressTab } from './progressScreens';
 
 export interface UiActions {
   openModes(): void;
+  openCareer(): void;
+  openProgress(tab?: ProgressTab): void;
+  startMission(id: string): void;
+  claimDaily(): boolean;
   openGarage(): void;
   openSettings(): void;
   back(): void;
@@ -63,6 +73,8 @@ export class Screens {
   private weatherSel: Weather;
   private settingsTab: SettingCategory = 'graphics';
   private confirmReset = false;
+  private readonly careerScreen: CareerScreen;
+  private readonly progressScreens: ProgressScreens;
 
   constructor(
     parent: HTMLElement,
@@ -71,9 +83,11 @@ export class Screens {
   ) {
     this.root = h('div', { class: 'screens' });
     parent.append(this.root);
+    this.careerScreen = new CareerScreen(save);
+    this.progressScreens = new ProgressScreens(save);
     this.garageSel = save.data.selectedBike;
     const run = save.data.lastRun;
-    this.modeSel = run.mode;
+    this.modeSel = run.mode === 'career' ? 'endless' : run.mode;
     this.mapSel = run.map;
     this.timeSel = run.time;
     this.weatherSel = run.weather;
@@ -81,6 +95,12 @@ export class Screens {
 
   get data(): SaveData {
     return this.save.data;
+  }
+
+  /** Free-play maps open with the rider level (MapDef.unlockLevel) or once the career has reached them. */
+  private mapOpen(id: MapId): boolean {
+    const m = MAP_BY_ID.get(id);
+    return !!m && (levelForXp(this.data.xp) >= m.unlockLevel || isCareerMapUnlocked(this.data.career, id));
   }
 
   private panel(name: string): HTMLElement {
@@ -134,14 +154,23 @@ export class Screens {
     const d = this.data;
     const bike = BIKE_BY_ID.get(d.selectedBike)!;
     const best = Math.max(0, ...Object.values(d.highScores).map((x) => x ?? 0));
+    const dailyReady = dailyStatus(d.daily, new Date()).availability === 'available';
     p.append(
       h('div', { class: 'menu-left' },
         h('div', { class: 'logo' }, 'THE ', h('span', {}, 'RACE')),
         h('div', { class: 'tagline' }, 'GERÇEKÇİ TRAFİK MOTOSİKLET SÜRÜŞÜ'),
+        h('div', { class: 'menu-level' }, levelBar(d.xp, 'rider-level')),
         h('div', { class: 'menu-buttons' },
-          this.btn('YOLA ÇIK', () => this.a.openModes(), 'primary big', 'btn-play'),
+          this.btn('KARİYER', () => this.a.openCareer(), 'primary big', 'btn-career'),
+          this.btn('YOLA ÇIK', () => this.a.openModes(), '', 'btn-play'),
           this.btn('GARAJ', () => this.a.openGarage(), '', 'btn-garage'),
           this.btn('AYARLAR', () => this.a.openSettings(), '', 'btn-settings'),
+        ),
+        h('div', { class: 'seg menu-daily' },
+          h('button', { 'data-testid': 'btn-achievements', onclick: () => { this.a.click(); this.a.openProgress('achievements'); } }, 'Başarımlar'),
+          h('button', { 'data-testid': 'btn-stats', onclick: () => { this.a.click(); this.a.openProgress('stats'); } }, 'İstatistik'),
+          h('button', { 'data-testid': 'btn-leaderboards', onclick: () => { this.a.click(); this.a.openProgress('leaderboards'); } }, 'Skorlar'),
+          h('button', { 'data-testid': 'btn-daily', onclick: () => { this.a.click(); this.a.openProgress('daily'); } }, 'Günlük ödül', dailyReady ? h('i', { class: 'menu-daily-dot', 'data-testid': 'daily-ready' }) : null),
         ),
         h('div', { class: 'menu-stats' },
           h('div', {}, h('b', {}, fmtMoney(d.cash)), h('span', {}, 'Para')),
@@ -172,23 +201,34 @@ export class Screens {
         h('div', { class: 'card-foot' }, (d.highScores[m.id] ?? 0) > 0 ? `Rekor: ${fmtInt(d.highScores[m.id] ?? 0)}` : 'Rekor yok'),
       ),
     );
+    if (!this.mapOpen(this.mapSel)) {
+      const first = MAPS.find((m) => this.mapOpen(m.id)) ?? MAPS[0];
+      this.mapSel = first.id;
+      this.timeSel = first.defaultTime;
+      this.weatherSel = first.defaultWeather;
+    }
     const map = MAP_BY_ID.get(this.mapSel) ?? MAPS[0];
     if (!map.times.includes(this.timeSel)) this.timeSel = map.defaultTime;
     if (!map.weathers.includes(this.weatherSel)) this.weatherSel = map.defaultWeather;
-    const mapCards = MAPS.map((m) =>
-      h('div', { class: `card env ${m.id === this.mapSel ? 'sel' : ''}`, 'data-testid': `map-${m.id}`, onclick: () => {
+    const mapCards = MAPS.map((m) => {
+      const open = this.mapOpen(m.id);
+      return h('div', { class: `card env ${m.id === this.mapSel ? 'sel' : ''} ${open ? '' : 'locked'}`, 'data-testid': `map-${m.id}`, 'data-locked': open ? '0' : '1', style: open ? undefined : 'opacity:.55', onclick: () => {
         this.a.click();
+        if (!open) {
+          this.toast(`${m.name}: Seviye ${m.unlockLevel} gerekli`);
+          return;
+        }
         this.mapSel = m.id;
         this.timeSel = m.defaultTime;
         this.weatherSel = m.defaultWeather;
         this.modes();
       } },
         h('div', { class: 'env-swatch', style: `background:${TIME_GRADIENT[m.defaultTime]};box-shadow:inset 0 -4px 0 ${m.color}` }),
-        h('div', { class: 'card-title' }, m.name),
-        h('div', { class: 'card-sub' }, m.region),
+        h('div', { class: 'card-title' }, open ? m.name : `🔒 ${m.name}`),
+        h('div', { class: 'card-sub' }, open ? m.region : `Seviye ${m.unlockLevel}`),
         h('div', { class: 'card-desc' }, m.description),
-      ),
-    );
+      );
+    });
     const chips = <T extends string>(opts: readonly T[], labels: Record<T, string>, cur: T, prefix: string, set: (v: T) => void) =>
       h('div', { class: 'seg' }, opts.map((o) => h('button', { class: o === cur ? 'sel' : '', 'data-testid': `${prefix}-${o}`, onclick: () => { this.a.click(); set(o); this.modes(); } }, labels[o])));
     const envCards = [
@@ -231,7 +271,8 @@ export class Screens {
     const styleChips = styles.map((s) => h('button', { class: `chip-btn ${this.styleFilter === s ? 'sel' : ''}`, onclick: () => { this.a.click(); this.styleFilter = s; this.garage(); } }, s === 'all' ? 'Tümü' : STYLE_LABEL[s]));
     const cards = list.map((b) => {
       const own = this.save.owns(b.id);
-      return h('div', { class: `bike-card ${b.id === sel.id ? 'sel' : ''} ${own ? 'owned' : ''}`, 'data-testid': `bike-${b.id}`, onclick: () => {
+      const locked = !own && !this.save.isBikeUnlocked(b.id);
+      return h('div', { class: `bike-card ${b.id === sel.id ? 'sel' : ''} ${own ? 'owned' : ''} ${locked ? 'locked' : ''}`, 'data-testid': `bike-${b.id}`, 'data-locked': locked ? '1' : '0', onclick: () => {
         this.a.click();
         this.garageSel = b.id;
         this.garageLivery = this.save.livery(b.id);
@@ -240,7 +281,7 @@ export class Screens {
       } },
         h('div', { class: 'bc-brand' }, b.brand),
         h('div', { class: 'bc-model' }, b.model),
-        h('div', { class: 'bc-foot' }, h('span', {}, `${b.engine.hp} hp · ${b.topSpeed} km/s`), h('span', { class: 'bc-price' }, own ? (d.selectedBike === b.id ? 'SEÇİLİ' : 'SAHİP') : fmtMoney(b.price))),
+        h('div', { class: 'bc-foot' }, h('span', {}, `${b.engine.hp} hp · ${b.topSpeed} km/s`), h('span', { class: 'bc-price' }, own ? (d.selectedBike === b.id ? 'SEÇİLİ' : 'SAHİP') : locked ? `🔒 Sv ${bikeUnlockLevel(b.id)}` : fmtMoney(b.price))),
       );
     });
     const ups = this.save.upgradesFor(sel.id);
@@ -271,7 +312,9 @@ export class Screens {
       ? d.selectedBike === sel.id
         ? h('div', { class: 'tag sel' }, '✓ SEÇİLİ')
         : this.btn('SEÇ', () => { this.a.selectBike(sel.id); this.garage(); }, 'primary', 'btn-select')
-      : this.btn(`SATIN AL  ${fmtMoney(sel.price)}`, () => { if (this.a.buyBike(sel.id)) { this.a.setLivery(sel.id, this.garageLivery); this.garage(); } }, `primary ${d.cash < sel.price ? 'disabled' : ''}`, 'btn-buy');
+      : !this.save.isBikeUnlocked(sel.id)
+        ? h('div', { class: 'tag', 'data-testid': 'bike-locked' }, `🔒 ${bikeLockText(sel)}`)
+        : this.btn(`SATIN AL  ${fmtMoney(sel.price)}`, () => { if (this.a.buyBike(sel.id)) { this.a.setLivery(sel.id, this.garageLivery); this.garage(); } }, `primary ${d.cash < sel.price ? 'disabled' : ''}`, 'btn-buy');
     const revBtn = h('button', { class: 'btn ghost', 'data-testid': 'btn-rev' }, '🔊 MOTORU DİNLE (basılı tut)');
     const revOn = (e: Event) => { e.preventDefault(); this.a.rev(true); };
     const revOff = () => this.a.rev(false);
@@ -408,12 +451,13 @@ export class Screens {
   }
 
   // ───────────────────────────── pause / game over ─────────────────────────────
-  pause(): void {
+  pause(missionInfo?: { title: string; objective: string; value: string }): void {
     const p = this.panel('pause');
     clear(p);
     p.append(
       h('div', { class: 'modal' },
         h('div', { class: 'title' }, 'DURAKLATILDI'),
+        missionInfo ? h('div', { class: 'gp-note', 'data-testid': 'pause-mission' }, h('b', {}, missionInfo.title), h('div', {}, missionInfo.objective), h('div', { class: 'gp-best' }, missionInfo.value)) : null,
         this.btn('DEVAM ET', () => this.a.resume(), 'primary', 'btn-resume'),
         this.btn('YENİDEN BAŞLA', () => this.a.restart(), '', 'btn-restart'),
         this.btn('AYARLAR', () => this.settings(true), ''),
@@ -423,11 +467,12 @@ export class Screens {
     this.show('pause');
   }
 
-  gameOver(reason: 'crash' | 'timeUp' | 'quit', stats: RunStats, cash: number, record: boolean, mode: ModeId): void {
+  gameOver(reason: 'crash' | 'timeUp' | 'quit', stats: RunStats, out: RunOutcome, mode: ModeId): void {
     const p = this.panel('gameover');
     clear(p);
     const title = reason === 'crash' ? 'KAZA!' : reason === 'timeUp' ? 'SÜRE DOLDU' : 'SÜRÜŞ BİTTİ';
     const best = this.data.highScores[mode] ?? 0;
+    const record = out.record;
     const cell = (v: string, l: string) => h('div', { class: 'go-cell' }, h('b', {}, v), h('span', {}, l));
     p.append(
       h('div', { class: 'modal wide', 'data-testid': 'gameover' },
@@ -444,7 +489,11 @@ export class Screens {
           cell(`${stats.wheelieTime.toFixed(1)} s`, 'Wheelie'),
           cell(`${Math.floor(stats.time)} s`, 'Süre'),
         ),
-        h('div', { class: 'earned' }, '+', fmtMoney(cash)),
+        h('div', { class: 'earned' }, '+', fmtMoney(out.cash), `  ·  +${fmtInt(out.xp)} XP`),
+        out.rank !== null ? h('div', { class: 'sub', 'data-testid': 'go-rank' }, `Skor tablosunda ${out.rank}. sıra`) : null,
+        levelBar(out.xpAfter, 'result-level'),
+        out.levelAfter > out.levelBefore ? h('div', { class: 'record', 'data-testid': 'level-up' }, `SEVİYE ATLADIN! → ${out.levelAfter}`) : null,
+        out.achievements.length ? h('div', { class: 'gp-note ok', 'data-testid': 'result-achievements' }, `Başarım: ${out.achievements.map((x) => x.title).join(', ')}`) : null,
         h('div', { class: 'go-buttons' },
           this.btn('TEKRAR', () => this.a.restart(), 'primary', 'btn-retry'),
           this.btn('GARAJ', () => this.a.openGarage(), ''),
@@ -453,6 +502,49 @@ export class Screens {
       ),
     );
     this.show('gameover');
+  }
+
+  /** Result card of a career mission (complete or failed). */
+  missionResult(out: RunOutcome): void {
+    const p = this.panel('gameover');
+    renderMissionResult(p, out, {
+      next: (id) => this.a.startMission(id),
+      retry: () => this.a.restart(),
+      career: () => this.a.openCareer(),
+      menu: () => this.a.quitToMenu(),
+      click: () => this.a.click(),
+    });
+    this.show('gameover');
+  }
+
+  // ───────────────────────────── career and progress ─────────────────────────────
+  career(focusCurrent = false): void {
+    const p = this.panel('career');
+    if (focusCurrent) this.careerScreen.focusCurrent();
+    this.careerScreen.render(
+      p,
+      {
+        back: () => this.a.back(),
+        startMission: (id) => this.a.startMission(id),
+        openGarage: () => this.a.openGarage(),
+        click: () => this.a.click(),
+      },
+      () => this.career(),
+    );
+    this.show('career');
+  }
+
+  progress(tab?: ProgressTab): void {
+    const p = this.panel('progress');
+    if (tab) this.progressScreens.tab = tab;
+    this.progressScreens.render(p, { back: () => this.a.back(), claimDaily: () => this.a.claimDaily(), click: () => this.a.click() }, () => this.progress());
+    this.show('progress');
+  }
+
+  /** Re-render the visible career/progress screen after the save changed under it. */
+  refresh(): void {
+    if (this.current === 'career') this.career();
+    else if (this.current === 'progress') this.progress();
   }
 
   toast(text: string): void {

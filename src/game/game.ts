@@ -1,4 +1,5 @@
 import { BIKE_BY_ID, getBike } from '../data/bikes';
+import { MISSION_BY_ID, missionMode, type MissionDef } from '../data/career';
 import { MAP_BY_ID, resolveEnvironment, type MapId, type RunConfig } from '../data/maps';
 import { MODE_BY_ID, type ModeId } from '../data/modes';
 import { audio } from '../audio/audioEngine';
@@ -12,12 +13,22 @@ import { Renderer } from '../render/renderer';
 import { Showroom } from '../render/showroom';
 import { SETTINGS, SettingsReader, type QualityPreset } from '../settings';
 import { SaveManager } from '../storage/save';
+import { starString } from '../ui/careerScreen';
 import { Hud } from '../ui/hud';
 import { Screens } from '../ui/screens';
-import { cashForRun, type RunStats } from './scoring';
-import { GameSession, type SessionEvent } from './session';
+import type { ProgressTab } from '../ui/progressScreens';
+import { liveAchContext, reachedAchievements } from './achievements';
+import { applyTrafficSettings, autoThrottleActive } from './gameplaySettings';
+import { failReasonText, missionHud } from './missions';
+import type { RunOutcome, RunRecordInput } from './progress';
+import { levelForXp, xpForRun } from './progression';
+import type { RunStats } from './scoring';
+import { GameSession, type FinishReason, type SessionEvent } from './session';
 
-export type GameState = 'boot' | 'menu' | 'garage' | 'modes' | 'settings' | 'loading' | 'playing' | 'paused' | 'gameover';
+export type GameState = 'boot' | 'menu' | 'garage' | 'modes' | 'career' | 'progress' | 'settings' | 'loading' | 'playing' | 'paused' | 'gameover';
+
+/** Seconds a clean finish (mission complete, time up) stays on screen before the result card. */
+const RESULT_DELAY = 1.6;
 
 /** Top-level state machine wiring simulation, rendering, audio, input and UI. */
 export class Game {
@@ -51,6 +62,13 @@ export class Game {
   private fpsFrames = 0;
   private showFps = false;
   private lastStats: RunStats | null = null;
+  private lastOutcome: RunOutcome | null = null;
+  /** Result card waiting for the finish moment to sink in. */
+  private pendingResult: { timer: number; show: () => void } | null = null;
+  // Live (in-run) progression toasts.
+  private liveTimer = 0;
+  private liveLevel = 1;
+  private readonly liveShown = new Set<string>();
   private audioCars: AudioCar[] = [];
   private runSeed = 1;
   errors: string[] = [];
@@ -117,6 +135,10 @@ export class Game {
   private actions() {
     return {
       openModes: () => this.toModes(),
+      openCareer: () => this.toCareer(),
+      openProgress: (tab?: ProgressTab) => this.toProgress(tab),
+      startMission: (id: string) => void this.startMission(id),
+      claimDaily: () => this.claimDaily(),
       openGarage: () => this.toGarage(),
       openSettings: () => this.toSettings(),
       back: () => this.back(),
@@ -172,6 +194,32 @@ export class Game {
     this.screens.modes();
   }
 
+  private toCareer(): void {
+    this.state = 'career';
+    this.showroom.framing = 0;
+    this.screens.career(true);
+  }
+
+  private toProgress(tab?: ProgressTab): void {
+    this.state = 'progress';
+    this.showroom.framing = 0;
+    this.screens.progress(tab);
+  }
+
+  /** Claim today's daily reward (the progress screen refreshes itself). */
+  private claimDaily(): boolean {
+    const r = this.save.claimDaily();
+    if (!r) {
+      this.uiSounds.error();
+      return false;
+    }
+    this.uiSounds.coin();
+    this.screens.toast(`Günlük ödül: +$${r.cash.toLocaleString('tr-TR')} · +${r.xp} XP`);
+    for (const a of this.save.lastUnlocks) this.screens.toast(`Başarım: ${a.title}`);
+    this.screens.refresh();
+    return true;
+  }
+
   private toGarage(): void {
     if (this.session) this.endRun();
     this.state = 'garage';
@@ -189,7 +237,7 @@ export class Game {
   private back(): void {
     if (this.screens.screen === 'settings' && this.session && (this.state === 'paused' || this.prevScreen === 'paused')) {
       this.state = 'paused';
-      this.screens.pause();
+      this.showPause();
       return;
     }
     this.disposeRev();
@@ -246,16 +294,29 @@ export class Game {
   }
 
   // ───────────────────────────── runs ─────────────────────────────
+  /** Start a career mission (the menus only offer unlocked ones; the debug API may start any). */
+  startMission(id: string): Promise<void> {
+    const def = MISSION_BY_ID.get(id);
+    if (!def) return Promise.resolve();
+    return this.startRun({ mode: 'career', missionId: def.id, map: def.map, time: def.time, weather: def.weather });
+  }
+
   async startRun(cfg: RunConfig): Promise<void> {
     this.disposeRev();
     this.endRun();
-    const map = MAP_BY_ID.get(cfg.map) ?? MAP_BY_ID.get('highway')!;
-    this.run = {
-      ...cfg,
-      map: map.id,
-      time: map.times.includes(cfg.time) ? cfg.time : map.defaultTime,
-      weather: map.weathers.includes(cfg.weather) ? cfg.weather : map.defaultWeather,
-    };
+    const mission: MissionDef | undefined = cfg.mode === 'career' && cfg.missionId ? MISSION_BY_ID.get(cfg.missionId) : undefined;
+    // A career run without a known mission is just an endless run.
+    if (cfg.mode === 'career' && !mission) cfg = { ...cfg, mode: 'endless', missionId: undefined };
+    const map = MAP_BY_ID.get(mission ? mission.map : cfg.map) ?? MAP_BY_ID.get('highway')!;
+    this.run = mission
+      ? { mode: 'career', missionId: mission.id, map: mission.map, time: mission.time, weather: mission.weather, seed: cfg.seed }
+      : {
+          ...cfg,
+          map: map.id,
+          time: map.times.includes(cfg.time) ? cfg.time : map.defaultTime,
+          weather: map.weathers.includes(cfg.weather) ? cfg.weather : map.defaultWeather,
+        };
+    if (this.run.seed === undefined) delete this.run.seed;
     this.save.data.lastRun = { ...this.run };
     this.save.save();
     this.state = 'loading';
@@ -267,13 +328,17 @@ export class Game {
     const spec = getBike(bikeId);
     const env = resolveEnvironment(this.run.map, this.run.time, this.run.weather);
     this.runSeed = (this.runSeed * 1103515245 + 12345 + Date.now()) % 2147483647 || 7;
+    const st = this.settings;
+    const baseMode = mission ? missionMode(mission) : MODE_BY_ID.get(this.run.mode)!;
     const session = new GameSession({
       bike: spec,
       upgrades: this.save.upgradesFor(bikeId),
-      mode: MODE_BY_ID.get(this.run.mode)!,
+      mode: applyTrafficSettings(baseMode, st.str('play.trafficDensity'), st.str('play.difficulty')),
       env,
       seed: this.run.seed ?? (this.runSeed % 100000) + 1,
-      autoShift: this.settings.str('play.autoShift') === 'auto',
+      autoShift: st.str('play.autoShift') === 'auto',
+      mission,
+      assists: { autoThrottle: autoThrottleActive(st.str('play.autoThrottle'), isTouchDevice()), wheelie: st.bool('play.wheelieAssist') },
     });
     this.screens.loading('Trafik ve manzara oluşturuluyor…', 0.6);
     await nextFrame();
@@ -287,6 +352,15 @@ export class Game {
     });
     this.hud.tacho.configure(spec.engine.redline, spec.engine.limiter, spec.transmission !== 'manual', spec.engine.layout === 'ELECTRIC');
     this.hud.setTiltMode(this.input.tiltEnabled);
+    this.hud.kmMarkers = st.bool('hud.kmMarkers');
+    if (session.mission && st.bool('hud.missionPanel')) {
+      this.hud.setMission(missionHud(session.mission), st.bool('play.missionHints') ? session.mission.def.hint : null);
+    }
+    this.lastOutcome = null;
+    this.pendingResult = null;
+    this.liveShown.clear();
+    this.liveLevel = levelForXp(d.xp);
+    this.liveTimer = 1;
     this.input.reset();
     this.timeScale = 1;
     this.crashTimer = 0;
@@ -321,6 +395,7 @@ export class Game {
       this.session.finish('quit');
       this.recordRun('quit');
     }
+    this.pendingResult = null;
     this.endRun();
     audio.resume();
     this.toMenu();
@@ -330,7 +405,13 @@ export class Game {
     if (this.state !== 'playing') return;
     this.state = 'paused';
     audio.suspend();
-    this.screens.pause();
+    this.showPause();
+  }
+
+  private showPause(): void {
+    const m = this.session?.mission;
+    const v = m ? missionHud(m) : null;
+    this.screens.pause(v ? { title: v.title, objective: v.objective, value: v.value } : undefined);
   }
 
   private resume(): void {
@@ -342,25 +423,82 @@ export class Game {
     this.last = performance.now();
   }
 
-  private recordRun(reason: 'crash' | 'timeUp' | 'quit'): void {
+  /** Commit the finished run to the save (cash, XP, stats, career, achievements) and show its result. */
+  private recordRun(reason: FinishReason): void {
     const s = this.session!;
     const stats = s.score.stats();
-    const cash = cashForRun(stats);
-    const record = this.save.recordRun(this.run.mode, stats, cash);
+    const tracker = s.mission;
+    const rec: RunRecordInput = {
+      mode: this.run.mode,
+      map: this.run.map,
+      time: this.run.time,
+      weather: this.run.weather,
+      bikeId: s.cfg.bike.id,
+      stats,
+      crashed: s.bike.crashed,
+      mission: tracker ? { def: tracker.def, result: tracker.result() } : null,
+      now: Date.now(),
+    };
+    const out = this.save.commitRun(rec);
     this.lastStats = stats;
-    if (reason !== 'quit') {
-      this.screens.gameOver(reason, stats, cash, record, this.run.mode);
-      if (record) this.uiSounds.record();
-    } else {
-      this.screens.toast(`+$${cash.toLocaleString('tr-TR')} kazanıldı`);
+    this.lastOutcome = out;
+    if (reason === 'quit') {
+      this.screens.toast(`+$${out.cash.toLocaleString('tr-TR')} · +${out.xp} XP`);
+      return;
     }
+    const show = () => {
+      this.hud?.setVisible(false);
+      if (out.mission) this.screens.missionResult(out);
+      else this.screens.gameOver(reason === 'timeUp' ? 'timeUp' : 'crash', stats, out, this.run.mode);
+      if (out.record || (out.mission && out.mission.result.status === 'complete' && out.mission.newStars > 0)) this.uiSounds.record();
+    };
+    // A clean finish keeps the world rolling for a moment before the card covers it.
+    if (reason === 'missionComplete' || reason === 'timeUp') this.pendingResult = { timer: RESULT_DELAY, show };
+    else show();
   }
 
-  private onFinish(reason: 'crash' | 'timeUp' | 'quit'): void {
+  private tickResult(dt: number): void {
+    const p = this.pendingResult;
+    if (!p) return;
+    p.timer -= dt;
+    if (p.timer > 0) return;
+    this.pendingResult = null;
+    p.show();
+  }
+
+  private onFinish(reason: FinishReason): void {
     if (this.state === 'gameover') return;
     this.state = 'gameover';
-    this.hud?.setVisible(false);
     this.recordRun(reason);
+  }
+
+  /** Toasts for achievements and level-ups reached during the run (the save is only updated at the end). */
+  private updateLive(dt: number): void {
+    const s = this.session;
+    const hud = this.hud;
+    if (!s || !hud || s.state === 'countdown') return;
+    this.liveTimer -= dt;
+    if (this.liveTimer > 0) return;
+    this.liveTimer = 0.5;
+    const d = this.save.data;
+    const stats = s.score.stats();
+    const runXp = xpForRun(stats);
+    const toasts = this.settings.bool('play.achievementToasts');
+    const ctx = liveAchContext(d, { stats, crashed: s.state === 'crashed', missionCompleted: false, time: this.run.time, weather: this.run.weather, countRun: false }, this.run.map, runXp);
+    for (const a of reachedAchievements(d.achievements, ctx, this.liveShown)) {
+      this.liveShown.add(a.id);
+      if (toasts) {
+        hud.toast('BAŞARIM AÇILDI', `${a.title} · +$${a.reward.cash.toLocaleString('tr-TR')}`, 'ach');
+        this.uiSounds.record();
+      }
+    }
+    if (ctx.level > this.liveLevel) {
+      this.liveLevel = ctx.level;
+      if (toasts) {
+        hud.toast('SEVİYE ATLADIN!', `Seviye ${ctx.level}`, 'level');
+        this.uiSounds.coin();
+      }
+    }
   }
 
   // ───────────────────────────── events ─────────────────────────────
@@ -415,6 +553,16 @@ export class Game {
         break;
       case 'timeUp':
         this.uiSounds.buzzer();
+        break;
+      case 'missionArmed':
+        hud.popup('HIZA ULAŞTIN', 'Altına düşme!', 'green');
+        break;
+      case 'missionComplete':
+        hud.popup('GÖREV TAMAMLANDI', starString(e.stars), 'gold');
+        this.uiSounds.checkpoint();
+        break;
+      case 'missionFailed':
+        hud.popup('GÖREV BAŞARISIZ', failReasonText(e.reason), 'red');
         break;
       case 'respawn':
         this.gameAudio.restartEngine(s.cfg.bike);
@@ -499,13 +647,14 @@ export class Game {
     if (s.state === 'crashed') {
       this.crashTimer += dt;
       this.timeScale = this.crashTimer < 1.3 ? 0.32 : Math.min(1, this.timeScale + dt);
-      if (!s.cfg.mode.respawn && this.crashTimer > 3.4 && playing) s.finish('crash');
+      if (!s.cfg.mode.respawn && this.crashTimer > 3.4 && playing) s.finishAfterCrash();
     }
     const simDt = dt * this.timeScale;
     const rider: RiderInput = { throttle: input.throttle, brake: input.brake, steer: input.steer, wheelie: input.wheelie, shiftUp: input.shiftUp, shiftDown: input.shiftDown };
     let t0 = performance.now();
-    if (playing || s.state === 'crashed') s.update(simDt, rider);
+    if (playing || s.state === 'crashed' || s.state === 'finished') s.update(simDt, rider);
     for (const e of s.drainEvents()) this.handleEvent(e);
+    this.tickResult(dt);
     if (!this.view) return;
     t0 = this.prof('sim', t0);
 
@@ -570,6 +719,8 @@ export class Game {
       },
       dt,
     );
+    if (s.mission) hud.updateMission(() => missionHud(s.mission!), dt, !s.mission.running);
+    if (playing) this.updateLive(dt);
     if (playing && s.state === 'running') this.renderer.adapt(this.fps, dt);
     if (this.showFps) {
       const i = this.renderer.info();
@@ -587,10 +738,13 @@ export class Game {
     const input = this.input.update(dt);
     if (s.state === 'crashed') {
       this.crashTimer += dt;
-      if (!s.cfg.mode.respawn && this.crashTimer > 3.4 && this.state === 'playing') s.finish('crash');
+      if (!s.cfg.mode.respawn && this.crashTimer > 3.4 && this.state === 'playing') s.finishAfterCrash();
     }
     s.update(dt, { throttle: input.throttle, brake: input.brake, steer: input.steer, wheelie: input.wheelie, shiftUp: input.shiftUp, shiftDown: input.shiftDown });
     for (const e of s.drainEvents()) if (this.view) this.handleEvent(e);
+    this.tickResult(dt);
+    if (this.state === 'playing') this.updateLive(dt);
+    if (s.mission && this.hud) this.hud.updateMission(() => missionHud(s.mission!), dt);
     if (this.goTimer > 0) {
       this.goTimer -= dt;
       if (this.goTimer <= 0) this.hud?.showCenter('');
@@ -682,6 +836,41 @@ export class Game {
         const m = MAP_BY_ID.get(map) ?? MAP_BY_ID.get('highway')!;
         return game.startRun({ mode, map: m.id, time: time ?? m.defaultTime, weather: weather ?? m.defaultWeather });
       },
+      /** Start a career mission by id ("suburb-01"…"industrial-10"), bypassing the unlock check. */
+      startMission: (id: string) => game.startMission(id),
+      /** Live state of the running career mission (null outside missions). */
+      get mission() {
+        const m = game.session?.mission;
+        if (!m) return null;
+        const v = missionHud(m);
+        return {
+          id: m.def.id,
+          number: m.def.number,
+          type: m.def.objective.type,
+          status: m.status,
+          failReason: m.failReason,
+          progress: m.progress,
+          stars: m.stars,
+          timeLeft: m.timeLeft,
+          text: v.value,
+          objective: v.objective,
+          secondaryMet: m.secondaryMet,
+        };
+      },
+      /** Rewards and unlocks of the last finished run. */
+      get lastOutcome() {
+        return game.lastOutcome ? JSON.parse(JSON.stringify(game.lastOutcome)) : null;
+      },
+      get level() {
+        return game.save.level;
+      },
+      get xp() {
+        return game.save.data.xp;
+      },
+      get achievementCount() {
+        return Object.keys(game.save.data.achievements).length;
+      },
+      claimDaily: () => game.claimDaily(),
       /** Nearest vehicle ahead of the rider (road-space deltas). */
       nearestCar: () => {
         const s = game.session;
@@ -715,6 +904,10 @@ function autoQuality(): QualityPreset {
   const mobile = matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
   if (mobile) return cores >= 8 ? 'medium' : 'low';
   return cores >= 8 ? 'high' : 'medium';
+}
+
+function isTouchDevice(): boolean {
+  return matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
 }
 
 function nextFrame(): Promise<void> {

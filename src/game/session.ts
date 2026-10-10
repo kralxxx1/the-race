@@ -13,6 +13,8 @@ export const FIXED_DT = 1 / 120;
 const MAX_STEPS_PER_FRAME = 12;
 export const PLAYER_HALF_LENGTH = 1.05;
 export const COUNTDOWN_SECONDS = 3;
+const COAST_SECONDS = 3;
+const COAST_INPUT: RiderInput = { ...neutralInput(), brake: 0.45 };
 
 export type SessionState = 'countdown' | 'running' | 'crashed' | 'finished';
 export type FinishReason = 'crash' | 'timeUp' | 'quit' | 'missionComplete' | 'missionFailed';
@@ -75,6 +77,8 @@ export class GameSession {
   readonly mission: MissionTracker | null;
   private acc = 0;
   private respawnTimer = 0;
+  /** Seconds the world keeps rolling after a clean finish, so the result card never sits on a frozen frame. */
+  private coast = 0;
   private readonly sample: MissionSample = emptySample();
   private readonly inputBuf: RiderInput = neutralInput();
   private readonly subInput: RiderInput = neutralInput();
@@ -120,7 +124,13 @@ export class GameSession {
 
   update(frameDt: number, input: RiderInput): void {
     const dt = clamp(frameDt, 0, 0.1);
-    if (this.state === 'finished') return;
+    if (this.state === 'finished') {
+      if (this.coast > 0) {
+        this.coast -= dt;
+        this.stepPhysics(dt, COAST_INPUT);
+      }
+      return;
+    }
     if (this.state === 'countdown') {
       this.countdown -= dt;
       // Rider may rev the engine on the grid; the bike is held by the front brake.
@@ -172,7 +182,7 @@ export class GameSession {
       }
       first = false;
       this.fixedStep(FIXED_DT, inp);
-      if (this.state === 'finished') break;
+      if (this.state === 'finished' && this.coast <= 0) break;
     }
     if (steps === MAX_STEPS_PER_FRAME) this.acc = 0; // drop time instead of spiralling
   }
@@ -374,6 +384,7 @@ export class GameSession {
     }
     this.state = 'finished';
     this.finishReason = reason;
+    if (reason === 'missionComplete' || reason === 'timeUp') this.coast = COAST_SECONDS;
     this.events.push({ type: 'finish', reason });
   }
 

@@ -32,6 +32,24 @@ export interface RunStats {
   longestWheelie: number;
 }
 
+export function emptyRunStats(): RunStats {
+  return {
+    score: 0,
+    distance: 0,
+    time: 0,
+    topSpeed: 0,
+    nearMisses: 0,
+    overtakes: 0,
+    maxCombo: 0,
+    oppositeLaneTime: 0,
+    wheelieTime: 0,
+    highSpeedTime: 0,
+    oppositeDistance: 0,
+    wheelieDistance: 0,
+    longestWheelie: 0,
+  };
+}
+
 /** Pure scoring rules (Traffic-Rider style), independent of rendering. */
 export class ScoreKeeper {
   score = 0;
