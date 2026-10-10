@@ -77,6 +77,8 @@ test.describe('Career, progression and menus', () => {
     await waitState(page, 'playing');
     await page.evaluate(() => window.__THE_RACE__.advance(4));
     await page.evaluate(() => window.__THE_RACE__.crash());
+    // The mission tracker sees the crash on the next simulation tick.
+    await page.evaluate(() => window.__THE_RACE__.advance(1 / 30));
     expect((await api(page, 'mission'))!.status).toBe('failed');
     await page.evaluate(() => window.__THE_RACE__.advance(5));
     await waitState(page, 'gameover');
