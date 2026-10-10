@@ -336,9 +336,9 @@ export class GameAudio {
     }
     let gust = 0;
     for (const c of near) {
-      let idx = this.slots.findIndex((s) => s.carId === c.id);
+      let idx = this.slotOf(c.id);
       if (idx < 0) {
-        idx = this.slots.findIndex((s) => s.carId === -1);
+        idx = this.slotOf(-1);
         if (idx < 0) continue;
         const s = this.slots[idx];
         s.carId = c.id;
@@ -367,6 +367,12 @@ export class GameAudio {
       }
     }
     return gust;
+  }
+
+  /** Index of the slot serving `carId` (-1 = first free slot), or -1. */
+  private slotOf(carId: number): number {
+    for (let i = 0; i < this.slots.length; i++) if (this.slots[i].carId === carId) return i;
+    return -1;
   }
 
   private updateAmbience(dt: number, env: EnvDef): void {

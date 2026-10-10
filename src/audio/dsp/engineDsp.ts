@@ -851,7 +851,9 @@ export class EngineDSP implements EngineSynthesizer {
         const amp = this.combAmp[c];
         const pop = this.combPop[c];
         // Cycle-to-cycle timing scatter (always a small delay); afterburn pops light late.
-        const delay = Math.abs(rng.gauss()) * p.roughness * 3 + (pop > 0 ? 30 * rng.next() : 0);
+        // Flame-front scatter of a degree or two (more on rough engines) is what smears the upper harmonics
+        // of a real exhaust note: a perfectly periodic pulse train would sound like a synthesiser.
+        const delay = Math.abs(rng.gauss()) * (0.35 + 3.5 * p.roughness) + (pop > 0 ? 30 * rng.next() : 0);
         this.exPsi[c] = late - delay;
         const tauS = this.spikeTau;
         if (pop > 0) {

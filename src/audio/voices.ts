@@ -341,7 +341,7 @@ export const BIKE_VOICES: Record<string, BikeVoice> = {
   'ktm-1290-superduke-r': {
     note: 'LC8 75° V-twin "Beast": brutal bark, big pops on the overrun.',
     topology: { t: 'merge', headers: [0.78, 0.52], collector: 0.35 },
-    silencer: { kind: 'stubby', bright: 1.15, pan: [0.4] },
+    silencer: { kind: 'stubby', bright: 1.25, extra: [{ hz: 120, q: 2.2, gain: 0.3 }], pan: [0.4] },
     intake: 'naked',
     intakeGain: 1.45,
     mech: chain({ tick: 0.3, tickHz: 3800, camWhine: 0.35, gearWhine: 0.3, clutchRattle: 0.4 }),
@@ -533,11 +533,11 @@ export const BIKE_VOICES: Record<string, BikeVoice> = {
   // ───────────────────────────── Others ─────────────────────────────
   'husqvarna-svartpilen-401': {
     note: 'KTM 399 single in a café-scrambler: short can, smaller snorkelled airbox.',
-    topology: { t: 'merge', headers: [0.7], collector: 0.3 },
-    silencer: { kind: 'stubby', bright: 1.1, muffle: 0.9, pan: [0.5] },
+    topology: { t: 'merge', headers: [0.92], collector: 0.3 },
+    silencer: { kind: 'stubby', len: 1.4, bright: 0.95, muffle: 1.2, pan: [0.5] },
     intake: { helmholtzHz: 134, helmholtzQ: 4.2, runnerHz: 760, runnerQ: 2.8, gain: 0.88, roar: 0.55, roarHz: 1350, ramAir: 0 },
     mech: chain({ tick: 0.32, tickHz: 4300, camWhine: 0.35, gearWhine: 0.2 }),
-    exhDuration: 248, blowdown: 0.82, roughness: 0.3, idleLope: 0.32, flywheel: 0.75, rasp: 0.48, gasC: 565, crackle: 0.4, backfire: 0.1, loudness: -0.6,
+    exhDuration: 248, blowdown: 0.82, roughness: 0.38, idleLope: 0.45, flywheel: 0.85, rasp: 0.48, gasC: 565, crackle: 0.4, backfire: 0.1, loudness: -0.6,
   },
   'vespa-gts-300': {
     note: 'HPE 278 single with CVT: polite putter and variator whine.',
