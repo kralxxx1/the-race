@@ -132,9 +132,9 @@ export interface MissionDef {
 /** Share of a bike's top speed a competent rider averages through traffic. */
 export const AVG_SHARE = 0.62;
 /** Share of a bike's top speed that is a realistic peak-speed target in traffic. */
-export const TOP_SHARE = 0.92;
+export const TOP_SHARE = 0.88;
 /** Share of a bike's top speed that can be held continuously through traffic. */
-export const KEEP_SHARE = 0.78;
+export const KEEP_SHARE = 0.7;
 /** Minimum for every career mission: rules out the 115-128 km/h city bikes. */
 export const CAREER_MIN_TOP_SPEED = 160;
 /** Requirement steps, aligned with the catalogue's published top speeds. */
@@ -147,18 +147,35 @@ export function checkpointRequiredAvgKmh(o: Extract<Objective, { type: 'checkpoi
   return worst * 3.6;
 }
 
+/**
+ * Score per metre ridden at an average speed (the continuous rate is (v - 40) * 0.6 per second,
+ * see ScoreKeeper) plus what near misses, overtakes and wheelies add on top.
+ */
+export const SCORE_BONUS_PER_M = 0.25;
+export function scorePerMetre(avgKmh: number): number {
+  const v = Math.max(avgKmh, 40.001);
+  return 2.16 * (1 - 40 / v) + SCORE_BONUS_PER_M;
+}
+
+/** Average speed (km/h) a score-in-distance objective needs (Infinity when no speed can reach it). */
+export function scoreRequiredAvgKmh(points: number, distance: number): number {
+  const share = (points / distance - SCORE_BONUS_PER_M) / 2.16;
+  return share >= 1 ? Infinity : share <= 0 ? 0 : 40 / (1 - share);
+}
+
 /** Average speed (km/h) the objective + limits require, 0 when it does not depend on pace. */
 export function requiredAvgKmh(obj: Objective, limit: MissionDef['limit']): number {
   if (obj.type === 'checkpoints') return checkpointRequiredAvgKmh(obj);
   if (obj.type === 'distance' && limit.time) return (obj.meters / limit.time) * 3.6;
   if (obj.type === 'keepSpeed') return obj.kmh;
+  if (obj.type === 'score' && limit.distance) return scoreRequiredAvgKmh(obj.points, limit.distance);
   return 0;
 }
 
 /** Published top speed a bike needs for this objective (rounded up to a catalogue tier). */
 export function requiredTopSpeed(obj: Objective, limit: MissionDef['limit'], secondary?: SecondaryObjective): number {
   let need = CAREER_MIN_TOP_SPEED;
-  if (obj.type === 'distance' || obj.type === 'checkpoints') need = Math.max(need, requiredAvgKmh(obj, limit) / AVG_SHARE);
+  if (obj.type === 'distance' || obj.type === 'checkpoints' || obj.type === 'score') need = Math.max(need, requiredAvgKmh(obj, limit) / AVG_SHARE);
   if (obj.type === 'topSpeed') need = Math.max(need, obj.kmh / TOP_SHARE);
   if (obj.type === 'keepSpeed') need = Math.max(need, obj.kmh / KEEP_SHARE);
   if (obj.type === 'survive') need = Math.max(need, obj.minKmh / KEEP_SHARE);
@@ -213,25 +230,25 @@ const CAREER_SPECS: Record<MapId, Spec[]> = {
   highway: [
     { title: 'Otoyola Hoş Geldin', brief: 'Zeytinlikler arasından geçen geniş otoyolda 4 km yolu 2:50 içinde bitir.', time: 'day', weather: 'clear', traffic: 'normal', aggr: 0.35, obj: dist(4000), limit: { time: 170 }, stars: ['time', 145, 125] },
     { title: 'Sollama Ustası', brief: 'Kamyonlar, otobüsler, aile arabaları… 2:30 içinde 25 aracı solla.', time: 'day', weather: 'clear', traffic: 'normal', aggr: 0.4, obj: ovt(25), limit: { time: 150 }, stars: ['time', 120, 95] },
-    { title: 'Sınırları Zorla', brief: 'Boş otoyolda gazı sonuna kadar aç ve 160 km/s hıza ulaş.', time: 'day', weather: 'clear', traffic: 'light', aggr: 0.25, obj: top(160), stars: ['time', 44, 28] },
+    { title: 'Sınırları Zorla', brief: 'Boş otoyolda gazı sonuna kadar aç ve 155 km/s hıza ulaş.', time: 'day', weather: 'clear', traffic: 'light', aggr: 0.25, obj: top(155), stars: ['time', 44, 28] },
     { title: 'Sabah Sisi', brief: 'Görüş mesafesi kısa. 4 kontrol noktasını süre bitmeden geç.', time: 'dawn', weather: 'fog', traffic: 'normal', aggr: 0.35, obj: cps(4, 1500, 55, 50), stars: ['timeLeft', 20, 35] },
     { title: 'Kombo Zamanı', brief: 'Kıl payı geçişleri arka arkaya bağla ve x3 komboya ulaş.', time: 'day', weather: 'cloudy', traffic: 'normal', aggr: 0.4, obj: combo(3), stars: ['time', 90, 50], pay: 1.1 },
     { title: 'Gece Ekspresi', brief: '20 saniye içinde 100 km/s hıza çık ve 1,5 km boyunca altına düşme.', time: 'night', weather: 'clear', traffic: 'normal', aggr: 0.35, obj: keep(100, 1500), stars: ['time', 62, 52], pay: 1.1 },
-    { title: 'Karşıdan Gelenler', brief: 'Çift yönlü yolda 2 dakika içinde karşı şeritte 800 m sür.', time: 'sunset', weather: 'clear', twoway: true, traffic: 'normal', aggr: 0.35, obj: opp(800), limit: { time: 120 }, stars: ['time', 90, 65] },
+    { title: 'Karşıdan Gelenler', brief: 'Çift yönlü yolda 2 dakika içinde karşı şeritte 500 m sür.', time: 'sunset', weather: 'clear', twoway: true, traffic: 'light', aggr: 0.3, obj: opp(500), limit: { time: 120 }, stars: ['time', 90, 65] },
     { title: 'Fırtına Öncesi', brief: 'Bulutlar toplanıyor. 5 km yolu 3:20 içinde bitir; bonus için 5 kıl payı yap.', time: 'day', weather: 'cloudy', traffic: 'normal', aggr: 0.4, obj: dist(5000), limit: { time: 200 }, stars: ['time', 175, 150], sec: ['nearMisses', 5] },
     { title: 'Wheelie Gösterisi', brief: 'Seyirciler toplandı: tek seferde 120 m wheelie yap.', time: 'day', weather: 'clear', traffic: 'light', aggr: 0.3, obj: whl(120, true), stars: ['time', 40, 25] },
     { title: 'Ege Finali', brief: 'Yoğun akşam trafiğinde 3 dakika içinde 8 kıl payı geçiş yap.', time: 'sunset', weather: 'clear', traffic: 'heavy', aggr: 0.45, obj: near(8), limit: { time: 180 }, stars: ['time', 140, 100] },
   ],
   desert: [
     { title: 'Sıcak Rüzgar', brief: 'Konya ovasının dümdüz yolunda 5 km yolu 3:10 içinde bitir.', time: 'day', weather: 'clear', traffic: 'normal', aggr: 0.35, obj: dist(5000), limit: { time: 190 }, stars: ['time', 165, 140] },
-    { title: 'Çöl Sürati', brief: 'Gün batarken ufka doğru 190 km/s hıza ulaş.', time: 'sunset', weather: 'clear', traffic: 'light', aggr: 0.25, obj: top(190), stars: ['time', 41, 26] },
+    { title: 'Çöl Sürati', brief: 'Gün batarken ufka doğru 185 km/s hıza ulaş.', time: 'sunset', weather: 'clear', traffic: 'light', aggr: 0.25, obj: top(185), stars: ['time', 41, 26] },
     { title: 'Serap Sollaması', brief: 'Sıcak hava dalgalanırken 2:40 içinde 30 aracı solla.', time: 'day', weather: 'clear', traffic: 'heavy', aggr: 0.45, obj: ovt(30), limit: { time: 160 }, stars: ['time', 130, 105] },
     { title: 'Gün Batımı Rotası', brief: '5 kontrol noktasını süre bitmeden geç; güneş batmadan varmalısın.', time: 'sunset', weather: 'clear', traffic: 'normal', aggr: 0.4, obj: cps(5, 1800, 65, 60), stars: ['timeLeft', 25, 45] },
     { title: 'Çöl Gecesi', brief: 'Yıldızların altında yoğun trafikte 90 saniye 80 km/s üstünde kal.', time: 'night', weather: 'clear', traffic: 'heavy', aggr: 0.45, obj: live(90, 80), stars: ['avgSpeed', 110, 130] },
-    { title: 'Tek Şerit Cesareti', brief: '2:30 içinde karşı şeritte 1,2 km sür.', time: 'day', weather: 'cloudy', twoway: true, traffic: 'normal', aggr: 0.4, obj: opp(1200), limit: { time: 150 }, stars: ['time', 110, 85] },
+    { title: 'Tek Şerit Cesareti', brief: '2:30 içinde karşı şeritte 700 m sür.', time: 'day', weather: 'cloudy', twoway: true, traffic: 'light', aggr: 0.35, obj: opp(700), limit: { time: 150 }, stars: ['time', 110, 85] },
     { title: 'Kum Tepesi Wheelie', brief: 'Şafak sökerken 2 dakika içinde toplam 400 m wheelie yap.', time: 'dawn', weather: 'clear', traffic: 'light', aggr: 0.3, obj: whl(400), limit: { time: 120 }, stars: ['time', 70, 45] },
-    { title: 'Sıcak Asfalt', brief: '125 km/s hıza çık ve 3 km boyunca altına düşme.', time: 'day', weather: 'clear', traffic: 'normal', aggr: 0.35, obj: keep(125, 3000), stars: ['time', 95, 84], pay: 1.1 },
-    { title: 'Kervan Kombosu', brief: 'Kamyon kervanlarının arasından geç ve x5 komboya ulaş.', time: 'sunset', weather: 'clear', traffic: 'heavy', aggr: 0.45, obj: combo(5), stars: ['time', 100, 60], pay: 1.1 },
+    { title: 'Sıcak Asfalt', brief: '105 km/s hıza çık ve 2 km boyunca altına düşme.', time: 'day', weather: 'clear', traffic: 'light', aggr: 0.3, obj: keep(105, 2000), stars: ['time', 95, 84], pay: 1.1 },
+    { title: 'Kervan Kombosu', brief: 'Kamyon kervanlarının arasından geç ve x3 komboya ulaş.', time: 'sunset', weather: 'clear', traffic: 'heavy', aggr: 0.45, obj: combo(3), stars: ['time', 100, 60], pay: 1.1 },
     { title: 'Çöl Finali', brief: 'Bulutlu şafakta yoğun trafikte 5 km içinde 7.000 puan topla.', time: 'dawn', weather: 'cloudy', traffic: 'heavy', aggr: 0.45, obj: pts(7000), limit: { distance: 5000 }, stars: ['distanceUsed', 4300, 3700] },
   ],
   city: [
@@ -239,59 +256,59 @@ const CAREER_SPECS: Record<MapId, Spec[]> = {
     { title: 'E-5 Trafiği', brief: 'Mesai çıkışı. 3 dakika içinde 40 aracı solla.', time: 'night', weather: 'clear', traffic: 'heavy', aggr: 0.55, obj: ovt(40), limit: { time: 180 }, stars: ['time', 150, 120] },
     { title: 'Şehir Işıkları Arasında', brief: '3:20 içinde 10 kıl payı geçiş yap; bonus için 30 araç solla.', time: 'night', weather: 'cloudy', traffic: 'heavy', aggr: 0.5, obj: near(10), limit: { time: 200 }, stars: ['time', 160, 120], sec: ['overtakes', 30] },
     { title: 'Yağmurlu Gece', brief: 'Islak asfaltta neonlar yansıyor. 5 kontrol noktasını süre bitmeden geç.', time: 'night', weather: 'rain', traffic: 'heavy', aggr: 0.45, obj: cps(5, 1400, 55, 52), stars: ['timeLeft', 18, 32] },
-    { title: 'Boğaz Köprüsü', brief: 'Köprü yolunda 210 km/s hıza ulaş.', time: 'sunset', weather: 'clear', traffic: 'normal', aggr: 0.35, obj: top(210), stars: ['time', 44, 28] },
-    { title: 'Ters Akış', brief: 'Gece çift yönlü yolda 2:30 içinde karşı şeritte 1,5 km sür.', time: 'night', weather: 'clear', twoway: true, traffic: 'heavy', aggr: 0.45, obj: opp(1500), limit: { time: 150 }, stars: ['time', 120, 95] },
-    { title: 'Sisli Sabah', brief: 'Sisli şehirde 2 dakika boyunca 90 km/s üstünde kazasız kal.', time: 'day', weather: 'fog', traffic: 'heavy', aggr: 0.5, obj: live(120, 90), stars: ['avgSpeed', 115, 135] },
-    { title: 'Şehir Kombosu', brief: 'Sıkışık trafikte x6 komboya ulaş.', time: 'night', weather: 'clear', traffic: 'heavy', aggr: 0.5, obj: combo(6), stars: ['time', 110, 70], pay: 1.1 },
+    { title: 'Boğaz Köprüsü', brief: 'Köprü yolunda 205 km/s hıza ulaş.', time: 'sunset', weather: 'clear', traffic: 'light', aggr: 0.3, obj: top(205), stars: ['time', 44, 28] },
+    { title: 'Ters Akış', brief: 'Gece çift yönlü yolda 2:30 içinde karşı şeritte 800 m sür.', time: 'night', weather: 'clear', twoway: true, traffic: 'light', aggr: 0.35, obj: opp(800), limit: { time: 150 }, stars: ['time', 120, 95] },
+    { title: 'Sisli Sabah', brief: 'Sisli şehirde 2 dakika boyunca 80 km/s üstünde kazasız kal.', time: 'day', weather: 'fog', traffic: 'heavy', aggr: 0.5, obj: live(120, 80), stars: ['avgSpeed', 115, 135] },
+    { title: 'Şehir Kombosu', brief: 'Sıkışık trafikte x3 komboya ulaş.', time: 'night', weather: 'clear', traffic: 'heavy', aggr: 0.5, obj: combo(3), stars: ['time', 110, 70], pay: 1.1 },
     { title: 'Gece Wheelie', brief: 'Gece yarısı gösterisi: tek seferde 200 m wheelie yap.', time: 'night', weather: 'clear', traffic: 'normal', aggr: 0.4, obj: whl(200, true), stars: ['time', 45, 30] },
-    { title: 'İstanbul Finali', brief: '140 km/s hıza çık ve 4 km boyunca altına düşme.', time: 'night', weather: 'cloudy', traffic: 'normal', aggr: 0.4, obj: keep(140, 4000), stars: ['time', 108, 96], pay: 1.1 },
+    { title: 'İstanbul Finali', brief: '110 km/s hıza çık ve 2,5 km boyunca altına düşme.', time: 'night', weather: 'cloudy', traffic: 'light', aggr: 0.3, obj: keep(110, 2500), stars: ['time', 108, 96], pay: 1.1 },
   ],
   coast: [
     { title: 'Turkuaz Yol', brief: 'Deniz manzarasına dalmadan 6 km yolu 3:30 içinde bitir.', time: 'day', weather: 'clear', traffic: 'normal', aggr: 0.4, obj: dist(6000), limit: { time: 210 }, stars: ['time', 185, 160] },
     { title: 'Viraj Sollaması', brief: 'Sahil virajlarında 3:20 içinde 45 aracı solla.', time: 'sunset', weather: 'clear', traffic: 'heavy', aggr: 0.5, obj: ovt(45), limit: { time: 200 }, stars: ['time', 165, 135] },
-    { title: 'Sahil Sürati', brief: 'Boş sahil yolunda 220 km/s hıza ulaş.', time: 'day', weather: 'clear', traffic: 'light', aggr: 0.3, obj: top(220), stars: ['time', 36, 23] },
+    { title: 'Sahil Sürati', brief: 'Boş sahil yolunda 215 km/s hıza ulaş.', time: 'day', weather: 'clear', traffic: 'light', aggr: 0.3, obj: top(215), stars: ['time', 36, 23] },
     { title: 'Deniz Feneri', brief: 'Şafakta 6 kontrol noktasını süre bitmeden geç.', time: 'dawn', weather: 'clear', traffic: 'normal', aggr: 0.4, obj: cps(6, 1800, 60, 60), stars: ['timeLeft', 25, 45] },
     { title: 'Gece Sahili', brief: 'Gece yoğun trafikte 3:40 içinde 12 kıl payı geçiş yap.', time: 'night', weather: 'clear', traffic: 'heavy', aggr: 0.5, obj: near(12), limit: { time: 220 }, stars: ['time', 180, 140] },
-    { title: 'Çift Yönlü Sahil', brief: '3 dakika içinde karşı şeritte 2 km sür.', time: 'day', weather: 'cloudy', twoway: true, traffic: 'normal', aggr: 0.45, obj: opp(2000), limit: { time: 180 }, stars: ['time', 150, 120] },
-    { title: 'Yağmurda Denge', brief: 'Sağanak altında 2 dakika boyunca 100 km/s üstünde kazasız kal.', time: 'day', weather: 'rain', traffic: 'heavy', aggr: 0.5, obj: live(120, 100), stars: ['avgSpeed', 120, 140] },
+    { title: 'Çift Yönlü Sahil', brief: '3 dakika içinde karşı şeritte 900 m sür.', time: 'day', weather: 'cloudy', twoway: true, traffic: 'light', aggr: 0.35, obj: opp(900), limit: { time: 180 }, stars: ['time', 150, 120] },
+    { title: 'Yağmurda Denge', brief: 'Sağanak altında 2 dakika boyunca 90 km/s üstünde kazasız kal.', time: 'day', weather: 'rain', traffic: 'heavy', aggr: 0.5, obj: live(120, 90), stars: ['avgSpeed', 120, 140] },
     { title: 'Kaş Wheelie', brief: 'Gün batımında 2:30 içinde toplam 600 m wheelie yap.', time: 'sunset', weather: 'clear', traffic: 'light', aggr: 0.35, obj: whl(600), limit: { time: 150 }, stars: ['time', 100, 70] },
-    { title: 'Dalga Kombosu', brief: 'Kıl payları dalga dalga bağla: x7 komboya ulaş.', time: 'day', weather: 'clear', traffic: 'heavy', aggr: 0.55, obj: combo(7), stars: ['time', 120, 80], pay: 1.1 },
-    { title: 'Sahil Finali', brief: 'Çift yönlü sahil yolunda 6 km içinde 11.000 puan topla. Karşı şerit puanı ikiye katlar!', time: 'sunset', weather: 'cloudy', twoway: true, traffic: 'heavy', aggr: 0.5, obj: pts(11000), limit: { distance: 6000 }, stars: ['distanceUsed', 5200, 4500] },
+    { title: 'Dalga Kombosu', brief: 'Kıl payları dalga dalga bağla: x3 komboya ulaş.', time: 'day', weather: 'clear', traffic: 'heavy', aggr: 0.55, obj: combo(3), stars: ['time', 120, 80], pay: 1.1 },
+    { title: 'Sahil Finali', brief: 'Çift yönlü sahil yolunda 6 km içinde 8.000 puan topla. Karşı şerit puanı ikiye katlar!', time: 'sunset', weather: 'cloudy', twoway: true, traffic: 'normal', aggr: 0.45, obj: pts(8000), limit: { distance: 6000 }, stars: ['distanceUsed', 5200, 4500] },
   ],
   forest: [
     { title: 'Islak Asfalt', brief: 'Karadeniz yağmuru dinmiyor. 6 km yolu 3:40 içinde bitir.', time: 'day', weather: 'rain', traffic: 'normal', aggr: 0.4, obj: dist(6000), limit: { time: 220 }, stars: ['time', 195, 170] },
     { title: 'Orman Sisi', brief: 'Sisin içinden 6 kontrol noktasını süre bitmeden geç.', time: 'dawn', weather: 'fog', traffic: 'normal', aggr: 0.4, obj: cps(6, 2000, 66, 66), stars: ['timeLeft', 25, 45] },
     { title: 'Çam Yolu Sollaması', brief: 'Tomruk kamyonlarının arasından 3:40 içinde 50 aracı solla.', time: 'day', weather: 'cloudy', traffic: 'heavy', aggr: 0.5, obj: ovt(50), limit: { time: 220 }, stars: ['time', 185, 150] },
-    { title: 'Ayder Sürati', brief: 'Yayla yolunun düzlüğünde 230 km/s hıza ulaş.', time: 'day', weather: 'clear', traffic: 'light', aggr: 0.3, obj: top(230), stars: ['time', 34, 22] },
-    { title: 'Gece Ormanı', brief: 'Yağmurlu gecede 2:30 boyunca 100 km/s üstünde kazasız kal.', time: 'night', weather: 'rain', traffic: 'heavy', aggr: 0.5, obj: live(150, 100), stars: ['avgSpeed', 120, 140] },
+    { title: 'Ayder Sürati', brief: 'Yayla yolunun düzlüğünde 225 km/s hıza ulaş.', time: 'day', weather: 'clear', traffic: 'light', aggr: 0.3, obj: top(225), stars: ['time', 34, 22] },
+    { title: 'Gece Ormanı', brief: 'Yağmurlu gecede 2:30 boyunca 90 km/s üstünde kazasız kal.', time: 'night', weather: 'rain', traffic: 'heavy', aggr: 0.5, obj: live(150, 90), stars: ['avgSpeed', 120, 140] },
     { title: 'Kıl Payı Yağmuru', brief: 'Islak yolda 4 dakika içinde 15 kıl payı geçiş yap.', time: 'sunset', weather: 'rain', traffic: 'heavy', aggr: 0.5, obj: near(15), limit: { time: 240 }, stars: ['time', 200, 160] },
-    { title: 'Orman İçi Ters Yön', brief: '3:20 içinde karşı şeritte 2,5 km sür.', time: 'day', weather: 'cloudy', twoway: true, traffic: 'normal', aggr: 0.45, obj: opp(2500), limit: { time: 200 }, stars: ['time', 170, 140] },
-    { title: 'Sisli Hız', brief: 'Sis içinde 150 km/s hıza çık ve 4 km boyunca altına düşme.', time: 'day', weather: 'fog', traffic: 'normal', aggr: 0.4, obj: keep(150, 4000, 22), stars: ['time', 100, 90], pay: 1.1 },
-    { title: 'Orman Kombosu', brief: 'Yoğun trafikte x8 komboya ulaş.', time: 'day', weather: 'clear', traffic: 'heavy', aggr: 0.55, obj: combo(8), stars: ['time', 130, 90], pay: 1.1 },
+    { title: 'Orman İçi Ters Yön', brief: '3:20 içinde karşı şeritte 1 km sür.', time: 'day', weather: 'cloudy', twoway: true, traffic: 'light', aggr: 0.35, obj: opp(1000), limit: { time: 200 }, stars: ['time', 170, 140] },
+    { title: 'Sisli Hız', brief: 'Sis içinde 115 km/s hıza çık ve 3 km boyunca altına düşme.', time: 'day', weather: 'fog', traffic: 'light', aggr: 0.3, obj: keep(115, 3000, 22), stars: ['time', 100, 90], pay: 1.1 },
+    { title: 'Orman Kombosu', brief: 'Yoğun trafikte x4 komboya ulaş.', time: 'day', weather: 'clear', traffic: 'heavy', aggr: 0.55, obj: combo(4), stars: ['time', 130, 90], pay: 1.1 },
     { title: 'Karadeniz Finali', brief: 'Yağmurlu gecede 10 km yolu 5:40 içinde bitir; bonus için 10 kıl payı yap.', time: 'night', weather: 'rain', traffic: 'normal', aggr: 0.5, obj: dist(10000), limit: { time: 340 }, stars: ['time', 300, 270], sec: ['nearMisses', 10] },
   ],
   snow: [
     { title: 'Beyaz Yol', brief: 'Kar yağıyor, yol tutuş zayıf. 7 km yolu 4:10 içinde bitir.', time: 'day', weather: 'snow', traffic: 'normal', aggr: 0.4, obj: dist(7000), limit: { time: 250 }, stars: ['time', 220, 195] },
     { title: 'Buzlu Kontroller', brief: 'Şafakta karlı geçitte 7 kontrol noktasını süre bitmeden geç.', time: 'dawn', weather: 'snow', traffic: 'normal', aggr: 0.45, obj: cps(7, 2000, 66, 68), stars: ['timeLeft', 25, 45] },
     { title: 'Palandöken Sollaması', brief: 'Kayak tatilcilerinin arasından 4 dakika içinde 55 aracı solla.', time: 'day', weather: 'clear', traffic: 'heavy', aggr: 0.55, obj: ovt(55), limit: { time: 240 }, stars: ['time', 200, 165] },
-    { title: 'Zirve Sürati', brief: 'Berrak dağ havasında 250 km/s hıza ulaş.', time: 'day', weather: 'clear', traffic: 'light', aggr: 0.3, obj: top(250), stars: ['time', 33, 21] },
-    { title: 'Kar Fırtınası', brief: 'Tipi altında 3 dakika boyunca 110 km/s üstünde kazasız kal.', time: 'night', weather: 'snow', traffic: 'heavy', aggr: 0.5, obj: live(180, 110), stars: ['avgSpeed', 125, 145] },
-    { title: 'Soğuk Kıl Payları', brief: '4 dakika içinde 18 kıl payı geçiş yap.', time: 'day', weather: 'cloudy', traffic: 'heavy', aggr: 0.55, obj: near(18), limit: { time: 240 }, stars: ['time', 200, 160] },
-    { title: 'Dağ Yolu Ters Yön', brief: 'Karlı çift yönlü yolda 3:40 içinde karşı şeritte 3 km sür.', time: 'day', weather: 'snow', twoway: true, traffic: 'normal', aggr: 0.45, obj: opp(3000), limit: { time: 220 }, stars: ['time', 190, 160] },
+    { title: 'Zirve Sürati', brief: 'Berrak dağ havasında 245 km/s hıza ulaş.', time: 'day', weather: 'clear', traffic: 'light', aggr: 0.3, obj: top(245), stars: ['time', 33, 21] },
+    { title: 'Kar Fırtınası', brief: 'Tipi altında 3 dakika boyunca 100 km/s üstünde kazasız kal.', time: 'night', weather: 'snow', traffic: 'heavy', aggr: 0.5, obj: live(180, 100), stars: ['avgSpeed', 125, 145] },
+    { title: 'Soğuk Kıl Payları', brief: '4:30 içinde 16 kıl payı geçiş yap.', time: 'day', weather: 'cloudy', traffic: 'normal', aggr: 0.45, obj: near(16), limit: { time: 270 }, stars: ['time', 200, 160] },
+    { title: 'Dağ Yolu Ters Yön', brief: 'Karlı çift yönlü yolda 3:40 içinde karşı şeritte 1,2 km sür.', time: 'day', weather: 'snow', twoway: true, traffic: 'light', aggr: 0.35, obj: opp(1200), limit: { time: 220 }, stars: ['time', 190, 160] },
     { title: 'Buzda Wheelie', brief: '3:20 içinde toplam 1 km wheelie yap.', time: 'sunset', weather: 'clear', traffic: 'light', aggr: 0.35, obj: whl(1000), limit: { time: 200 }, stars: ['time', 150, 110] },
-    { title: 'Kar Kombosu', brief: 'Sisli dağ yolunda x10 komboya ulaş.', time: 'day', weather: 'fog', traffic: 'heavy', aggr: 0.55, obj: combo(10), stars: ['time', 140, 100], pay: 1.15 },
-    { title: 'Dağ Finali', brief: '170 km/s hıza çık ve 6 km boyunca altına düşme.', time: 'night', weather: 'clear', traffic: 'normal', aggr: 0.45, obj: keep(170, 6000, 25), stars: ['time', 145, 128], pay: 1.1 },
+    { title: 'Kar Kombosu', brief: 'Sisli dağ yolunda x4 komboya ulaş.', time: 'day', weather: 'fog', traffic: 'heavy', aggr: 0.55, obj: combo(4), stars: ['time', 140, 100], pay: 1.15 },
+    { title: 'Dağ Finali', brief: '120 km/s hıza çık ve 3,5 km boyunca altına düşme.', time: 'night', weather: 'clear', traffic: 'light', aggr: 0.3, obj: keep(120, 3500, 25), stars: ['time', 145, 128], pay: 1.1 },
   ],
   industrial: [
     { title: 'Fabrika Vardiyası', brief: 'Vardiya değişiminden önce 8 km yolu 4:30 içinde bitir.', time: 'sunset', weather: 'cloudy', traffic: 'normal', aggr: 0.45, obj: dist(8000), limit: { time: 270 }, stars: ['time', 240, 210] },
     { title: 'Liman Koşusu', brief: 'Liman vinçlerinin altından 8 kontrol noktasını süre bitmeden geç.', time: 'night', weather: 'clear', traffic: 'normal', aggr: 0.45, obj: cps(8, 2200, 75, 72), stars: ['timeLeft', 25, 45] },
     { title: 'D-100 Sollaması', brief: 'Tır konvoylarının arasından 4:20 içinde 65 aracı solla.', time: 'day', weather: 'clear', traffic: 'heavy', aggr: 0.6, obj: ovt(65), limit: { time: 260 }, stars: ['time', 220, 180] },
-    { title: 'Tünel Sürati', brief: 'Aydınlatmalı uzun düzlükte 275 km/s hıza ulaş.', time: 'night', weather: 'clear', traffic: 'light', aggr: 0.3, obj: top(275), stars: ['time', 34, 22] },
-    { title: 'Gece Vardiyası', brief: 'Yağmurlu gecede çok yoğun trafikte 3:20 boyunca 120 km/s üstünde kal.', time: 'night', weather: 'rain', traffic: 'extreme', aggr: 0.55, obj: live(200, 120), stars: ['avgSpeed', 130, 150], pay: 1.1 },
-    { title: 'Kıvılcım', brief: 'Gece 4:20 içinde 22 kıl payı geçiş yap.', time: 'night', weather: 'clear', traffic: 'heavy', aggr: 0.55, obj: near(22), limit: { time: 260 }, stars: ['time', 220, 180] },
-    { title: 'Ters Yön Ustası', brief: 'Çift yönlü sanayi yolunda 4 dakika içinde karşı şeritte 4 km sür.', time: 'sunset', weather: 'clear', twoway: true, traffic: 'heavy', aggr: 0.5, obj: opp(4000), limit: { time: 240 }, stars: ['time', 210, 180] },
-    { title: 'Sanayi Kombosu', brief: 'Sis ve çok yoğun trafik: x12 komboya ulaş.', time: 'day', weather: 'fog', traffic: 'extreme', aggr: 0.6, obj: combo(12), stars: ['time', 150, 100], pay: 1.2 },
-    { title: 'Sis Duvarı', brief: 'Sisli gecede çift yönlü yolda 9 km içinde 16.000 puan topla.', time: 'night', weather: 'fog', twoway: true, traffic: 'heavy', aggr: 0.5, obj: pts(16000), limit: { distance: 9000 }, stars: ['distanceUsed', 8000, 7000] },
+    { title: 'Tünel Sürati', brief: 'Aydınlatmalı uzun düzlükte 262 km/s hıza ulaş.', time: 'night', weather: 'clear', traffic: 'light', aggr: 0.3, obj: top(262), stars: ['time', 34, 22] },
+    { title: 'Gece Vardiyası', brief: 'Yağmurlu gecede yoğun trafikte 3:20 boyunca 100 km/s üstünde kal.', time: 'night', weather: 'rain', traffic: 'heavy', aggr: 0.5, obj: live(200, 100), stars: ['avgSpeed', 130, 150], pay: 1.1 },
+    { title: 'Kıvılcım', brief: 'Gece 5 dakika içinde 18 kıl payı geçiş yap.', time: 'night', weather: 'clear', traffic: 'heavy', aggr: 0.55, obj: near(18), limit: { time: 300 }, stars: ['time', 220, 180] },
+    { title: 'Ters Yön Ustası', brief: 'Çift yönlü sanayi yolunda 4 dakika içinde karşı şeritte 1,5 km sür.', time: 'sunset', weather: 'clear', twoway: true, traffic: 'light', aggr: 0.4, obj: opp(1500), limit: { time: 240 }, stars: ['time', 210, 180] },
+    { title: 'Sanayi Kombosu', brief: 'Sis ve çok yoğun trafik: x4 komboya ulaş.', time: 'day', weather: 'fog', traffic: 'extreme', aggr: 0.5, obj: combo(4), stars: ['time', 150, 100], pay: 1.2 },
+    { title: 'Sis Duvarı', brief: 'Sisli gecede çift yönlü yolda 9 km içinde 11.000 puan topla.', time: 'night', weather: 'fog', twoway: true, traffic: 'normal', aggr: 0.45, obj: pts(11000), limit: { distance: 9000 }, stars: ['distanceUsed', 8000, 7000] },
     { title: 'Büyük Final', brief: 'Kariyerin son sınavı: yağmurlu gecede 12 km yolu 6:40 içinde bitir. Bonus için 20 kıl payı!', time: 'night', weather: 'rain', traffic: 'normal', aggr: 0.5, obj: dist(12000), limit: { time: 400 }, stars: ['time', 360, 320], sec: ['nearMisses', 20], pay: 1.2 },
   ],
 };

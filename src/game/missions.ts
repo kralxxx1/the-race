@@ -73,7 +73,7 @@ export interface MissionResult {
 }
 
 /** Seconds below the target speed tolerated in a keep-speed mission (lets a wobble or gear change pass). */
-export const KEEP_SPEED_GRACE = 0.6;
+export const KEEP_SPEED_GRACE = 1.0;
 
 export function starsFor(rule: StarRule, value: number): 1 | 2 | 3 {
   const lower = LOWER_IS_BETTER[rule.metric];
