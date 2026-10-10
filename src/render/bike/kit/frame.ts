@@ -51,11 +51,12 @@ export function buildFrame(ctx: KitContext, L: ForkLayout): void {
   switch (f.type) {
     case 'twinSpar': {
       for (const s of [-1, 1]) {
+        // Deltabox-style beam: nearly level from the headstock over the engine, then down to the pivot.
         const path: P3[] = [
           [s * 0.03, (hb[1] + ht[1]) / 2, (hb[2] + ht[2]) / 2 + 0.02],
-          [s * (W * 0.7), head[1] - 0.09, head[2] + 0.17],
-          [s * W, (head[1] + pv[1]) / 2 + 0.06, (head[2] + pv[2]) / 2 + 0.05],
-          [s * (W - 0.02), pv[1] + 0.2, pv[2] - 0.07],
+          [s * (W * 0.72), head[1] - 0.085, head[2] + 0.17],
+          [s * W, head[1] - 0.15, pv[2] - 0.16],
+          [s * (W - 0.015), pv[1] + 0.25, pv[2] - 0.06],
           [s * (W - 0.035), pv[1] + 0.11, pv[2] - 0.01],
         ];
         ctx.add('chassis', beam(path, 0.13, 0.05, [1.1, 1, 0.95, 0.9, 0.8], seg, 0.014), fin);
