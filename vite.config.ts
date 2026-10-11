@@ -1,5 +1,10 @@
 /// <reference types="vitest/config" />
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
+
+// Agent worktrees live under .claude/worktrees: the main checkout must not watch them,
+// but a dev server started inside a worktree must still watch its own files.
+const insideWorktree = fileURLToPath(new URL('.', import.meta.url)).includes('/.claude/');
 
 export default defineConfig({
   // Relative base so the production build works from any sub-path (GitHub Pages, itch.io, file servers).
@@ -17,8 +22,7 @@ export default defineConfig({
       },
     },
   },
-  // Agent worktrees live under .claude/; never watch them from the main dev server.
-  server: { host: true, watch: { ignored: ['**/.claude/**'] } },
+  server: { host: true, watch: { ignored: insideWorktree ? [] : ['**/.claude/**'] } },
   preview: { host: true },
   test: {
     include: ['tests/unit/**/*.test.ts'],
