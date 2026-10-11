@@ -1,5 +1,6 @@
 import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
+import { mt07Blueprint } from './family-jp-naked-mt07';
 import { mt09Blueprint } from './family-jp-naked-mt09';
 
 /**
@@ -9,4 +10,5 @@ import { mt09Blueprint } from './family-jp-naked-mt09';
  */
 export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'yamaha-mt09': mt09Blueprint,
+  'yamaha-mt07': mt07Blueprint,
 };

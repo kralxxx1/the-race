@@ -358,7 +358,7 @@ export const BIKES: BikeSpec[] = [
     id: 'yamaha-mt07', brand: 'Yamaha', model: 'MT-07', year: 2024, style: 'naked',
     engine: { layout: 'P2_270', cc: 689, hp: 73, hpRpm: 8750, torque: 67, torqueRpm: 6500, idle: 1250, redline: 10000 },
     weight: 184, topSpeed: 214, price: 8000,
-    liveries: [livery('Icon Blue', '#0d3fa6', '#1b1c1f', '#7aa2ff'), livery('Cyan Storm', '#5b6169', '#2a2d31', '#18c7e8', { wheel: '#18c7e8' })],
+    liveries: [livery('Icon Blue', '#0d3fa6', '#1b1c1f', '#7aa2ff', { wheel: '#1846b5', frame: '#202125' }), livery('Cyan Storm', '#5b6169', '#2a2d31', '#18c7e8', { wheel: '#18c7e8', frame: '#202125' })],
     description: '270° CP2 ikili: kalın alt-orta devir ve şımarık ön teker.',
   }),
   bike({
