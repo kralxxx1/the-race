@@ -9,6 +9,7 @@ import { parseTyre } from '../../src/render/bike/tyre';
 /** Japanese sport-bike family (blueprints/family-jp-sport*.ts): spec sheets, liveries and budgets. */
 const SPEC: Record<string, { wheelbase: number; rake: number; trail: number; seat: number; front: string; rear: string }> = {
   'honda-cbr1000rr-r': { wheelbase: 1.455, rake: 24, trail: 0.102, seat: 0.83, front: '120/70ZR17', rear: '200/55ZR17' },
+  'yamaha-r6': { wheelbase: 1.375, rake: 24, trail: 0.097, seat: 0.85, front: '120/70ZR17', rear: '180/55ZR17' },
 };
 
 describe('Japanese sport-bike blueprints', () => {
