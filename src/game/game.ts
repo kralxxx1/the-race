@@ -4,7 +4,8 @@ import { MAP_BY_ID, resolveEnvironment, type MapId, type RunConfig } from '../da
 import { MODE_BY_ID, type ModeId } from '../data/modes';
 import { audio } from '../audio/audioEngine';
 import { EngineSound } from '../audio/engineSound';
-import { GameAudio, UiSounds, type AudioCar } from '../audio/gameAudio';
+import type { ReverbKind } from '../audio/dsp/impulse';
+import { GameAudio, UiSounds, surfaceAt, type AudioCar } from '../audio/gameAudio';
 import { clamp } from '../core/math';
 import { InputManager, type FrameInput } from '../input/input';
 import type { RiderInput, Upgrades } from '../physics/bike';
@@ -14,6 +15,7 @@ import { Showroom } from '../render/showroom';
 import { SETTINGS, SettingsReader, type QualityPreset } from '../settings';
 import { SaveManager } from '../storage/save';
 import { starString } from '../ui/careerScreen';
+import { pavedHalfWidth } from '../world/road';
 import { Hud } from '../ui/hud';
 import { Screens } from '../ui/screens';
 import type { ProgressTab } from '../ui/progressScreens';
@@ -95,7 +97,7 @@ export class Game {
     this.renderer.renderer.info.autoReset = false;
     this.input.sensitivity = s.num('ctrl.steerSensitivity');
     this.showFps = s.bool('hud.showFps');
-    audio.setVolumes(s.num('audio.master'), s.num('audio.engine'), s.num('audio.sfx'));
+    audio.applySettings(s);
     this.run = { ...this.save.data.lastRun };
     this.showroom = new Showroom(this.renderer);
     this.screens = new Screens(container, this.save, this.actions());
@@ -264,7 +266,7 @@ export class Game {
     if (!this.revEngine || this.revBike !== id) {
       this.disposeRev();
       const spec = getBike(id);
-      this.revEngine = new EngineSound(audio, spec, audio.engineBus);
+      this.revEngine = new EngineSound(audio, spec, audio.engineBus, 'external');
       this.revEngine.start(true);
       this.revBike = id;
       this.revRpm = spec.engine.idle;
@@ -285,7 +287,7 @@ export class Game {
     const after = this.save.data.settings;
     const s = this.settings;
     s.update(after);
-    audio.setVolumes(s.num('audio.master'), s.num('audio.engine'), s.num('audio.sfx'));
+    audio.applySettings(s);
     this.input.sensitivity = s.num('ctrl.steerSensitivity');
     this.showFps = s.bool('hud.showFps');
     this.input.tiltEnabled = s.bool('ctrl.tilt') && this.input.tiltEnabled;
@@ -533,7 +535,7 @@ export class Game {
         const mult = s.score.multiplier;
         hud.popup('KIL PAYI!', `+${e.points}${e.combo > 1 ? `  ·  x${mult.toFixed(2).replace(/\.?0+$/, '')}` : ''}`, e.car.dir === -1 ? 'red' : 'gold');
         this.gameAudio.whoosh(e.side, e.car.arch.heavy, 1);
-        if (Math.random() < 0.3) this.gameAudio.horn(0.07, e.side * 0.6, e.car.arch.heavy);
+        if (Math.random() < 0.3) this.gameAudio.horn(0.07, e.side * 0.6, e.car.arch.heavy, e.car.kind);
         break;
       }
       case 'pass':
@@ -542,14 +544,14 @@ export class Game {
       case 'honk': {
         const dz = e.car.s - s.bike.s;
         const gain = clamp(0.12 * (60 / Math.max(20, dz)), 0.03, 0.14);
-        this.gameAudio.horn(gain, clamp((e.car.d - s.bike.d) / 6, -1, 1), e.car.arch.heavy);
+        this.gameAudio.horn(gain, clamp((e.car.d - s.bike.d) / 6, -1, 1), e.car.arch.heavy, e.car.kind);
         break;
       }
       case 'hit':
-        this.gameAudio.crash(clamp(e.relSpeed / 30, 0.3, 1));
+        this.gameAudio.crash(clamp(e.relSpeed / 30, 0.3, 1), 'traffic');
         break;
       case 'crash':
-        if (e.reason !== 'traffic') this.gameAudio.crash(clamp(s.bike.v / 30, 0.3, 1));
+        if (e.reason !== 'traffic') this.gameAudio.crash(clamp(s.bike.v / 30, 0.3, 1), e.reason === 'barrier' ? 'barrier' : 'fall');
         break;
       case 'checkpoint':
         hud.popup('KONTROL NOKTASI', `+${e.bonus} sn`, 'green');
@@ -695,6 +697,9 @@ export class Game {
       braking: b.brake,
       wet: view.env.wet,
       cars: view.audioCars(this.audioCars),
+      surface: surfaceAt(b.d, pavedHalfWidth(s.lanes), view.env.id.endsWith(':snow')),
+      lean: b.lean,
+      crashed: b.crashed,
     });
     t0 = this.prof('audio', t0);
 
@@ -812,6 +817,13 @@ export class Game {
       },
       get audioLevel() {
         return audio.level();
+      },
+      get audioBackend() {
+        return audio.ctx ? (audio.workletReady ? 'worklet' : 'script') : 'none';
+      },
+      /** Force an acoustic zone ('tunnel', 'canyon'…) or pass null for the map's own. */
+      setAudioZone: (z: ReverbKind | null) => {
+        game.gameAudio.zoneOverride = z;
       },
       get memory() {
         const m = game.renderer.renderer.info.memory;

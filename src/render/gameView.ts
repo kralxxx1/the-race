@@ -357,7 +357,7 @@ export class GameView {
       const d = Math.max(0.5, Math.hypot(dx, dz));
       const vRad = -(rx * dx + rz * dz) / d;
       _v.applyMatrix4(_m);
-      out.push({ id: c.id, heavy: c.arch.heavy, x: _v.x, y: _v.y, z: _v.z, vRad, speed: c.v });
+      out.push({ id: c.id, heavy: c.arch.heavy, kind: c.kind, x: _v.x, y: _v.y, z: _v.z, vRad, speed: c.v, braking: c.braking });
     }
     return out;
   }
