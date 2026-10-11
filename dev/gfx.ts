@@ -16,6 +16,7 @@ import { preloadWorld } from '../src/render/preload';
 import { Renderer } from '../src/render/renderer';
 import { SETTINGS, SettingsReader, type QualityPreset } from '../src/settings';
 
+const probePixel = new Uint8Array(4);
 const q = new URLSearchParams(location.search);
 const preset = (q.get('preset') ?? 'high') as QualityPreset;
 const [map, time, weather] = (q.get('env') ?? 'highway:day:clear').split(':') as [MapId, TimeOfDay, Weather];
@@ -79,8 +80,10 @@ async function main(): Promise<void> {
     const t = performance.now();
     view.render();
     if (dofAmount > 0) renderer.setDepthOfField(Number(q.get('focus') ?? 6), dofAmount);
-    // Wait for the GPU so the timing includes the work, not just command submission.
-    renderer.renderer.getContext().finish();
+    // Force completion so the timing includes the work, not just command submission
+    // (software rendering is CPU-bound: these numbers order the presets, they are not GPU timings).
+    const gl = renderer.renderer.getContext();
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, probePixel);
     times.push(performance.now() - t);
   }
   const info = renderer.info();

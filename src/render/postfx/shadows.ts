@@ -154,15 +154,17 @@ export class ShadowSystem {
   /** Register every lit material in the scene for cascades (idempotent; new materials are caught each frame). */
   registerScene(): void {
     if (!this.active) return;
-    this.scene.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
-      if (!mat) return;
-      if (Array.isArray(mat)) for (const m of mat) this.register(m);
-      else this.register(mat);
-    });
+    this.scene.traverse(this.visit);
   }
+
+  private visit = (o: THREE.Object3D): void => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+    if (!mat) return;
+    if (Array.isArray(mat)) for (const m of mat) this.register(m);
+    else this.register(mat);
+  };
 
   private register(m: THREE.Material): void {
     if (this.seen.has(m)) return;
@@ -207,14 +209,11 @@ export class ShadowSystem {
       const near = this.splits[i];
       const far = this.splits[i + 1];
       // Slice corners in world space.
-      let k = 0;
-      for (const d of [near, far]) {
-        const hy = d * tanY;
-        const hx = d * tanX;
-        for (const sy of [-1, 1])
-          for (const sx of [-1, 1]) {
-            _corners[k++].copy(cam.position).addScaledVector(_fwd, d).addScaledVector(_right, sx * hx).addScaledVector(_up, sy * hy);
-          }
+      for (let k = 0; k < 8; k++) {
+        const d = k < 4 ? near : far;
+        const sx = k & 1 ? 1 : -1;
+        const sy = k & 2 ? 1 : -1;
+        _corners[k].copy(cam.position).addScaledVector(_fwd, d).addScaledVector(_right, sx * d * tanX).addScaledVector(_up, sy * d * tanY);
       }
       _centre.set(0, 0, 0);
       for (const c of _corners) _centre.add(c);

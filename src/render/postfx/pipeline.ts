@@ -140,10 +140,10 @@ function makeDirtTexture(): THREE.DataTexture {
         if (d < 1) f[y * n + x] += a * (1 - d) * (1 - d);
       }
   }
-  for (let k = 0; k < 500; k++) {
+  for (let k = 0; k < 90; k++) {
     const x = Math.floor(rnd() * n);
     const y = Math.floor(rnd() * n);
-    f[y * n + x] += 0.6 + rnd() * 0.4;
+    f[y * n + x] += 0.35 + rnd() * 0.3;
   }
   for (let i = 0; i < n * n; i++) {
     const v = Math.min(1, f[i]) * 255;

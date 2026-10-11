@@ -88,6 +88,8 @@ export class Renderer {
   private frameMs = 16.7;
   private time = 0;
   private gpu = '';
+  /** HDR render targets need half-float colour buffers; without them the forward path is used. */
+  private readonly postSupported: boolean;
   private readonly frame: PostFrame = {
     time: 0,
     dt: 1 / 60,
@@ -125,6 +127,8 @@ export class Renderer {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.pipeline = new PostPipeline(this.renderer);
+    const ext = this.renderer.extensions;
+    this.postSupported = ext.has('EXT_color_buffer_float') || ext.has('EXT_color_buffer_half_float');
     this.adaptive = new AdaptiveResolution({ targetFps: this.profile.targetFps, minScale: this.profile.minScale, maxScale: 1 });
     try {
       const gl = this.renderer.getContext();
@@ -142,7 +146,8 @@ export class Renderer {
 
   /** Re-read graphics settings; rebuilds the post-processing chain only when needed. */
   applySettings(): void {
-    const p = profileFromSettings(this.settings);
+    const wanted = profileFromSettings(this.settings);
+    const p = this.postSupported || !wanted.postFx ? wanted : { ...wanted, postFx: false };
     const key = JSON.stringify(p);
     if (key === this.applied) return;
     this.applied = key;

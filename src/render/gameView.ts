@@ -90,6 +90,7 @@ export class GameView {
     }
     renderer.beforeRender.add(this.preRender);
     this.setupAtmosphere();
+    renderer.pipeline.resetHistory();
     this.glow = new GlowPoints(2400, env.fog.near, env.fog.far * 1.1);
     scene.add(this.glow.points, this.sparks.lines, this.smoke.points);
     if (env.rain) {
@@ -422,6 +423,13 @@ export class GameView {
     });
     this.crash?.dispose();
     this.renderer.beforeRender.delete(this.preRender);
+    // Leave the post chain in a neutral state for the menu showroom (no sun, no fog layer, no stale history).
+    const a = this.renderer.atmosphere;
+    a.sunDir = null;
+    a.fogDensity = 0;
+    a.wet = 0;
+    a.dofAmount = 0;
+    this.renderer.pipeline.resetHistory();
     this.probe?.dispose();
     this.shadows.dispose();
     this.world.dispose();

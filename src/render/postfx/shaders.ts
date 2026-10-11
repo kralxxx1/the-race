@@ -174,26 +174,33 @@ void main() {
   gl_FragColor = vec4(pow(ao, uIntensity), 0.0, 0.0, 1.0);
 }`;
 
-/** Depth-aware separable blur of the AO term. */
+/**
+ * Depth-aware separable blur of the AO term. Neighbours are accepted when they lie on the
+ * same *surface*, tested with the second difference of depth (z(+i) + z(−i) − 2·z(0)):
+ * a slanted but flat plane such as a road at grazing view has a large depth gradient yet
+ * zero curvature, so it must still be smoothed (a plain depth-difference test left
+ * horizontal noise bands on the asphalt).
+ */
 export const AO_BLUR_FRAG = /* glsl */ `
 varying vec2 vUv;
 uniform sampler2D tAo;
 uniform vec2 uDir;
 ${DEPTH_LIB}
 void main() {
-  float d0 = viewZ(texture2D(tDepth, vUv).r);
+  float z0 = viewZ(texture2D(tDepth, vUv).r);
   vec2 texel = uDir / vec2(textureSize(tAo, 0));
   float sum = texture2D(tAo, vUv).r;
   float wsum = 1.0;
-  for (int i = 1; i <= 3; i++) {
+  for (int i = 1; i <= 4; i++) {
     float fi = float(i);
-    for (int s = -1; s <= 1; s += 2) {
-      vec2 uv = vUv + texel * fi * float(s);
-      float dz = abs(viewZ(texture2D(tDepth, uv).r) - d0) / max(d0, 0.1);
-      float w = exp(-fi * fi * 0.12) * exp(-dz * 60.0);
-      sum += texture2D(tAo, uv).r * w;
-      wsum += w;
-    }
+    vec2 o = texel * fi;
+    float zp = viewZ(texture2D(tDepth, vUv + o).r);
+    float zm = viewZ(texture2D(tDepth, vUv - o).r);
+    float curv = abs(zp + zm - 2.0 * z0) / max(z0, 0.1);
+    float base = exp(-fi * fi * 0.09) * exp(-curv * 120.0);
+    float wp = base;
+    sum += (texture2D(tAo, vUv + o).r + texture2D(tAo, vUv - o).r) * wp;
+    wsum += 2.0 * wp;
   }
   gl_FragColor = vec4(sum / wsum, 0.0, 0.0, 1.0);
 }`;
@@ -831,8 +838,8 @@ void main() {
   vec3 bloom = texture2D(tBloom, uv).rgb * uBloom;
   if (uDirt > 0.0) {
     float dirt = texture2D(tDirt, uv).r;
-    bloom *= 1.0 + dirt * uDirt * 5.0;
-    col += bloom * (1.0 + 0.0) + texture2D(tBloom, uv).rgb * dirt * uDirt * 0.5;
+    bloom *= 1.0 + dirt * uDirt * 2.0;
+    col += bloom;
   } else {
     col += bloom;
   }
