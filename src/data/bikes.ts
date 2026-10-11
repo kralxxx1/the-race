@@ -275,8 +275,8 @@ export const BIKES: BikeSpec[] = [
     engine: { layout: 'I4', cc: 999, hp: 215, hpRpm: 14500, torque: 113, torqueRpm: 12500, idle: 1300, redline: 14500, limiter: 15000 },
     quickshifter: true, weight: 201, topSpeed: 299, price: 28900,
     liveries: [
-      livery('HRC Tricolor', W, '#c8102e', '#1d3c8f', { pattern: 'tricolor', wheel: '#c8102e', frame: '#2b2d31' }),
-      livery('Mat Siyah', '#1a1b1e', '#2c2d31', '#c8102e', { pattern: 'stripes', wheel: BLK }),
+      livery('Grand Prix Red (HRC Tricolor)', W, '#c8102e', '#1d3c8f', { pattern: 'tricolor', wheel: GOLD, frame: '#3a3c40', suit: [W, '#c8102e'] }),
+      livery('Matte Pearl Morion Black', '#17181b', '#0d0e10', '#c8102e', { pattern: 'stripes', wheel: GOLD, frame: '#3a3c40' }),
     ],
     look: { extras: ['winglets', 'bellypan'] },
     description: 'MotoGP kökenli 999 cc sıralı dört; 14.500 devirde 215 beygir ve yüksek devirli çığlık.',
