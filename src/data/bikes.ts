@@ -296,7 +296,10 @@ export const BIKES: BikeSpec[] = [
     id: 'honda-cb500-hornet', brand: 'Honda', model: 'CB500 Hornet', year: 2024, style: 'naked',
     engine: { layout: 'P2_180', cc: 471, hp: 47, hpRpm: 8600, torque: 43, torqueRpm: 6500, idle: 1300, redline: 9500 },
     weight: 188, topSpeed: 185, price: 6500,
-    liveries: [livery('Matte Goldfinch', '#e3b31c', '#1b1c1f', BLK, { pattern: 'split' }), livery('Grand Prix Kırmızı', '#c8102e', BLK, W)],
+    liveries: [
+      livery('Matt Goldfinch Yellow', '#e2b01a', '#1b1c1f', BLK, { pattern: 'split', frame: '#17181b', suit: [BLK, '#e2b01a'] }),
+      livery('Grand Prix Kırmızı', '#c8102e', '#1b1c1f', W, { frame: '#17181b' }),
+    ],
     description: 'Hafif ve çevik 471 cc paralel ikili; şehirde ve otoyolda dengeli.',
   }),
   bike({
