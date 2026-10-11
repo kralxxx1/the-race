@@ -62,8 +62,13 @@ export interface AdaptiveOptions {
  * scale (relative to the preset's render scale) that keeps the smoothed frame
  * time inside the budget. Pixel cost scales with scale², so the reduction is
  * sized from the overshoot instead of creeping down one step per second:
- * dropping fast avoids a long stutter, rising slowly (and only with real
- * headroom) avoids oscillation.
+ * dropping fast avoids a long stutter.
+ *
+ * Raising is trickier: with vsync the frame interval is pinned at the refresh
+ * period even when the GPU is mostly idle, so "fast enough" cannot be told from
+ * "plenty of headroom". When frames meet the budget for a while the controller
+ * probes one step up; if that step misses the budget it falls back to the last
+ * good scale and refuses to go above it for a while (no oscillation).
  */
 export class AdaptiveResolution {
   private _scale: number;
@@ -71,11 +76,19 @@ export class AdaptiveResolution {
   private over = 0;
   private under = 0;
   private cooldown = 0;
+  private clock = 0;
+  /** Highest scale allowed until `ceilingUntil` (a probe above it recently failed). */
+  private ceiling = 1;
+  private ceilingUntil = 0;
+  /** Scale before the last upward probe and when the probe happened. */
+  private lastGood = 1;
+  private probeAt = -1e9;
   private readonly step: number;
 
   constructor(private opts: AdaptiveOptions) {
     this.step = opts.step ?? 0.05;
     this._scale = opts.maxScale ?? 1;
+    this.lastGood = this._scale;
   }
 
   get scale(): number {
@@ -89,15 +102,19 @@ export class AdaptiveResolution {
 
   reset(scale = this.opts.maxScale ?? 1): void {
     this._scale = scale;
+    this.lastGood = scale;
     this.ema = 0;
     this.over = 0;
     this.under = 0;
     this.cooldown = 0;
+    this.ceilingUntil = 0;
+    this.probeAt = -1e9;
   }
 
   /** Advance by one frame of `frameMs`; returns the (possibly new) scale. */
   update(frameMs: number): number {
     const dt = Math.min(frameMs, 250) / 1000;
+    this.clock += dt;
     this.ema = this.ema === 0 ? frameMs : this.ema + (Math.min(frameMs, 250) - this.ema) * 0.1;
     if (this.cooldown > 0) {
       this.cooldown -= dt;
@@ -105,18 +122,32 @@ export class AdaptiveResolution {
     }
     const budget = 1000 / this.opts.targetFps;
     const max = this.opts.maxScale ?? 1;
+    const limit = this.clock < this.ceilingUntil ? Math.min(max, this.ceiling) : max;
     if (this.ema > budget * 1.1) {
       this.over += dt;
       this.under = 0;
       if (this.over > 0.6) {
         // Pixel cost ∝ scale²: aim at the scale whose cost fits the budget, with a little margin.
-        const target = this._scale * Math.sqrt((budget * 0.95) / this.ema);
-        this.setScale(Math.floor(target / this.step) * this.step);
+        let target = Math.floor((this._scale * Math.sqrt((budget * 0.95) / this.ema)) / this.step) * this.step;
+        if (this.clock - this.probeAt < 6) {
+          // The step we just probed does not fit: return to the last good scale and keep off it for a while.
+          target = Math.max(target, this.lastGood);
+          if (target < this._scale) {
+            this.ceiling = target;
+            this.ceilingUntil = this.clock + 25;
+          }
+        }
+        this.setScale(target);
       }
-    } else if (this.ema < budget * 0.72 && this._scale < max) {
+    } else if (this.ema <= budget * 1.06 && this._scale < limit) {
       this.under += dt;
       this.over = 0;
-      if (this.under > 2.5) this.setScale(this._scale + this.step);
+      const need = this.ema < budget * 0.72 ? 2.5 : 7;
+      if (this.under > need) {
+        this.lastGood = this._scale;
+        this.probeAt = this.clock;
+        this.setScale(this._scale + this.step);
+      }
     } else {
       this.over = 0;
       this.under = 0;

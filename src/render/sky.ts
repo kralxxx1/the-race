@@ -243,11 +243,11 @@ export class SkySystem {
       active = 'physical';
       const sky = new Sky();
       mat = sky.material as THREE.ShaderMaterial;
-      this.physicalGain = { value: 7 };
+      this.physicalGain = { value: 0.55 };
       mat.uniforms.uGain = this.physicalGain;
       mat.onBeforeCompile = (shader) => {
         shader.uniforms.uGain = this.physicalGain!;
-        shader.fragmentShader = shader.fragmentShader.replace('gl_FragColor = vec4( texColor, 1.0 );', 'gl_FragColor = vec4( texColor * uGain, 1.0 );').replace('void main()', 'uniform float uGain;\nvoid main()');
+        shader.fragmentShader = shader.fragmentShader.replace('gl_FragColor = vec4( texColor, 1.0 );', 'gl_FragColor = vec4( min( texColor * uGain, vec3( 40.0 ) ), 1.0 );').replace('void main()', 'uniform float uGain;\nvoid main()');
       };
       mat.fog = false;
       const turb = env.sky.clouds > 0.8 ? 8 : 3 + env.sky.clouds * 3;

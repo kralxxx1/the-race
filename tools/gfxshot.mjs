@@ -26,7 +26,7 @@ for (const it of items) {
   } catch {
     logs.set(`[timeout] ${name}`, 1);
   }
-  await page.screenshot({ path: `${outdir}/${name}.png` });
+  await page.screenshot({ path: `${outdir}/${name}.png`, timeout: 900000 });
   const info = await page.evaluate(() => JSON.stringify({ gfx: window.__gfx ?? null, err: window.__error ?? null }));
   const parsed = JSON.parse(info);
   const g = parsed.gfx;

@@ -556,6 +556,8 @@ void main() {
   float w3 = kw(g3) * 0.125;
   float w4 = kw(g4) * 0.5;
   vec3 s = (g0 * w0 + g1 * w1 + g2 * w2 + g3 * w3 + g4 * w4) / (w0 + w1 + w2 + w3 + w4);
+  // Guard against Inf/NaN from extremely bright texels (sun discs): one bad texel would blot a whole mip tile.
+  s = clamp(s, vec3(0.0), vec3(64.0));
   gl_FragColor = vec4(prefilter(s), 1.0);
 }`;
 

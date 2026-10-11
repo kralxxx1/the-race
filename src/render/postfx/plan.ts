@@ -119,3 +119,35 @@ export function hasPass(plan: PipelinePlan, id: PassId): boolean {
 export function passSpec(plan: PipelinePlan, id: PassId): PassSpec | undefined {
   return plan.passes.find((s) => s.id === id);
 }
+
+/** Rough relative GPU weight of one sample/tap per pixel for each pass (fill-rate × shader cost). */
+const PASS_WEIGHT: Record<PassId, number> = {
+  scene: 6,
+  ao: 0.9,
+  ssr: 1.1,
+  volumetrics: 0.7,
+  taa: 3,
+  bloom: 2.5,
+  dof: 0.8,
+  motionBlur: 0.9,
+  composite: 4,
+  fxaa: 2,
+  smaa: 5,
+  output: 1.5,
+};
+
+/**
+ * Relative frame cost of a plan, in "megapixel-taps" (higher = heavier). Not a
+ * timing: it only orders presets and sizes so tests can assert that 'extreme' is
+ * far heavier than 'low' and that cost grows with every step of the ladder.
+ */
+export function estimateCost(plan: PipelinePlan, shadowCascades = 1, shadowMapSize = 1024, shadowing = true): number {
+  let cost = 0;
+  for (const p of plan.passes) {
+    const mp = (p.width * p.height) / 1e6;
+    const taps = p.id === 'scene' ? 1 + Math.max(0, p.samples - 1) * 0.35 : p.id === 'volumetrics' ? p.samples + (p.extra ?? 0) * 0.5 : Math.max(1, p.samples);
+    cost += mp * PASS_WEIGHT[p.id] * (p.id === 'scene' ? taps : Math.sqrt(taps));
+  }
+  if (shadowing) cost += ((shadowCascades * shadowMapSize * shadowMapSize) / 1e6) * 1.2;
+  return cost;
+}
