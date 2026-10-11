@@ -678,6 +678,7 @@ export class Game {
       if (this.goTimer <= 0) hud.showCenter('');
     }
 
+    view.lookBack = input.lookBack && playing;
     view.update(simDt, dt);
     t0 = this.prof('view', t0);
 
@@ -841,7 +842,7 @@ export class Game {
         const steps = Math.round(seconds * 60);
         for (let i = 0; i < steps; i++) game.stepHeadless(1 / 60);
       },
-      setInput: (o: Partial<RiderInput>) => {
+      setInput: (o: Partial<FrameInput>) => {
         game.input.override = o;
       },
       clearInput: () => {
