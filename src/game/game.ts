@@ -350,6 +350,8 @@ export class Game {
     await nextFrame();
     const view = new GameView(this.renderer, session, env, this.save.livery(bikeId), this.settings);
     view.lightningCb = (delay) => this.gameAudio.thunder(delay);
+    // Secondary impacts of the crash simulation (rider bouncing, bike sliding into the rail, car crumple).
+    view.crashImpactCb = (strength, kind) => this.gameAudio.crash(0.25 + strength * 0.55, kind === 'car' ? 'traffic' : kind === 'barrier' ? 'barrier' : 'fall');
     this.session = session;
     this.view = view;
     this.hud = new Hud(this.container, this.input, {

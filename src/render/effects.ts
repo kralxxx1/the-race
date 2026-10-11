@@ -88,21 +88,54 @@ export class GlowPoints {
   }
 }
 
-interface Spark {
-  x: number; y: number; z: number;
-  vx: number; vy: number; vz: number;
-  life: number; max: number;
+/** Tiny deterministic generator for particle spread (no Math.random in hot paths, replays look alike). */
+class Fx {
+  private s = 0x9e3779b9;
+  next(): number {
+    let x = this.s;
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    this.s = x >>> 0;
+    return this.s / 4294967296;
+  }
+  reseed(n: number): void {
+    this.s = (n | 0) || 1;
+  }
 }
 
-/** Glowing spark streaks (barrier scrapes, sliding crashes). */
+/**
+ * Glowing spark streaks (barrier scrapes, sliding crashes). Struct-of-arrays pool: no allocation
+ * per spark, oldest sparks are recycled when the pool is full.
+ */
 export class Sparks {
   readonly lines: THREE.LineSegments;
-  private sparks: Spark[] = [];
+  private px: Float32Array;
+  private py: Float32Array;
+  private pz: Float32Array;
+  private vx: Float32Array;
+  private vy: Float32Array;
+  private vz: Float32Array;
+  private life: Float32Array;
+  private max: Float32Array;
+  private count = 0;
+  private head = 0;
   private pos: Float32Array;
   private col: Float32Array;
   private geo: THREE.BufferGeometry;
+  private fx = new Fx();
+  /** Road height at (x, z); sparks bounce on it. */
+  ground: (x: number, z: number) => number = () => 0;
 
-  constructor(private capacity = 500) {
+  constructor(private capacity = 1200) {
+    this.px = new Float32Array(capacity);
+    this.py = new Float32Array(capacity);
+    this.pz = new Float32Array(capacity);
+    this.vx = new Float32Array(capacity);
+    this.vy = new Float32Array(capacity);
+    this.vz = new Float32Array(capacity);
+    this.life = new Float32Array(capacity);
+    this.max = new Float32Array(capacity);
     this.pos = new Float32Array(capacity * 6);
     this.col = new Float32Array(capacity * 6);
     this.geo = new THREE.BufferGeometry();
@@ -111,92 +144,148 @@ export class Sparks {
     const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
     this.lines = new THREE.LineSegments(this.geo, mat);
     this.lines.frustumCulled = false;
+    this.lines.renderOrder = 6;
   }
 
   emit(x: number, y: number, z: number, vx: number, vy: number, vz: number, n: number, spread = 3): void {
-    for (let i = 0; i < n; i++) {
-      if (this.sparks.length >= this.capacity) this.sparks.shift();
-      const life = 0.25 + Math.random() * 0.55;
-      this.sparks.push({
-        x, y, z,
-        vx: vx + (Math.random() - 0.5) * spread * 2,
-        vy: vy + Math.random() * spread * 1.2,
-        vz: vz + (Math.random() - 0.5) * spread * 2,
-        life, max: life,
-      });
+    const f = this.fx;
+    for (let k = 0; k < n; k++) {
+      let i: number;
+      if (this.count < this.capacity) i = this.count++;
+      else {
+        i = this.head;
+        this.head = (this.head + 1) % this.capacity;
+      }
+      const life = 0.25 + f.next() * 0.6;
+      this.px[i] = x;
+      this.py[i] = y;
+      this.pz[i] = z;
+      this.vx[i] = vx + (f.next() - 0.5) * spread * 2;
+      this.vy[i] = vy + f.next() * spread * 1.2;
+      this.vz[i] = vz + (f.next() - 0.5) * spread * 2;
+      this.life[i] = life;
+      this.max[i] = life;
     }
   }
 
   update(dt: number): void {
-    let k = 0;
-    for (let i = this.sparks.length - 1; i >= 0; i--) {
-      const s = this.sparks[i];
-      s.life -= dt;
-      if (s.life <= 0) {
-        this.sparks.splice(i, 1);
+    const ground = this.ground;
+    // Integrate and compact (swap-remove the dead).
+    for (let i = this.count - 1; i >= 0; i--) {
+      this.life[i] -= dt;
+      if (this.life[i] <= 0) {
+        const l = --this.count;
+        if (i !== l) this.copy(l, i);
         continue;
       }
-      s.vy -= 9.81 * dt;
-      s.x += s.vx * dt;
-      s.y += s.vy * dt;
-      s.z += s.vz * dt;
-      if (s.y < 0.02 && s.vy < 0) {
-        s.vy *= -0.35;
-        s.vx *= 0.7;
-        s.vz *= 0.7;
+      this.vy[i] -= 9.81 * dt;
+      this.px[i] += this.vx[i] * dt;
+      this.py[i] += this.vy[i] * dt;
+      this.pz[i] += this.vz[i] * dt;
+      const gy = ground(this.px[i], this.pz[i]) + 0.02;
+      if (this.py[i] < gy && this.vy[i] < 0) {
+        this.py[i] = gy;
+        this.vy[i] *= -0.35;
+        this.vx[i] *= 0.7;
+        this.vz[i] *= 0.7;
       }
     }
-    for (const s of this.sparks) {
-      const t = s.life / s.max;
-      const o = k * 6;
-      this.pos[o] = s.x;
-      this.pos[o + 1] = s.y;
-      this.pos[o + 2] = s.z;
-      this.pos[o + 3] = s.x - s.vx * 0.025;
-      this.pos[o + 4] = s.y - s.vy * 0.025;
-      this.pos[o + 5] = s.z - s.vz * 0.025;
+    for (let i = 0; i < this.count; i++) {
+      const t = this.life[i] / this.max[i];
+      const o = i * 6;
+      this.pos[o] = this.px[i];
+      this.pos[o + 1] = this.py[i];
+      this.pos[o + 2] = this.pz[i];
+      this.pos[o + 3] = this.px[i] - this.vx[i] * 0.03;
+      this.pos[o + 4] = this.py[i] - this.vy[i] * 0.03;
+      this.pos[o + 5] = this.pz[i] - this.vz[i] * 0.03;
       const r = 3.0 * t + 0.6;
       const g = 1.6 * t * t + 0.2;
       const b = 0.4 * t * t * t;
-      this.col.set([r, g, b, r * 0.3, g * 0.2, b * 0.1], o);
-      k++;
+      this.col[o] = r;
+      this.col[o + 1] = g;
+      this.col[o + 2] = b;
+      this.col[o + 3] = r * 0.3;
+      this.col[o + 4] = g * 0.2;
+      this.col[o + 5] = b * 0.1;
     }
-    this.geo.setDrawRange(0, k * 2);
+    this.geo.setDrawRange(0, this.count * 2);
     (this.geo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
     (this.geo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
   }
 
+  private copy(from: number, to: number): void {
+    this.px[to] = this.px[from];
+    this.py[to] = this.py[from];
+    this.pz[to] = this.pz[from];
+    this.vx[to] = this.vx[from];
+    this.vy[to] = this.vy[from];
+    this.vz[to] = this.vz[from];
+    this.life[to] = this.life[from];
+    this.max[to] = this.max[from];
+  }
+
   /** Shift all particles (origin rebasing). */
   shift(dx: number, dy: number, dz: number): void {
-    for (const s of this.sparks) {
-      s.x -= dx;
-      s.y -= dy;
-      s.z -= dz;
+    for (let i = 0; i < this.count; i++) {
+      this.px[i] -= dx;
+      this.py[i] -= dy;
+      this.pz[i] -= dz;
     }
   }
 
   clear(): void {
-    this.sparks.length = 0;
+    this.count = 0;
+    this.head = 0;
+    this.fx.reseed(0x9e3779b9);
     this.geo.setDrawRange(0, 0);
+  }
+
+  dispose(): void {
+    this.geo.dispose();
+    (this.lines.material as THREE.Material).dispose();
   }
 }
 
-interface Puff {
-  x: number; y: number; z: number;
-  vx: number; vy: number; vz: number;
-  life: number; max: number; size: number; grow: number; shade: number; alpha: number;
-}
-
-/** Soft billboard puffs: tyre smoke, road spray, crash dust. */
+/** Soft billboard puffs: tyre smoke, road spray, crash dust. Pooled (struct-of-arrays). */
 export class Smoke {
   readonly points: THREE.Points;
-  private puffs: Puff[] = [];
+  private cap: number;
+  private px: Float32Array;
+  private py: Float32Array;
+  private pz: Float32Array;
+  private vx: Float32Array;
+  private vy: Float32Array;
+  private vz: Float32Array;
+  private life: Float32Array;
+  private max: Float32Array;
+  private size: Float32Array;
+  private grow: Float32Array;
+  private shade: Float32Array;
+  private alpha: Float32Array;
+  private count = 0;
+  private head = 0;
   private pos: Float32Array;
   private data: Float32Array;
   private geo: THREE.BufferGeometry;
+  private fx = new Fx();
   readonly material: THREE.ShaderMaterial;
 
-  constructor(private capacity = 300) {
+  constructor(capacity = 300) {
+    this.cap = capacity;
+    const f = () => new Float32Array(capacity);
+    this.px = f();
+    this.py = f();
+    this.pz = f();
+    this.vx = f();
+    this.vy = f();
+    this.vz = f();
+    this.life = f();
+    this.max = f();
+    this.size = f();
+    this.grow = f();
+    this.shade = f();
+    this.alpha = f();
     this.pos = new Float32Array(capacity * 3);
     this.data = new Float32Array(capacity * 3);
     this.geo = new THREE.BufferGeometry();
@@ -235,61 +324,82 @@ export class Smoke {
 
   emit(x: number, y: number, z: number, vx: number, vy: number, vz: number, opts: { size?: number; life?: number; grow?: number; shade?: number; alpha?: number; n?: number; spread?: number } = {}): void {
     const n = opts.n ?? 1;
-    for (let i = 0; i < n; i++) {
-      if (this.puffs.length >= this.capacity) this.puffs.shift();
-      const life = (opts.life ?? 1.6) * (0.7 + Math.random() * 0.6);
+    const f = this.fx;
+    for (let k = 0; k < n; k++) {
+      let i: number;
+      if (this.count < this.cap) i = this.count++;
+      else {
+        i = this.head;
+        this.head = (this.head + 1) % this.cap;
+      }
+      const life = (opts.life ?? 1.6) * (0.7 + f.next() * 0.6);
       const sp = opts.spread ?? 0.6;
-      this.puffs.push({
-        x: x + (Math.random() - 0.5) * 0.2,
-        y,
-        z: z + (Math.random() - 0.5) * 0.2,
-        vx: vx + (Math.random() - 0.5) * sp,
-        vy: vy + Math.random() * sp * 0.6,
-        vz: vz + (Math.random() - 0.5) * sp,
-        life,
-        max: life,
-        size: (opts.size ?? 0.8) * (0.7 + Math.random() * 0.6),
-        grow: opts.grow ?? 1.4,
-        shade: opts.shade ?? 1,
-        alpha: opts.alpha ?? 0.45,
-      });
+      this.px[i] = x + (f.next() - 0.5) * 0.2;
+      this.py[i] = y;
+      this.pz[i] = z + (f.next() - 0.5) * 0.2;
+      this.vx[i] = vx + (f.next() - 0.5) * sp;
+      this.vy[i] = vy + f.next() * sp * 0.6;
+      this.vz[i] = vz + (f.next() - 0.5) * sp;
+      this.life[i] = life;
+      this.max[i] = life;
+      this.size[i] = (opts.size ?? 0.8) * (0.7 + f.next() * 0.6);
+      this.grow[i] = opts.grow ?? 1.4;
+      this.shade[i] = opts.shade ?? 1;
+      this.alpha[i] = opts.alpha ?? 0.45;
     }
   }
 
   update(dt: number): void {
-    let k = 0;
-    for (let i = this.puffs.length - 1; i >= 0; i--) {
-      const p = this.puffs[i];
-      p.life -= dt;
-      if (p.life <= 0) {
-        this.puffs.splice(i, 1);
+    const drag = Math.exp(-2.2 * dt);
+    for (let i = this.count - 1; i >= 0; i--) {
+      this.life[i] -= dt;
+      if (this.life[i] <= 0) {
+        const l = --this.count;
+        if (i !== l) this.copy(l, i);
         continue;
       }
-      const drag = Math.exp(-2.2 * dt);
-      p.vx *= drag;
-      p.vz *= drag;
-      p.vy = p.vy * drag + 0.25 * dt;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.z += p.vz * dt;
-      p.size += p.grow * dt;
+      this.vx[i] *= drag;
+      this.vz[i] *= drag;
+      this.vy[i] = this.vy[i] * drag + 0.25 * dt;
+      this.px[i] += this.vx[i] * dt;
+      this.py[i] += this.vy[i] * dt;
+      this.pz[i] += this.vz[i] * dt;
+      this.size[i] += this.grow[i] * dt;
     }
-    for (const p of this.puffs) {
-      const t = p.life / p.max;
-      this.pos.set([p.x, p.y, p.z], k * 3);
-      this.data.set([p.size, p.alpha * Math.min(1, t * 2) * Math.min(1, (1 - t) * 8), p.shade], k * 3);
-      k++;
+    for (let i = 0; i < this.count; i++) {
+      const t = this.life[i] / this.max[i];
+      this.pos[i * 3] = this.px[i];
+      this.pos[i * 3 + 1] = this.py[i];
+      this.pos[i * 3 + 2] = this.pz[i];
+      this.data[i * 3] = this.size[i];
+      this.data[i * 3 + 1] = this.alpha[i] * Math.min(1, t * 2) * Math.min(1, (1 - t) * 8);
+      this.data[i * 3 + 2] = this.shade[i];
     }
-    this.geo.setDrawRange(0, k);
+    this.geo.setDrawRange(0, this.count);
     (this.geo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
     (this.geo.attributes.pdata as THREE.BufferAttribute).needsUpdate = true;
   }
 
+  private copy(from: number, to: number): void {
+    this.px[to] = this.px[from];
+    this.py[to] = this.py[from];
+    this.pz[to] = this.pz[from];
+    this.vx[to] = this.vx[from];
+    this.vy[to] = this.vy[from];
+    this.vz[to] = this.vz[from];
+    this.life[to] = this.life[from];
+    this.max[to] = this.max[from];
+    this.size[to] = this.size[from];
+    this.grow[to] = this.grow[from];
+    this.shade[to] = this.shade[from];
+    this.alpha[to] = this.alpha[from];
+  }
+
   shift(dx: number, dy: number, dz: number): void {
-    for (const p of this.puffs) {
-      p.x -= dx;
-      p.y -= dy;
-      p.z -= dz;
+    for (let i = 0; i < this.count; i++) {
+      this.px[i] -= dx;
+      this.py[i] -= dy;
+      this.pz[i] -= dz;
     }
   }
 
@@ -298,8 +408,129 @@ export class Smoke {
   }
 
   clear(): void {
-    this.puffs.length = 0;
+    this.count = 0;
+    this.head = 0;
+    this.fx.reseed(0x9e3779b9);
     this.geo.setDrawRange(0, 0);
+  }
+
+  dispose(): void {
+    this.geo.dispose();
+    this.material.dispose();
+  }
+}
+
+/**
+ * Tyre skid marks and body scrape marks painted on the road as flat quads. A ring buffer of
+ * segments in one dynamic mesh; sources (wheels, sliding bodies) remember their last point so
+ * consecutive samples join into continuous strokes.
+ */
+export class SkidMarks {
+  readonly mesh: THREE.Mesh;
+  private pos: Float32Array;
+  private col: Float32Array;
+  private geo: THREE.BufferGeometry;
+  private n = 0;
+  private cap: number;
+  private last: Float32Array;
+  private lastOk: Uint8Array;
+  readonly material: THREE.MeshBasicMaterial;
+
+  constructor(capacity = 700, sources = 12) {
+    this.cap = capacity;
+    this.pos = new Float32Array(capacity * 4 * 3);
+    this.col = new Float32Array(capacity * 4 * 4);
+    this.last = new Float32Array(sources * 3);
+    this.lastOk = new Uint8Array(sources);
+    this.geo = new THREE.BufferGeometry();
+    this.geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
+    this.geo.setAttribute('color', new THREE.BufferAttribute(this.col, 4).setUsage(THREE.DynamicDrawUsage));
+    const idx = new Uint32Array(capacity * 6);
+    for (let i = 0; i < capacity; i++) idx.set([i * 4, i * 4 + 1, i * 4 + 2, i * 4 + 2, i * 4 + 1, i * 4 + 3], i * 6);
+    this.geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    this.material = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, side: THREE.DoubleSide });
+    this.mesh = new THREE.Mesh(this.geo, this.material);
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 2;
+    this.geo.setDrawRange(0, 0);
+  }
+
+  /** Extend source `id`'s stroke to (x, y, z). `alpha` 0..1 darkness, `width` in metres. */
+  stroke(id: number, x: number, y: number, z: number, width: number, alpha: number, grey = 0.03): void {
+    const l = id * 3;
+    if (this.lastOk[id]) {
+      const dx = x - this.last[l];
+      const dz = z - this.last[l + 2];
+      const len = Math.hypot(dx, dz);
+      if (len <= 0.12) return;
+      if (len < 6) {
+        const nx = (-dz / len) * width * 0.5;
+        const nz = (dx / len) * width * 0.5;
+        const i = this.n % this.cap;
+        const o = i * 12;
+        const y0 = this.last[l + 1] + 0.012;
+        const y1 = y + 0.012;
+        const p = this.pos;
+        p[o] = this.last[l] - nx;
+        p[o + 1] = y0;
+        p[o + 2] = this.last[l + 2] - nz;
+        p[o + 3] = this.last[l] + nx;
+        p[o + 4] = y0;
+        p[o + 5] = this.last[l + 2] + nz;
+        p[o + 6] = x - nx;
+        p[o + 7] = y1;
+        p[o + 8] = z - nz;
+        p[o + 9] = x + nx;
+        p[o + 10] = y1;
+        p[o + 11] = z + nz;
+        const c = i * 16;
+        for (let k = 0; k < 4; k++) {
+          this.col[c + k * 4] = grey;
+          this.col[c + k * 4 + 1] = grey;
+          this.col[c + k * 4 + 2] = grey;
+          this.col[c + k * 4 + 3] = alpha * (k < 2 ? 0.75 : 1);
+        }
+        this.n++;
+        this.geo.setDrawRange(0, Math.min(this.n, this.cap) * 6);
+        (this.geo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+        (this.geo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
+      }
+    }
+    this.last[l] = x;
+    this.last[l + 1] = y;
+    this.last[l + 2] = z;
+    this.lastOk[id] = 1;
+  }
+
+  /** The source stopped touching the road: the next sample starts a new stroke. */
+  lift(id: number): void {
+    this.lastOk[id] = 0;
+  }
+
+  shift(dx: number, dy: number, dz: number): void {
+    const m = Math.min(this.n, this.cap) * 4;
+    for (let i = 0; i < m; i++) {
+      this.pos[i * 3] -= dx;
+      this.pos[i * 3 + 1] -= dy;
+      this.pos[i * 3 + 2] -= dz;
+    }
+    for (let s = 0; s < this.lastOk.length; s++) {
+      this.last[s * 3] -= dx;
+      this.last[s * 3 + 1] -= dy;
+      this.last[s * 3 + 2] -= dz;
+    }
+    if (m) (this.geo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+  }
+
+  clear(): void {
+    this.n = 0;
+    this.lastOk.fill(0);
+    this.geo.setDrawRange(0, 0);
+  }
+
+  dispose(): void {
+    this.geo.dispose();
+    this.material.dispose();
   }
 }
 

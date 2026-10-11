@@ -3,6 +3,7 @@ import type { BikeStyle, Livery } from '../data/bikes';
 import { clamp, damp, lerp, smoothstep } from '../core/math';
 import type { BikeModel } from './bikeModel';
 import { buildGlove, type GloveParts } from './fpv/hands';
+import type { SegmentId } from '../physics/crash/scenario';
 import type { Materials } from './materials';
 
 const UPPER_ARM = 0.3;
@@ -87,6 +88,12 @@ export function makePose(): RiderPose {
     kneePoleL: new THREE.Vector3(),
     kneePoleR: new THREE.Vector3(),
   };
+}
+
+/** A segment transform in rider space (position of the segment's body frame + orientation). */
+export interface SegmentPose {
+  x: THREE.Vector3;
+  q: THREE.Quaternion;
 }
 
 export interface RideParams {
@@ -249,6 +256,93 @@ export class RiderModel {
     if (v === this.headVisible) return;
     this.headVisible = v;
     for (const p of this.helmetParts) p.visible = v;
+  }
+
+  // ───────────────────────────── ragdoll interface ─────────────────────────────
+
+  /** Relative transforms of the gloves / boots in their forearm / shin frames (captured when a crash starts). */
+  private endRel: THREE.Matrix4[] = [new THREE.Matrix4(), new THREE.Matrix4(), new THREE.Matrix4(), new THREE.Matrix4()];
+
+  private endObjects(): THREE.Object3D[] {
+    return [this.gloveL.group, this.gloveR.group, this.legL.end, this.legR.end];
+  }
+
+  private endParents(): THREE.Mesh[] {
+    return [this.armL.lower, this.armR.lower, this.legL.lower, this.legR.lower];
+  }
+
+  /**
+   * Current pose of the eleven rigid segments in rider-root space (body frames: torso centre of
+   * mass, limb centres with local +Y pointing to the distal end). Also remembers where the
+   * gloves and boots sit relative to their limbs so the ragdoll can carry them.
+   */
+  captureSegments(out: Record<SegmentId, SegmentPose>): void {
+    const set = (id: SegmentId, p: THREE.Vector3, q: THREE.Quaternion) => {
+      out[id].x.copy(p);
+      out[id].q.copy(q);
+    };
+    set('pelvis', this.pelvisHolder.position, this.pelvisHolder.quaternion);
+    _c.set(0, TORSO / 2, 0).applyQuaternion(this.torso.quaternion).add(this.torso.position);
+    set('torso', _c, this.torso.quaternion);
+    set('head', this.headGroup.position, this.headGroup.quaternion);
+    set('uarmL', this.armL.upper.position, this.armL.upper.quaternion);
+    set('uarmR', this.armR.upper.position, this.armR.upper.quaternion);
+    set('farmL', this.armL.lower.position, this.armL.lower.quaternion);
+    set('farmR', this.armR.lower.position, this.armR.lower.quaternion);
+    set('thighL', this.legL.upper.position, this.legL.upper.quaternion);
+    set('thighR', this.legR.upper.position, this.legR.upper.quaternion);
+    set('shinL', this.legL.lower.position, this.legL.lower.quaternion);
+    set('shinR', this.legR.lower.position, this.legR.lower.quaternion);
+    const parents = this.endParents();
+    const ends = this.endObjects();
+    for (let i = 0; i < 4; i++) {
+      parents[i].updateMatrix();
+      ends[i].updateMatrix();
+      this.endRel[i].copy(parents[i].matrix).invert().multiply(ends[i].matrix);
+    }
+  }
+
+  /** Pose the whole body from ragdoll segment transforms (world space; the root must be at the origin). */
+  applySegments(get: (id: SegmentId, p: THREE.Vector3, q: THREE.Quaternion) => void): void {
+    const p = _a;
+    const q = _q2;
+    get('pelvis', p, q);
+    this.pelvisHolder.position.copy(p);
+    this.pelvisHolder.quaternion.copy(q);
+    get('torso', p, q);
+    this.torso.quaternion.copy(q);
+    this.torso.position.set(0, -TORSO / 2, 0).applyQuaternion(q).add(p);
+    get('head', p, q);
+    this.headGroup.position.copy(p);
+    this.headGroup.quaternion.copy(q);
+    const limb = (l: Limb, up: SegmentId, lo: SegmentId, len2: number) => {
+      get(up, p, q);
+      l.upper.position.copy(p);
+      l.upper.quaternion.copy(q);
+      l.joint.quaternion.copy(q);
+      get(lo, p, q);
+      l.lower.position.copy(p);
+      l.lower.quaternion.copy(q);
+      // Elbow / knee cap sits at the proximal end of the lower segment.
+      l.joint.position.set(0, -len2 / 2, 0).applyQuaternion(q).add(p);
+    };
+    limb(this.armL, 'uarmL', 'farmL', FOREARM);
+    limb(this.armR, 'uarmR', 'farmR', FOREARM);
+    limb(this.legL, 'thighL', 'shinL', SHIN);
+    limb(this.legR, 'thighR', 'shinR', SHIN);
+    const parents = this.endParents();
+    const ends = this.endObjects();
+    for (let i = 0; i < 4; i++) {
+      parents[i].updateMatrix();
+      _m.multiplyMatrices(parents[i].matrix, this.endRel[i]);
+      _m.decompose(ends[i].position, ends[i].quaternion, ends[i].scale);
+    }
+  }
+
+  /** All body parts visible (external cameras) with the helmet shown or hidden (inside it). */
+  showBody(helmet: boolean): void {
+    this.setFirstPerson(false);
+    this.setHeadVisible(helmet);
   }
 
   dispose(): void {
