@@ -123,7 +123,7 @@ function body(ctx: KitContext): void {
     const xe = skinX(ob, -1.34, 0.64) + 0.045;
     ctx.add('chassis', extrude(smooth2([[-1.4, 0.608], [-1.27, 0.612], [-1.255, 0.64], [-1.275, 0.68], [-1.41, 0.676], [-1.42, 0.64]], 2, true), 0.003, { plane: 'zy', center: s * xe, bevel: 0.001 }), F.carbon);
   }
-  innerCowl(ctx, { z0: SCREEN_BASE + 0.06, z1: -1.2, yTop0: 0.835, yTop1: 0.895, yBot0: 0.74, yBot1: 0.79, w0: 0.1, w1: 0.17 });
+  innerCowl(ctx, { z0: SCREEN_BASE + 0.06, z1: -1.2, yTop0: 0.79, yTop1: 0.86, yBot0: 0.72, yBot1: 0.77, w0: 0.08, w1: 0.15 });
   screen(ctx, 'chassis', {
     zs: stationsBetween(SCREEN_BASE, SCREEN_TOP_Z, 8, 0.35),
     top: curve([[SCREEN_BASE, 0.836], [-1.52, 0.892], [-1.42, 0.975], [-1.32, 1.045], [-1.24, 1.078], [SCREEN_TOP_Z, 1.083]]),
@@ -281,8 +281,8 @@ export function f3Blueprint(spec: BikeSpec): BikeBlueprint {
       grip: [0.32, 0.875, -0.955],
       barDia: 0.022,
       dash: 'tft',
-      dashPos: [0, 1.0, -1.09],
-      dashSize: [0.12, 0.068],
+      dashPos: [0, 1.022, -1.128],
+      dashSize: [0.118, 0.066],
       dashTiltDeg: 50,
       dashMount: 'fairing',
       mirrors: 'fairing',
