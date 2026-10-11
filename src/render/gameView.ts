@@ -11,6 +11,7 @@ import { CameraRig } from './camera';
 import { makeFpvOptions, readFpvOptions } from './cameraSettings';
 import { HeadMotion, makeHeadInput, makeHeadPose } from './fpv/headMotion';
 import { MirrorRig, type MirrorHooks } from './fpv/mirrors';
+import { VisorFx, type VisorState } from './fpv/visor';
 import { pavedHalfWidth } from '../world/road';
 import { CrashSim } from './crash';
 import { GlowPoints, Rain, Smoke, Sparks } from './effects';
@@ -36,6 +37,10 @@ export class GameView {
   readonly rider: RiderModel;
   /** Render-to-texture rear view in the bike's mirrors. */
   readonly mirrors: MirrorRig;
+  /** Screen-space visor layer: rain beads, crack overlay, edge shading. */
+  readonly visor: VisorFx;
+  private readonly visorState: VisorState = { rain: 0, speed: 0, side: 0, buffet: 0, active: true, frame: true, crack: 0, letterbox: 0 };
+  private crackAmt = 0;
   readonly cam: CameraRig;
   readonly glow: GlowPoints;
   readonly sparks = new Sparks(600);
@@ -107,6 +112,7 @@ export class GameView {
     this.rider = new RiderModel(this.mats, this.bike.livery, session.cfg.bike.style);
     this.bike.riderMount.add(this.rider.root);
     this.mirrors = new MirrorRig(this.bike);
+    this.visor = new VisorFx(renderer.canvas.parentElement ?? document.body, renderer.canvas);
 
     this.cam = new CameraRig(renderer.aspect);
     this.cam.setMode('helmet');
@@ -187,6 +193,7 @@ export class GameView {
     this.crash = new CrashSim(this.bike, this.rider, this.scene, vel, impactSpeed, b.lean, hitSide);
     this.cam.resetCrash();
     this.cam.addTrauma(1);
+    this.crackAmt = impactSpeed > 6 ? 1 : 0.6;
     this.flash = 0.9;
     this.redPulse = 1;
     this.smoke.emit(this.bike.root.position.x, 0.6 + this.bike.root.position.y, this.bike.root.position.z, vel.x * 0.2, 1, vel.z * 0.2, { n: 8, size: 1.4, life: 2, alpha: 0.4, shade: 0.8, spread: 3 });
@@ -201,6 +208,8 @@ export class GameView {
     this.rider.root.position.set(0, 0, 0);
     this.rider.root.quaternion.identity();
     this.bike.root.rotation.set(0, 0, 0);
+    this.crackAmt = 0;
+    this.visor.reset();
   }
 
   private ground = (x: number, z: number): number => {
@@ -349,6 +358,17 @@ export class GameView {
       this.bike.updateDash(clamp(frac, 0, 1), b.gear, sp, b.rpm > e.redline * 0.95, units);
     }
 
+    // Visor layer (rain beads, crack, edge shading)
+    const vs = this.visorState;
+    vs.active = !this.crash;
+    vs.rain = this.fpv.visorRain && this.env.rain ? 1 : 0;
+    vs.speed = b.v;
+    vs.side = clamp(b.lean * 0.9 + b.heading * 1.5, -1, 1);
+    vs.buffet = this.headPose.buffet;
+    vs.frame = this.fpv.visorFrame;
+    vs.crack = this.crackAmt;
+    this.visor.update(realDt, vs);
+
     // Post FX
     const speedK = smoothstep(28, 95, b.v);
     this.fx.blur = this.crash ? 0 : speedK * (this.cam.mode === 'helmet' ? 1 : 0.8);
@@ -474,6 +494,7 @@ export class GameView {
     });
     this.crash?.dispose();
     this.mirrors.dispose();
+    this.visor.dispose();
     this.rider.dispose();
     this.world.dispose();
     this.bike.dispose();
