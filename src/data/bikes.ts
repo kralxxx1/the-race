@@ -738,7 +738,7 @@ export const BIKES: BikeSpec[] = [
     id: 'mv-agusta-f3-rr', brand: 'MV Agusta', model: 'F3 RR', year: 2024, style: 'sport',
     engine: { layout: 'I3', cc: 798, hp: 147, hpRpm: 13000, torque: 88, torqueRpm: 10100, idle: 1300, redline: 14000 },
     quickshifter: true, weight: 190, topSpeed: 270, price: 21000,
-    liveries: [livery('Ago Red / Silver', '#b0121a', '#c0c4c9', W, { pattern: 'split', suit: ['#b0121a', '#c0c4c9'] }), livery('Avio Grey', '#5a5e63', '#1b1c1f', '#b0121a')],
+    liveries: [livery('Ago Red / Ago Silver', '#b3121b', '#b9bdc2', W, { pattern: 'split', frame: '#a3141b', wheel: '#1a1b1e', suit: ['#b3121b', '#b9bdc2'] }), livery('Avio Grey / Metallic Carbon Black', '#5d6268', '#1a1b1e', '#b3121b', { pattern: 'split', frame: '#a3141b', wheel: '#1a1b1e' })],
     look: { exhaust: 'organ', extras: ['singleSided', 'winglets'] },
     voice: { resonance: 360, brightness: 0.85 },
     description: 'Ters dönen krank milli üçlü ve "org borulu" egzoz.',
