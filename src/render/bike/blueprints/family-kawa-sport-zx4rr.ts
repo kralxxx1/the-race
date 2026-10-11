@@ -121,7 +121,7 @@ export function zx4rrBlueprint(spec: BikeSpec): BikeBlueprint {
       grip: [0.32, 0.9, -0.93],
       barDia: 0.022,
       dash: 'tft',
-      dashPos: [0, 0.99, -1.025],
+      dashPos: [0, 1.005, -1.068],
       dashSize: [0.105, 0.064],
       dashTiltDeg: 46,
       dashMount: 'fairing',

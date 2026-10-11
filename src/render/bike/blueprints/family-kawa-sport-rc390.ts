@@ -192,7 +192,7 @@ export function rc390Blueprint(spec: BikeSpec): BikeBlueprint {
       grip: [0.32, 0.93, -0.9],
       barDia: 0.022,
       dash: 'tft',
-      dashPos: [0, 1.0, -0.99],
+      dashPos: [0, 1.015, -1.025],
       dashSize: [0.11, 0.07],
       dashTiltDeg: 46,
       dashMount: 'fairing',

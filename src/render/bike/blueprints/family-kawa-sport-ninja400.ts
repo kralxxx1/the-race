@@ -139,7 +139,7 @@ export function ninja400Blueprint(spec: BikeSpec): BikeBlueprint {
       grip: [0.335, 0.94, -0.92],
       barDia: 0.022,
       dash: 'analogTwin',
-      dashPos: [0, 1.0, -1.015],
+      dashPos: [0, 1.0, -1.045],
       dashSize: [0.16, 0.08],
       dashTiltDeg: 45,
       dashMount: 'fairing',
