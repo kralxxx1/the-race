@@ -10,6 +10,8 @@ import { clamp } from '../core/math';
 import { InputManager, type FrameInput } from '../input/input';
 import type { RiderInput, Upgrades } from '../physics/bike';
 import { GameView } from '../render/gameView';
+import { PerfOverlay } from '../render/perfOverlay';
+import { preloadWorld } from '../render/preload';
 import { Renderer } from '../render/renderer';
 import { Showroom } from '../render/showroom';
 import { SETTINGS, SettingsReader, type QualityPreset } from '../settings';
@@ -36,6 +38,7 @@ const RESULT_DELAY = 1.6;
 export class Game {
   readonly save: SaveManager;
   readonly renderer: Renderer;
+  private perf: PerfOverlay;
   readonly input = new InputManager();
   private screens: Screens;
   private hud: Hud | null = null;
@@ -94,6 +97,7 @@ export class Game {
     this.settings = new SettingsReader(SETTINGS, this.save.data.settings);
     const s = this.settings;
     this.renderer = new Renderer(canvas, s);
+    this.perf = new PerfOverlay(container);
     this.renderer.renderer.info.autoReset = false;
     this.input.sensitivity = s.num('ctrl.steerSensitivity');
     this.showFps = s.bool('hud.showFps');
@@ -127,6 +131,8 @@ export class Game {
     this.last = performance.now();
     const loop = (t: number) => {
       requestAnimationFrame(loop);
+      // FPS cap (graphics setting): skip display refreshes that are not due yet.
+      if (!this.renderer.limiter.shouldRender(t)) return;
       try {
         this.frame(t);
       } catch (e) {
@@ -346,6 +352,8 @@ export class Game {
       mission,
       assists: { autoThrottle: autoThrottleActive(st.str('play.autoThrottle'), isTouchDevice()), wheelie: st.bool('play.wheelieAssist') },
     });
+    // CC0 PBR textures and HDRI skies for this environment (falls back to procedural ones offline).
+    await preloadWorld(env, this.renderer.profile, (p) => this.screens.loading('Dokular ve gökyüzü yükleniyor…', 0.2 + p * 0.4));
     this.screens.loading('Trafik ve manzara oluşturuluyor…', 0.6);
     await nextFrame();
     const view = new GameView(this.renderer, session, env, this.save.livery(bikeId), this.settings);
@@ -380,7 +388,7 @@ export class Game {
     // Warm up shaders and GPU buffers so the first frames do not stutter.
     try {
       view.traffic.prewarm(this.renderer.renderer, view.cam.camera, view.scene);
-      this.renderer.renderer.compile(view.scene, view.cam.camera);
+      this.renderer.warmup(view.scene, view.cam.camera);
     } catch (e) {
       console.warn('prewarm failed', e);
     }
@@ -589,6 +597,8 @@ export class Game {
   private frame(now: number): void {
     const dt = clamp((now - this.last) / 1000, 0, 0.1);
     this.last = now;
+    // The overlay reports the previous frame's counters, so it reads them before they are reset.
+    this.perf.update(this.renderer, this.settings.str('gfx.perfOverlay') as 'off' | 'fps' | 'full', now);
     this.renderer.renderer.info.reset();
     this.fpsAcc += dt;
     this.fpsFrames++;

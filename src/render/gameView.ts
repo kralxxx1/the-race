@@ -20,7 +20,9 @@ import { GlowPoints, Rain, SkidMarks, Smoke, Sparks } from './effects';
 import { Materials } from './materials';
 import { defaultFx, type FxState, type Renderer } from './renderer';
 import { RiderModel } from './riderModel';
-import { SkySystem } from './sky';
+import { EnvProbe } from './postfx/envProbe';
+import { ShadowSystem } from './postfx/shadows';
+import { SkySystem, parseEnv } from './sky';
 import { TrafficView } from './trafficView';
 import { WorldView } from './worldView';
 
@@ -33,6 +35,8 @@ export class GameView {
   readonly scene = new THREE.Scene();
   readonly mats = new Materials();
   readonly sky: SkySystem;
+  readonly shadows: ShadowSystem;
+  private probe: EnvProbe | null = null;
   readonly world: WorldView;
   readonly traffic: TrafficView;
   readonly bike: BikeModel;
@@ -94,7 +98,6 @@ export class GameView {
   private redPulse = 0;
   private bikeVel = new THREE.Vector3();
   private lastBikePos = new THREE.Vector3();
-  private envMap: THREE.Texture;
 
   constructor(
     private renderer: Renderer,
@@ -105,13 +108,10 @@ export class GameView {
   ) {
     const scene = this.scene;
     const q = renderer.profile;
-    this.sky = new SkySystem(env);
-    this.sky.sun.shadow.mapSize.set(q.shadowMapSize, q.shadowMapSize);
-    this.sky.sun.castShadow = q.shadows;
+    this.sky = new SkySystem(env, { mode: q.sky, ibl: q.ibl, skyRes: q.skyRes, iblIntensity: q.iblIntensity });
     scene.add(this.sky.mesh, this.sky.sun, this.sky.sun.target, this.sky.hemi);
-    this.envMap = this.sky.buildEnvMap(renderer.renderer);
-    scene.environment = this.envMap;
-    scene.environmentIntensity = env.id === 'night' ? 0.55 : 1;
+    this.sky.buildEnvMap(renderer.renderer);
+    this.sky.applyTo(scene);
     scene.fog = new THREE.Fog(env.fog.color, env.fog.near, env.fog.far * (q.viewDistance / 1200));
     scene.background = new THREE.Color(env.fog.color);
 
@@ -130,6 +130,16 @@ export class GameView {
 
     this.cam = new CameraRig(renderer.aspect);
     this.cam.setMode('helmet');
+    this.shadows = new ShadowSystem(scene, this.cam.camera, this.sky, q);
+    this.shadows.enableHeadlightShadows(this.bike.root, q.headlightShadows && env.headlights);
+    if (q.envProbeInterval > 0) {
+      this.probe = new EnvProbe(renderer.renderer, q.envProbeRes, q.envProbeInterval);
+      // The probe captures sky + world, so the photographic IBL gain no longer applies.
+      this.sky.envIntensity = q.iblIntensity;
+    }
+    renderer.beforeRender.add(this.preRender);
+    this.setupAtmosphere();
+    renderer.pipeline.resetHistory();
     this.glow = new GlowPoints(2400, env.fog.near, env.fog.far * 1.1);
     scene.add(this.glow.points, this.sparks.lines, this.smoke.points, this.skid.mesh);
     this.sparks.ground = this.ground;
@@ -160,6 +170,34 @@ export class GameView {
   private crashMode(): 'fpv' | 'cinematic' | 'both' {
     return this.fpv.comfort === 'strong' ? 'cinematic' : this.fpv.crashCamera;
   }
+
+  /** Hand the post chain what it needs to know about the sky and weather. */
+  private setupAtmosphere(): void {
+    const a = this.renderer.atmosphere;
+    const env = this.env;
+    const { weather, time } = parseEnv(env);
+    a.sunDir = this.sky.sunDir;
+    // Radiance of the sun disc as seen by flares and light shafts; the moon is far dimmer.
+    a.sunColor.set(env.sky.sunColor).multiplyScalar(time === 'night' ? 0.08 : weather === 'rain' || weather === 'fog' ? 0.25 : 0.7);
+    a.fogColor.set(env.fog.color);
+    // Ground-hugging layer on top of the scene fog: thick mist at dawn and in fog weather, a trace of haze otherwise.
+    a.fogDensity = weather === 'fog' ? 0.0032 : weather === 'rain' ? 0.0011 : time === 'dawn' ? 0.0013 : 0.00045;
+    a.fogFalloff = weather === 'fog' ? 0.018 : time === 'dawn' ? 0.025 : 0.035;
+    a.wet = env.wet ? 1 : 0;
+    a.dofAmount = 0;
+  }
+
+  private preRender = (): void => {
+    this.shadows.update();
+    if (this.probe) {
+      _v.copy(this.bike.root.position);
+      _v.y += 1.0;
+      if (this.probe.tick(this.scene, _v, [this.bike.root])) {
+        this.scene.environment = this.probe.texture;
+        this.scene.environmentRotation.set(0, 0, 0);
+      }
+    }
+  };
 
   setCameraMode(m: CameraMode): void {
     this.cam.setMode(m);
@@ -454,6 +492,10 @@ export class GameView {
 
     // Post FX
     const speedK = smoothstep(28, 95, b.v);
+    this.fx.nearStatic = this.cam.mode === 'helmet' ? 1.3 : 0;
+    this.fx.rain = this.env.rain ? 1 : 0;
+    this.fx.heat = this.env.terrain === 'sand' ? 0.8 : this.env.sky.sunElevation > 20 && !this.env.wet ? 0.3 : 0;
+    this.renderer.atmosphere.fogBase = this.session.road.height(b.s) - this.world.origin.y - 1.5;
     this.fx.blur = this.crash ? 0 : speedK * (this.cam.mode === 'helmet' ? 1 : 0.8);
     this.fx.aberration = this.crash ? 0.5 : speedK * 0.6;
     this.fx.vignette = 0.25 + speedK * 0.45 + this.squeeze * 0.2;
@@ -575,6 +617,7 @@ export class GameView {
   }
 
   render(): void {
+    this.renderer.setDepthOfField(0, 0);
     this.cam.camera.aspect = this.renderer.aspect;
     this.cam.camera.updateProjectionMatrix();
     if (!this.crash) this.mirrors.render(this.renderer.renderer, this.scene, this.cam.camera.position, this.frameDt, this.mirrorHooks, this.lookBack);
@@ -600,6 +643,16 @@ export class GameView {
     this.sparks.dispose();
     this.smoke.dispose();
     this.rider.dispose();
+    this.renderer.beforeRender.delete(this.preRender);
+    // Leave the post chain in a neutral state for the menu showroom (no sun, no fog layer, no stale history).
+    const a = this.renderer.atmosphere;
+    a.sunDir = null;
+    a.fogDensity = 0;
+    a.wet = 0;
+    a.dofAmount = 0;
+    this.renderer.pipeline.resetHistory();
+    this.probe?.dispose();
+    this.shadows.dispose();
     this.world.dispose();
     this.bike.dispose();
     this.sky.dispose();

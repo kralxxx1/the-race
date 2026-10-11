@@ -17,10 +17,22 @@ function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContex
   return [c, g];
 }
 
+let anisotropy = 8;
+
+/** Anisotropic filtering of every generated texture (graphics setting), applied now and to later ones. */
+export function setTextureAnisotropy(n: number): void {
+  if (n === anisotropy) return;
+  anisotropy = n;
+  for (const t of cache.values()) {
+    t.anisotropy = n;
+    t.needsUpdate = true;
+  }
+}
+
 function finish(tex: THREE.Texture, srgb: boolean, repeat = true): THREE.Texture {
   tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   if (repeat) tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.anisotropy = 8;
+  tex.anisotropy = anisotropy;
   tex.generateMipmaps = true;
   tex.minFilter = THREE.LinearMipmapLinearFilter;
   tex.needsUpdate = true;
