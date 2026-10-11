@@ -493,7 +493,10 @@ export const BIKES: BikeSpec[] = [
     id: 'suzuki-sv650', brand: 'Suzuki', model: 'SV650', year: 2024, style: 'naked',
     engine: { layout: 'L2', cc: 645, hp: 75, hpRpm: 8500, torque: 64, torqueRpm: 8100, idle: 1300, redline: 10500 },
     weight: 199, topSpeed: 210, price: 7500,
-    liveries: [livery('Pearl Glacier White', W, '#1b1c1f', '#1747a6', { frame: '#1747a6' }), livery('Glass Sparkle Black', BLK, '#2c2d31', '#c8102e')],
+    liveries: [
+      livery('Pearl Glacier White', W, '#1b1c1f', '#1747a6', { frame: '#1747a6', wheel: '#1747a6', suit: [W, '#1747a6'] }),
+      livery('Glass Sparkle Black', BLK, '#2c2d31', '#c8102e', { frame: '#2a2c30' }),
+    ],
     look: { headlight: 'round', extras: ['trellis'] },
     description: 'Klasik 90° V-twin naked; eğlenceli ve dürüst.',
   }),

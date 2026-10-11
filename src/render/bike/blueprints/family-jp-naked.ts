@@ -2,6 +2,7 @@ import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
 import { mt07Blueprint } from './family-jp-naked-mt07';
 import { mt09Blueprint } from './family-jp-naked-mt09';
+import { sv650Blueprint } from './family-jp-naked-sv650';
 import { z900Blueprint } from './family-jp-naked-z900';
 
 /**
@@ -13,4 +14,5 @@ export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'yamaha-mt09': mt09Blueprint,
   'yamaha-mt07': mt07Blueprint,
   'kawasaki-z900': z900Blueprint,
+  'suzuki-sv650': sv650Blueprint,
 };
