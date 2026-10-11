@@ -84,7 +84,7 @@ const HEAD: P2[] = smooth2([[-0.064, 0.72], [-0.032, 0.735], [0, 0.739], [0.032,
 /** Right ram-air scoop beside and below the headlight. */
 const SCOOP: P2[] = [[0.072, 0.694], [0.112, 0.708], [0.142, 0.704], [0.15, 0.682], [0.128, 0.661], [0.09, 0.659], [0.072, 0.672]];
 /** Side air outlet behind the front wheel. */
-const OUTLET: P2[] = [[-1.215, 0.6], [-1.12, 0.655], [-0.99, 0.66], [-0.93, 0.6], [-0.97, 0.53], [-1.08, 0.515], [-1.17, 0.54]];
+const OUTLET: P2[] = [[-1.165, 0.612], [-1.09, 0.65], [-0.985, 0.652], [-0.93, 0.604], [-0.958, 0.548], [-1.05, 0.535], [-1.125, 0.555]];
 
 function body(ctx: KitContext): void {
   const ob = fairing();
@@ -104,10 +104,10 @@ function body(ctx: KitContext): void {
   addPanel(ctx, 'chassis', bodyCut, cowl, PAINT, 0.003, 0.014);
   addPanel(ctx, 'chassis', bodyCut, fAnd(fNot(cowl), fNot(belly)), PAINT, 0.003, 0.014);
   addPanel(ctx, 'chassis', bodyCut, fAnd(belly, fNot(cowl)), PAINT, 0.003, 0.014);
-  ductWall(ctx, ob, OUTLET.map(([z, y]) => [z + (z < -1.07 ? -0.012 : 0.012), y + (y > 0.59 ? 0.012 : -0.012)] as P2), -1.07, 0.59, 0.04);
+  ductWall(ctx, ob, OUTLET.map(([z, y]) => [z + (z < -1.04 ? -0.01 : 0.01), y + (y > 0.595 ? 0.01 : -0.01)] as P2), -1.04, 0.595, 0.035);
   for (let i = 0; i < 3; i++) {
-    const z0 = -1.17 + i * 0.07;
-    bladeSlats(ctx, ob, [[[z0, 0.535], [z0 + 0.045, 0.648], [z0 + 0.058, 0.648], [z0 + 0.013, 0.535]]], 0.006, 0.026, F.satinBlack);
+    const z0 = -1.105 + i * 0.056;
+    bladeSlats(ctx, ob, [[[z0, 0.545], [z0 + 0.038, 0.638], [z0 + 0.05, 0.638], [z0 + 0.012, 0.545]]], 0.006, 0.024, F.satinBlack);
   }
   // Ram-air scoops, headlight and its LED position-light brow.
   for (const s of [1, -1]) ductLiner(ctx, ob, SCOOP.map(([x, y]) => [s * x, y] as P2), -1.5, 0.8);
