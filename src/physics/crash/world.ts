@@ -323,7 +323,7 @@ export class CrashWorld {
       for (const j of this.joints) this.solveJoint(j);
       for (const b of bodies) qnormalize(b.q);
     }
-    this.solveContacts();
+    this.solveContacts(h);
     for (const b of bodies) qnormalize(b.q);
     // Velocities from the position change.
     const inv = 1 / h;
@@ -644,10 +644,13 @@ export class CrashWorld {
     c.vnPre = vdot(_v1, c.n);
   }
 
-  private solveContacts(): void {
+  private solveContacts(h: number): void {
     for (let i = 0; i < this.nContacts; i++) {
       const c = this.contacts[i];
       if (c.pen <= 0) continue;
+      // Never push deeper overlaps out in one go (that is how position solvers launch bodies): resolve
+      // what the approach speed accounts for, plus a small slack, and let the rest ease out.
+      c.pen = Math.min(c.pen, Math.max(0.01, -c.vnPre * h * 1.25 + 0.006));
       correctPosition(c.a, c.b, c.ra, c.rb, c.n, c.pen);
     }
   }
@@ -684,7 +687,8 @@ export class CrashWorld {
           applyImpulse(A, B, c.ra, c.rb, _c, dv);
         }
       }
-      if (last) this.record(c, vn, vt);
+      this.recordImpact(c);
+      if (last) this.recordSlide(c, vn, vt);
     }
   }
 
@@ -703,7 +707,7 @@ export class CrashWorld {
     if (dvT !== 0) applyImpulse(A, c.b, c.ra, c.rb, _e, dvT);
   }
 
-  private record(c: Contact, vn: number, vt: number): void {
+  private recordImpact(c: Contact): void {
     const approach = -c.vnPre;
     if (approach > 1.5 && this.eventCount < MAX_EVENTS) {
       const e = this.events[this.eventCount++];
@@ -714,6 +718,9 @@ export class CrashWorld {
       e.b = c.b;
       e.kind = c.kind;
     }
+  }
+
+  private recordSlide(c: Contact, vn: number, vt: number): void {
     if (vt > 2 && vn < 4 && this.slideCount < MAX_SLIDES) {
       const s = this.slides[this.slideCount++];
       s.speed = vt;

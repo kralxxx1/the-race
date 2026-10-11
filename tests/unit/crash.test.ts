@@ -139,4 +139,71 @@ describe('crash solver', () => {
       expect(Math.hypot(pa.x - pb.x, pa.y - pb.y, pa.z - pb.z)).toBeLessThan(0.08);
     }
   });
+
+  it('momentum transfer follows mass: a truck barely moves, a sedan is shoved', () => {
+    const sedan = rig({ car: true, bikeSpeed: 32, carSpeed: 14 });
+    const truck = rig({ car: true, carHeavy: true, bikeSpeed: 32, carSpeed: 14 });
+    // Measure before the driver's brakes engage (0.45 s) so only the impact acts on the car.
+    run(sedan, 0.4);
+    run(truck, 0.4);
+    const dvSedan = Math.abs(sedan.car!.v.z) - 14;
+    const dvTruck = Math.abs(truck.car!.v.z) - 14;
+    expect(dvSedan).toBeGreaterThan(0.8);
+    expect(dvTruck).toBeLessThan(dvSedan * 0.4);
+    // The bike is the one that stops: it loses most of its speed against either vehicle.
+    expect(Math.abs(truck.bike.v.z)).toBeLessThan(25);
+    expect(Math.abs(sedan.bike.v.z)).toBeLessThan(25);
+  });
+
+  it('classifies the hit by where the bike meets the vehicle', () => {
+    expect(rig({ car: true, offset: 0 }).kind).toBe('rearEnd');
+    expect(rig({ car: true, offset: 1.1 }).kind).toBe('glancing');
+    expect(rig({}).kind).toBe('fall');
+  });
+
+  it('an off-centre hit spins the car and throws the bike sideways', () => {
+    const centred = rig({ car: true, bikeSpeed: 30, carSpeed: 12, offset: 0 });
+    const glance = rig({ car: true, bikeSpeed: 30, carSpeed: 12, offset: 0.85 });
+    let wc = 0;
+    let wg = 0;
+    for (let t = 0; t < 0.6; t += 1 / 60) {
+      centred.update(1 / 60);
+      glance.update(1 / 60);
+      wc = Math.max(wc, Math.abs(centred.car!.w.y));
+      wg = Math.max(wg, Math.abs(glance.car!.w.y));
+    }
+    expect(wg).toBeGreaterThan(wc + 0.1);
+  });
+
+  it('a barrier stops sideways motion, scrapes and reports sliding contacts', () => {
+    const s = rig({ bikeSpeed: 30, yaw: -0.35 });
+    s.world.barrier = { p: v3(2.5, 0, 0), n: v3(-1, 0, 0), height: 0.85, mu: 0.5 };
+    // The wall is to the +x side of the start: the bike (heading −z, yawed) drifts into it.
+    let slid = 0;
+    let hits = 0;
+    for (let t = 0; t < 4; t += 1 / 60) {
+      s.update(1 / 60);
+      slid += s.world.slideCount;
+      for (let i = 0; i < s.world.eventCount; i++) if (s.world.events[i].kind === 1) hits++;
+    }
+    for (const b of s.world.bodies) expect(b.x.x).toBeLessThan(2.5 + 1.2);
+    expect(slid).toBeGreaterThan(5);
+    expect(hits).toBeGreaterThan(0);
+    expect(s.world.sane()).toBe(true);
+  });
+
+  it('a dropped ragdoll never gains energy', () => {
+    const s = rig({ bikeSpeed: 0 });
+    for (const b of s.world.bodies) b.x.y += 2;
+    for (const b of s.world.bodies) b.px.y = b.x.y;
+    const e0 = s.world.energy();
+    let last = e0;
+    for (let t = 0; t < 5; t += 1 / 60) {
+      s.update(1 / 60);
+      last = s.world.energy();
+      // Gravity, inelastic contacts and friction only ever take energy out.
+      expect(last).toBeLessThanOrEqual(e0 * 1.01 + 30);
+    }
+    expect(last).toBeLessThan(e0 * 0.7);
+  });
 });

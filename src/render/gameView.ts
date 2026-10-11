@@ -147,13 +147,18 @@ export class GameView {
 
   /** Time scale of the simulation `t` real seconds after the crash (slow motion, replay pacing). */
   crashTimeScale(t: number): number {
-    this.crashPlan = planCrash(this.fpv.crashCamera, this.session.cfg.mode.respawn);
+    this.crashPlan = planCrash(this.crashMode(), this.session.cfg.mode.respawn);
     return planTimeScale(this.crashPlan, t, this.fpv.crashSlowmo);
   }
 
   /** Real seconds of the crash sequence before the run ends (non-respawn modes). */
   crashSequenceLength(): number {
-    return planCrash(this.fpv.crashCamera, this.session.cfg.mode.respawn).total;
+    return planCrash(this.crashMode(), this.session.cfg.mode.respawn).total;
+  }
+
+  /** The motion-comfort preset swaps the tumbling helmet view for the steadier external camera. */
+  private crashMode(): 'fpv' | 'cinematic' | 'both' {
+    return this.fpv.comfort === 'strong' ? 'cinematic' : this.fpv.crashCamera;
   }
 
   setCameraMode(m: CameraMode): void {
@@ -223,7 +228,7 @@ export class GameView {
       barrier = { p, n: p.clone().sub(q).setY(0).normalize() };
     }
     this.crashClock = 0;
-    this.crashPlan = planCrash(this.fpv.crashCamera, sess.cfg.mode.respawn);
+    this.crashPlan = planCrash(this.crashMode(), sess.cfg.mode.respawn);
     this.crashPhaseNow = crashPhase(this.crashPlan, 0);
     this.crash = new CrashSim(
       this.bike,
@@ -358,8 +363,10 @@ export class GameView {
         dt,
       });
       this.shiftAnim = 0;
-      this.rider.setHeadVisible(this.cam.mode !== 'helmet');
-      this.rider.setFirstPerson(this.cam.mode === 'helmet');
+      // The pre-race orbit shows the whole rider; from the helmet only forearms and gloves.
+      const fp = this.cam.mode === 'helmet' && !this.cam.introActive;
+      this.rider.setHeadVisible(!fp);
+      this.rider.setFirstPerson(fp);
       // Track velocity for rain slant / audio
       _v.copy(this.bike.root.position);
       if (dt > 0) this.bikeVel.copy(_v).sub(this.lastBikePos).divideScalar(dt);

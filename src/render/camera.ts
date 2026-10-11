@@ -77,6 +77,11 @@ export class CameraRig {
     this.camera = new THREE.PerspectiveCamera(74, aspect, 0.05, 6000);
   }
 
+  /** True while the pre-race orbit is playing (the whole rider is shown then). */
+  get introActive(): boolean {
+    return this.introT > 0;
+  }
+
   setMode(m: CameraMode): void {
     this.mode = m;
   }
