@@ -88,6 +88,7 @@ export class Hud {
       h('span', {}, '↓/S fren'),
       h('span', {}, '←→/A D direksiyon'),
       h('span', {}, 'Boşluk wheelie'),
+      h('span', {}, 'B arkaya bak'),
       h('span', {}, 'C kamera'),
       h('span', {}, 'H korna'),
       h('span', {}, 'Esc duraklat'),
@@ -148,11 +149,13 @@ export class Hud {
     const brake = hold(h('div', { class: 'tbtn brake' }, 'FREN'), () => i.setTouch('brake', 1), () => i.setTouch('brake', 0));
     const wheelie = hold(h('div', { class: 'tbtn small' }, 'WHEELIE'), () => i.setTouchWheelie(true), () => i.setTouchWheelie(false));
     const horn = h('div', { class: 'tbtn small', onpointerdown: () => i.touchEdge('horn') }, 'KORNA');
+    // Hold to turn the head over the shoulder and read the traffic behind.
+    const look = hold(h('div', { class: 'tbtn small', 'data-testid': 'lookback-btn' }, 'ARKAYA BAK'), () => i.setTouchLookBack(true), () => i.setTouchLookBack(false));
     this.touch = h(
       'div',
       { class: 'touch' },
       h('div', { class: 'touch-left' }, left, right),
-      h('div', { class: 'touch-right' }, h('div', { class: 'touch-col' }, wheelie, horn), brake, gas),
+      h('div', { class: 'touch-right' }, h('div', { class: 'touch-col' }, wheelie, look, horn), brake, gas),
     );
     this.root.append(this.touch);
     this.hints.style.display = 'none';

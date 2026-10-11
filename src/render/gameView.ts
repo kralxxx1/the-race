@@ -482,7 +482,7 @@ export class GameView {
     hi.rpmFrac = b.curve.kind === 'electric' ? 0.2 : clamp(b.rpm / s.cfg.bike.engine.redline, 0, 1.2);
     hi.roughness = feel.roughness;
     hi.rumble = feel.rumble;
-    hi.turbulence = this.wake;
+    hi.turbulence = s.wake.turbulence;
     const style = s.cfg.bike.style;
     hi.tuckStyle = style === 'sport' || style === 'hyper' ? 1 : style === 'naked' ? 0.55 : style === 'adventure' ? 0.2 : 0;
     // Look over the shoulder: auto picks the side the rider is steering towards.
@@ -510,9 +510,6 @@ export class GameView {
       shake: f.shake,
     });
   }
-
-  /** Smoothed 0..1 turbulence of nearby large vehicles (used by the head motion; the physics wake lives in the session). */
-  private wake = 0;
 
   private onLightning(delay: number): void {
     this.flash = Math.max(this.flash, 0.35);

@@ -123,9 +123,9 @@ export class DropletField {
         this.vx[i] *= 0.8;
         this.vy[i] *= 0.8;
         this.trail[i] *= Math.exp(-0.6 * dt);
-        // Standing droplets slowly evaporate / are shaken off.
-        if (this.age[i] > 14 + (i % 7)) this.r[i] -= dt * 0.6;
       }
+      // Nothing clings forever: old drops are shaken off by the helmet's vibration and evaporate.
+      if (this.age[i] > 18 + (i % 5)) this.r[i] -= dt * 1.6;
       if (this.x[i] < -0.05 || this.x[i] > 1.05 || this.y[i] < -0.08 || this.y[i] > 1.08 || this.r[i] < 0.9) this.remove(i);
     }
   }
