@@ -214,6 +214,31 @@ describe('continuity and numerical health', { timeout: 120000 }, () => {
   });
 });
 
+describe('every bike at every quality', { timeout: 300000 }, () => {
+  it('survives structured cloning (worklet processorOptions) and renders finite, bounded audio', () => {
+    for (const b of BIKES) {
+      const p = voiceParams(b);
+      expect(JSON.stringify(structuredClone(p))).toBe(JSON.stringify(p));
+      for (const q of ['low', 'medium', 'high', 'ultra', 'extreme'] as const) {
+        const host = new EngineHost({ params: structuredClone(p), quality: q, sampleRate: 44100 });
+        const L = new Float32Array(128);
+        const R = new Float32Array(128);
+        host.handle({ t: 'ctl', rpm: b.engine.redline * 0.7, thr: 0.9, load: 0.9, speed: 30 });
+        let peak = 0;
+        for (let k = 0; k < 24; k++) {
+          host.render(L, R, 0, 128);
+          for (let i = 0; i < 128; i++) {
+            if (!Number.isFinite(L[i]) || !Number.isFinite(R[i])) throw new Error(`${b.id} ${q} produced a non-finite sample`);
+            peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
+          }
+        }
+        expect(peak, `${b.id} ${q}`).toBeGreaterThan(1e-4);
+        expect(peak, `${b.id} ${q}`).toBeLessThanOrEqual(1.0001);
+      }
+    }
+  });
+});
+
 describe('overrun pops and combustion events', { timeout: 120000 }, () => {
   it('crackles appear only off-throttle, never under power', () => {
     const b = BIKES.find((x) => x.id === 'yamaha-r1')!;
