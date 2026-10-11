@@ -4,6 +4,7 @@ import { cbr650rBlueprint } from './family-jp-sport-cbr650r';
 import { firebladeBlueprint } from './family-jp-sport-fireblade';
 import { gsxrBlueprint } from './family-jp-sport-gsxr';
 import { hayabusaBlueprint } from './family-jp-sport-hayabusa';
+import { r3Blueprint } from './family-jp-sport-r3';
 import { r6Blueprint } from './family-jp-sport-r6';
 
 /**
@@ -15,6 +16,7 @@ export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'honda-cbr1000rr-r': firebladeBlueprint,
   'honda-cbr650r': cbr650rBlueprint,
   'yamaha-r6': r6Blueprint,
+  'yamaha-r3': r3Blueprint,
   'suzuki-gsxr1000r': gsxrBlueprint,
   'suzuki-hayabusa': hayabusaBlueprint,
 };
