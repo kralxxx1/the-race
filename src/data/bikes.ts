@@ -286,8 +286,8 @@ export const BIKES: BikeSpec[] = [
     engine: { layout: 'I4', cc: 649, hp: 95, hpRpm: 12000, torque: 63, torqueRpm: 9500, idle: 1300, redline: 12500 },
     weight: 208, topSpeed: 235, price: 9900,
     liveries: [
-      livery('Grand Prix Kırmızı', '#c8102e', '#1a1a1a', W, { pattern: 'split' }),
-      livery('Mat Gunpowder', '#2e3034', '#16171a', '#c8102e', { pattern: 'solid' }),
+      livery('Grand Prix Red', '#c8102e', '#111214', W, { pattern: 'split', frame: '#17181b' }),
+      livery('Matt Gunpowder Black Metallic', '#2e3034', '#111214', '#c8102e', { pattern: 'solid', frame: '#17181b' }),
     ],
     voice: { resonance: 560 },
     description: 'Günlük kullanılabilir sıralı dört; orta devirden kırmızı bölgeye kadar pürüzsüz.',
