@@ -17,7 +17,8 @@ export default defineConfig({
       },
     },
   },
-  server: { host: true },
+  // Agent worktrees live under .claude/; never watch them from the main dev server.
+  server: { host: true, watch: { ignored: ['**/.claude/**'] } },
   preview: { host: true },
   test: {
     include: ['tests/unit/**/*.test.ts'],

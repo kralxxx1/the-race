@@ -25,6 +25,13 @@ AUTHORED.set('bmw-s1000rr', s1000rrBlueprint);
 AUTHORED.set('harley-street-glide', streetGlideBlueprint);
 AUTHORED.set('bmw-r1250gs', r1250gsBlueprint);
 
+// Family modules (e.g. `family-japan-sport.ts`) export `BLUEPRINTS: Record<bikeId, Factory>`;
+// they are discovered automatically so several authors never edit this file at once.
+const families = import.meta.glob<{ BLUEPRINTS?: Record<string, Factory> }>('./family-*.ts', { eager: true });
+for (const mod of Object.values(families)) {
+  for (const [id, f] of Object.entries(mod.BLUEPRINTS ?? {})) AUTHORED.set(id, f);
+}
+
 export function registerBlueprint(id: string, f: Factory): void {
   AUTHORED.set(id, f);
   cache.delete(id);
