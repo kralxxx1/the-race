@@ -7,6 +7,8 @@ export interface FrameInput extends RiderInput {
   horn: boolean;
   mute: boolean;
   debug: boolean;
+  /** Held: turn the head over the shoulder to look at the traffic behind. */
+  lookBack: boolean;
 }
 
 const THROTTLE = ['ArrowUp', 'KeyW'];
@@ -16,6 +18,7 @@ const RIGHT = ['ArrowRight', 'KeyD'];
 const WHEELIE = ['Space'];
 const SHIFT_UP = ['KeyE'];
 const SHIFT_DOWN = ['KeyQ'];
+const LOOK_BACK = ['KeyB'];
 
 /**
  * Unifies keyboard, touch buttons, device tilt and gamepads into analog rider
@@ -25,7 +28,7 @@ const SHIFT_DOWN = ['KeyQ'];
 export class InputManager {
   private keys = new Set<string>();
   private pressed = new Set<string>();
-  private touch = { throttle: 0, brake: 0, left: 0, right: 0, wheelie: false };
+  private touch = { throttle: 0, brake: 0, left: 0, right: 0, wheelie: false, lookBack: false };
   private touchEdges = { camera: false, pause: false, horn: false, shiftUp: false, shiftDown: false };
   private steer = 0;
   private throttle = 0;
@@ -36,7 +39,7 @@ export class InputManager {
   sensitivity = 1;
   tiltEnabled = false;
   /** Scripted input for automated tests (overrides everything when set). */
-  override: Partial<RiderInput> | null = null;
+  override: Partial<FrameInput> | null = null;
   private disposers: (() => void)[] = [];
 
   constructor(target: Window = window) {
@@ -103,6 +106,10 @@ export class InputManager {
   setTouchWheelie(on: boolean): void {
     this.touch.wheelie = on;
   }
+  /** Hold-to-look-back button (touch / on-screen). */
+  setTouchLookBack(on: boolean): void {
+    this.touch.lookBack = on;
+  }
   touchEdge(kind: 'camera' | 'pause' | 'horn' | 'shiftUp' | 'shiftDown'): void {
     this.touchEdges[kind] = true;
   }
@@ -115,7 +122,7 @@ export class InputManager {
     this.steer = this.throttle = this.brake = 0;
     this.keys.clear();
     this.pressed.clear();
-    this.touch = { throttle: 0, brake: 0, left: 0, right: 0, wheelie: false };
+    this.touch = { throttle: 0, brake: 0, left: 0, right: 0, wheelie: false, lookBack: false };
   }
 
   update(dt: number): FrameInput {
@@ -124,6 +131,7 @@ export class InputManager {
     let thrT = this.any(THROTTLE) ? 1 : 0;
     let brkT = this.any(BRAKE) ? 1 : 0;
     let wheelie = this.any(WHEELIE);
+    let lookBack = this.any(LOOK_BACK);
     let shiftUp = SHIFT_UP.some((c) => this.edge(c));
     let shiftDown = SHIFT_DOWN.some((c) => this.edge(c));
     let camera = this.edge('KeyC');
@@ -137,6 +145,7 @@ export class InputManager {
     thrT = Math.max(thrT, this.touch.throttle);
     brkT = Math.max(brkT, this.touch.brake);
     wheelie ||= this.touch.wheelie;
+    lookBack ||= this.touch.lookBack;
     camera ||= this.touchEdges.camera;
     pause ||= this.touchEdges.pause;
     horn ||= this.touchEdges.horn;
@@ -159,6 +168,7 @@ export class InputManager {
       const b = (i: number) => p.buttons[i]?.pressed ?? false;
       const was = (i: number) => this.padPrev[i] ?? false;
       wheelie ||= b(0);
+      lookBack ||= b(10) || b(11);
       if (b(5) && !was(5)) shiftUp = true;
       if (b(4) && !was(4)) shiftDown = true;
       if (b(3) && !was(3)) camera = true;
@@ -200,6 +210,7 @@ export class InputManager {
       horn,
       mute,
       debug,
+      lookBack,
     };
     if (this.override) Object.assign(out, this.override);
     return out;

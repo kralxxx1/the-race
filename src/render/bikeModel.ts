@@ -19,6 +19,8 @@ export interface BikeVisualState {
   frontComp: number;
   rearComp: number;
   brake: number;
+  /** 0..1 clutch lever pull (optional; defaults to released). */
+  clutch?: number;
   headlight: boolean;
   dt: number;
 }
@@ -86,6 +88,9 @@ export class BikeModel {
   private rearWheel = new THREE.Group();
   private rearSpokes = new THREE.Group();
   private swingarm = new THREE.Group();
+  /** Brake and clutch lever blades (pivot at the perch, children of the steering group). */
+  readonly leverBrake = new THREE.Group();
+  readonly leverClutch = new THREE.Group();
   private groups: Record<GroupName, THREE.Group>;
   private meshes: THREE.Mesh[] = [];
   private blurMats: THREE.MeshStandardMaterial[] = [];
@@ -198,7 +203,11 @@ export class BikeModel {
       rearWheel: this.rearWheel,
       rearSpokes: this.rearSpokes,
       swingarm: this.swingarm,
+      leverBrake: this.leverBrake,
+      leverClutch: this.leverClutch,
     };
+    this.placeLever(this.leverBrake, 'leverBrake');
+    this.placeLever(this.leverClutch, 'leverClutch');
     this.attachMeshes();
 
     // Anchors for the rider.
@@ -222,6 +231,29 @@ export class BikeModel {
     }
     this.updateDash(0, 1, 0, false, 'kmh');
   }
+
+  /** Pivot a lever group on its blueprint frame (exported by the kit as anchors) inside the steering group. */
+  private placeLever(g: THREE.Group, name: 'leverBrake' | 'leverClutch'): void {
+    const a = this.build.anchors;
+    const o = a.get(`${name}:o`);
+    const x = a.get(`${name}:x`);
+    const y = a.get(`${name}:y`);
+    this.steer.add(g);
+    if (!o || !x || !y) return;
+    const f = this.frame;
+    const bx = new THREE.Vector3(...x);
+    const by = new THREE.Vector3(...y);
+    const bz = new THREE.Vector3().crossVectors(bx, by).normalize();
+    const world = new THREE.Matrix4().makeBasis(bx, by, bz).setPosition(new THREE.Vector3(...o));
+    const steerRest = new THREE.Matrix4().compose(f.head, new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), f.rake), new THREE.Vector3(1, 1, 1));
+    world.premultiply(steerRest.invert());
+    world.decompose(g.position, g.quaternion, new THREE.Vector3());
+    this.leverRest[name === 'leverBrake' ? 0 : 1].copy(g.quaternion);
+  }
+
+  private leverRest = [new THREE.Quaternion(), new THREE.Quaternion()];
+  private leverTmp = new THREE.Quaternion();
+  private leverAxis = new THREE.Vector3(0, 1, 0);
 
   /** Bike-space point → steering-group local coordinates. */
   private toSteerLocal(p: THREE.Vector3): THREE.Vector3 {
@@ -330,6 +362,9 @@ export class BikeModel {
     const rearAxle = _a.set(0, f.Rr, 0).applyMatrix4(inv).sub(f.pivot);
     this.swingarm.rotation.x = Math.atan2(rearAxle.y, rearAxle.z) - this.swingRest;
     this.steer.rotation.y = -s.steer;
+    // Levers: pulled towards the grip about their own pivot (local y is the lever's up axis).
+    this.pullLever(this.leverBrake, 0, s.brake * 0.3);
+    this.pullLever(this.leverClutch, 1, (s.clutch ?? 0) * 0.34);
     // Wheel spin & motion blur.
     this.spin -= s.wheelSpeed * s.dt;
     this.spin %= Math.PI * 2;
@@ -343,6 +378,10 @@ export class BikeModel {
     this.tailLight.emissiveIntensity = 1.2 + s.brake * 7;
     this.headLight.emissiveIntensity = s.headlight ? 6 : 1.6;
     if (this.headSpot) this.headSpot.visible = s.headlight;
+  }
+
+  private pullLever(g: THREE.Group, i: number, angle: number): void {
+    g.quaternion.copy(this.leverRest[i]).multiply(this.leverTmp.setFromAxisAngle(this.leverAxis, -angle));
   }
 
   /** Redraw the instrument panel. */

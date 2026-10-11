@@ -8,8 +8,15 @@ import type { GameSession, SessionEvent } from '../game/session';
 import { BikeModel } from './bikeModel';
 import { bikeDetailFrom } from './bike/bikeSettings';
 import { CameraRig } from './camera';
-import { CrashSim } from './crash';
-import { GlowPoints, Rain, Smoke, Sparks } from './effects';
+import { makeFpvOptions, readFpvOptions } from './cameraSettings';
+import { HeadMotion, makeHeadInput, makeHeadPose } from './fpv/headMotion';
+import { MirrorRig, type MirrorHooks } from './fpv/mirrors';
+import { VisorFx, type VisorState } from './fpv/visor';
+import { pavedHalfWidth } from '../world/road';
+import { CrashSim, type CrashStart, type ImpactKind } from './crash';
+import type { TrafficCar } from '../world/traffic';
+import { crashPhase, crashTimeScale as planTimeScale, planCrash, type CrashPlan } from './fpv/crashPlan';
+import { GlowPoints, Rain, SkidMarks, Smoke, Sparks } from './effects';
 import { Materials } from './materials';
 import { defaultFx, type FxState, type Renderer } from './renderer';
 import { RiderModel } from './riderModel';
@@ -30,13 +37,50 @@ export class GameView {
   readonly traffic: TrafficView;
   readonly bike: BikeModel;
   readonly rider: RiderModel;
+  /** Render-to-texture rear view in the bike's mirrors. */
+  readonly mirrors: MirrorRig;
+  /** Screen-space visor layer: rain beads, crack overlay, edge shading. */
+  readonly visor: VisorFx;
+  private readonly visorState: VisorState = { rain: 0, speed: 0, side: 0, buffet: 0, active: true, frame: true, crack: 0, letterbox: 0 };
+  private crackAmt = 0;
   readonly cam: CameraRig;
   readonly glow: GlowPoints;
   readonly sparks = new Sparks(600);
   readonly smoke = new Smoke(320);
   private rain: Rain | null = null;
+  readonly skid = new SkidMarks();
   crash: CrashSim | null = null;
+  private crashClock = 0;
+  private crashPlan: CrashPlan = planCrash('both', false);
+  private crashPhaseNow: 'fpv' | 'cine' | 'replay' = 'fpv';
+  private feel = { roughness: 0.1, rumble: 0 };
+  /** 0..1 how tightly the rider is squeezed between two vehicles (lane splitting). */
+  private squeeze = 0;
+  /** Secondary impact sounds (strength 0..1) while the crash plays out. */
+  crashImpactCb: ((strength: number, kind: ImpactKind) => void) | null = null;
   readonly fx: FxState = defaultFx();
+  /** Resolved first-person options (re-read every frame, no allocation). */
+  readonly fpv = makeFpvOptions();
+  private readonly head = new HeadMotion();
+  private readonly headIn = makeHeadInput();
+  private readonly headPose = makeHeadPose();
+  /** Look-over-the-shoulder control (held), set by the game loop. */
+  lookBack = false;
+  private lookSide = 1;
+  private frameDt = 1 / 60;
+  private readonly mirrorHooks: MirrorHooks = {
+    before: (h, fov) => {
+      // A rider's elbows would fill the glass; the reflection shows the traffic, not the rider.
+      this.rider.root.visible = false;
+      this.glow.setViewportHeight(h, fov);
+      this.smoke.setViewportHeight(h, fov);
+    },
+    after: () => {
+      this.rider.root.visible = true;
+      this.glow.setViewportHeight(this.renderer.viewportHeight, this.cam.camera.fov);
+      this.smoke.setViewportHeight(this.renderer.viewportHeight, this.cam.camera.fov);
+    },
+  };
   private time = 0;
   private frontComp = 0;
   private frontVel = 0;
@@ -44,6 +88,8 @@ export class GameView {
   private rearVel = 0;
   private dashTimer = 0;
   private shiftAnim = 0;
+  /** Smoothed clutch lever pull (0..1): in on gear shifts and while slipping. */
+  private clutchVis = 0;
   private flash = 0;
   private redPulse = 0;
   private bikeVel = new THREE.Vector3();
@@ -79,11 +125,14 @@ export class GameView {
     scene.add(this.bike.root);
     this.rider = new RiderModel(this.mats, this.bike.livery, session.cfg.bike.style);
     this.bike.riderMount.add(this.rider.root);
+    this.mirrors = new MirrorRig(this.bike);
+    this.visor = new VisorFx(renderer.canvas.parentElement ?? document.body, renderer.canvas);
 
     this.cam = new CameraRig(renderer.aspect);
     this.cam.setMode('helmet');
     this.glow = new GlowPoints(2400, env.fog.near, env.fog.far * 1.1);
-    scene.add(this.glow.points, this.sparks.lines, this.smoke.points);
+    scene.add(this.glow.points, this.sparks.lines, this.smoke.points, this.skid.mesh);
+    this.sparks.ground = this.ground;
     if (env.rain) {
       this.rain = new Rain(q.rainDrops);
       scene.add(this.rain.lines);
@@ -94,6 +143,22 @@ export class GameView {
     this.world.prewarm(session.bike.s);
     this.placeBike(0.016);
     this.cam.startIntro(3);
+  }
+
+  /** Time scale of the simulation `t` real seconds after the crash (slow motion, replay pacing). */
+  crashTimeScale(t: number): number {
+    this.crashPlan = planCrash(this.crashMode(), this.session.cfg.mode.respawn);
+    return planTimeScale(this.crashPlan, t, this.fpv.crashSlowmo);
+  }
+
+  /** Real seconds of the crash sequence before the run ends (non-respawn modes). */
+  crashSequenceLength(): number {
+    return planCrash(this.crashMode(), this.session.cfg.mode.respawn).total;
+  }
+
+  /** The motion-comfort preset swaps the tumbling helmet view for the steadier external camera. */
+  private crashMode(): 'fpv' | 'cinematic' | 'both' {
+    return this.fpv.comfort === 'strong' ? 'cinematic' : this.fpv.crashCamera;
   }
 
   setCameraMode(m: CameraMode): void {
@@ -116,15 +181,22 @@ export class GameView {
       case 'land':
         this.frontVel -= 1.5 * e.impact + 0.4;
         this.cam.addTrauma(0.25 * e.impact);
+        this.head.jolt(e.impact);
         break;
       case 'nearMiss':
-        this.cam.addTrauma(0.18);
+        this.cam.addTrauma(0.1);
+        // Wind punch from the passing vehicle: bigger for heavy ones and for oncoming closing speed.
+        this.head.punch((0.55 + (e.car.arch.heavy ? 0.3 : 0) + (e.car.dir === -1 ? 0.25 : 0)) * this.fpv.nearMiss, -e.side);
+        break;
+      case 'pass':
+        if (e.clearance < 1.6 && this.session.bike.v > 18) this.head.punch((0.25 + (e.car.arch.heavy ? 0.25 : 0)) * (1 - e.clearance / 1.6) * this.fpv.nearMiss, -e.side);
         break;
       case 'hit':
-        this.startCrash(e.relSpeed, e.car.d < this.session.bike.d ? 1 : -1);
+        this.startCrash(e.relSpeed, e.car, null);
         break;
       case 'crash':
-        if (e.reason !== 'traffic') this.startCrash(this.session.bike.v, this.session.bike.d > 0 ? -1 : 1);
+        // A traffic crash starts with its own `hit` event; anything else (barrier, loop, debug) starts here.
+        this.startCrash(this.session.bike.v, null, e.reason);
         break;
       case 'respawn':
         this.endCrash();
@@ -135,17 +207,70 @@ export class GameView {
     }
   }
 
-  private startCrash(impactSpeed: number, hitSide: number): void {
+  private startCrash(impactSpeed: number, hit: TrafficCar | null, reason: 'barrier' | 'loop' | 'traffic' | null): void {
     if (this.crash) return;
-    const b = this.session.bike;
-    const yaw = this.session.road.yaw(b.s) - b.heading;
+    const sess = this.session;
+    const b = sess.bike;
+    const road = sess.road;
+    const yaw = road.yaw(b.s) - b.heading;
     const vel = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).multiplyScalar(b.v);
-    this.crash = new CrashSim(this.bike, this.rider, this.scene, vel, impactSpeed, b.lean, hitSide);
+    let car: CrashStart['car'] = null;
+    if (hit) {
+      this.world.worldPos(hit.s, hit.d, 0, _v);
+      car = { car: hit, pos: _v.clone(), yaw: road.yaw(hit.s) - hit.yaw, speed: hit.v };
+    }
+    let barrier: CrashStart['barrier'] = null;
+    if (reason === 'barrier') {
+      const side = b.d > 0 ? 1 : -1;
+      const lim = sess.limits.halfWidth;
+      const p = this.world.worldPos(b.s, side * (lim + 0.5), 0, new THREE.Vector3());
+      const q = this.world.worldPos(b.s, side * (lim + 1.5), 0, new THREE.Vector3());
+      barrier = { p, n: p.clone().sub(q).setY(0).normalize() };
+    }
+    this.crashClock = 0;
+    this.crashPlan = planCrash(this.crashMode(), sess.cfg.mode.respawn);
+    this.crashPhaseNow = crashPhase(this.crashPlan, 0);
+    this.crash = new CrashSim(
+      this.bike,
+      this.rider,
+      this.scene,
+      this.traffic,
+      { sparks: this.sparks, smoke: this.smoke, skid: this.skid },
+      {
+        vel,
+        pitchRate: b.pitchRate,
+        yawRate: b.yawRate,
+        leanRate: b.leanRate,
+        seed: (sess.cfg.seed * 7919 + Math.floor(b.s)) | 0,
+        grip: clamp(this.env.grip, 0.35, 1),
+        car,
+        barrier,
+        bikeMass: sess.cfg.bike.weight,
+        ground: this.ground,
+        plastic: new THREE.Color(this.bike.livery.primary),
+      },
+    );
+    this.crash.onImpact = (str, kind) => this.crashImpactCb?.(str, kind);
+    this.applyCrashPhase(true);
     this.cam.resetCrash();
     this.cam.addTrauma(1);
+    this.crackAmt = impactSpeed > 6 ? 1 : 0.6;
     this.flash = 0.9;
     this.redPulse = 1;
     this.smoke.emit(this.bike.root.position.x, 0.6 + this.bike.root.position.y, this.bike.root.position.z, vel.x * 0.2, 1, vel.z * 0.2, { n: 8, size: 1.4, life: 2, alpha: 0.4, shade: 0.8, spread: 3 });
+  }
+
+  /** Switch the crash camera phase (helmet / external / replay) and the matching body visibility. */
+  private applyCrashPhase(first = false): void {
+    const next = crashPhase(this.crashPlan, this.crashClock);
+    if (!first && next === this.crashPhaseNow) return;
+    this.crashPhaseNow = next;
+    this.rider.showBody(next !== 'fpv');
+    this.cam.resetCrash();
+    if (next === 'replay') {
+      this.crash?.restart();
+      this.flash = Math.max(this.flash, 0.5);
+    } else if (!first) this.flash = Math.max(this.flash, 0.3);
   }
 
   /** Free ride respawn: put the rider back on the bike. */
@@ -157,6 +282,9 @@ export class GameView {
     this.rider.root.position.set(0, 0, 0);
     this.rider.root.quaternion.identity();
     this.bike.root.rotation.set(0, 0, 0);
+    this.crackAmt = 0;
+    this.visor.reset();
+    this.skid.clear();
   }
 
   private ground = (x: number, z: number): number => {
@@ -167,6 +295,7 @@ export class GameView {
 
   private placeBike(dt: number): void {
     const b = this.session.bike;
+    this.clutchVis = damp(this.clutchVis, b.shiftTimer > 0 ? 1 : b.clutchSlip ? 0.55 : 0, b.shiftTimer > 0 ? 40 : 12, dt);
     const road = this.session.road;
     this.world.worldPos(b.s, b.d, 0, _v);
     this.bike.root.position.copy(_v);
@@ -192,6 +321,7 @@ export class GameView {
       frontComp: this.frontComp,
       rearComp: this.rearComp,
       brake: b.brake,
+      clutch: this.clutchVis,
       headlight: this.env.headlights,
       dt,
     });
@@ -204,12 +334,14 @@ export class GameView {
 
   update(dt: number, realDt: number): void {
     this.time += dt;
+    this.frameDt = realDt;
     const s = this.session;
     const b = s.bike;
     for (const shift of this.world.shiftEvents.splice(0)) {
       this.cam.shift(shift);
       this.sparks.shift(shift.x, shift.y, shift.z);
       this.smoke.shift(shift.x, shift.y, shift.z);
+      this.skid.shift(shift.x, shift.y, shift.z);
       this.crash?.shift(shift);
       this.lastBikePos.sub(shift);
     }
@@ -226,16 +358,23 @@ export class GameView {
         pitch: b.pitch,
         steer: clamp(b.heading * 3, -1, 1),
         shift: this.shiftAnim,
+        throttle: b.throttle,
+        clutch: this.clutchVis,
         dt,
       });
       this.shiftAnim = 0;
-      this.rider.setHeadVisible(this.cam.mode !== 'helmet');
+      // The pre-race orbit shows the whole rider; from the helmet only forearms and gloves.
+      const fp = this.cam.mode === 'helmet' && !this.cam.introActive;
+      this.rider.setHeadVisible(!fp);
+      this.rider.setFirstPerson(fp);
       // Track velocity for rain slant / audio
       _v.copy(this.bike.root.position);
       if (dt > 0) this.bikeVel.copy(_v).sub(this.lastBikePos).divideScalar(dt);
       this.lastBikePos.copy(_v);
     } else {
-      const impact = this.crash.update(dt, this.ground, this.sparks, this.smoke);
+      this.crashClock += realDt;
+      this.applyCrashPhase();
+      const impact = this.crash.update(dt);
       if (impact > 3) this.cam.addTrauma(Math.min(0.4, impact * 0.05));
       this.bikeVel.multiplyScalar(Math.exp(-2 * dt));
     }
@@ -258,28 +397,10 @@ export class GameView {
 
     // Camera
     if (this.crash) {
-      this.cam.crash(realDt, this.crash.focus, this.crash.yaw);
+      if (this.crashPhaseNow === 'fpv') this.cam.crashFpv(realDt, this.crash.head, this.crash.headQuat, this.crash.riderSpeed);
+      else this.cam.crash(realDt, this.crash.orbit, this.crash.yaw, this.crashPhaseNow === 'replay' ? this.crashClock - this.crashPlan.firstEnd : this.crashClock);
     } else {
-      this.rider.root.updateMatrixWorld(true);
-      const eye = _v.copy(this.rider.eye).applyMatrix4(this.rider.root.matrixWorld);
-      const eyeQ = new THREE.Quaternion();
-      this.rider.root.getWorldQuaternion(eyeQ);
-      eyeQ.multiply(this.rider.eyeQuat);
-      this.world.worldPos(b.s, b.d, 0, _v2);
-      this.cam.update({
-        dt: realDt,
-        bikePos: _v2,
-        yaw: s.road.yaw(b.s) - b.heading,
-        roadPitch: s.road.pitch(b.s),
-        lean: b.lean,
-        wheelie: b.pitch,
-        speed: b.v,
-        accel: b.accel,
-        rpmFrac: b.curve.kind === 'electric' ? 0.2 : b.rpm / s.cfg.bike.engine.redline,
-        eye,
-        eyeQuat: eyeQ,
-        shakeEnabled: this.settings.bool('cam.shake'),
-      });
+      this.updateHeadAndCamera(realDt);
     }
     const camPos = this.cam.camera.position;
     this.sky.follow(this.crash ? this.crash.focus : this.bike.root.position);
@@ -290,6 +411,7 @@ export class GameView {
     this.glow.begin();
     this.world.collectGlows(this.glow, camPos);
     this.traffic.update(dt, this.glow, camPos);
+    this.crash?.updateCarLights(this.traffic, this.glow, dt);
     if (!this.crash) {
       this.bike.chassis.updateMatrixWorld(true);
       _v.set(0, this.bike.frame.seatY + 0.08, 0.1).applyMatrix4(this.bike.chassis.matrixWorld);
@@ -318,16 +440,105 @@ export class GameView {
       this.bike.updateDash(clamp(frac, 0, 1), b.gear, sp, b.rpm > e.redline * 0.95, units);
     }
 
+    // Visor layer (rain beads, crack, edge shading)
+    const vs = this.visorState;
+    vs.active = !this.crash || this.crashPhaseNow === 'fpv';
+    vs.letterbox = this.crash && this.crashPhaseNow === 'replay' ? 1 : 0;
+    vs.rain = this.fpv.visorRain && this.env.rain ? 1 : 0;
+    vs.speed = b.v;
+    vs.side = clamp(b.lean * 0.9 + b.heading * 1.5, -1, 1);
+    vs.buffet = this.headPose.buffet;
+    vs.frame = this.fpv.visorFrame;
+    vs.crack = this.crackAmt;
+    this.visor.update(realDt, vs);
+
     // Post FX
     const speedK = smoothstep(28, 95, b.v);
     this.fx.blur = this.crash ? 0 : speedK * (this.cam.mode === 'helmet' ? 1 : 0.8);
     this.fx.aberration = this.crash ? 0.5 : speedK * 0.6;
-    this.fx.vignette = 0.25 + speedK * 0.45;
+    this.fx.vignette = 0.25 + speedK * 0.45 + this.squeeze * 0.2;
     this.flash = damp(this.flash, 0, 4, realDt);
     this.redPulse = damp(this.redPulse, 0, 1.5, realDt);
     this.fx.flash = this.flash * 0.6;
-    this.fx.desat = this.crash ? clamp(this.crash ? 0.35 : 0, 0, 0.5) : 0;
+    this.fx.desat = this.crash ? (this.crashPhaseNow === 'fpv' ? 0.28 : 0.15) : 0;
     this.fx.tint.set(this.redPulse * 0.5, 0, 0);
+  }
+
+  /** Surface roughness / rumble strip contact from the lateral position on the road. */
+  private surfaceFeel(): { roughness: number; rumble: number } {
+    const out = this.feel;
+    const b = this.session.bike;
+    const hw = pavedHalfWidth(this.session.lanes);
+    const a = Math.abs(b.d);
+    const rumble = smoothstep(hw - 1.25, hw - 0.5, a);
+    const rough = this.env.id.endsWith(':snow') ? 0.35 : 0.1 + (this.env.wet ? 0.02 : 0);
+    out.roughness = a > hw ? 0.9 : rough + rumble * 0.25;
+    out.rumble = rumble;
+    return out;
+  }
+
+  /** Lane splitting: traffic close on both sides at once (≤ 2.6 m of clearance) squeezes the view and shakes the helmet. */
+  private updateSqueeze(dt: number): void {
+    const b = this.session.bike;
+    const hw = this.session.playerHalfWidth;
+    let left = 9;
+    let right = 9;
+    for (const c of this.session.traffic.cars) {
+      if (Math.abs(c.s - b.s) > c.length / 2 + 2.5) continue;
+      const gap = Math.abs(c.d - b.d) - c.width / 2 - hw;
+      if (c.d < b.d) left = Math.min(left, gap);
+      else right = Math.min(right, gap);
+    }
+    const worst = Math.max(left, right);
+    const target = b.v > 8 ? Math.max(0, 1 - Math.max(0, worst) / 2.6) * (left < 9 && right < 9 ? 1 : 0) : 0;
+    this.squeeze = damp(this.squeeze, target, target > this.squeeze ? 8 : 3, dt);
+  }
+
+  /** Head dynamics → helmet camera (first-person view). */
+  private updateHeadAndCamera(realDt: number): void {
+    const b = this.session.bike;
+    const s = this.session;
+    const f = readFpvOptions(this.settings, this.fpv);
+    this.updateSqueeze(realDt);
+    this.mirrors.configure(f.mirrors, f.mirrorHz);
+    const hi = this.headIn;
+    const feel = this.surfaceFeel();
+    hi.speed = b.v;
+    hi.lean = b.lean;
+    hi.leanRate = b.leanRate;
+    hi.accel = b.accel;
+    hi.pitch = b.pitch;
+    hi.yawRate = b.yawRate;
+    hi.rpmFrac = b.curve.kind === 'electric' ? 0.2 : clamp(b.rpm / s.cfg.bike.engine.redline, 0, 1.2);
+    hi.roughness = feel.roughness;
+    hi.rumble = feel.rumble;
+    hi.turbulence = Math.min(1, s.wake.turbulence + this.squeeze * 0.4);
+    const style = s.cfg.bike.style;
+    hi.tuckStyle = style === 'sport' || style === 'hyper' ? 1 : style === 'naked' ? 0.55 : style === 'adventure' ? 0.2 : 0;
+    // Look over the shoulder: auto picks the side the rider is steering towards.
+    if (this.lookBack && f.lookBackSide === 'auto' && hi.lookBack < 0.5) this.lookSide = b.heading + b.lean * 0.3 > 0.04 ? -1 : 1;
+    else if (f.lookBackSide !== 'auto') this.lookSide = f.lookBackSide === 'left' ? 1 : -1;
+    hi.lookBack = this.lookBack ? 1 : 0;
+    hi.lookBackSide = this.lookSide;
+    this.head.step(realDt, hi, f, this.headPose);
+    this.bike.chassis.updateMatrixWorld(true);
+    this.world.worldPos(b.s, b.d, 0, _v2);
+    this.cam.update({
+      dt: realDt,
+      bikePos: _v2,
+      yaw: s.road.yaw(b.s) - b.heading,
+      roadPitch: s.road.pitch(b.s),
+      lean: b.lean,
+      wheelie: b.pitch,
+      speed: b.v,
+      accel: b.accel,
+      rpmFrac: hi.rpmFrac,
+      chassis: this.bike.chassis.matrixWorld,
+      eyeLocal: this.bike.frame.eye,
+      head: this.headPose,
+      baseFov: f.fov,
+      shake: f.shake,
+    });
   }
 
   private onLightning(delay: number): void {
@@ -366,6 +577,7 @@ export class GameView {
   render(): void {
     this.cam.camera.aspect = this.renderer.aspect;
     this.cam.camera.updateProjectionMatrix();
+    if (!this.crash) this.mirrors.render(this.renderer.renderer, this.scene, this.cam.camera.position, this.frameDt, this.mirrorHooks, this.lookBack);
     this.renderer.render(this.scene, this.cam.camera, this.fx);
   }
 
@@ -382,6 +594,12 @@ export class GameView {
       else if (mat) mats.add(mat);
     });
     this.crash?.dispose();
+    this.mirrors.dispose();
+    this.visor.dispose();
+    this.skid.dispose();
+    this.sparks.dispose();
+    this.smoke.dispose();
+    this.rider.dispose();
     this.world.dispose();
     this.bike.dispose();
     this.sky.dispose();

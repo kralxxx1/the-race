@@ -50,6 +50,9 @@ export class KitContext {
       rearWheel,
       rearSpokes: rearWheel.clone(),
       swingarm: new THREE.Matrix4().makeTranslation(...hp.pivot),
+      // Lever groups default to the steering frame; `leverFrame` re-pivots them.
+      leverBrake: steer.clone(),
+      leverClutch: steer.clone(),
     };
     this.sinks = {} as Record<GroupName, GroupSink>;
     for (const g of GROUPS) this.sinks[g] = new GroupSink(g, this.rest[g]);
@@ -57,6 +60,21 @@ export class KitContext {
     this.steerInv = steer.clone().invert();
     const tex = q.tex;
     this.decals = new DecalAtlas(tex, tex >> 1);
+  }
+
+  /**
+   * Give a lever group its own pivot frame (bike space, rest pose): origin at the pivot, x along the
+   * bar, y up, z rearwards. Geometry added to the group afterwards is authored in that frame, and the
+   * frame is exported as anchors so the bike model can rotate the blade about its pivot.
+   */
+  leverFrame(group: 'leverBrake' | 'leverClutch', pivot: THREE.Vector3, bar: THREE.Vector3, up: THREE.Vector3, fwd: THREE.Vector3): void {
+    const m = new THREE.Matrix4().makeBasis(bar, up, fwd.clone().negate());
+    m.setPosition(pivot);
+    this.rest[group] = m;
+    this.sinks[group] = new GroupSink(group, m);
+    this.anchors.set(`${group}:o`, [pivot.x, pivot.y, pivot.z]);
+    this.anchors.set(`${group}:x`, [bar.x, bar.y, bar.z]);
+    this.anchors.set(`${group}:y`, [up.x, up.y, up.z]);
   }
 
   /** Add geometry given in bike space (rest pose). */

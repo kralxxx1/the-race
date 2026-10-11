@@ -17,6 +17,13 @@ const _e = new THREE.Euler();
 const _s = new THREE.Vector3();
 const _t = new THREE.Vector3();
 
+/** A traffic car taken over by the crash simulation. */
+export interface CrashVehicle {
+  obj: VehicleObject;
+  wheels: THREE.Mesh[];
+  car: TrafficCar;
+}
+
 interface Bound {
   car: TrafficCar;
   obj: VehicleObject;
@@ -113,6 +120,76 @@ export class TrafficView {
 
   clear(): void {
     for (const b of [...this.bound.values()]) this.despawn(b.car);
+  }
+
+  // ───────────────────────────── crash proxy ─────────────────────────────
+
+  /**
+   * Take a traffic car out of the normal traffic pass so the crash simulation can drive its body
+   * (and its own wheel meshes) directly. Returns null when the car has no visual yet.
+   */
+  detachForCrash(car: TrafficCar): CrashVehicle | null {
+    const b = this.bound.get(car.id);
+    if (!b) return null;
+    this.bound.delete(car.id);
+    const obj = b.obj;
+    obj.group.visible = true;
+    obj.group.matrixAutoUpdate = true;
+    const wheels = obj.set.wheels.map((w) => {
+      const m = new THREE.Mesh(this.wheels.geometry, this.vm.wheel);
+      m.scale.set(0.24, w.r, w.r);
+      m.position.set(w.x, w.y, w.z);
+      m.castShadow = true;
+      obj.group.add(m);
+      return m;
+    });
+    return { obj, wheels, car };
+  }
+
+  /** Brake / hazard lights and their glows for a crashed vehicle; call once per frame. */
+  crashVehicleLights(cv: CrashVehicle, hazard: boolean, braking: boolean, glow: GlowPoints): void {
+    const vm = this.vm;
+    const m = cv.obj.meshes;
+    const night = this.env.headlights;
+    const blink = Math.sin(this.time * Math.PI * 2 * 1.4) > 0;
+    if (m.tail) m.tail.material = braking ? vm.tailBrake : night ? vm.tailNight : vm.tailOff;
+    if (m.head) m.head.material = night ? vm.headOn : vm.headOff;
+    const on = hazard && blink;
+    if (m.indL) m.indL.material = on ? vm.indOn : vm.indOff;
+    if (m.indR) m.indR.material = on ? vm.indOn : vm.indOff;
+    cv.obj.group.updateMatrixWorld(true);
+    const mw = cv.obj.group.matrixWorld;
+    const set = cv.obj.set;
+    if (night) for (const g of set.headGlow) {
+      _t.copy(g).applyMatrix4(mw);
+      glow.add(_t.x, _t.y, _t.z, 1.6, 1.5, 1.3, 1.9);
+    }
+    const tailI = braking ? 1.6 : night ? 0.7 : 0;
+    if (tailI > 0) for (const g of set.tailGlow) {
+      _t.copy(g).applyMatrix4(mw);
+      glow.add(_t.x, _t.y, _t.z, 1.5 * tailI, 0.08 * tailI, 0.05 * tailI, braking ? 1.4 : 0.9);
+    }
+    if (on) {
+      for (const g of set.indicatorGlowL) {
+        _t.copy(g).applyMatrix4(mw);
+        glow.add(_t.x, _t.y, _t.z, 1.4, 0.7, 0.05, 0.8);
+      }
+      for (const g of set.indicatorGlowR) {
+        _t.copy(g).applyMatrix4(mw);
+        glow.add(_t.x, _t.y, _t.z, 1.4, 0.7, 0.05, 0.8);
+      }
+    }
+  }
+
+  /** Return a crash proxy to the pool (after a respawn or at the end of the run). */
+  releaseCrashVehicle(cv: CrashVehicle): void {
+    for (const w of cv.wheels) cv.obj.group.remove(w);
+    cv.obj.group.visible = false;
+    cv.obj.group.position.set(0, 0, 0);
+    cv.obj.group.quaternion.identity();
+    const pool = this.pools.get(cv.car.kind) ?? [];
+    pool.push(cv.obj);
+    this.pools.set(cv.car.kind, pool);
   }
 
   /** Position every vehicle and push light glows. */

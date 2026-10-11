@@ -7,6 +7,7 @@ import { BikePhysics, neutralInput, type PhysicsEvent, type RiderInput, type Roa
 import { RoadPath, laneCenter, makeLaneConfig, pavedHalfWidth, type LaneConfig } from '../world/road';
 import { TrafficSystem, type TrafficCar, type TrafficEvent } from '../world/traffic';
 import { MissionTracker, emptySample, type MissionFailReason, type MissionSample } from './missions';
+import { computeWake, type WakeResult } from './wake';
 import { NEAR_MISS_CLEARANCE, ScoreKeeper } from './scoring';
 
 export const FIXED_DT = 1 / 120;
@@ -73,6 +74,8 @@ export class GameSession {
   crashedInto: TrafficCar | null = null;
   finishReason: FinishReason | null = null;
   events: SessionEvent[] = [];
+  /** Wake of passing vehicles: lateral shove applied to the bike (m/s) and smoothed camera turbulence 0..1. */
+  readonly wake: WakeResult = { push: 0, turbulence: 0 };
   /** Objective tracker of a career run (null in free modes). */
   readonly mission: MissionTracker | null;
   private acc = 0;
@@ -207,6 +210,7 @@ export class GameSession {
     const s0 = bike.distance;
     bike.draft = this.computeDraft();
     bike.step(dt, input, this.road, this.limits);
+    if (running && !bike.crashed) this.applyWake(dt);
     for (const e of bike.events) this.events.push(e);
     bike.events.length = 0;
 
@@ -235,6 +239,19 @@ export class GameSession {
       }
     }
   }
+
+  /** Turbulence of passing traffic: a deterministic lateral shove plus the camera's buffeting level. */
+  private applyWake(dt: number): void {
+    const bike = this.bike;
+    const w = computeWake(bike.s, bike.d, bike.v, this.traffic.cars, this.wakeRaw);
+    // Eased in/out so a passing vehicle pushes like a gust, not a step.
+    this.wake.push += (w.push - this.wake.push) * Math.min(1, dt * 7);
+    this.wake.turbulence += (w.turbulence - this.wake.turbulence) * Math.min(1, dt * 5);
+    const lim = this.limits.halfWidth;
+    bike.d = clamp(bike.d + this.wake.push * dt * smoothstep(4, 12, bike.v), -lim, lim);
+  }
+
+  private readonly wakeRaw: WakeResult = { push: 0, turbulence: 0 };
 
   private computeDraft(): number {
     const bike = this.bike;
