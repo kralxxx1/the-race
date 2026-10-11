@@ -21,32 +21,40 @@ function insideSection(ob: OutlineBody, z: number, x: number, y: number): boolea
 }
 
 /**
+ * z where a ray travelling rearwards (+z) at front-view point (x, y) first enters the
+ * body, or null when it misses. Coarse march (≈1.5 cm steps over the front 0.9 m, where
+ * faces, lamps and ducts live) then bisection.
+ */
+export function frontZ(ob: OutlineBody, x: number, y: number): number | null {
+  const zs = ob.zs;
+  const z0 = zs[0], z1 = zs[zs.length - 1];
+  if (insideSection(ob, z0, x, y)) return z0;
+  const span = Math.min(0.9, z1 - z0);
+  const steps = 60;
+  let prev = z0;
+  for (let i = 1; i <= steps; i++) {
+    const z = z0 + (span * i) / steps;
+    if (insideSection(ob, z, x, y)) {
+      let lo = prev, hi = z;
+      for (let k = 0; k < 14; k++) {
+        const mid = (lo + hi) / 2;
+        if (insideSection(ob, mid, x, y)) hi = mid;
+        else lo = mid;
+      }
+      return hi;
+    }
+    prev = z;
+  }
+  return null;
+}
+
+/**
  * Where a ray travelling rearwards (+z) at front-view point (x, y) first meets the body
  * surface, with the outward surface normal there. Used to sit lamps, ducts and badges
  * flush on a curved nose. Returns null when the ray misses the body.
  */
 export function frontHit(ob: OutlineBody, x: number, y: number): { p: P3; n: P3 } | null {
-  const zs = ob.zs;
-  const z0 = zs[0], z1 = zs[zs.length - 1];
-  const zAt = (xx: number, yy: number): number | null => {
-    const steps = 160;
-    let prev = z0;
-    if (insideSection(ob, z0, xx, yy)) return z0;
-    for (let i = 1; i <= steps; i++) {
-      const z = z0 + ((z1 - z0) * i) / steps;
-      if (insideSection(ob, z, xx, yy)) {
-        let lo = prev, hi = z;
-        for (let k = 0; k < 18; k++) {
-          const mid = (lo + hi) / 2;
-          if (insideSection(ob, mid, xx, yy)) hi = mid;
-          else lo = mid;
-        }
-        return hi;
-      }
-      prev = z;
-    }
-    return null;
-  };
+  const zAt = (xx: number, yy: number) => frontZ(ob, xx, yy);
   const z = zAt(x, y);
   if (z === null) return null;
   const d = 0.004;
@@ -171,7 +179,7 @@ export function ductLiner(ctx: KitContext, ob: OutlineBody, loop: readonly P2[],
   }
   const m = new MeshData();
   const rings = 4;
-  const front = loop.map(([x, y]) => frontHit(ob, x, y)?.p[2] ?? zBack);
+  const front = loop.map(([x, y]) => frontZ(ob, x, y) ?? zBack);
   for (let r = 0; r <= rings; r++) {
     const t = r / rings;
     for (let i = 0; i < n; i++) {

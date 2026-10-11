@@ -196,7 +196,7 @@ const SILVER = '#c3c7cd';
 
 function lettering(p: Pen, main: string, accent: string): void {
   if (p.view !== 'right' && p.view !== 'left') return;
-  p.text('GSX-R', -0.88, 0.5, { color: main, size: 0.075, italic: true, weight: '900', stretch: 1.15 });
+  p.text('GSX-R', -0.925, 0.445, { color: main, size: 0.068, italic: true, weight: '900', stretch: 1.05 });
   p.text('SUZUKI', -1.42, 0.79, { color: main, size: 0.032, italic: true, weight: '900', spacing: 0.04 });
   p.text('1000R', -0.08, 0.89, { color: accent, size: 0.024, italic: true, weight: '800' });
 }
@@ -303,6 +303,6 @@ export function gsxrBlueprint(spec: BikeSpec): BikeBlueprint {
     livery,
     groundClearance: 0.13,
     features: [],
-    zones: { splitY: 0.4, decal: [-0.88, 0.5] },
+    zones: { splitY: 0.4, decal: [-0.925, 0.445] },
   };
 }
