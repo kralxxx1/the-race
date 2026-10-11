@@ -42,7 +42,7 @@ export interface WheelEnd {
   tread?: TreadStyle;
 }
 
-export type TreadStyle = 'slickish' | 'sport' | 'touring' | 'dual' | 'knobbly' | 'scooter' | 'cruiser';
+export type TreadStyle = 'slick' | 'slickish' | 'sport' | 'touring' | 'dual' | 'knobbly' | 'scooter' | 'cruiser';
 
 export interface BrakeSpec {
   discs: 0 | 1 | 2;

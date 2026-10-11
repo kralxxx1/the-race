@@ -153,7 +153,8 @@ export function tyreTextures(size: string, label: string, tread: TreadStyle, px:
     }
   };
   const reps = tread === 'knobbly' ? 48 : tread === 'dual' ? 36 : tread === 'touring' || tread === 'cruiser' ? 40 : tread === 'scooter' ? 30 : 18;
-  for (let i = 0; i < reps; i++) {
+  // Racing slicks (track-only bikes) have no grooves at all.
+  for (let i = 0; i < reps && tread !== 'slick'; i++) {
     const x = (i / reps) * W;
     const step = W / reps;
     if (tread === 'slickish') {
