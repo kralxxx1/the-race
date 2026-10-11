@@ -113,6 +113,8 @@ export interface FaceLamp {
   opts: LampOpts;
   /** Extra tilt of the lamp face towards straight ahead (0 = on the surface, 1 = facing −z). */
   square?: number;
+  /** One lamp on the centre line (outline spans both sides) instead of a mirrored pair. */
+  single?: boolean;
 }
 
 /**
@@ -122,7 +124,7 @@ export interface FaceLamp {
 export function faceLamps(ob: OutlineBody, l: FaceLamp): { hole: Field; add: (ctx: KitContext, group: GroupName) => void } {
   const frames: { m: THREE.Matrix4; out: P2[] }[] = [];
   const holes: Field[] = [];
-  for (const s of [1, -1]) {
+  for (const s of l.single ? [1] : [1, -1]) {
     const hit = frontHit(ob, s * l.at[0], l.at[1]);
     if (!hit) continue;
     const sq = l.square ?? 0.35;

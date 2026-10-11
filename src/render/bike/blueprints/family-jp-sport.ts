@@ -1,6 +1,7 @@
 import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
 import { firebladeBlueprint } from './family-jp-sport-fireblade';
+import { gsxrBlueprint } from './family-jp-sport-gsxr';
 import { r6Blueprint } from './family-jp-sport-r6';
 
 /**
@@ -11,4 +12,5 @@ import { r6Blueprint } from './family-jp-sport-r6';
 export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'honda-cbr1000rr-r': firebladeBlueprint,
   'yamaha-r6': r6Blueprint,
+  'suzuki-gsxr1000r': gsxrBlueprint,
 };
