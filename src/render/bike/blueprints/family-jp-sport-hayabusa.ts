@@ -107,7 +107,7 @@ function body(ctx: KitContext): void {
   addPanel(ctx, 'chassis', bodyCut, fAnd(fNot(cowl), fNot(belly)), PAINT, 0.003, 0.014);
   addPanel(ctx, 'chassis', bodyCut, fAnd(belly, fNot(cowl)), PAINT, 0.003, 0.014);
   // Side exit: chrome surround, dark wall and three vertical gills.
-  trimLoop(ctx, ob, EXIT, 0.0045);
+  trimLoop(ctx, ob, EXIT, 0.0035, vary(F.polishedAlu, { rough: 0.18 }));
   ductWall(ctx, ob, EXIT.map(([z, y]) => [z + (z < -1.18 ? -0.01 : 0.01), y + (y > 0.6 ? 0.01 : -0.01)] as P2), -1.18, 0.6, 0.045);
   for (let i = 0; i < 3; i++) {
     const z0 = -1.29 + i * 0.07;
