@@ -50,8 +50,9 @@ describe('Kawasaki sport family blueprints', () => {
   it('the H2R is the track-only bike: no mirrors, no lights, slicks, megaphone', () => {
     const bp = blueprintFor(getBike('kawasaki-h2r'));
     expect(bp.cockpit.mirrors).toBe('none');
-    expect(bp.front.tread).toBe('slickish');
-    expect(bp.exhaust.can).toBe('megaphone');
+    expect(bp.front.tread).toBe('slick');
+    expect(bp.rear.tread).toBe('slick');
+    expect(bp.exhaust.side).toBe('right');
     expect(bp.engine.supercharger).toBe(true);
     expect(bp.swingarm.type).toBe('singleSided');
   });

@@ -6,7 +6,7 @@ import { hugger } from '../kit/rear';
 import { curve, outlineLoft, sideAt, stationsBetween, surfaceAt, type OutlineBody } from '../kit/shape';
 import { ALL_VIEWS, type LiveryCanvas, type LiveryEnv, type Pen } from '../livery';
 import { extrude, lathe, smooth2, type P2 } from '../mesh';
-import { F, hard, tint } from '../sink';
+import { F, hard, tint, vary } from '../sink';
 import { cut, fAnd, fNot, frontRegion, planRegion, sideRegion, type Field } from '../surface';
 import type { BikeBlueprint } from '../types';
 
@@ -25,6 +25,8 @@ import type { BikeBlueprint } from '../types';
  */
 
 const NOSE = -1.69;
+/** Length of the open megaphone cone added behind the short inlet can. */
+const MEGAPHONE_LENGTH = 0.24;
 const SCREEN_BASE = -1.55;
 const SCREEN_TOP_Z = -1.17;
 
@@ -195,21 +197,34 @@ function body(ctx: KitContext): void {
   ctx.add('chassis', outlineLoft(ut, { su: ctx.seg(5, 2), sv: ctx.seg(3, 2) }), F.texturedBlack);
   frontFender(ctx, { from: -0.66, to: 0.8, gap: 0.02, width: 0.15, f: F.carbon });
   hugger(ctx, F.carbon);
-  // Open megaphone: polished rim and a dark throat over the end of the kit silencer.
+  // Open megaphone: the kit builds the short cylindrical inlet can; the polished cone flares
+  // out from its end to a wide open mouth with a dark, baffle-free throat.
   const out = ctx.anchors.get('exhaustOutlet');
   if (out) {
     const ex = ctx.bp.exhaust;
     const lowY = Math.max(0.15, (ctx.bp.groundClearance ?? 0.13) + 0.04);
     const pv = ctx.hp.pivot;
+    // Same can axis as the kit's side-can route (link start → outlet).
     const s0 = new THREE.Vector3(0.15, lowY + 0.14, pv[2] + 0.02);
     const B = new THREE.Vector3(...out);
     const d = B.clone().sub(s0).normalize();
-    const r = ex.canDia / 2;
+    const r0 = ex.canDia / 2;
+    const L = MEGAPHONE_LENGTH;
+    const r1 = r0 * 1.55;
     const q4 = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
-    const m = new THREE.Matrix4().compose(B.clone().addScaledVector(d, 0.001), q4, new THREE.Vector3(1, 1, 1));
-    const segs = ctx.seg(28, 12);
-    ctx.add('chassis', lathe([[r * 0.86, -0.004], [r * 1.005, -0.004], [r * 1.02, 0.004], [r * 0.9, 0.006], [r * 0.84, 0.0]], { segs, axis: 'y' }), F.polishedAlu, m);
-    ctx.add('chassis', lathe([[r * 0.86, 0.0], [r * 0.6, -0.08], [0, -0.1]], { segs, axis: 'y' }), hard('#0a0a0a', 0.2, 0.85), m);
+    const segs = ctx.seg(32, 14);
+    const base = new THREE.Matrix4().compose(B.clone().addScaledVector(d, -0.03), q4, new THREE.Vector3(1, 1, 1));
+    const cone: P2[] = [];
+    for (let i = 0; i <= 8; i++) {
+      const t = i / 8;
+      // Gentle trumpet curve: slow growth first, flaring towards the mouth.
+      cone.push([r0 * 1.01 + (r1 - r0 * 1.01) * Math.pow(t, 1.6), t * L]);
+    }
+    ctx.add('chassis', lathe(cone, { segs, axis: 'y' }), vary(F.steel, { rough: 0.16 }), base);
+    const m = mul(base, T(0, L, 0));
+    ctx.add('chassis', lathe([[r1 * 0.9, -0.002], [r1 * 1.005, -0.002], [r1 * 1.02, 0.004], [r1 * 0.93, 0.007], [r1 * 0.88, 0.0]], { segs, axis: 'y' }), F.polishedAlu, m);
+    ctx.add('chassis', lathe([[r1 * 0.9, 0.0], [r1 * 0.62, -0.09], [r0 * 0.5, -0.16], [0, -0.17]], { segs, axis: 'y' }), hard('#0a0a0a', 0.2, 0.85), m);
+    ctx.anchor('exhaustOutlet', [B.x + d.x * (L - 0.03), B.y + d.y * (L - 0.03), B.z + d.z * (L - 0.03)]);
   }
   // Cowl fasteners (Dzus-style race fasteners)
   if (ctx.micro) {
@@ -262,8 +277,8 @@ export function ninjaH2RBlueprint(spec: BikeSpec): BikeBlueprint {
     rakeDeg: 25.1,
     trail: 0.108,
     forkLength: 0.73,
-    front: { tyre: '120/70ZR17', rimWidthIn: 3.5, crown: 0.78, tread: 'slickish', tyreLabel: 'Racing Slick' },
-    rear: { tyre: '190/55ZR17', rimWidthIn: 6.0, crown: 0.86, tread: 'slickish', tyreLabel: 'Racing Slick' },
+    front: { tyre: '120/70ZR17', rimWidthIn: 3.5, crown: 0.78, tread: 'slick', tyreLabel: 'Racing Slick' },
+    rear: { tyre: '190/55ZR17', rimWidthIn: 6.0, crown: 0.86, tread: 'slick', tyreLabel: 'Racing Slick' },
     frontWheel: { type: 'cast', spokes: 5, shape: 'split', color: '#17181b', machinedLip: true },
     rearWheel: { type: 'cast', spokes: 5, shape: 'split', color: '#17181b', machinedLip: true },
     fork: { type: 'usd', stanchion: 0.043, spacing: 0.21, outerColor: '#2a2c30', innerColor: '#c4a560', footColor: '#1e1f22', capColor: '#2a2c30', adjusterColor: '#c99a2c', label: 'AOS-II', labelColor: '#d8d8d8', aboveClamp: 0.012, clampGap: 0.2 },
@@ -290,8 +305,8 @@ export function ninjaH2RBlueprint(spec: BikeSpec): BikeBlueprint {
       supercharger: true,
       width: 0.42,
     },
-    // Short, fat, open megaphone (no baffles) on the right.
-    exhaust: { route: 'sideCan', side: 'right', can: 'megaphone', canLength: 0.4, canDia: 0.155, canFinish: 'steel', headerFinish: 'steel', outlet: [0.185, 0.5, 0.0] },
+    // Short inlet can + open megaphone cone (added in body()) on the right.
+    exhaust: { route: 'sideCan', side: 'right', can: 'round', canLength: 0.2, canDia: 0.105, canFinish: 'steel', headerFinish: 'steel', outlet: [0.18, 0.44, -0.17] },
     cockpit: {
       bars: 'clipon',
       grip: [0.33, 0.9, -0.995],
