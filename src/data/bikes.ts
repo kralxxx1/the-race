@@ -441,7 +441,10 @@ export const BIKES: BikeSpec[] = [
     id: 'kawasaki-z900', brand: 'Kawasaki', model: 'Z900', year: 2024, style: 'naked',
     engine: { layout: 'I4', cc: 948, hp: 125, hpRpm: 9500, torque: 98.6, torqueRpm: 7700, idle: 1100, redline: 11000 },
     weight: 212, topSpeed: 240, price: 9400,
-    liveries: [livery('Metallic Spark Black', '#1b1c1f', '#3a3c40', '#5fd02c', { frame: '#5fd02c' }), livery('Candy Lime Green', '#4fb81f', BLK, W)],
+    liveries: [
+      livery('Metallic Spark Black / Metallic Matte Graphenesteel Gray', '#1b1c1f', '#3d4045', '#5fd02c', { frame: '#5fd02c', suit: [BLK, '#5fd02c'] }),
+      livery('Candy Lime Green / Metallic Spark Black', '#4fb81f', BLK, W, { frame: '#1b1c1f' }),
+    ],
     look: { extras: ['trellis'] },
     voice: { resonance: 430, brightness: 0.65 },
     description: 'Sugomi tasarımı ve emme sesi tuned sıralı dört.',
