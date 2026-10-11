@@ -401,7 +401,7 @@ export const BIKES: BikeSpec[] = [
     id: 'kawasaki-h2r', brand: 'Kawasaki', model: 'Ninja H2R', year: 2024, style: 'hyper',
     engine: { layout: 'I4', cc: 998, hp: 310, hpRpm: 14000, torque: 165, torqueRpm: 12500, idle: 1100, redline: 14500, supercharged: true },
     quickshifter: true, weight: 216, topSpeed: 400, price: 56000,
-    liveries: [livery('Carbon / Mirror Black', '#1b1c1f', '#3a3c40', '#5fd02c', { pattern: 'chrome', frame: '#5fd02c' })],
+    liveries: [livery('Mirror Coated Matte Spark Black / Carbon', '#8e949c', '#1b1c1f', '#5fd02c', { pattern: 'chrome', frame: '#5fd02c', suit: ['#1b1c1f', '#5fd02c'] })],
     look: { extras: ['trellis', 'supercharger', 'winglets', 'singleSided'] },
     voice: { resonance: 500, brightness: 0.95, loudness: 3, crackle: 0.9 },
     description: 'Sadece pist: 310 beygir, karbon kanatlar ve 400 km/s.',
