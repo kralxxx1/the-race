@@ -567,7 +567,10 @@ export const BIKES: BikeSpec[] = [
     id: 'bmw-m1000rr', brand: 'BMW', model: 'M 1000 RR', year: 2024, style: 'sport',
     engine: { layout: 'I4', cc: 999, hp: 212, hpRpm: 14500, torque: 113, torqueRpm: 11000, idle: 1250, redline: 15100 },
     quickshifter: true, weight: 192, topSpeed: 314, price: 33000,
-    liveries: [livery('M Motorsport Carbon', W, '#1c69d4', '#d1001f', { pattern: 'tricolor', wheel: '#2a2b2f', suit: [W, '#1c69d4'] })],
+    liveries: [
+      livery('Light White / M Motorsport', W, '#1c4fa8', '#d1001f', { pattern: 'tricolor', wheel: '#141517', suit: [W, '#1c4fa8'] }),
+      livery('Blackstorm Metallic / M Motorsport', '#17181b', '#2b8be0', '#d1001f', { pattern: 'tricolor', wheel: '#141517', suit: [BLK, '#2b8be0'] }),
+    ],
     look: { extras: ['winglets', 'bellypan'], wheel: 'cast7' },
     voice: { resonance: 560, brightness: 0.88 },
     description: 'M bölümünün homologasyon canavarı; karbon kanatlarla.',
