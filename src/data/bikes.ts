@@ -829,7 +829,10 @@ export const BIKES: BikeSpec[] = [
     id: 'cfmoto-800nk', brand: 'CFMoto', model: '800NK', year: 2024, style: 'naked',
     engine: { layout: 'P2_270', cc: 799, hp: 95, hpRpm: 9250, torque: 81, torqueRpm: 8000, idle: 1300, redline: 10000 },
     weight: 200, topSpeed: 220, price: 8500,
-    liveries: [livery('Nebula Black', '#17181b', '#2c2e33', '#00b7c2', { wheel: '#00b7c2' }), livery('Zircon Black / Orange', '#17181b', '#ff6a13', W)],
+    liveries: [
+      livery('Nebula Black', '#17181b', '#2c2e33', '#00b7c2', { wheel: '#17181b', frame: '#2a2c30', suit: [BLK, '#00b7c2'] }),
+      livery('Zircon Black / Orange', '#17181b', '#ff6a13', W, { wheel: '#17181b', frame: '#ff6a13', suit: [BLK, '#ff6a13'] }),
+    ],
     look: { headlight: 'ledBar' },
     description: 'KTM kökenli 799 cc ikili ve agresif tasarım.',
   }),

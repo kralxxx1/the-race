@@ -13,6 +13,7 @@ const SPEC: Record<string, { wheelbase: number; rake: number; trail: number; sea
   'yamaha-mt07': { wheelbase: 1.4, rake: 24.8, trail: 0.09, seat: 0.805, front: '120/70ZR17', rear: '180/55ZR17' },
   'kawasaki-z900': { wheelbase: 1.45, rake: 24.9, trail: 0.11, seat: 0.8, front: '120/70ZR17', rear: '180/55ZR17' },
   'suzuki-sv650': { wheelbase: 1.445, rake: 25, trail: 0.106, seat: 0.785, front: '120/70ZR17', rear: '160/60ZR17' },
+  'cfmoto-800nk': { wheelbase: 1.465, rake: 24.5, trail: 0.1, seat: 0.795, front: '120/70ZR17', rear: '180/55ZR17' },
 };
 
 describe('Japanese naked-bike blueprints', () => {
