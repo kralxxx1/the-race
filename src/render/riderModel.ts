@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { BikeStyle, Livery } from '../data/bikes';
 import { clamp, damp, lerp, smoothstep } from '../core/math';
 import type { BikeModel } from './bikeModel';
+import { buildGlove, type GloveParts } from './fpv/hands';
 import type { Materials } from './materials';
 
 const UPPER_ARM = 0.3;
@@ -16,6 +17,10 @@ const _c = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const _m = new THREE.Matrix4();
 const UP = new THREE.Vector3(0, 1, 0);
+const RIGHT = new THREE.Vector3(1, 0, 0);
+const _m2 = new THREE.Matrix4();
+const _q2 = new THREE.Quaternion();
+const _s = new THREE.Vector3();
 
 /** Analytic two-bone IK. Writes the middle joint into `outMid` and the reached end into `outEnd`. */
 export function solveTwoBone(
@@ -93,6 +98,10 @@ export interface RideParams {
   steer: number;
   /** -1 downshift, +1 upshift, 0 none: triggers the foot animation. */
   shift: number;
+  /** 0..1 right-hand throttle twist. */
+  throttle?: number;
+  /** 0..1 clutch lever pull. */
+  clutch?: number;
   dt: number;
 }
 
@@ -120,6 +129,13 @@ export class RiderModel {
   private breath = 0;
   private headVisible = true;
   private helmetParts: THREE.Object3D[] = [];
+  /** Gloved hands on the grips (right = brake/throttle side, left = clutch side). */
+  readonly gloveR: GloveParts;
+  readonly gloveL: GloveParts;
+  private bodyParts: THREE.Object3D[] = [];
+  private throttleS = 0;
+  private clutchS = 0;
+  private brakeS = 0;
 
   constructor(
     mats: Materials,
@@ -210,12 +226,33 @@ export class RiderModel {
     }
     this.root.add(pelvisHolder, this.torso, this.headGroup);
     for (const l of [this.armL, this.armR, this.legL, this.legR]) this.root.add(l.upper, l.lower, l.end, l.joint);
+    // Detailed gloves replace the box hands (the IK still ends at the wrist).
+    this.gloveR = buildGlove(mats, c2, '#141516');
+    this.gloveL = buildGlove(mats, c2, '#141516');
+    this.gloveL.group.scale.x = -1;
+    this.armL.end.visible = false;
+    this.armR.end.visible = false;
+    this.root.add(this.gloveR.group, this.gloveL.group);
+    this.bodyParts = [this.pelvisHolder, this.torso, this.headGroup];
+  }
+
+  /**
+   * First-person: the camera sits at the blueprint eye, inside the model's own head and chest,
+   * so those are hidden; arms, gloves and legs stay.
+   */
+  setFirstPerson(on: boolean): void {
+    for (const p of this.bodyParts) p.visible = !on;
+    for (const l of [this.armL, this.armR]) l.joint.visible = !on;
   }
 
   setHeadVisible(v: boolean): void {
     if (v === this.headVisible) return;
     this.headVisible = v;
     for (const p of this.helmetParts) p.visible = v;
+  }
+
+  dispose(): void {
+    for (const g of [this.gloveR, this.gloveL]) for (const geo of g.geometries) geo.dispose();
   }
 
   /** Place limb meshes from solved joint positions. */
@@ -259,6 +296,16 @@ export class RiderModel {
     this.solveLimb(this.legR, hR, p.footR, p.kneePoleR, THIGH, SHIN, footQuatR);
   }
 
+  /** Put a glove on its grip (rider space) and write the wrist target for the arm IK. */
+  private placeGlove(g: GloveParts, grip: THREE.Object3D, roll: number, pull: number, wristOut: THREE.Vector3): void {
+    _m2.multiplyMatrices(_m, grip.matrixWorld);
+    _m2.decompose(g.group.position, _q, _s);
+    // Rolling the wrist about the bar axis (grip-space X): negative = knuckles forward = on-throttle.
+    g.group.quaternion.copy(_q).multiply(_q2.setFromAxisAngle(RIGHT, roll));
+    g.leverFingers.rotation.x = -pull * 0.42;
+    wristOut.copy(g.wrist).applyQuaternion(g.group.quaternion).add(g.group.position);
+  }
+
   /** Procedural riding animation driven by the bike state. */
   ride(bike: BikeModel, r: RideParams): void {
     const f = bike.frame;
@@ -300,11 +347,14 @@ export class RiderModel {
     const look = clamp(r.steer * 0.5 + r.lean * 0.25, -0.5, 0.5);
     p.head.setFromEuler(new THREE.Euler(headPitch, -look, headRoll, 'YXZ'));
 
-    // Hands on the grips (bike's steering group → rider space).
+    // Gloves follow the grips (which follow the steering) in rider space; the throttle hand twists.
     bike.chassis.updateMatrixWorld(true);
     _m.copy(bike.chassis.matrixWorld).invert();
-    p.handL.setFromMatrixPosition(bike.gripL.matrixWorld).applyMatrix4(_m);
-    p.handR.setFromMatrixPosition(bike.gripR.matrixWorld).applyMatrix4(_m);
+    this.throttleS = damp(this.throttleS, r.throttle ?? 0, 14, dt);
+    this.clutchS = damp(this.clutchS, r.clutch ?? 0, 18, dt);
+    this.brakeS = damp(this.brakeS, r.brake, 16, dt);
+    this.placeGlove(this.gloveR, bike.gripR, -this.throttleS * 0.5, this.brakeS, p.handR);
+    this.placeGlove(this.gloveL, bike.gripL, 0, this.clutchS, p.handL);
     p.elbowPoleL.set(p.handL.x - 0.5, p.handL.y - 0.25 - this.tuck * 0.1, p.handL.z + 0.25);
     p.elbowPoleR.set(p.handR.x + 0.5, p.handR.y - 0.25 - this.tuck * 0.1, p.handR.z + 0.25);
 

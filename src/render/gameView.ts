@@ -10,6 +10,7 @@ import { bikeDetailFrom } from './bike/bikeSettings';
 import { CameraRig } from './camera';
 import { makeFpvOptions, readFpvOptions } from './cameraSettings';
 import { HeadMotion, makeHeadInput, makeHeadPose } from './fpv/headMotion';
+import { MirrorRig, type MirrorHooks } from './fpv/mirrors';
 import { pavedHalfWidth } from '../world/road';
 import { CrashSim } from './crash';
 import { GlowPoints, Rain, Smoke, Sparks } from './effects';
@@ -33,6 +34,8 @@ export class GameView {
   readonly traffic: TrafficView;
   readonly bike: BikeModel;
   readonly rider: RiderModel;
+  /** Render-to-texture rear view in the bike's mirrors. */
+  readonly mirrors: MirrorRig;
   readonly cam: CameraRig;
   readonly glow: GlowPoints;
   readonly sparks = new Sparks(600);
@@ -48,6 +51,17 @@ export class GameView {
   /** Look-over-the-shoulder control (held), set by the game loop. */
   lookBack = false;
   private lookSide = 1;
+  private frameDt = 1 / 60;
+  private readonly mirrorHooks: MirrorHooks = {
+    before: (h, fov) => {
+      this.glow.setViewportHeight(h, fov);
+      this.smoke.setViewportHeight(h, fov);
+    },
+    after: () => {
+      this.glow.setViewportHeight(this.renderer.viewportHeight, this.cam.camera.fov);
+      this.smoke.setViewportHeight(this.renderer.viewportHeight, this.cam.camera.fov);
+    },
+  };
   private time = 0;
   private frontComp = 0;
   private frontVel = 0;
@@ -55,6 +69,8 @@ export class GameView {
   private rearVel = 0;
   private dashTimer = 0;
   private shiftAnim = 0;
+  /** Smoothed clutch lever pull (0..1): in on gear shifts and while slipping. */
+  private clutchVis = 0;
   private flash = 0;
   private redPulse = 0;
   private bikeVel = new THREE.Vector3();
@@ -90,6 +106,7 @@ export class GameView {
     scene.add(this.bike.root);
     this.rider = new RiderModel(this.mats, this.bike.livery, session.cfg.bike.style);
     this.bike.riderMount.add(this.rider.root);
+    this.mirrors = new MirrorRig(this.bike);
 
     this.cam = new CameraRig(renderer.aspect);
     this.cam.setMode('helmet');
@@ -105,6 +122,16 @@ export class GameView {
     this.world.prewarm(session.bike.s);
     this.placeBike(0.016);
     this.cam.startIntro(3);
+  }
+
+  /** Time scale of the simulation `t` real seconds after the crash. */
+  crashTimeScale(t: number): number {
+    return t < 1.3 ? 0.32 : Math.min(1, 0.32 + (t - 1.3));
+  }
+
+  /** Real seconds of the crash sequence before the run ends (non-respawn modes). */
+  crashSequenceLength(): number {
+    return 3.4;
   }
 
   setCameraMode(m: CameraMode): void {
@@ -184,6 +211,7 @@ export class GameView {
 
   private placeBike(dt: number): void {
     const b = this.session.bike;
+    this.clutchVis = damp(this.clutchVis, b.shiftTimer > 0 ? 1 : b.clutchSlip ? 0.55 : 0, b.shiftTimer > 0 ? 40 : 12, dt);
     const road = this.session.road;
     this.world.worldPos(b.s, b.d, 0, _v);
     this.bike.root.position.copy(_v);
@@ -209,6 +237,7 @@ export class GameView {
       frontComp: this.frontComp,
       rearComp: this.rearComp,
       brake: b.brake,
+      clutch: this.clutchVis,
       headlight: this.env.headlights,
       dt,
     });
@@ -221,6 +250,7 @@ export class GameView {
 
   update(dt: number, realDt: number): void {
     this.time += dt;
+    this.frameDt = realDt;
     const s = this.session;
     const b = s.bike;
     for (const shift of this.world.shiftEvents.splice(0)) {
@@ -243,10 +273,13 @@ export class GameView {
         pitch: b.pitch,
         steer: clamp(b.heading * 3, -1, 1),
         shift: this.shiftAnim,
+        throttle: b.throttle,
+        clutch: this.clutchVis,
         dt,
       });
       this.shiftAnim = 0;
       this.rider.setHeadVisible(this.cam.mode !== 'helmet');
+      this.rider.setFirstPerson(this.cam.mode === 'helmet');
       // Track velocity for rain slant / audio
       _v.copy(this.bike.root.position);
       if (dt > 0) this.bikeVel.copy(_v).sub(this.lastBikePos).divideScalar(dt);
@@ -343,6 +376,7 @@ export class GameView {
     const b = this.session.bike;
     const s = this.session;
     const f = readFpvOptions(this.settings, this.fpv);
+    this.mirrors.configure(f.mirrors, f.mirrorHz);
     const hi = this.headIn;
     const feel = this.surfaceFeel();
     hi.speed = b.v;
@@ -422,6 +456,7 @@ export class GameView {
   render(): void {
     this.cam.camera.aspect = this.renderer.aspect;
     this.cam.camera.updateProjectionMatrix();
+    if (!this.crash) this.mirrors.render(this.renderer.renderer, this.scene, this.cam.camera.position, this.frameDt, this.mirrorHooks, this.lookBack);
     this.renderer.render(this.scene, this.cam.camera, this.fx);
   }
 
@@ -438,6 +473,8 @@ export class GameView {
       else if (mat) mats.add(mat);
     });
     this.crash?.dispose();
+    this.mirrors.dispose();
+    this.rider.dispose();
     this.world.dispose();
     this.bike.dispose();
     this.sky.dispose();

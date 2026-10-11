@@ -160,7 +160,9 @@ export function buildCockpit(ctx: KitContext, L: ForkLayout): CockpitResult {
     if (s > 0) {
       const port = masterCylinder(ctx, 'steer', P(mcAt), dir, fwd, up, c.bars === 'clipon' || c.reservoirs, vary(F.castAlu, { color: tint(F.castAlu, '#1d1e21').color }), c.reservoirs);
       res.frontMcPort = port;
-      lever(ctx, 'steer', P(mcAt.clone().addScaledVector(fwd, 0.03).addScaledVector(up, -0.008)), dir, fwd, up, 0.165, levFin);
+      const pivot = mcAt.clone().addScaledVector(fwd, 0.03).addScaledVector(up, -0.008);
+      ctx.leverFrame('leverBrake', pivot, dir, up, fwd);
+      lever(ctx, 'leverBrake', P(pivot), dir, fwd, up, 0.165, levFin);
     } else {
       if (c.clutch === 'hydraulic') {
         masterCylinder(ctx, 'steer', P(mcAt), dir, fwd, up, true, vary(F.castAlu, { color: tint(F.castAlu, '#1d1e21').color }), c.reservoirs);
@@ -175,7 +177,9 @@ export function buildCockpit(ctx: KitContext, L: ForkLayout): CockpitResult {
         const cableLow = V3(ctx.fromSteer([s * L.half * 0.6, L.bottomClampY - 0.05, 0.06]));
         ctx.add('steer', rodPath([P(cableEnd), P(cableMid), P(cableLow)], 0.0035, ctx), F.hose);
       }
-      lever(ctx, 'steer', P(mcAt.clone().addScaledVector(fwd, 0.03).addScaledVector(up, -0.008)), dir, fwd, up, 0.16, levFin);
+      const pivot = mcAt.clone().addScaledVector(fwd, 0.03).addScaledVector(up, -0.008);
+      ctx.leverFrame('leverClutch', pivot, dir, up, fwd);
+      lever(ctx, 'leverClutch', P(pivot), dir, fwd, up, 0.16, levFin);
     }
     // Throttle cables (right) and switch looms (both) running down to the headstock.
     if (ctx.micro) {

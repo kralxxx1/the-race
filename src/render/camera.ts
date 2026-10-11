@@ -44,7 +44,7 @@ const RIGHT = new THREE.Vector3(1, 0, 0);
 const NECK_DOWN = 0.11;
 const NECK_BACK = 0.085;
 /** Resting look-down relative to the horizon so the screen, dash and bars frame the bottom of the view. */
-const BASE_PITCH = -0.2;
+const BASE_PITCH = -0.27;
 
 /** Gameplay is first-person only; the other rigs remain for crash/intro shots. */
 export type CameraMode = 'helmet' | 'chase' | 'far' | 'low';

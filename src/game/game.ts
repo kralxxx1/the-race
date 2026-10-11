@@ -636,34 +636,28 @@ export class Game {
     this.showroom.render();
   }
 
-  private frameRun(dt: number, input: FrameInput): void {
+  /**
+   * Sim + events + view update of one frame (no audio, HUD or drawing), shared by the real
+   * frame loop and the headless test stepper. Returns false when the run ended mid-frame.
+   */
+  private simulateFrame(dt: number, input: FrameInput): boolean {
     const s = this.session;
     const view = this.view;
     const hud = this.hud;
-    if (!s || !view || !hud) return;
+    if (!s || !view || !hud) return false;
     const playing = this.state === 'playing';
-    if (playing) {
-      if (input.pause) {
-        this.pause();
-        return;
-      }
-      if (input.horn) this.gameAudio.playerHorn();
-    }
-    // Slow motion for the first moments of a crash.
+    // Crash sequence: slow motion, first-person tumble and cinematic replay are directed by the view.
     if (s.state === 'crashed') {
       this.crashTimer += dt;
-      this.timeScale = this.crashTimer < 1.3 ? 0.32 : Math.min(1, this.timeScale + dt);
-      if (!s.cfg.mode.respawn && this.crashTimer > 3.4 && playing) s.finishAfterCrash();
+      this.timeScale = view.crashTimeScale(this.crashTimer);
+      if (!s.cfg.mode.respawn && this.crashTimer > view.crashSequenceLength() && playing) s.finishAfterCrash();
     }
     const simDt = dt * this.timeScale;
     const rider: RiderInput = { throttle: input.throttle, brake: input.brake, steer: input.steer, wheelie: input.wheelie, shiftUp: input.shiftUp, shiftDown: input.shiftDown };
-    let t0 = performance.now();
     if (playing || s.state === 'crashed' || s.state === 'finished') s.update(simDt, rider);
     for (const e of s.drainEvents()) this.handleEvent(e);
     this.tickResult(dt);
-    if (!this.view) return;
-    t0 = this.prof('sim', t0);
-
+    if (!this.view) return false;
     // Countdown display
     if (s.state === 'countdown') {
       const n = Math.ceil(s.countdown);
@@ -677,9 +671,26 @@ export class Game {
       this.goTimer -= dt;
       if (this.goTimer <= 0) hud.showCenter('');
     }
-
     view.lookBack = input.lookBack && playing;
     view.update(simDt, dt);
+    return true;
+  }
+
+  private frameRun(dt: number, input: FrameInput): void {
+    const s = this.session;
+    const view = this.view;
+    const hud = this.hud;
+    if (!s || !view || !hud) return;
+    const playing = this.state === 'playing';
+    if (playing) {
+      if (input.pause) {
+        this.pause();
+        return;
+      }
+      if (input.horn) this.gameAudio.playerHorn();
+    }
+    let t0 = performance.now();
+    if (!this.simulateFrame(dt, input)) return;
     t0 = this.prof('view', t0);
 
     // Audio
@@ -739,6 +750,12 @@ export class Game {
     t0 = this.prof('hud', t0);
     view.render();
     this.prof('render', t0);
+  }
+
+  /** One full simulation + view frame without audio/HUD/drawing (slow-motion crash, head motion). */
+  stepFull(dt: number): void {
+    if (!this.session || !this.view || (this.state !== 'playing' && this.state !== 'gameover')) return;
+    this.simulateFrame(dt, this.input.update(dt));
   }
 
   /** One simulation-only frame (no rendering), used by tests. */
@@ -838,9 +855,11 @@ export class Game {
        * Advance the simulation by `seconds` of game time in fixed 1/60 s steps
        * without rendering (lets tests on slow software renderers exercise gameplay).
        */
-      advance: (seconds: number) => {
-        const steps = Math.round(seconds * 60);
-        for (let i = 0; i < steps; i++) game.stepHeadless(1 / 60);
+      advance: (seconds: number, full = false) => {
+        // `full` also runs the view (head motion, crash sequence) in 1/30 s frames.
+        const hz = full ? 30 : 60;
+        const steps = Math.round(seconds * hz);
+        for (let i = 0; i < steps; i++) (full ? game.stepFull(1 / hz) : game.stepHeadless(1 / hz));
       },
       setInput: (o: Partial<FrameInput>) => {
         game.input.override = o;

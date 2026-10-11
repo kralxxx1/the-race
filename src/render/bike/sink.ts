@@ -254,9 +254,12 @@ export type GroupName =
   | 'frontSpokes'
   | 'rearWheel'
   | 'rearSpokes'
-  | 'swingarm';
+  | 'swingarm'
+  /** Brake / clutch lever blades: pivot on the bar so the first-person view can pull them. */
+  | 'leverBrake'
+  | 'leverClutch';
 
-export const GROUPS: readonly GroupName[] = ['chassis', 'steer', 'forkLower', 'frontWheel', 'frontSpokes', 'rearWheel', 'rearSpokes', 'swingarm'];
+export const GROUPS: readonly GroupName[] = ['chassis', 'steer', 'forkLower', 'frontWheel', 'frontSpokes', 'rearWheel', 'rearSpokes', 'swingarm', 'leverBrake', 'leverClutch'];
 
 const _m = new THREE.Matrix4();
 
