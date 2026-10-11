@@ -1,6 +1,7 @@
 import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
 import { ninjaH2RBlueprint } from './family-kawa-sport-h2r';
+import { zx10rBlueprint } from './family-kawa-sport-zx10r';
 
 /**
  * Kawasaki supersport family (Ninja H2R, ZX-10R, ZX-6R, ZX-4RR, Ninja 400) and the
@@ -8,4 +9,5 @@ import { ninjaH2RBlueprint } from './family-kawa-sport-h2r';
  */
 export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'kawasaki-h2r': ninjaH2RBlueprint,
+  'kawasaki-zx10r': zx10rBlueprint,
 };

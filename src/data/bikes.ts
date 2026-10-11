@@ -411,8 +411,8 @@ export const BIKES: BikeSpec[] = [
     engine: { layout: 'I4', cc: 998, hp: 203, hpRpm: 13200, torque: 114.9, torqueRpm: 11400, idle: 1100, redline: 14000 },
     quickshifter: true, weight: 207, topSpeed: 299, price: 17900,
     liveries: [
-      livery('KRT Lime Green', '#5fd02c', BLK, W, { pattern: 'racing', wheel: '#5fd02c', suit: ['#5fd02c', BLK] }),
-      livery('Pearl Robotic White', W, '#2c2d31', '#5fd02c', { pattern: 'split' }),
+      livery('KRT Edition Lime Green / Ebony / Pearl Blizzard White', '#5fd02c', '#16171a', '#eef0f2', { pattern: 'racing', suit: ['#5fd02c', BLK] }),
+      livery('Pearl Robotic White / Metallic Carbon Gray', '#eef0f2', '#4a4e55', '#5fd02c', { pattern: 'split' }),
     ],
     look: { extras: ['winglets', 'bellypan'] },
     voice: { resonance: 540 },
