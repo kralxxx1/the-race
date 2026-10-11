@@ -5,7 +5,8 @@ import { pavedHalfWidth, type LaneConfig, type RoadPath } from '../world/road';
 import type { GlowPoints } from './effects';
 import type { Materials } from './materials';
 import type { QualityProfile } from './quality';
-import { ROAD_TEX_LENGTH, facadeTextures, glowTexture, groundTexture, mountainTexture, roadTextures, signTexture } from './textures';
+import { createSurfaces, type WorldSurfaces } from './surfaces';
+import { ROAD_TEX_LENGTH, glowTexture, mountainTexture, signTexture } from './textures';
 
 export const CHUNK = 120;
 const STEP = 4;
@@ -230,6 +231,7 @@ export class WorldView {
   private railMat: THREE.MeshStandardMaterial;
   private barrierMat: THREE.MeshStandardMaterial;
   private buildingMat: THREE.MeshStandardMaterial | null = null;
+  private surfaces: WorldSurfaces;
   private poolMat: THREE.MeshBasicMaterial | null = null;
   private props: PropDef[] = [];
   private propGeo = new Map<string, THREE.BufferGeometry>();
@@ -249,32 +251,13 @@ export class WorldView {
   ) {
     this.seed = road.seed;
     this.half = pavedHalfWidth(lanes);
-    const rt = roadTextures(lanes, env.wet, quality.hiResTextures);
-    this.roadMat = new THREE.MeshStandardMaterial({
-      map: rt.map,
-      roughnessMap: rt.roughness,
-      normalMap: rt.normal,
-      normalScale: new THREE.Vector2(0.6, 0.6),
-      roughness: 1,
-      metalness: env.wet ? 0.08 : 0,
-      envMapIntensity: env.wet ? 1.6 : 0.6,
-    });
-    const gt = groundTexture(env.terrain);
-    gt.repeat.set(1, 1);
-    this.terrainMat = new THREE.MeshStandardMaterial({ map: gt, vertexColors: true, roughness: 0.96, metalness: 0 });
-    this.railMat = new THREE.MeshStandardMaterial({ color: '#b7bdc4', metalness: 0.85, roughness: 0.38, side: THREE.DoubleSide });
-    this.barrierMat = new THREE.MeshStandardMaterial({ color: '#b9b6ae', roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
-    if (env.scenery.buildings) {
-      const f = facadeTextures();
-      this.buildingMat = new THREE.MeshStandardMaterial({
-        map: f.map,
-        emissiveMap: f.emissive,
-        emissive: new THREE.Color('#ffffff'),
-        emissiveIntensity: env.scenery.lightsOn ? 1.4 : 0,
-        roughness: 0.55,
-        metalness: 0.25,
-      });
-    }
+    // PBR surface materials (photographic sets when loaded, procedural otherwise): see surfaces.ts.
+    this.surfaces = createSurfaces({ lanes, env, quality });
+    this.roadMat = this.surfaces.road;
+    this.terrainMat = this.surfaces.terrain;
+    this.railMat = this.surfaces.rail;
+    this.barrierMat = this.surfaces.barrier;
+    this.buildingMat = this.surfaces.building;
     if (env.scenery.lightsOn) {
       this.poolMat = new THREE.MeshBasicMaterial({
         map: glowTexture(),
@@ -297,7 +280,7 @@ export class WorldView {
     const metal = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0.6 });
     const dens = this.quality.sceneryDensity;
     const def = (key: string, max: number, material: THREE.Material, castShadow = true) => {
-      this.props.push({ key, max: Math.max(1, Math.round(max)), material, castShadow });
+      this.props.push({ key, max: Math.max(1, Math.round(max)), material, castShadow: castShadow && this.quality.worldShadows });
       if (!this.propGeo.has(key)) this.propGeo.set(key, propGeometry(key));
     };
     def('post', ROWS * 2, metal, false);
@@ -464,7 +447,8 @@ export class WorldView {
         this.local(c, s, d, crown, _v);
         const i = r * cols + k;
         pos.set([_v.x, _v.y, _v.z], i * 3);
-        uv.set([(ROAD_COLS[k] + 1) / 2, (r * STEP) / ROAD_TEX_LENGTH], i * 2);
+        // v is the global distance along the road (wrapped far away) so markings, patches and cracks never repeat per chunk.
+        uv.set([(ROAD_COLS[k] + 1) / 2, ((s % (ROAD_TEX_LENGTH * 1000)) / ROAD_TEX_LENGTH)], i * 2);
       }
     }
     const idx: number[] = [];
@@ -491,6 +475,7 @@ export class WorldView {
     const pos = new Float32Array(vcount * 3);
     const uv = new Float32Array(vcount * 2);
     const col = new Float32Array(vcount * 3);
+    const edgeOff = new Float32Array(vcount);
     const color = new THREE.Color();
     for (let side = 0; side < 2; side++) {
       const sg = side === 0 ? -1 : 1;
@@ -508,6 +493,7 @@ export class WorldView {
           const i = side * ROWS * cols + r * cols + k;
           pos.set([_v.x, _v.y, _v.z], i * 3);
           uv.set([wx / 9, wz / 9], i * 2);
+          edgeOff[i] = off;
           this.groundColor(s, off, h - this.road.height(s), color);
           col.set([color.r, color.g, color.b], i * 3);
         }
@@ -531,6 +517,7 @@ export class WorldView {
     writeAttr(g, 'position', pos, 3);
     writeAttr(g, 'uv', uv, 2);
     writeAttr(g, 'color', col, 3);
+    writeAttr(g, 'aOff', edgeOff, 1);
     writeIndex(g, idx);
     g.computeVertexNormals();
     g.computeBoundingSphere();
@@ -540,12 +527,17 @@ export class WorldView {
   private sweep(mesh: THREE.Mesh, c: Chunk, edge: number, side: number, profile: [number, number][]): void {
     const n = profile.length;
     const pos = new Float32Array(ROWS * n * 3);
+    const uv = new Float32Array(ROWS * n * 2);
+    // Profile arc length in metres gives the second texture coordinate (u = metres along the rail).
+    const arc = [0];
+    for (let k = 1; k < n; k++) arc.push(arc[k - 1] + Math.hypot(profile[k][0] - profile[k - 1][0], profile[k][1] - profile[k - 1][1]));
     for (let r = 0; r < ROWS; r++) {
       const s = c.s0 + r * STEP;
       for (let k = 0; k < n; k++) {
         const [o, y] = profile[k];
         this.local(c, s, side * (edge + o), y, _v);
         pos.set([_v.x, _v.y, _v.z], (r * n + k) * 3);
+        uv.set([s % 4096, arc[k]], (r * n + k) * 2);
       }
     }
     const idx: number[] = [];
@@ -560,6 +552,7 @@ export class WorldView {
       }
     const g = mesh.geometry;
     writeAttr(g, 'position', pos, 3);
+    writeAttr(g, 'uv', uv, 2);
     writeIndex(g, idx);
     g.computeVertexNormals();
     g.computeBoundingSphere();
@@ -828,6 +821,7 @@ export class WorldView {
       if ((m as unknown as THREE.InstancedMesh).isInstancedMesh) (m as unknown as THREE.InstancedMesh).dispose();
     });
     for (const g of this.propGeo.values()) g.dispose();
+    this.surfaces.dispose();
     this.group.clear();
   }
 

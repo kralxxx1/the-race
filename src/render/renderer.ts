@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import type { SettingsReader } from '../settings';
+import { assets } from './assets';
 import { AdaptiveResolution, FrameLimiter, FrameStats } from './postfx/frameControl';
 import { PostPipeline, type PostFrame } from './postfx/pipeline';
 import { profileFromSettings, type QualityProfile, type ToneMap } from './quality';
+import { setTextureAnisotropy } from './textures';
 
 export interface FxState {
   /** 0..1 radial speed blur. */
@@ -149,6 +151,8 @@ export class Renderer {
     this.renderer.shadowMap.type = p.shadowFilter === 'vsm' ? THREE.VSMShadowMap : p.shadowFilter === 'basic' ? THREE.BasicShadowMap : THREE.PCFShadowMap;
     this.renderer.toneMapping = p.postFx ? THREE.NoToneMapping : TONE_CONST[p.toneMapping];
     this.limiter.setCap(p.fpsCap);
+    assets.setAnisotropy(p.anisotropy);
+    setTextureAnisotropy(p.anisotropy);
     this.adaptive.configure({ targetFps: p.targetFps, minScale: p.minScale });
     if (!p.adaptiveResolution) this.adaptive.reset(1);
     this.dynScale = p.adaptiveResolution ? this.adaptive.scale : 1;

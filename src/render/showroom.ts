@@ -7,6 +7,8 @@ import { Materials } from './materials';
 import type { Renderer } from './renderer';
 
 /** Garage / menu backdrop: the selected bike on a turntable in a studio. */
+const _focus = new THREE.Vector3();
+
 export class Showroom {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(32, 1, 0.05, 200);
@@ -157,6 +159,8 @@ export class Showroom {
   render(): void {
     this.renderer.setBloom(0.22, 0.9, 0.4);
     this.renderer.renderer.toneMappingExposure = 1;
+    // Garage bokeh: focus on the bike, blur the backdrop (strength 0 when the setting is off).
+    this.renderer.setDepthOfField(this.camera.position.distanceTo(_focus.set(0, 0.62, 0)), this.renderer.profile.dof === 'off' ? 0 : 1);
     this.renderer.render(this.scene, this.camera);
   }
 
