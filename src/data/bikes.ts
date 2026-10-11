@@ -466,8 +466,8 @@ export const BIKES: BikeSpec[] = [
     engine: { layout: 'I4', cc: 1340, hp: 190, hpRpm: 9700, torque: 150, torqueRpm: 7000, idle: 1150, redline: 11000 },
     quickshifter: true, weight: 264, topSpeed: 299, price: 18800,
     liveries: [
-      livery('Glass Sparkle Black / Candy Gold', '#151619', '#7a5a1e', '#c9a227', { pattern: 'split', wheel: '#151619' }),
-      livery('Pearl White / Stellar Blue', W, '#2a3f73', '#c9a227', { pattern: 'split' }),
+      livery('Glass Sparkle Black / Candy Burnt Gold', '#151619', '#8a5a22', '#c9a227', { pattern: 'split', wheel: '#151619' }),
+      livery('Pearl Brilliant White / Pearl Vigor Blue', W, '#24407a', '#c9a227', { pattern: 'split', wheel: '#151619' }),
     ],
     look: { wheelbase: 1.48 },
     voice: { resonance: 380, brightness: 0.62 },

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RX, T, mul, type KitContext } from '../context';
-import { MeshData, extrude, flat, lathe, smooth2, type P2, type P3 } from '../mesh';
+import { MeshData, circle, extrude, flat, lathe, smooth2, sweep, type P2, type P3 } from '../mesh';
 import { F, type Finish, type GroupName } from '../sink';
 import { sdPolygon, type Field } from '../surface';
 import { lamp, type LampOpts } from './lights';
@@ -195,6 +195,18 @@ export function ductLiner(ctx: KitContext, ob: OutlineBody, loop: readonly P2[],
   ctx.add('chassis', m, f);
   const k = shrink;
   ctx.add('chassis', flat(loop.map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k] as P2), 'xy', zBack, -1), back);
+}
+
+/** A trim bead (chrome surround) following a side-view outline on the body skin, both sides. */
+export function trimLoop(ctx: KitContext, ob: OutlineBody, poly: readonly P2[], r: number, f: Finish = F.chrome, smoothing = 2): void {
+  const dense = smooth2(poly, smoothing, true);
+  for (const s of [-1, 1]) {
+    const path: P3[] = dense.map(([z, y]) => {
+      const sp = sideAt(ob, z, y, s);
+      return [sp.p[0] + sp.n[0] * r * 0.4, sp.p[1] + sp.n[1] * r * 0.4, z] as P3;
+    });
+    ctx.add('chassis', sweep(path, circle(r, 8), { up: [s, 0, 0], closedPath: true }), f);
+  }
 }
 
 /** Domed fairing fasteners at side-view points on a body. */
