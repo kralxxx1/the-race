@@ -35,7 +35,7 @@ export interface ApriliaFace {
 /** Hole field for the face (lamps + intake) and a builder adding the lamp units, DRL frames and intake duct. */
 export function apriliaFace(ob: OutlineBody, f: ApriliaFace): { hole: Field; add: (ctx: KitContext) => void } {
   const centre = faceLamps(ob, { outline: f.centre, at: f.centreAt, single: true, inset: 0.008, square: 0.45, opts: { kind: 'head', inner: 'led', count: 1, depth: 0.03, rim: 0.003 } });
-  const side = faceLamps(ob, { outline: f.side, at: f.sideAt, inset: 0.01, square: 0.4, opts: { kind: 'head', inner: 'led', count: 3, depth: 0.04, rim: 0.003 } });
+  const side = faceLamps(ob, { outline: f.side, at: f.sideAt, inset: 0.01, square: 0.4, opts: { kind: 'head', inner: 'led', count: 2, depth: 0.04, rim: 0.003 } });
   const intake = f.intake ? frontRegion(smooth2(f.intake, 3, false)) : null;
   const front: Field = (_x, _y, z) => f.cutBehind - z;
   const hole = fOr(centre.hole, side.hole, ...(intake ? [fAnd(intake, front)] : []));

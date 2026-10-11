@@ -1,6 +1,7 @@
 import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
 import { panigaleV2Blueprint } from './family-eu-sport-panigale-v2';
+import { rs660Blueprint } from './family-eu-sport-rs660';
 import { rsv4Blueprint } from './family-eu-sport-rsv4';
 
 /**
@@ -11,4 +12,5 @@ import { rsv4Blueprint } from './family-eu-sport-rsv4';
 export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'ducati-panigale-v2': panigaleV2Blueprint,
   'aprilia-rsv4': rsv4Blueprint,
+  'aprilia-rs660': rs660Blueprint,
 };

@@ -655,7 +655,7 @@ export const BIKES: BikeSpec[] = [
     id: 'aprilia-rs660', brand: 'Aprilia', model: 'RS 660', year: 2024, style: 'sport',
     engine: { layout: 'P2_270', cc: 659, hp: 100, hpRpm: 10500, torque: 67, torqueRpm: 8500, idle: 1500, redline: 11500 },
     quickshifter: true, weight: 183, topSpeed: 240, price: 11300,
-    liveries: [livery('Lava Red', '#d8202e', '#1b1c1f', '#6a3cbc', { pattern: 'split', suit: ['#d8202e', BLK] }), livery('Acid Gold', '#1b1c1f', '#c9b037', '#6a3cbc', { pattern: 'racing', wheel: '#c9b037' })],
+    liveries: [livery('Lava Red', '#d0202c', '#141518', '#5b2c90', { pattern: 'split', wheel: '#17181b', suit: ['#d0202c', BLK] }), livery('Apex Black', '#141518', '#5b2c90', '#d0202c', { pattern: 'racing', wheel: '#17181b', suit: [BLK, '#5b2c90'] })],
     look: { extras: ['winglets'] },
     voice: { resonance: 210 },
     description: 'RSV4 ön yarısından türeyen 270° paralel ikili.',

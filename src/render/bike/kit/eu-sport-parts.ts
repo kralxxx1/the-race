@@ -57,3 +57,22 @@ export function stud(ctx: KitContext, p: P3, n: P3, f: Finish = F.texturedBlack,
 export function skinX(ob: OutlineBody, z: number, y: number): number {
   return Math.abs(sideAt(ob, z, y, 1).p[0]);
 }
+
+/**
+ * A derived outline body: shifted by (dz, dy) and with its plan-view width scaled by `sx`
+ * (side-view heights scaled by `sy` about y0). Used to derive a smaller sister model's
+ * bodywork (RS 660 from the RSV4) from the same design lines.
+ */
+export function moveOutline(ob: OutlineBody, o: { dz?: number; dy?: number; sx?: number; sy?: number; y0?: number }): OutlineBody {
+  const dz = o.dz ?? 0, dy = o.dy ?? 0, sx = o.sx ?? 1, sy = o.sy ?? 1, y0 = o.y0 ?? 0;
+  const Y = (y: number) => y0 + (y - y0) * sy + dy;
+  return {
+    ...ob,
+    zs: ob.zs.map((z) => z + dz),
+    top: (z) => Y(ob.top(z - dz)),
+    bottom: (z) => Y(ob.bottom(z - dz)),
+    half: (z) => ob.half(z - dz) * sx,
+    sections: ob.sections.map((k) => ({ z: k.z + dz, pts: k.pts })),
+    xOff: ob.xOff ? (z) => ob.xOff!(z - dz) * sx : undefined,
+  };
+}

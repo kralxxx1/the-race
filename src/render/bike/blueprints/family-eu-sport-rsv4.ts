@@ -25,7 +25,7 @@ import { apriliaAero, apriliaFace } from './family-eu-sport-aprilia';
  */
 
 const NOSE = -1.664;
-const SCREEN_BASE = -1.548;
+const SCREEN_BASE = -1.598;
 const SCREEN_TOP_Z = -1.19;
 
 const SIDE_EDGE: P2[] = [
@@ -44,15 +44,15 @@ const SIDE_EDGE: P2[] = [
 export function rsv4Fairing(): OutlineBody {
   const zs = [NOSE, -1.659, -1.649, -1.634, -1.614, -1.584, -1.548, -1.498, -1.438, -1.368, -1.288, -1.2, -1.1, -1.0, -0.9, -0.8, -0.7, -0.6, -0.49];
   // Sharper, more vertical face than the Japanese bikes: the shoulder crease (index 2) runs high.
-  const face: P2[] = [[0, 1], [0.3, 0.96], [0.6, 0.87], [0.84, 0.7], [0.97, 0.47], [0.92, 0.22], [0.58, 0.05], [0, 0]];
-  const cowl: P2[] = [[0, 1], [0.34, 0.985], [0.62, 0.94], [0.82, 0.81], [0.95, 0.62], [1, 0.4], [0.95, 0.13], [0.76, 0]];
+  const face: P2[] = [[0, 1], [0.18, 0.94], [0.46, 0.84], [0.76, 0.69], [0.95, 0.48], [0.93, 0.22], [0.6, 0.05], [0, 0]];
+  const cowl: P2[] = [[0, 1], [0.25, 0.965], [0.55, 0.9], [0.8, 0.78], [0.95, 0.6], [1, 0.4], [0.95, 0.13], [0.76, 0]];
   const side: P2[] = [[0, 1], [0.38, 0.99], [0.66, 0.955], [0.85, 0.83], [0.97, 0.62], [1, 0.38], [0.93, 0.11], [0.6, 0]];
   const back: P2[] = [[0, 1], [0.42, 0.99], [0.72, 0.95], [0.9, 0.82], [0.98, 0.6], [1, 0.36], [0.92, 0.1], [0.5, 0]];
   return {
     zs,
     top: curve([[NOSE, 0.778], [-1.64, 0.806], [-1.59, 0.838], [-1.51, 0.872], [-1.41, 0.905], [-1.31, 0.93], [-1.2, 0.948], [-1.07, 0.95], [-0.9, 0.912], [-0.7, 0.832], [-0.49, 0.742]]),
     bottom: curve([[NOSE, 0.766], [-1.657, 0.722], [-1.64, 0.684], [-1.61, 0.653], [-1.56, 0.63], [-1.49, 0.614], [-1.42, 0.6], [-1.34, 0.52], [-1.23, 0.36], [-1.1, 0.232], [-0.95, 0.172], [-0.75, 0.165], [-0.6, 0.175], [-0.49, 0.2]]),
-    half: curve([[NOSE, 0.01], [-1.657, 0.06], [-1.64, 0.11], [-1.6, 0.153], [-1.54, 0.193], [-1.45, 0.228], [-1.35, 0.254], [-1.22, 0.273], [-1.07, 0.281], [-0.9, 0.273], [-0.7, 0.244], [-0.49, 0.198]]),
+    half: curve([[NOSE, 0.01], [-1.657, 0.055], [-1.64, 0.1], [-1.6, 0.143], [-1.54, 0.184], [-1.45, 0.222], [-1.35, 0.254], [-1.22, 0.273], [-1.07, 0.281], [-0.9, 0.273], [-0.7, 0.244], [-0.49, 0.198]]),
     sections: [
       { z: NOSE, pts: face },
       { z: -1.6, pts: face },
@@ -99,7 +99,7 @@ function body(ctx: KitContext): void {
   const A = ctx.hp.frontAxle;
   const open = sideRegion([[-1.195, 2], ...SIDE_EDGE, [-0.3, 0.1], [-0.3, 2]]);
   const arch = (_x: number, y: number, z: number) => 0.355 - Math.hypot(z - A[2], y - A[1]);
-  const underScreen = fAnd(planRegion([[SCREEN_BASE + 0.08, -1], [-1.05, -1], [-1.05, 0.148], [-1.35, 0.162], [SCREEN_BASE + 0.08, 0.108]]), (_x, y) => y - 0.865);
+  const underScreen = fAnd(planRegion([[SCREEN_BASE + 0.07, -1], [-1.05, -1], [-1.05, 0.148], [-1.35, 0.162], [-1.47, 0.14], [SCREEN_BASE + 0.07, 0.09]]), (_x, y) => y - 0.85);
   const face = apriliaFace(ob, { ...RSV4_FACE, drlWidth: 0.0065, cutBehind: -1.56, intakeBack: -1.46 });
   const aero = apriliaAero(ob, { channel: CHANNEL, ref: [-1.06, 0.56], blades: [[0.622, -1.21, -0.94, 0.018, 0.008], [0.535, -1.13, -0.92, 0.013, 0.006]], inset: 0.055 });
   const bodyCut = cut(master, fAnd(fNot(open), fNot(arch), fNot(underScreen), fNot(face.hole)));
@@ -117,12 +117,12 @@ function body(ctx: KitContext): void {
   addPanel(ctx, 'chassis', innerCut, fAnd(belly, fNot(cowl)), PAINT, 0.003, 0.014);
   aero.add(ctx);
   face.add(ctx);
-  innerCowl(ctx, { z0: SCREEN_BASE + 0.06, z1: -1.19, yTop0: 0.875, yTop1: 0.932, yBot0: 0.75, yBot1: 0.8, w0: 0.148, w1: 0.236 });
+  innerCowl(ctx, { z0: SCREEN_BASE + 0.06, z1: -1.19, yTop0: 0.84, yTop1: 0.9, yBot0: 0.75, yBot1: 0.8, w0: 0.1, w1: 0.17 });
   screen(ctx, 'chassis', {
     zs: stationsBetween(SCREEN_BASE, SCREEN_TOP_Z, 8, 0.35),
-    top: curve([[SCREEN_BASE, 0.878], [-1.47, 0.94], [-1.37, 1.03], [-1.28, 1.1], [-1.22, 1.124], [SCREEN_TOP_Z, 1.128]]),
-    bottom: curve([[SCREEN_BASE, 0.866], [-1.35, 0.918], [SCREEN_TOP_Z, 0.958]]),
-    half: curve([[SCREEN_BASE, 0.148], [-1.41, 0.18], [-1.29, 0.166], [SCREEN_TOP_Z, 0.12]]),
+    top: curve([[SCREEN_BASE, 0.846], [-1.52, 0.9], [-1.42, 0.99], [-1.31, 1.075], [-1.23, 1.118], [SCREEN_TOP_Z, 1.126]]),
+    bottom: curve([[SCREEN_BASE, 0.834], [-1.4, 0.9], [SCREEN_TOP_Z, 0.958]]),
+    half: curve([[SCREEN_BASE, 0.128], [-1.46, 0.174], [-1.3, 0.166], [SCREEN_TOP_Z, 0.12]]),
     sections: [{ z: 0, pts: [[0, 1], [0.45, 0.985], [0.8, 0.93], [0.95, 0.8], [1, 0.55], [1, 0.25], [0.98, 0]] }],
   }, tint(F.screen, '#2f343a'));
   // Tall, short tank with a crisp spine.
@@ -177,7 +177,7 @@ const AP_BLACK = '#141518';
 function lettering(p: Pen, main: string, accent: string): void {
   if (p.view !== 'right' && p.view !== 'left') return;
   p.text('aprilia', -0.93, 0.39, { color: main, size: 0.062, weight: '800', italic: true, stretch: 1.05 });
-  p.text('RSV4', -0.15, 0.885, { color: accent, size: 0.034, weight: '900', italic: true });
+  p.text('RSV4', -0.09, 0.905, { color: accent, size: 0.03, weight: '900', italic: true });
   p.text('FACTORY', -0.85, 0.968, { color: main, size: 0.016, weight: '800', spacing: 0.05 });
 }
 
