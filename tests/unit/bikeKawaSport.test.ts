@@ -12,6 +12,7 @@ const SPECS: Record<string, { wheelbase: number; rake: number; trail: number; se
   'kawasaki-zx6r': { wheelbase: 1.4, rake: 23.5, trail: 0.101, seat: 0.83, front: '120/70ZR17', rear: '180/55ZR17' },
   'kawasaki-zx4rr': { wheelbase: 1.38, rake: 23.5, trail: 0.097, seat: 0.8, front: '120/70ZR17', rear: '160/60ZR17' },
   'kawasaki-ninja400': { wheelbase: 1.37, rake: 24.5, trail: 0.092, seat: 0.785, front: '110/70-17', rear: '150/60R17' },
+  'ktm-rc390': { wheelbase: 1.343, rake: 23.5, trail: 0.084, seat: 0.824, front: '110/70R17', rear: '150/60R17' },
 };
 
 describe('Kawasaki sport family blueprints', () => {

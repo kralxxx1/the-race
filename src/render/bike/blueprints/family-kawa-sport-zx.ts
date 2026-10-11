@@ -25,6 +25,8 @@ export interface ZxLamp {
   /** Emitter blocks and DRL guides inside the opening (front view, right half). */
   emit?: P2[][];
   drl?: P2[][];
+  /** Outline corners kept sharp (indices into `poly`). */
+  sharp?: number[];
 }
 
 export interface ZxVent {
@@ -48,7 +50,7 @@ export interface ZxBody {
   archR: number;
   /** Cockpit opening under the screen: rear end z and minimum y. */
   underScreen: { base: number; rear: number; y: number; half?: [number, number] };
-  intake?: { poly: P2[]; zMax: number; depth?: number; mesh?: boolean; sym?: boolean } | null;
+  intake?: { poly: P2[]; zMax: number; depth?: number; mesh?: boolean; sym?: boolean; sharp?: number[] } | null;
   heads: ZxLamp[];
   /** Winglet duct slot (side view) and the lip above it: [z0, z1, y0, y1, out]. */
   wingDuct?: { poly: P2[]; lip?: [number, number, number, number, number] } | null;
@@ -124,9 +126,9 @@ export function zxBody(d: ZxBody): (ctx: KitContext) => void {
     const us = d.underScreen;
     const [uh0, uh1] = us.half ?? [0.11, 0.165];
     const underScreen = fAnd(planRegion([[us.base + 0.07, -1], [us.rear, -1], [us.rear, 0.15], [-1.3, uh1], [us.base + 0.07, uh0]]), (_x, y) => y - us.y);
-    const front = (poly: P2[], zMax: number, sym = true): Field => fAnd(frontRegion(smooth2(poly, 3, true), sym), (_x, _y, z) => zMax - z);
-    const intake = d.intake ? front(d.intake.poly, d.intake.zMax, d.intake.sym ?? true) : null;
-    const heads = d.heads.map((h) => front(h.poly, h.zMax));
+    const front = (poly: P2[], zMax: number, sym = true, sharp: number[] = []): Field => fAnd(frontRegion(smooth2(poly, 3, true, sharp), sym), (_x, _y, z) => zMax - z);
+    const intake = d.intake ? front(d.intake.poly, d.intake.zMax, d.intake.sym ?? true, d.intake.sharp) : null;
+    const heads = d.heads.map((h) => front(h.poly, h.zMax, true, h.sharp));
     const duct = d.wingDuct ? sideRegion(smooth2(d.wingDuct.poly, 3, true)) : null;
     const holes: Field[] = [fNot(open), fNot(arch), fNot(underScreen)];
     if (intake) holes.push(fNot(intake));
@@ -233,7 +235,7 @@ export function remapZxBody(d: ZxBody, S: (z: number) => number, H: (y: number) 
   const sv = (pts: readonly P2[]): P2[] => pts.map(([z, y]) => [S(z), H(y)] as P2);
   const pl = (pts: readonly P2[]): P2[] => pts.map(([z, x]) => [S(z), x] as P2);
   const fv = (pts: readonly P2[]): P2[] => pts.map(([x, y]) => [x, H(y)] as P2);
-  const lamp = (l: ZxLamp): ZxLamp => ({ poly: fv(l.poly), zMax: S(l.zMax), emit: l.emit?.map(fv), drl: l.drl?.map(fv) });
+  const lamp = (l: ZxLamp): ZxLamp => ({ poly: fv(l.poly), zMax: S(l.zMax), emit: l.emit?.map(fv), drl: l.drl?.map(fv), sharp: l.sharp });
   const seat = (o: SeatOpts): SeatOpts => ({ ...o, front: S(o.front), back: S(o.back), yFront: H(o.yFront), y: H(o.y), yBack: H(o.yBack) });
   const t = d.tank;
   return {

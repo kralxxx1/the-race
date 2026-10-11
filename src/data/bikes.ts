@@ -620,7 +620,7 @@ export const BIKES: BikeSpec[] = [
     id: 'ktm-rc390', brand: 'KTM', model: 'RC 390', year: 2023, style: 'sport',
     engine: { layout: 'SINGLE', cc: 373, hp: 43, hpRpm: 9000, torque: 37, torqueRpm: 7000, idle: 1500, redline: 10500, limiter: 11000 },
     weight: 172, topSpeed: 170, price: 6000,
-    liveries: [livery('Orange / Black', '#ff6600', '#1b1c1f', W, { pattern: 'racing', wheel: '#ff6600', suit: ['#ff6600', BLK] })],
+    liveries: [livery('Electronic Orange / Black / Blue', '#ff6600', '#16171a', '#1f63c6', { pattern: 'racing', frame: '#ff6600', wheel: '#ff6600', suit: ['#ff6600', BLK] })],
     look: { frontTireW: 0.11, rearTireW: 0.15, extras: [] },
     voice: { resonance: 175, brightness: 0.55 },
     description: 'Pist ruhlu tek silindir: Moto3 tasarımı.',
