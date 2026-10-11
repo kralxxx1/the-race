@@ -268,7 +268,7 @@ const WHITE = '#f1f2f3';
 
 function lettering(p: Pen, color: string, accent: string): void {
   if (p.view !== 'right' && p.view !== 'left') return;
-  p.text('Panigale V2', -0.86, 0.43, { color, size: 0.046, italic: true, weight: '800', stretch: 1.04, stroke: accent === color ? undefined : accent });
+  p.text('Panigale V2', -0.94, 0.445, { color, size: 0.037, italic: true, weight: '800', stretch: 1.04, stroke: accent === color ? undefined : accent });
   p.text('DUCATI', -1.53, 0.785, { color, size: 0.024, weight: '900', spacing: 0.06, italic: true });
   p.text('V2', -0.18, 0.86, { color, size: 0.03, weight: '900', italic: true });
 }
@@ -375,6 +375,6 @@ export function panigaleV2Blueprint(spec: BikeSpec): BikeBlueprint {
     livery,
     groundClearance: 0.12,
     features: [],
-    zones: { splitY: 0.4, decal: [-0.95, 0.43] },
+    zones: { splitY: 0.4, decal: [-0.94, 0.445] },
   };
 }
