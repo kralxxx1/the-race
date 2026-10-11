@@ -156,6 +156,11 @@ the surfaces without UV unwrapping. A second atlas stores the finish
 * Lettering for model names ("R1", "V4 S", "Panigale V4 S"…) goes into the
   livery, not geometry. Brand-free generic text is used for tyres
   (`tyreLabel`).
+* Blueprints are cached per bike, not per livery. When the wheel or frame
+  colour changes between factory colourways (Cyan Storm vs Icon Blue MT-09,
+  green vs black trellis on the Z900), set `liveryColor: true` on the
+  `WheelDesign` / `FrameSpec` and the kit takes `Livery.wheel` / `Livery.frame`
+  from the catalogue entry being built.
 
 ## Screenshot workflow
 
