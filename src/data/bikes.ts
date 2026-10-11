@@ -433,7 +433,7 @@ export const BIKES: BikeSpec[] = [
     id: 'kawasaki-zx4rr', brand: 'Kawasaki', model: 'Ninja ZX-4RR', year: 2024, style: 'sport',
     engine: { layout: 'I4', cc: 399, hp: 77, hpRpm: 14500, torque: 39, torqueRpm: 13000, idle: 1600, redline: 16000, limiter: 16500 },
     quickshifter: true, weight: 188, topSpeed: 230, price: 9700,
-    liveries: [livery('KRT Edition', '#5fd02c', BLK, W, { pattern: 'racing', suit: ['#5fd02c', BLK] })],
+    liveries: [livery('KRT Edition Lime Green / Ebony / Pearl Blizzard White', '#5fd02c', '#16171a', '#eef0f2', { pattern: 'racing', suit: ['#5fd02c', BLK] })],
     voice: { resonance: 760, brightness: 1, loudness: -0.5 },
     description: '400 cc sıralı dört: 16.000 devirde F1 gibi çığlık.',
   }),
