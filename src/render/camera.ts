@@ -258,7 +258,7 @@ export class CameraRig {
       cam.position.set(focus.x + Math.sin(this.cineAngle) * 7, focus.y + 1.2, focus.z + Math.cos(this.cineAngle) * 7);
     }
     this.cineAngle += dt * 0.28;
-    const dist = 6.4 + Math.min(3, replayT * 0.8);
+    const dist = 7.6 + Math.min(3, replayT * 0.8);
     _target.set(focus.x + Math.sin(this.cineAngle) * dist, focus.y + 1.15 + Math.min(1.8, replayT * 0.5), focus.z + Math.cos(this.cineAngle) * dist);
     cam.position.lerp(_target, 1 - Math.exp(-2.2 * dt));
     this.cineFocus.lerp(focus, 1 - Math.exp(-5 * dt));

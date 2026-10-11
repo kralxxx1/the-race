@@ -141,8 +141,10 @@ export class CrashSim {
   /** Head camera hooks. */
   readonly head = new THREE.Vector3();
   readonly headQuat = new THREE.Quaternion();
-  /** Cinematic focus (rider torso, eased towards the bike when the rider is far). */
+  /** Rider torso (sky/shadow follow target, camera hint). */
   readonly focus = new THREE.Vector3();
+  /** Cinematic orbit centre: the rider, pulled towards the hit vehicle so both stay in frame. */
+  readonly orbit = new THREE.Vector3();
   done = false;
   /** Called with (strength 0..1, what hit) for secondary impact sounds. */
   onImpact: ((strength: number, kind: ImpactKind) => void) | null = null;
@@ -341,6 +343,13 @@ export class CrashSim {
     this.riderModel.applySegments(this.poseGet);
     const t = sc.riders.torso;
     this.focus.set(t.x.x, t.x.y, t.x.z);
+    this.orbit.copy(this.focus);
+    if (sc.car) {
+      const dx = sc.car.x.x - t.x.x;
+      const dy = sc.car.x.y - t.x.y;
+      const dz = sc.car.x.z - t.x.z;
+      if (dx * dx + dy * dy + dz * dz < 14 * 14) this.orbit.add(_v.set(dx, dy, dz).multiplyScalar(0.3));
+    }
     const h = sc.riders.head;
     this.head.set(h.x.x, h.x.y, h.x.z);
     this.headQuat.set(h.q.x, h.q.y, h.q.z, h.q.w);
@@ -471,6 +480,7 @@ export class CrashSim {
     if (i.car) sub(i.car.x);
     if (i.barrier) sub(i.barrier.p);
     this.focus.sub(d);
+    this.orbit.sub(d);
     this.head.sub(d);
   }
 

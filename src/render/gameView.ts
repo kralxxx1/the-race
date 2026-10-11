@@ -398,7 +398,7 @@ export class GameView {
     // Camera
     if (this.crash) {
       if (this.crashPhaseNow === 'fpv') this.cam.crashFpv(realDt, this.crash.head, this.crash.headQuat, this.crash.riderSpeed);
-      else this.cam.crash(realDt, this.crash.focus, this.crash.yaw, this.crashPhaseNow === 'replay' ? this.crashClock - this.crashPlan.firstEnd : this.crashClock);
+      else this.cam.crash(realDt, this.crash.orbit, this.crash.yaw, this.crashPhaseNow === 'replay' ? this.crashClock - this.crashPlan.firstEnd : this.crashClock);
     } else {
       this.updateHeadAndCamera(realDt);
     }
