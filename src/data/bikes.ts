@@ -450,7 +450,10 @@ export const BIKES: BikeSpec[] = [
     id: 'kawasaki-ninja400', brand: 'Kawasaki', model: 'Ninja 400', year: 2023, style: 'sport',
     engine: { layout: 'P2_180', cc: 399, hp: 45, hpRpm: 10000, torque: 37, torqueRpm: 8000, idle: 1300, redline: 12500 },
     weight: 168, topSpeed: 190, price: 5300,
-    liveries: [livery('KRT Edition', '#5fd02c', BLK, W, { pattern: 'racing', suit: ['#5fd02c', BLK] }), livery('Metallic Carbon Gray', '#3a3c40', BLK, '#5fd02c')],
+    liveries: [
+      livery('KRT Edition Lime Green / Ebony / Pearl Blizzard White', '#5fd02c', '#16171a', '#eef0f2', { pattern: 'racing', suit: ['#5fd02c', BLK] }),
+      livery('Metallic Carbon Gray / Metallic Magnetic Dark Gray', '#3c3f44', '#24262a', '#5fd02c', { suit: ['#3c3f44', BLK] }),
+    ],
     look: { frontTireW: 0.11, rearTireW: 0.15, extras: [] },
     description: 'Hafif kasa, yüksek devir; sınıfının en hızlısı.',
   }),

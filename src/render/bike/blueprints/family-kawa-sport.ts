@@ -1,6 +1,7 @@
 import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
 import { ninjaH2RBlueprint } from './family-kawa-sport-h2r';
+import { ninja400Blueprint } from './family-kawa-sport-ninja400';
 import { zx10rBlueprint } from './family-kawa-sport-zx10r';
 import { zx4rrBlueprint } from './family-kawa-sport-zx4rr';
 import { zx6rBlueprint } from './family-kawa-sport-zx6r';
@@ -14,4 +15,5 @@ export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'kawasaki-zx10r': zx10rBlueprint,
   'kawasaki-zx6r': zx6rBlueprint,
   'kawasaki-zx4rr': zx4rrBlueprint,
+  'kawasaki-ninja400': ninja400Blueprint,
 };
