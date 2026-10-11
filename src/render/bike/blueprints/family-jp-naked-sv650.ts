@@ -57,9 +57,9 @@ function headUnit(ctx: KitContext): void {
   // Small black visor over the headlight (carries the LCD behind it).
   const visor: OutlineBody = {
     zs: stationsBetween(zc - 0.075, zc + 0.04, 6, 0.3),
-    top: curve([[zc - 0.075, yc + 0.09], [zc - 0.02, yc + 0.125], [zc + 0.04, yc + 0.14]]),
-    bottom: curve([[zc - 0.075, yc + 0.075], [zc + 0.04, yc + 0.085]]),
-    half: curve([[zc - 0.075, 0.075], [zc - 0.02, 0.092], [zc + 0.04, 0.085]]),
+    top: curve([[zc - 0.075, yc + 0.098], [zc - 0.02, yc + 0.125], [zc + 0.04, yc + 0.138]]),
+    bottom: curve([[zc - 0.075, yc + 0.055], [zc + 0.04, yc + 0.07]]),
+    half: curve([[zc - 0.075, 0.084], [zc - 0.02, 0.098], [zc + 0.04, 0.09]]),
     sections: [{ z: 0, pts: [[0, 1], [0.6, 0.97], [0.95, 0.75], [1, 0.3], [0.96, 0]] }],
   };
   loftPart(ctx, visor, hard('#141517', 0.15, 0.4, 0.6), { steer: true, depth: 0.005, q: 0.8 });
@@ -122,8 +122,8 @@ const SUZUKI_BLUE = '#1747a6';
 
 function lettering(p: Pen, main: string, accent: string): void {
   if (p.view !== 'right' && p.view !== 'left') return;
-  p.text('SV650', -0.9, 0.8, { color: accent, size: 0.048, weight: '900', italic: true, stretch: 1.1 });
-  p.text('ABS', -0.76, 0.75, { color: main, size: 0.012, weight: '800' });
+  p.text('SV650', -0.86, 0.805, { color: accent, size: 0.042, weight: '900', italic: true, stretch: 1.1 });
+  p.text('ABS', -0.75, 0.765, { color: main, size: 0.012, weight: '800' });
   p.text('SUZUKI', -0.86, 0.95, { color: accent, size: 0.022, weight: '900', spacing: 0.04 });
 }
 

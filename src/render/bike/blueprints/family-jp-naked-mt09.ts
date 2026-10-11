@@ -188,6 +188,9 @@ function exhaust(ctx: KitContext): void {
 
 const CYAN = '#18c7e8';
 
+/** Darker central tank cover seen from above: narrow at the steering head, widest at the knees. */
+const TANK_SPINE: P2[] = [[-1.04, -0.035], [-0.9, -0.085], [-0.72, -0.09], [-0.62, -0.07], [0.3, -0.2], [0.3, 0.2], [-0.62, 0.07], [-0.72, 0.09], [-0.9, 0.085], [-1.04, 0.035]];
+
 function lettering(p: Pen, main: string, accent: string): void {
   if (p.view !== 'right' && p.view !== 'left') return;
   p.text('MT', -1.03, 0.77, { color: main, size: 0.05, weight: '900', italic: true, stretch: 1.1 });
@@ -207,7 +210,7 @@ function livery(c: LiveryCanvas, lv: Livery, env: LiveryEnv): void {
         p.line([[-1.22, 0.79], [-1.06, 0.7], [-0.88, 0.7]], '#7aa2ff', 0.004);
         lettering(p, '#f2f4f7', '#7aa2ff');
       } else if (p.view === 'top') {
-        p.rect(-0.95, -0.06, -0.62, 0.06, dark, 'satin');
+        p.poly(TANK_SPINE, dark, 'satin');
       } else if (p.view === 'front' || p.view === 'rear') p.rect(-1, 0, 1, 0.74, dark, 'satin');
       return;
     }
@@ -219,8 +222,7 @@ function livery(c: LiveryCanvas, lv: Livery, env: LiveryEnv): void {
       p.line([[-0.44, 0.74], [-0.14, 0.8]], CYAN, 0.004);
       lettering(p, '#e9ecef', CYAN);
     } else if (p.view === 'top') {
-      p.rect(-0.95, -0.07, -0.62, 0.07, dark, 'satin');
-      p.rect(-1.05, -0.006, -0.95, 0.006, CYAN);
+      p.poly(TANK_SPINE, dark, 'satin');
     } else if (p.view === 'front' || p.view === 'rear') p.rect(-1, 0, 1, 0.74, dark, 'satin');
   });
 }
