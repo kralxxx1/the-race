@@ -37,6 +37,8 @@ export interface Atmosphere {
   /** Extinction per metre of the volumetric fog layer at its base (0 = none). */
   fogDensity: number;
   fogBase: number;
+  /** Height falloff of the fog layer per metre (larger = thinner layer hugging the ground). */
+  fogFalloff: number;
   /** 0 dry .. 1 soaked (screen-space reflection strength). */
   wet: number;
   bloom: { strength: number; threshold: number; radius: number };
@@ -72,6 +74,7 @@ export class Renderer {
     fogColor: new THREE.Color(0.7, 0.78, 0.86),
     fogDensity: 0,
     fogBase: 0,
+    fogFalloff: 0.03,
     wet: 0,
     bloom: { strength: 0.2, threshold: 0.9, radius: 0.4 },
     dofFocus: 5,
@@ -111,6 +114,7 @@ export class Renderer {
     fogColor: new THREE.Color(),
     fogDensity: 0,
     fogBase: 0,
+    fogFalloff: 0.03,
     wet: 0,
     dofFocus: 5,
     dofAmount: 0,
@@ -312,6 +316,7 @@ export class Renderer {
     f.fogColor.copy(a.fogColor);
     f.fogDensity = a.fogDensity * p.fogDensity;
     f.fogBase = a.fogBase;
+    f.fogFalloff = a.fogFalloff;
     f.wet = a.wet;
     f.dofFocus = a.dofFocus;
     f.dofAmount = a.dofAmount;

@@ -114,7 +114,9 @@ export class GameView {
     // Radiance of the sun disc as seen by flares and light shafts; the moon is far dimmer.
     a.sunColor.set(env.sky.sunColor).multiplyScalar(time === 'night' ? 0.08 : weather === 'rain' || weather === 'fog' ? 0.25 : 0.7);
     a.fogColor.set(env.fog.color);
-    a.fogDensity = weather === 'fog' ? 0.0045 : weather === 'rain' ? 0.0022 : time === 'dawn' ? 0.0026 : 0.0011;
+    // Ground-hugging layer on top of the scene fog: thick mist at dawn and in fog weather, a trace of haze otherwise.
+    a.fogDensity = weather === 'fog' ? 0.0032 : weather === 'rain' ? 0.0011 : time === 'dawn' ? 0.0013 : 0.00045;
+    a.fogFalloff = weather === 'fog' ? 0.018 : time === 'dawn' ? 0.025 : 0.035;
     a.wet = env.wet ? 1 : 0;
     a.dofAmount = 0;
   }

@@ -17,7 +17,7 @@ export class PerfOverlay {
   constructor(parent: HTMLElement) {
     this.root = document.createElement('div');
     this.root.setAttribute('data-testid', 'perf-overlay');
-    this.root.style.cssText = 'position:fixed;top:8px;left:8px;z-index:50;pointer-events:none;display:none;font:11px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#d8f5d0;background:rgba(0,0,0,.55);padding:6px 8px;border-radius:6px;min-width:150px;text-shadow:0 1px 1px #000';
+    this.root.style.cssText = 'position:fixed;top:68px;left:8px;z-index:50;pointer-events:none;display:none;font:11px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#d8f5d0;background:rgba(0,0,0,.55);padding:6px 8px;border-radius:6px;min-width:150px;text-shadow:0 1px 1px #000';
     this.text = document.createElement('pre');
     this.text.style.cssText = 'margin:0;white-space:pre';
     this.graph = document.createElement('canvas');

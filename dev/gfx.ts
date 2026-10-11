@@ -46,6 +46,7 @@ canvas.style.height = `${h}px`;
 async function main(): Promise<void> {
   const renderer = new Renderer(canvas, settings);
   renderer.renderer.info.autoReset = false;
+  renderer.pipeline.debugView = q.get('debug') ?? '';
   const env = resolveEnvironment(map, time, weather);
   await preloadWorld(env, renderer.profile);
   const session = new GameSession({

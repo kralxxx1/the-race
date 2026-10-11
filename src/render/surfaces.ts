@@ -147,7 +147,7 @@ vec2 nF2 = texture2D(tAsN, t2).xy * 2.0 - 1.0;
 // the second sample is rotated by 0.62 rad: rotate its tangent-space xy back into the road frame
 vec2 nF = (nF1 + sfRot(-0.62) * nF2) * 0.70710678;
 float shoulder = smoothstep(uLaneEdge - 0.05, uLaneEdge + 0.25, abs(xM));
-float wornMask = clamp(smoothstep(0.55, 0.78, sfF(P * vec2(0.17, 0.045) + 7.0)) + shoulder * 0.85, 0.0, 1.0);
+float wornMask = clamp(smoothstep(0.6, 0.8, sfF(P * vec2(0.17, 0.045) + 7.0)) * 0.8 + shoulder * 0.85, 0.0, 1.0);
 vec3 albW = vec3(0.0);
 vec3 armW = vec3(1.0, 0.9, 0.0);
 vec2 nW = vec2(0.0);
@@ -159,7 +159,7 @@ if (wornMask > 0.01) {
   armW = (texture2D(tWoR, w1).rgb + texture2D(tWoR, w2).rgb) * 0.5;
   nW = (texture2D(tWoN, w1).xy * 2.0 - 1.0 + sfRot(-1.1) * (texture2D(tWoN, w2).xy * 2.0 - 1.0)) * 0.70710678;
 }
-vec3 alb = mix(albF, albW * 1.05, wornMask) * uBase;
+vec3 alb = mix(albF, albW * 0.9, wornMask) * uBase;
 vec3 arm = mix(armF, armW, wornMask);
 vec2 nXY = mix(nF, nW, wornMask);
 // Macro tone variation breaks up the uniform look at distance.
@@ -254,7 +254,7 @@ float rumble = 0.0;
 float puddle = 0.0;
 float film = 0.0;
 if (uWet > 0.0) {
-  float basin = sfF(P * vec2(0.55, 0.16) + 41.0) + wear * 0.3 + smoothstep(uLaneEdge - 0.6, uLaneEdge + 0.4, abs(xM)) * 0.12 + sfN(P * vec2(3.0, 1.0)) * 0.08;
+  float basin = sfF(P * vec2(0.6, 0.3) + 41.0) + wear * 0.3 + smoothstep(uLaneEdge - 0.6, uLaneEdge + 0.4, abs(xM)) * 0.12 + sfN(P * vec2(3.0, 1.0)) * 0.08;
   puddle = smoothstep(0.58, 0.68, basin) * uWet;
   film = uWet * (0.3 + 0.18 * wear) + puddle * 0.7;
   alb *= 1.0 - uWet * 0.38 - puddle * 0.22;
@@ -410,7 +410,7 @@ function proceduralRoad(o: SurfaceOptions): THREE.MeshStandardMaterial {
     map: rt.map,
     roughnessMap: rt.roughness,
     normalMap: rt.normal,
-    normalScale: new THREE.Vector2(0.6, 0.6),
+    normalScale: new THREE.Vector2(0.3, 0.3),
     roughness: 1,
     metalness: o.env.wet ? 0.08 : 0,
     envMapIntensity: o.env.wet ? 1.6 : 0.6,

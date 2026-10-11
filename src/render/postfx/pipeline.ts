@@ -50,6 +50,7 @@ export interface PostFrame {
   /** Extinction per metre of the volumetric layer at its base. */
   fogDensity: number;
   fogBase: number;
+  fogFalloff: number;
   /** 0 dry .. 1 soaked: drives screen-space reflection strength on roads. */
   wet: number;
   /** Depth of field: focus distance in metres and strength (0 = off). */
@@ -210,6 +211,8 @@ export class PostPipeline {
   /** Sub-pixel jitter of the frame being rendered, in pixels (0 when TAA is off). */
   readonly jitter = new THREE.Vector2();
   private builtKey = '';
+  /** Developer aid: show an intermediate buffer instead of the final image ('ao' | 'ssr' | 'vol' | 'bloom'). */
+  debugView = '';
   /** Names of the passes that ran last frame (debug / tests). */
   readonly lastPasses: string[] = [];
 
@@ -551,6 +554,7 @@ export class PostPipeline {
       u.uSunFacing.value = f.sunDir ? Math.pow(sunFacing, 2) : 0;
       u.uDensity.value = f.fogDensity;
       u.uFogBase.value = f.fogBase;
+      u.uHeightFalloff.value = f.fogFalloff;
       u.uTime.value = f.time;
       u.uRays.value = rays;
       u.uFrame.value = this.frame % 16;
@@ -650,6 +654,9 @@ export class PostPipeline {
 
     // ── composite: tone map, grading, lens effects ──
     const c = m.composite.uniforms;
+    if (this.debugView === 'ao' && this.ao) read = this.ao.texture;
+    else if (this.debugView === 'ssr' && this.ssr) read = this.ssr.texture;
+    else if (this.debugView === 'vol' && this.vol) read = this.vol.texture;
     c.tColor.value = read;
     c.tBloom.value = bloomTex ?? this.blackTex;
     c.uTime.value = f.time;

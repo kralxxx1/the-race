@@ -147,7 +147,8 @@ float sao(vec2 uv, vec3 P, vec3 N, float n1) {
     vec3 Q = viewPosUv(uv + vec2(cos(ang), sin(ang)) * h * texel);
     vec3 v = Q - P;
     float vv = dot(v, v);
-    float vn = dot(v, N) - 0.015 * -P.z;
+    // Angle bias: ignore samples within ~7° of the tangent plane (flat but faceted/noisy surfaces must not self-occlude).
+    float vn = dot(v, N) - 0.12 * sqrt(vv) - 0.01 * -P.z;
     float f = max(r2 - vv, 0.0);
     sum += f * f * f * max(vn / (0.01 + vv), 0.0);
   }
@@ -157,19 +158,22 @@ float sao(vec2 uv, vec3 P, vec3 N, float n1) {
 #endif
 
 void main() {
-  float d = texture2D(tDepth, vUv).r;
+  // Half-resolution AO texels sit between full-resolution depth texels: snap to a depth texel centre,
+  // otherwise nearest-neighbour picks rows arbitrarily and the plane shows horizontal bands.
+  vec2 uv0 = (floor(vUv * uSize) + 0.5) / uSize;
+  float d = texture2D(tDepth, uv0).r;
   if (d >= 1.0) { gl_FragColor = vec4(1.0); return; }
-  vec3 P = viewPosAt(vUv, d);
-  vec3 N = viewNormalAt(vUv, P);
+  vec3 P = viewPosAt(uv0, d);
+  vec3 N = viewNormalAt(uv0, P);
   float n1 = ign(gl_FragCoord.xy + uFrame * 5.588238);
   float n2 = ign(gl_FragCoord.yx * 1.3 + uFrame * 3.113);
   float ao;
 #if AO_MODE == 2
-  ao = gtao(vUv, P, N, n1, n2);
+  ao = gtao(uv0, P, N, n1, n2);
 #elif AO_MODE == 1
-  ao = ssao(vUv, P, N, n1, n2);
+  ao = ssao(uv0, P, N, n1, n2);
 #else
-  ao = sao(vUv, P, N, n1);
+  ao = sao(uv0, P, N, n1);
 #endif
   gl_FragColor = vec4(pow(ao, uIntensity), 0.0, 0.0, 1.0);
 }`;
@@ -394,7 +398,9 @@ void main() {
     }
     acc /= float(RAY_SAMPLES);
     float toSun = 1.0 - smoothstep(0.0, 1.1, length((vUv - uSunUv) * vec2(uSize.x / uSize.y, 1.0)));
-    shafts = uSunColor * acc * uRays * uSunFacing * (0.25 + toSun * 0.75) * (d >= 1.0 ? 0.35 : 1.0);
+    // Shafts live in the air between the viewer and distant occluders: fade them out on nearby surfaces.
+    float near = d >= 1.0 ? 1.0 : smoothstep(15.0, 160.0, dist);
+    shafts = uSunColor * acc * uRays * uSunFacing * (0.25 + toSun * 0.75) * (d >= 1.0 ? 0.35 : near);
   }
   gl_FragColor = vec4(scatter + shafts, T);
 }`;
