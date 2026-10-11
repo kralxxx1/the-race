@@ -850,6 +850,10 @@ export class Game {
         return { geometries: m.geometries, textures: m.textures };
       },
       renderInfo: () => game.renderer.info(),
+      /** Debug: the live render view (cameras, mirrors, crash) for tooling. */
+      get view() {
+        return game.view;
+      },
       get profile() {
         return { ...game.profile };
       },

@@ -28,7 +28,9 @@ interface Side {
   rt: THREE.WebGLRenderTarget | null;
 }
 
-const MIRROR_FOV = 32;
+const MIRROR_FOV = 34;
+/** Upward adjustment of the reflected ray (≈ 17°): mirrors are set to show the traffic behind, not the tarmac. */
+const MIRROR_TILT = 0.3;
 const _p = new THREE.Vector3();
 const _n = new THREE.Vector3();
 const _v = new THREE.Vector3();
@@ -212,6 +214,9 @@ export class MirrorRig {
     // Reflect (keeping a minimum back-facing component so a badly aimed glass still shows the road behind).
     _r.copy(_v).addScaledVector(_n, -2 * _v.dot(_n));
     if (!Number.isFinite(_r.x + _r.y + _r.z)) _r.set(0, 0, 1);
+    // A rider tilts the glass up until the horizon sits in it; the raw reflection from a high eye points at the road.
+    _r.y += MIRROR_TILT;
+    _r.normalize();
     this.camera.aspect = s.aspect;
     this.camera.position.copy(_p).addScaledVector(_n, 0.015);
     // The mirror's up follows the bike's roll (the image tilts with the glass).

@@ -54,6 +54,8 @@ export class GameView {
   private crashPlan: CrashPlan = planCrash('both', false);
   private crashPhaseNow: 'fpv' | 'cine' | 'replay' = 'fpv';
   private feel = { roughness: 0.1, rumble: 0 };
+  /** 0..1 how tightly the rider is squeezed between two vehicles (lane splitting). */
+  private squeeze = 0;
   /** Secondary impact sounds (strength 0..1) while the crash plays out. */
   crashImpactCb: ((strength: number, kind: ImpactKind) => void) | null = null;
   readonly fx: FxState = defaultFx();
@@ -68,10 +70,13 @@ export class GameView {
   private frameDt = 1 / 60;
   private readonly mirrorHooks: MirrorHooks = {
     before: (h, fov) => {
+      // A rider's elbows would fill the glass; the reflection shows the traffic, not the rider.
+      this.rider.root.visible = false;
       this.glow.setViewportHeight(h, fov);
       this.smoke.setViewportHeight(h, fov);
     },
     after: () => {
+      this.rider.root.visible = true;
       this.glow.setViewportHeight(this.renderer.viewportHeight, this.cam.camera.fov);
       this.smoke.setViewportHeight(this.renderer.viewportHeight, this.cam.camera.fov);
     },
@@ -444,7 +449,7 @@ export class GameView {
     const speedK = smoothstep(28, 95, b.v);
     this.fx.blur = this.crash ? 0 : speedK * (this.cam.mode === 'helmet' ? 1 : 0.8);
     this.fx.aberration = this.crash ? 0.5 : speedK * 0.6;
-    this.fx.vignette = 0.25 + speedK * 0.45;
+    this.fx.vignette = 0.25 + speedK * 0.45 + this.squeeze * 0.2;
     this.flash = damp(this.flash, 0, 4, realDt);
     this.redPulse = damp(this.redPulse, 0, 1.5, realDt);
     this.fx.flash = this.flash * 0.6;
@@ -465,11 +470,29 @@ export class GameView {
     return out;
   }
 
+  /** Lane splitting: traffic close on both sides at once (≤ 2.6 m of clearance) squeezes the view and shakes the helmet. */
+  private updateSqueeze(dt: number): void {
+    const b = this.session.bike;
+    const hw = this.session.playerHalfWidth;
+    let left = 9;
+    let right = 9;
+    for (const c of this.session.traffic.cars) {
+      if (Math.abs(c.s - b.s) > c.length / 2 + 2.5) continue;
+      const gap = Math.abs(c.d - b.d) - c.width / 2 - hw;
+      if (c.d < b.d) left = Math.min(left, gap);
+      else right = Math.min(right, gap);
+    }
+    const worst = Math.max(left, right);
+    const target = b.v > 8 ? Math.max(0, 1 - Math.max(0, worst) / 2.6) * (left < 9 && right < 9 ? 1 : 0) : 0;
+    this.squeeze = damp(this.squeeze, target, target > this.squeeze ? 8 : 3, dt);
+  }
+
   /** Head dynamics → helmet camera (first-person view). */
   private updateHeadAndCamera(realDt: number): void {
     const b = this.session.bike;
     const s = this.session;
     const f = readFpvOptions(this.settings, this.fpv);
+    this.updateSqueeze(realDt);
     this.mirrors.configure(f.mirrors, f.mirrorHz);
     const hi = this.headIn;
     const feel = this.surfaceFeel();
@@ -482,7 +505,7 @@ export class GameView {
     hi.rpmFrac = b.curve.kind === 'electric' ? 0.2 : clamp(b.rpm / s.cfg.bike.engine.redline, 0, 1.2);
     hi.roughness = feel.roughness;
     hi.rumble = feel.rumble;
-    hi.turbulence = s.wake.turbulence;
+    hi.turbulence = Math.min(1, s.wake.turbulence + this.squeeze * 0.4);
     const style = s.cfg.bike.style;
     hi.tuckStyle = style === 'sport' || style === 'hyper' ? 1 : style === 'naked' ? 0.55 : style === 'adventure' ? 0.2 : 0;
     // Look over the shoulder: auto picks the side the rider is steering towards.

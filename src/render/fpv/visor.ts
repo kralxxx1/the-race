@@ -24,6 +24,8 @@ export class VisorFx {
   private ctx: CanvasRenderingContext2D | null;
   private drops = new DropletField();
   private sprites: HTMLCanvasElement[] = [];
+  /** Pre-rendered fade used for the wet streak behind a sliding droplet (no gradient objects per frame). */
+  private trail: HTMLCanvasElement;
   private frameLayer: HTMLCanvasElement | null = null;
   private crackLayer: HTMLCanvasElement | null = null;
   private crackSeed = 1;
@@ -52,6 +54,15 @@ export class VisorFx {
     }
     this.ctx = this.canvas.getContext('2d');
     for (let k = 0; k < 3; k++) this.sprites.push(makeDropSprite(k));
+    this.trail = document.createElement('canvas');
+    this.trail.width = 4;
+    this.trail.height = 64;
+    const tg = this.trail.getContext('2d')!;
+    const grad = tg.createLinearGradient(0, 0, 0, 64);
+    grad.addColorStop(0, 'rgba(255,255,255,0.22)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    tg.fillStyle = grad;
+    tg.fillRect(0, 0, 4, 64);
   }
 
   private resize(): void {
@@ -115,11 +126,7 @@ export class VisorFx {
         const tl = d.trail[i];
         if (tl > 0.004) {
           // Wet streak left behind a sliding droplet.
-          const g = ctx.createLinearGradient(x, y, x, y + tl * h);
-          g.addColorStop(0, 'rgba(255,255,255,0.20)');
-          g.addColorStop(1, 'rgba(255,255,255,0)');
-          ctx.fillStyle = g;
-          ctx.fillRect(x - r * 0.35, y, r * 0.7, tl * h);
+          ctx.drawImage(this.trail, x - r * 0.35, y, r * 0.7, tl * h);
         }
         const spr = this.sprites[d.kind[i]];
         ctx.drawImage(spr, x - r, y - r, r * 2, r * 2);
@@ -175,7 +182,7 @@ export class VisorFx {
     const cx = this.w * (0.28 + rnd() * 0.44);
     const cy = this.h * (0.25 + rnd() * 0.35);
     const reach = this.h * (0.55 + rnd() * 0.25);
-    const rays = 9 + ((rnd() * 5) | 0);
+    const rays = 7 + ((rnd() * 4) | 0);
     const paths: [number, number][][] = [];
     for (let i = 0; i < rays; i++) {
       const a0 = (i / rays) * Math.PI * 2 + (rnd() - 0.5) * 0.35;
@@ -188,7 +195,7 @@ export class VisorFx {
         a += (rnd() - 0.5) * 0.28;
         pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
         // Little forks.
-        if (rnd() < 0.3) {
+        if (rnd() < 0.2) {
           const fa = a + (rnd() < 0.5 ? -1 : 1) * (0.5 + rnd() * 0.6);
           const fl = (len - r) * (0.2 + rnd() * 0.35);
           paths.push([[cx + Math.cos(a) * r, cy + Math.sin(a) * r], [cx + Math.cos(fa) * (r + fl), cy + Math.sin(fa) * (r + fl)]]);
@@ -220,8 +227,8 @@ export class VisorFx {
       }
     };
     const k = this.w / BASE_W;
-    stroke('rgba(0,0,0,0.55)', 2.6 * k, 1.2 * k, 1.2 * k);
-    stroke('rgba(235,242,250,0.8)', 1.4 * k, 0, 0);
+    stroke('rgba(0,0,0,0.3)', 2.2 * k, 1.1 * k, 1.1 * k);
+    stroke('rgba(235,242,250,0.55)', 1.05 * k, 0, 0);
     // Bright chipped impact point.
     const rg = g.createRadialGradient(cx, cy, 0, cx, cy, 16 * k);
     rg.addColorStop(0, 'rgba(255,255,255,0.85)');

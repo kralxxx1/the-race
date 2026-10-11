@@ -249,7 +249,8 @@ export class RiderModel {
    */
   setFirstPerson(on: boolean): void {
     for (const p of this.bodyParts) p.visible = !on;
-    for (const l of [this.armL, this.armR]) l.joint.visible = !on;
+    // Only forearms and gloves are seen from the helmet: an upper arm swings across the view in hard leans.
+    for (const l of [this.armL, this.armR]) l.joint.visible = l.upper.visible = !on;
   }
 
   setHeadVisible(v: boolean): void {
