@@ -1,62 +1,8 @@
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import type { SettingsReader } from '../settings';
-import { profileFromSettings, type QualityProfile } from './quality';
-
-const SpeedShader = {
-  uniforms: {
-    tDiffuse: { value: null as THREE.Texture | null },
-    blur: { value: 0 },
-    vignette: { value: 0.3 },
-    aberration: { value: 0 },
-    desat: { value: 0 },
-    flash: { value: 0 },
-    tint: { value: new THREE.Vector3(0, 0, 0) },
-  },
-  vertexShader: /* glsl */ `
-    varying vec2 vUv;
-    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-  fragmentShader: /* glsl */ `
-    uniform sampler2D tDiffuse;
-    uniform float blur;
-    uniform float vignette;
-    uniform float aberration;
-    uniform float desat;
-    uniform float flash;
-    uniform vec3 tint;
-    varying vec2 vUv;
-    void main() {
-      vec2 c = vec2(0.5, 0.56);
-      vec2 dir = vUv - c;
-      float d = length(dir);
-      float amt = blur * smoothstep(0.12, 0.8, d);
-      vec3 col = vec3(0.0);
-      float tw = 0.0;
-      for (int i = 0; i < 10; i++) {
-        float t = float(i) / 9.0;
-        float w = 1.0 - t * 0.55;
-        col += texture2D(tDiffuse, vUv - dir * amt * t * 0.085).rgb * w;
-        tw += w;
-      }
-      col /= tw;
-      if (aberration > 0.0) {
-        float a = aberration * d * 0.012;
-        col.r = mix(col.r, texture2D(tDiffuse, vUv + dir * a).r, 0.65);
-        col.b = mix(col.b, texture2D(tDiffuse, vUv - dir * a).b, 0.65);
-      }
-      float vig = smoothstep(1.05, 0.28, d * (1.0 + vignette * 0.5));
-      col *= mix(1.0, vig, 0.45 + vignette * 0.4);
-      float g = dot(col, vec3(0.299, 0.587, 0.114));
-      col = mix(col, vec3(g), desat);
-      col += tint * d * d;
-      col += vec3(flash);
-      gl_FragColor = vec4(col, 1.0);
-    }`,
-};
+import { AdaptiveResolution, FrameLimiter, FrameStats } from './postfx/frameControl';
+import { PostPipeline, type PostFrame } from './postfx/pipeline';
+import { profileFromSettings, type QualityProfile, type ToneMap } from './quality';
 
 export interface FxState {
   /** 0..1 radial speed blur. */
@@ -67,38 +13,129 @@ export interface FxState {
   flash: number;
   /** Additive edge tint (e.g. red pulse). */
   tint: THREE.Vector3;
+  /** 0..1 heat shimmer over the asphalt. */
+  heat: number;
+  /** 0..1 water on the visor. */
+  rain: number;
+  /** Metres from the camera that count as cockpit (excluded from TAA / motion-blur reprojection). */
+  nearStatic: number;
 }
 
 export function defaultFx(): FxState {
-  return { blur: 0, vignette: 0.3, aberration: 0, desat: 0, flash: 0, tint: new THREE.Vector3() };
+  return { blur: 0, vignette: 0.3, aberration: 0, desat: 0, flash: 0, tint: new THREE.Vector3(), heat: 0, rain: 0, nearStatic: 0 };
 }
 
-/** WebGL renderer + post-processing stack with quality presets. */
+/** Lighting/atmosphere description the post chain needs (set by whoever owns the sky). */
+export interface Atmosphere {
+  /** Direction towards the sun or moon, world space. */
+  sunDir: THREE.Vector3 | null;
+  /** Radiance colour used for flare and light shafts. */
+  sunColor: THREE.Color;
+  fogColor: THREE.Color;
+  /** Extinction per metre of the volumetric fog layer at its base (0 = none). */
+  fogDensity: number;
+  fogBase: number;
+  /** 0 dry .. 1 soaked (screen-space reflection strength). */
+  wet: number;
+  bloom: { strength: number; threshold: number; radius: number };
+  /** Depth of field (garage / photo): focus distance in metres and strength; 0 = off. */
+  dofFocus: number;
+  dofAmount: number;
+}
+
+const TONE_CONST: Record<ToneMap, THREE.ToneMapping> = {
+  aces: THREE.ACESFilmicToneMapping,
+  agx: THREE.AgXToneMapping,
+  neutral: THREE.NeutralToneMapping,
+  reinhard: THREE.ReinhardToneMapping,
+  cineon: THREE.CineonToneMapping,
+  linear: THREE.LinearToneMapping,
+};
+
+/**
+ * WebGL renderer with two paths. Low-end devices (profile.postFx = false) draw
+ * the scene straight to the canvas with the context's native MSAA, tone mapping
+ * and sRGB output. Everything else renders into an HDR target and runs the
+ * `PostPipeline` (see postfx/pipeline.ts) before presenting.
+ */
 export class Renderer {
   readonly renderer: THREE.WebGLRenderer;
-  private composer: EffectComposer | null = null;
-  private renderPass: RenderPass | null = null;
-  private bloom: UnrealBloomPass | null = null;
-  private speed: ShaderPass | null = null;
+  readonly pipeline: PostPipeline;
   profile: QualityProfile;
+  readonly limiter = new FrameLimiter(0);
+  readonly stats = new FrameStats(120);
+  readonly atmosphere: Atmosphere = {
+    sunDir: null,
+    sunColor: new THREE.Color(1, 0.95, 0.85),
+    fogColor: new THREE.Color(0.7, 0.78, 0.86),
+    fogDensity: 0,
+    fogBase: 0,
+    wet: 0,
+    bloom: { strength: 0.2, threshold: 0.9, radius: 0.4 },
+    dofFocus: 5,
+    dofAmount: 0,
+  };
+  /** Callbacks run right before the scene is drawn (cascaded shadows, reflection probe, …). */
+  readonly beforeRender = new Set<(scene: THREE.Scene, camera: THREE.PerspectiveCamera) => void>();
+  private adaptive: AdaptiveResolution;
   private width = 1;
   private height = 1;
   private applied = '';
-  /** Adaptive resolution scale applied on top of the quality preset (0.6..1). */
   private dynScale = 1;
-  private fpsLow = 0;
-  private fpsHigh = 0;
+  private lastRender = 0;
+  private frameMs = 16.7;
+  private time = 0;
+  private gpu = '';
+  private readonly frame: PostFrame = {
+    time: 0,
+    dt: 1 / 60,
+    speedBlur: 0,
+    vignette: 0,
+    aberration: 0,
+    desat: 0,
+    flash: 0,
+    tint: new THREE.Vector3(),
+    heat: 0,
+    rain: 0,
+    nearStatic: 0,
+    exposure: 1,
+    bloomStrength: 0,
+    bloomThreshold: 1,
+    bloomRadius: 0.5,
+    sunDir: null,
+    sunColor: new THREE.Color(),
+    fogColor: new THREE.Color(),
+    fogDensity: 0,
+    fogBase: 0,
+    wet: 0,
+    dofFocus: 5,
+    dofAmount: 0,
+  };
+  private unjittered = new THREE.Matrix4();
 
   constructor(
     readonly canvas: HTMLCanvasElement,
     readonly settings: SettingsReader,
   ) {
     this.profile = profileFromSettings(settings);
+    // Native MSAA stays on for the forward path; the HDR chain brings its own samples.
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', stencil: false, preserveDrawingBuffer: false });
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.pipeline = new PostPipeline(this.renderer);
+    this.adaptive = new AdaptiveResolution({ targetFps: this.profile.targetFps, minScale: this.profile.minScale, maxScale: 1 });
+    try {
+      const gl = this.renderer.getContext();
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      this.gpu = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER));
+    } catch {
+      this.gpu = 'bilinmiyor';
+    }
     this.applySettings();
+  }
+
+  get gpuName(): string {
+    return this.gpu;
   }
 
   /** Re-read graphics settings; rebuilds the post-processing chain only when needed. */
@@ -106,13 +143,16 @@ export class Renderer {
     const p = profileFromSettings(this.settings);
     const key = JSON.stringify(p);
     if (key === this.applied) return;
-    const rebuild = !this.applied || p.postFx !== this.profile.postFx || p.bloom !== this.profile.bloom || p.msaa !== this.profile.msaa;
     this.applied = key;
     this.profile = p;
     this.renderer.shadowMap.enabled = p.shadows;
-    this.dynScale = 1;
-    this.renderer.setPixelRatio(this.pixelRatio);
-    if (rebuild) this.buildComposer();
+    this.renderer.shadowMap.type = p.shadowFilter === 'vsm' ? THREE.VSMShadowMap : p.shadowFilter === 'basic' ? THREE.BasicShadowMap : THREE.PCFShadowMap;
+    this.renderer.toneMapping = p.postFx ? THREE.NoToneMapping : TONE_CONST[p.toneMapping];
+    this.limiter.setCap(p.fpsCap);
+    this.adaptive.configure({ targetFps: p.targetFps, minScale: p.minScale });
+    if (!p.adaptiveResolution) this.adaptive.reset(1);
+    this.dynScale = p.adaptiveResolution ? this.adaptive.scale : 1;
+    this.pipeline.resetHistory();
     this.resize();
   }
 
@@ -120,78 +160,45 @@ export class Renderer {
     return this.profile.speedBlur;
   }
 
-  private buildComposer(): void {
-    this.composer?.dispose();
-    this.composer = null;
-    this.bloom = null;
-    this.speed = null;
-    if (!this.profile.postFx) return;
-    const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
-    const rt = new THREE.WebGLRenderTarget(Math.max(1, size.x), Math.max(1, size.y), {
-      type: THREE.HalfFloatType,
-      samples: this.profile.msaa,
-    });
-    const composer = new EffectComposer(this.renderer, rt);
-    this.renderPass = new RenderPass(new THREE.Scene(), new THREE.PerspectiveCamera());
-    composer.addPass(this.renderPass);
-    if (this.profile.bloom) {
-      this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.3, 0.5, 0.85);
-      composer.addPass(this.bloom);
-    }
-    this.speed = new ShaderPass(SpeedShader);
-    composer.addPass(this.speed);
-    composer.addPass(new OutputPass());
-    this.composer = composer;
-  }
-
+  /** Canvas pixel ratio (output resolution); render scale is applied on top inside the HDR chain. */
   private get pixelRatio(): number {
-    return Math.max(0.5, Math.min(window.devicePixelRatio || 1, this.profile.pixelRatio) * this.dynScale);
+    const base = Math.max(0.5, Math.min(window.devicePixelRatio || 1, this.profile.pixelRatio));
+    // The forward path has no internal target: render scale and adaptive scale shrink the canvas itself.
+    return this.profile.postFx ? base : Math.max(0.35, base * Math.min(this.profile.renderScale, 1) * this.dynScale);
   }
 
-  /**
-   * Adaptive resolution: drop the render scale when frames take too long for a
-   * couple of seconds, and restore it when there is headroom again.
-   */
-  adapt(fps: number, dt: number): void {
+  /** Resolution scale currently in effect (render scale × adaptive scale) for the overlay. */
+  get resolutionScale(): number {
+    return this.profile.postFx ? this.profile.renderScale * this.dynScale : Math.min(this.profile.renderScale, 1) * this.dynScale;
+  }
+
+  /** Adaptive resolution: feed the last frame's duration (seconds) once per frame. */
+  adapt(_fps: number, dt: number): void {
     if (!this.profile.adaptiveResolution) {
       if (this.dynScale !== 1) {
         this.dynScale = 1;
-        this.renderer.setPixelRatio(this.pixelRatio);
         this.resize();
       }
       return;
     }
-    if (fps < 42) {
-      this.fpsLow += dt;
-      this.fpsHigh = 0;
-    } else if (fps > 57) {
-      this.fpsHigh += dt;
-      this.fpsLow = 0;
-    } else {
-      this.fpsLow = 0;
-      this.fpsHigh = 0;
-    }
-    let next = this.dynScale;
-    if (this.fpsLow > 2 && this.dynScale > 0.6) next = Math.max(0.6, this.dynScale - 0.1);
-    else if (this.fpsHigh > 6 && this.dynScale < 1) next = Math.min(1, this.dynScale + 0.1);
-    if (next !== this.dynScale) {
+    const next = this.adaptive.update(dt * 1000);
+    if (Math.abs(next - this.dynScale) > 1e-4) {
       this.dynScale = next;
-      this.fpsLow = 0;
-      this.fpsHigh = 0;
-      this.renderer.setPixelRatio(this.pixelRatio);
       this.resize();
     }
   }
 
-  get resolutionScale(): number {
-    return this.dynScale;
+  setBloom(strength: number, threshold: number, radius: number): void {
+    const b = this.atmosphere.bloom;
+    b.strength = strength;
+    b.threshold = threshold;
+    b.radius = radius;
   }
 
-  setBloom(strength: number, threshold: number, radius: number): void {
-    if (!this.bloom) return;
-    this.bloom.strength = strength;
-    this.bloom.threshold = threshold;
-    this.bloom.radius = radius;
+  /** Depth of field for menus, the garage and photo shots (amount 0 disables it). */
+  setDepthOfField(focusDistance: number, amount: number): void {
+    this.atmosphere.dofFocus = focusDistance;
+    this.atmosphere.dofAmount = amount;
   }
 
   resize(): void {
@@ -199,11 +206,18 @@ export class Renderer {
     const h = this.canvas.clientHeight || window.innerHeight;
     this.width = w;
     this.height = h;
+    this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.setSize(w, h, false);
-    if (this.composer) {
-      this.composer.setPixelRatio(this.renderer.getPixelRatio());
-      this.composer.setSize(w, h);
+    this.rebuild();
+  }
+
+  private rebuild(): void {
+    if (!this.profile.postFx) {
+      this.pipeline.dispose();
+      return;
     }
+    const size = this.renderer.getDrawingBufferSize(_size);
+    this.pipeline.build(this.profile, Math.max(1, size.x), Math.max(1, size.y), this.dynScale);
   }
 
   get aspect(): number {
@@ -211,23 +225,105 @@ export class Renderer {
   }
 
   get viewportHeight(): number {
-    return this.height * this.renderer.getPixelRatio();
+    return this.postActive ? this.pipeline.plan.height : this.height * this.renderer.getPixelRatio();
+  }
+
+  /** True when the HDR chain is the active path. */
+  get postActive(): boolean {
+    return this.profile.postFx && this.pipeline.plan?.mode === 'post';
+  }
+
+  /** Measured interval between the last two rendered frames, ms. */
+  get lastFrameMs(): number {
+    return this.frameMs;
   }
 
   render(scene: THREE.Scene, camera: THREE.Camera, fx?: FxState): void {
-    if (this.composer && this.renderPass && this.speed) {
-      this.renderPass.scene = scene;
-      this.renderPass.camera = camera;
-      const u = this.speed.uniforms;
-      u.blur.value = this.speedBlurEnabled ? (fx?.blur ?? 0) : 0;
-      u.vignette.value = fx?.vignette ?? 0.3;
-      u.aberration.value = fx?.aberration ?? 0;
-      u.desat.value = fx?.desat ?? 0;
-      u.flash.value = fx?.flash ?? 0;
-      u.tint.value.copy(fx?.tint ?? new THREE.Vector3());
-      this.composer.render();
-    } else {
-      this.renderer.render(scene, camera);
+    const now = performance.now();
+    if (this.lastRender > 0) {
+      this.frameMs = now - this.lastRender;
+      this.stats.push(this.frameMs);
+    }
+    this.lastRender = now;
+    const dt = Math.min(0.1, this.frameMs / 1000);
+    this.time += dt;
+    const cam = camera as THREE.PerspectiveCamera;
+    const gl = this.renderer;
+    const p = this.profile;
+    const envExposure = gl.toneMappingExposure;
+    const expo = envExposure * Math.pow(2, p.exposureEV);
+    for (const cb of this.beforeRender) cb(scene, cam);
+
+    if (!this.postActive) {
+      gl.setRenderTarget(null);
+      gl.toneMappingExposure = expo;
+      gl.render(scene, camera);
+      gl.toneMappingExposure = envExposure;
+      return;
+    }
+
+    const pipe = this.pipeline;
+    camera.updateMatrixWorld();
+    this.unjittered.copy(camera.projectionMatrix);
+    pipe.beginFrame();
+    const j = pipe.jitter;
+    const e = camera.projectionMatrix.elements;
+    const w = pipe.plan.width;
+    const h = pipe.plan.height;
+    if (j.x !== 0 || j.y !== 0) {
+      e[8] += (j.x * 2) / w;
+      e[9] += (j.y * 2) / h;
+      camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+    }
+    gl.setRenderTarget(pipe.sceneTarget);
+    gl.toneMappingExposure = 1;
+    gl.render(scene, camera);
+    gl.toneMappingExposure = envExposure;
+    // Hand the post chain the clean projection (it reprojects with unjittered matrices).
+    const f = this.frame;
+    const a = this.atmosphere;
+    f.time = this.time;
+    f.dt = dt;
+    f.speedBlur = fx?.blur ?? 0;
+    f.vignette = fx?.vignette ?? 0.3;
+    f.aberration = fx?.aberration ?? 0;
+    f.desat = fx?.desat ?? 0;
+    f.flash = fx?.flash ?? 0;
+    if (fx) f.tint.copy(fx.tint);
+    else f.tint.set(0, 0, 0);
+    f.heat = fx?.heat ?? 0;
+    f.rain = fx?.rain ?? 0;
+    f.nearStatic = fx?.nearStatic ?? 0;
+    f.exposure = expo;
+    f.bloomStrength = a.bloom.strength;
+    f.bloomThreshold = a.bloom.threshold;
+    f.bloomRadius = a.bloom.radius;
+    f.sunDir = a.sunDir;
+    f.sunColor.copy(a.sunColor);
+    f.fogColor.copy(a.fogColor);
+    f.fogDensity = a.fogDensity * p.fogDensity;
+    f.fogBase = a.fogBase;
+    f.wet = a.wet;
+    f.dofFocus = a.dofFocus;
+    f.dofAmount = a.dofAmount;
+    // process() needs the jittered matrices for depth reconstruction.
+    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+    pipe.process(cam, this.unjittered, f, pipe.plan.outputWidth, pipe.plan.outputHeight);
+    // Restore the clean projection for the next consumer (HUD projection, audio…).
+    e[8] = this.unjittered.elements[8];
+    e[9] = this.unjittered.elements[9];
+    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+  }
+
+  /** Compile every shader of a scene and of the post chain so the first frames do not stutter. */
+  warmup(scene: THREE.Scene, camera: THREE.Camera): void {
+    try {
+      this.renderer.compile(scene, camera);
+      this.render(scene, camera);
+      this.pipeline.resetHistory();
+      this.lastRender = 0;
+    } catch (err) {
+      console.warn('warmup failed', err);
     }
   }
 
@@ -237,7 +333,9 @@ export class Renderer {
   }
 
   dispose(): void {
-    this.composer?.dispose();
+    this.pipeline.dispose();
     this.renderer.dispose();
   }
 }
+
+const _size = new THREE.Vector2();

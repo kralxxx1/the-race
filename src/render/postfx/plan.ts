@@ -6,15 +6,15 @@ import type { EffectLevel, Quality, QualityProfile } from '../quality';
  * samples. The renderer builds GPU resources from this plan, and unit tests
  * check it per preset without a WebGL context.
  *
- * Order (HDR, linear until "composite"):
- *   gbuffer → scene → ao → ssr → volumetrics → taa → bloom → dof → motionBlur
+ * Order (HDR, linear until "composite"; normals are rebuilt from the scene depth,
+ * so there is no separate geometry pass):
+ *   scene (colour + depth) → ao → ssr → volumetrics → taa → bloom → dof → motionBlur
  *   → composite (tone map + grading + LUT + lens effects) → fxaa|smaa → output
  * TAA resolves the fully lit HDR image before bloom/DOF/motion blur so those see
  * a stable, anti-aliased input; FXAA/SMAA work on the final LDR image as intended.
  */
 
 export type PassId =
-  | 'gbuffer'
   | 'scene'
   | 'ao'
   | 'ssr'
@@ -28,7 +28,7 @@ export type PassId =
   | 'smaa'
   | 'output';
 
-export const PASS_ORDER: readonly PassId[] = ['gbuffer', 'scene', 'ao', 'ssr', 'volumetrics', 'taa', 'bloom', 'dof', 'motionBlur', 'composite', 'fxaa', 'smaa', 'output'];
+export const PASS_ORDER: readonly PassId[] = ['scene', 'ao', 'ssr', 'volumetrics', 'taa', 'bloom', 'dof', 'motionBlur', 'composite', 'fxaa', 'smaa', 'output'];
 
 export interface PassSpec {
   id: PassId;
@@ -36,6 +36,8 @@ export interface PassSpec {
   height: number;
   /** Primary sample/step count of the effect (taps, ray steps, mips…). */
   samples: number;
+  /** Secondary count (volumetrics: god-ray taps next to the fog steps). */
+  extra?: number;
   quality?: Quality | EffectLevel;
 }
 
@@ -58,10 +60,12 @@ export const AO_SAMPLES: Record<'sao' | 'ssao' | 'gtao', Record<Quality, number>
   ssao: { low: 8, medium: 16, high: 32, ultra: 48 },
   gtao: { low: 8, medium: 12, high: 16, ultra: 24 },
 };
+/** GTAO slice/step layout; slices × steps equals the AO_SAMPLES.gtao budget. */
+export const GTAO_LAYOUT: Record<Quality, readonly [number, number]> = { low: [2, 4], medium: [3, 4], high: [4, 4], ultra: [4, 6] };
 export const SSR_STEPS: Record<Quality, number> = { low: 16, medium: 32, high: 48, ultra: 96 };
 export const BLOOM_MIPS: Record<Quality, number> = { low: 4, medium: 5, high: 6, ultra: 7 };
 export const GODRAY_SAMPLES: Record<Quality, number> = { low: 24, medium: 48, high: 96, ultra: 128 };
-export const FOG_STEPS: Record<Quality, number> = { low: 0, medium: 12, high: 24, ultra: 48 };
+export const FOG_STEPS: Record<Quality, number> = { low: 8, medium: 12, high: 24, ultra: 48 };
 export const DOF_SAMPLES: Record<Quality, number> = { low: 16, medium: 32, high: 64, ultra: 96 };
 export const MOTION_SAMPLES: Record<Quality, number> = { low: 6, medium: 10, high: 16, ultra: 24 };
 
@@ -75,8 +79,8 @@ export function internalSize(outW: number, outH: number, renderScale: number, dy
 export function planPipeline(p: QualityProfile, outputWidth: number, outputHeight: number, dynScale = 1): PipelinePlan {
   const [w, h] = internalSize(outputWidth, outputHeight, p.postFx ? p.renderScale : Math.min(p.renderScale, 1), dynScale);
   const passes: PassSpec[] = [];
-  const add = (id: PassId, scale: number, samples: number, quality?: Quality | EffectLevel) =>
-    passes.push({ id, width: Math.max(1, Math.round(w * scale)), height: Math.max(1, Math.round(h * scale)), samples, quality });
+  const add = (id: PassId, scale: number, samples: number, quality?: Quality | EffectLevel, extra?: number) =>
+    passes.push({ id, width: Math.max(1, Math.round(w * scale)), height: Math.max(1, Math.round(h * scale)), samples, quality, extra });
 
   if (!p.postFx) {
     // Simple forward path: one scene render straight to the canvas (MSAA via the context or one resolve).
@@ -86,14 +90,14 @@ export function planPipeline(p: QualityProfile, outputWidth: number, outputHeigh
 
   const ao = p.ao;
   const ssr = p.ssr;
-  if (ao !== 'off' || ssr !== 'off') add('gbuffer', 1, 1);
   add('scene', 1, p.msaa);
   if (ao !== 'off') add('ao', fullRes(p.aoQuality) ? 1 : 0.5, AO_SAMPLES[ao][p.aoQuality], p.aoQuality);
   if (ssr !== 'off') add('ssr', fullRes(ssr) ? 1 : 0.5, SSR_STEPS[ssr], ssr);
   if (p.volumetricFog !== 'off' || p.godRays !== 'off') {
     const fogQ = p.volumetricFog === 'off' ? 'low' : p.volumetricFog;
     const rayQ = p.godRays === 'off' ? null : p.godRays;
-    add('volumetrics', rayQ === 'high' || rayQ === 'ultra' ? 0.5 : 0.25, (p.volumetricFog === 'off' ? 0 : FOG_STEPS[fogQ]) * 1000 + (rayQ ? GODRAY_SAMPLES[rayQ] : 0), p.volumetricFog);
+    const q = p.volumetricFog === 'off' ? rayQ ?? 'low' : fogQ;
+    add('volumetrics', q === 'high' || q === 'ultra' ? 0.5 : 0.25, p.volumetricFog === 'off' ? 0 : FOG_STEPS[fogQ], q, rayQ ? GODRAY_SAMPLES[rayQ] : 0);
   }
   if (p.aa === 'taa') add('taa', 1, 1);
   if (p.bloom) add('bloom', p.bloomQuality === 'ultra' ? 1 : 0.5, BLOOM_MIPS[p.bloomQuality], p.bloomQuality);
@@ -104,7 +108,7 @@ export function planPipeline(p: QualityProfile, outputWidth: number, outputHeigh
   if (p.aa === 'smaa') add('smaa', 1, 1);
   passes.push({ id: 'output', width: outputWidth, height: outputHeight, samples: 1 });
 
-  const key = `post:${p.msaa}:` + passes.map((s) => `${s.id}/${s.samples}/${s.quality ?? ''}/${s.width === w ? 'f' : 'h'}`).join(',');
+  const key = `post:${p.msaa}:` + passes.map((s) => `${s.id}/${s.samples}/${s.extra ?? 0}/${s.quality ?? ''}/${s.width === w ? 'f' : 'h'}`).join(',');
   return { mode: 'post', outputWidth, outputHeight, width: w, height: h, msaa: p.msaa, passes, key };
 }
 
