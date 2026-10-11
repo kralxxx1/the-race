@@ -88,6 +88,7 @@ uniform sampler2D skyTex;
 uniform float skyScale;
 uniform float skyRot;
 uniform float skyGain;
+uniform float skySat;
 uniform vec3 horizonFog;
 uniform float fogAmount;
 uniform vec3 ground;
@@ -108,6 +109,8 @@ void main() {
   float e = asin(clamp(h, -1.0, 1.0));
   float v = clamp(1.0 - (0.5 - e / 3.14159265) / 0.5625, 0.0, 1.0);
   vec3 col = texture2D(skyTex, vec2(uu, v)).rgb * skyScale * skyGain;
+  // Photographic skies are pale near the horizon once tone mapped; lift the colour a little.
+  col = mix(vec3(dot(col, vec3(0.2126, 0.7152, 0.0722))), col, skySat);
   // Below the strip (and the horizon) fade into the fog/ground colour.
   col = mix(col, ground, smoothstep(-0.02, -0.18, h) * 0.9);
   ${sunBlock}
@@ -148,7 +151,10 @@ export function hdriFor(env: EnvDef): HdriChoice {
  * Image-based-lighting gain per HDRI so that the PMREM matches the exposure the
  * environment definitions were tuned for (night maps are metered for artificial light).
  */
-const IBL_GAIN: Record<HdriKey, number> = { dawn: 1.4, day: 1.0, cloudy: 1.0, overcast: 1.1, fog: 1.1, sunset: 1.1, night: 14, city_night: 2.2 };
+const IBL_GAIN: Record<HdriKey, number> = { dawn: 0.9, day: 1.0, cloudy: 0.95, overcast: 0.5, fog: 0.5, sunset: 0.55, night: 0.3, city_night: 0.45 };
+
+/** Brightness of the visible sky strip per HDRI (the photographs are exposure-normalised: night would look like dusk). */
+const SKY_GAIN: Record<HdriKey, number> = { dawn: 0.9, day: 0.85, cloudy: 0.85, overcast: 0.7, fog: 0.7, sunset: 0.8, night: 0.16, city_night: 1 };
 
 export interface SkyOptions {
   mode: SkyMode;
@@ -221,9 +227,10 @@ export class SkySystem {
           skyTex: { value: stripTex },
           skyScale: { value: stripDef.skyScale },
           skyRot: { value: 0 },
-          skyGain: { value: night ? 1.6 : 1 },
+          skyGain: { value: SKY_GAIN[this.hdriKeys.sky] },
+          skySat: { value: night ? 1.0 : 1.45 },
           horizonFog: { value: new THREE.Color(env.fog.color) },
-          fogAmount: { value: THREE.MathUtils.clamp(1.2 - env.fog.far / 1500, 0.08, 0.85) },
+          fogAmount: { value: THREE.MathUtils.clamp(1.0 - env.fog.far / 1500, 0.05, 0.7) },
           ground: uniforms.ground,
           sunDir: uniforms.sunDir,
           sunColor: uniforms.sunColor,

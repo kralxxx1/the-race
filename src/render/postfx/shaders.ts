@@ -366,7 +366,7 @@ void main() {
       dens *= 0.55 + 0.9 * vnoise(p * 0.035 + vec3(uTime * 0.6, 0.0, uTime * 0.35));
       float ext = dens * stepLen;
       float absorb = exp(-ext);
-      vec3 inS = uSunColor * phase * 14.0 + uFogColor * 0.35;
+      vec3 inS = uSunColor * phase * 3.0 + uFogColor;
       scatter += T * inS * (1.0 - absorb);
       T *= absorb;
     }
@@ -859,7 +859,7 @@ void main() {
   col += vec3(uFlash);
   if (uGrain > 0.0) {
     float n = hash12(gl_FragCoord.xy + fract(uTime) * 413.0) - 0.5;
-    col += n * uGrain * (0.25 + 0.75 * (1.0 - g));
+    col += n * uGrain * 0.3 * (0.3 + 0.7 * (1.0 - g));
   }
   // Triangular dither hides 8-bit banding in smooth gradients (dark skies, fog).
   float dn = hash12(gl_FragCoord.xy * 1.37 + uTime) + hash12(gl_FragCoord.yx * 0.73 - uTime) - 1.0;

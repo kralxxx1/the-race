@@ -631,7 +631,7 @@ export class PostPipeline {
       u.uInvViewProj.value.copy(invVP);
       u.uPrevViewProj.value.copy(prevVP);
       // Shutter of 1/120 s regardless of frame rate: blur the fraction of this frame's motion that fits.
-      u.uScale.value = Math.min(1, ((1 / 120) / Math.max(f.dt, 1 / 240)) * p.motionBlurStrength);
+      u.uScale.value = Math.min(0.8, ((1 / 120) / Math.max(f.dt, 1 / 240)) * p.motionBlurStrength * 0.6);
       u.uMaxPx.value = 56 * (h / 1080);
       u.uNearStatic.value = f.nearStatic;
       fs.draw(gl, m.motion, out());
