@@ -275,8 +275,8 @@ export const BIKES: BikeSpec[] = [
     engine: { layout: 'I4', cc: 999, hp: 215, hpRpm: 14500, torque: 113, torqueRpm: 12500, idle: 1300, redline: 14500, limiter: 15000 },
     quickshifter: true, weight: 201, topSpeed: 299, price: 28900,
     liveries: [
-      livery('HRC Tricolor', W, '#c8102e', '#1d3c8f', { pattern: 'tricolor', wheel: '#c8102e', frame: '#2b2d31' }),
-      livery('Mat Siyah', '#1a1b1e', '#2c2d31', '#c8102e', { pattern: 'stripes', wheel: BLK }),
+      livery('Grand Prix Red (HRC Tricolor)', W, '#c8102e', '#1d3c8f', { pattern: 'tricolor', wheel: GOLD, frame: '#3a3c40', suit: [W, '#c8102e'] }),
+      livery('Matte Pearl Morion Black', '#17181b', '#0d0e10', '#c8102e', { pattern: 'stripes', wheel: GOLD, frame: '#3a3c40' }),
     ],
     look: { extras: ['winglets', 'bellypan'] },
     description: 'MotoGP kökenli 999 cc sıralı dört; 14.500 devirde 215 beygir ve yüksek devirli çığlık.',
@@ -286,8 +286,8 @@ export const BIKES: BikeSpec[] = [
     engine: { layout: 'I4', cc: 649, hp: 95, hpRpm: 12000, torque: 63, torqueRpm: 9500, idle: 1300, redline: 12500 },
     weight: 208, topSpeed: 235, price: 9900,
     liveries: [
-      livery('Grand Prix Kırmızı', '#c8102e', '#1a1a1a', W, { pattern: 'split' }),
-      livery('Mat Gunpowder', '#2e3034', '#16171a', '#c8102e', { pattern: 'solid' }),
+      livery('Grand Prix Red', '#c8102e', '#111214', W, { pattern: 'split', frame: '#17181b' }),
+      livery('Matt Gunpowder Black Metallic', '#2e3034', '#111214', '#c8102e', { pattern: 'solid', frame: '#17181b' }),
     ],
     voice: { resonance: 560 },
     description: 'Günlük kullanılabilir sıralı dört; orta devirden kırmızı bölgeye kadar pürüzsüz.',
@@ -466,8 +466,8 @@ export const BIKES: BikeSpec[] = [
     engine: { layout: 'I4', cc: 1340, hp: 190, hpRpm: 9700, torque: 150, torqueRpm: 7000, idle: 1150, redline: 11000 },
     quickshifter: true, weight: 264, topSpeed: 299, price: 18800,
     liveries: [
-      livery('Glass Sparkle Black / Candy Gold', '#151619', '#7a5a1e', '#c9a227', { pattern: 'split', wheel: '#151619' }),
-      livery('Pearl White / Stellar Blue', W, '#2a3f73', '#c9a227', { pattern: 'split' }),
+      livery('Glass Sparkle Black / Candy Burnt Gold', '#151619', '#8a5a22', '#c9a227', { pattern: 'split', wheel: '#151619' }),
+      livery('Pearl Brilliant White / Pearl Vigor Blue', W, '#24407a', '#c9a227', { pattern: 'split', wheel: '#151619' }),
     ],
     look: { wheelbase: 1.48 },
     voice: { resonance: 380, brightness: 0.62 },
