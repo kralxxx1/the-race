@@ -639,7 +639,7 @@ export const BIKES: BikeSpec[] = [
     id: 'aprilia-rsv4', brand: 'Aprilia', model: 'RSV4 Factory', year: 2024, style: 'sport',
     engine: { layout: 'V4A', cc: 1099, hp: 217, hpRpm: 13000, torque: 125, torqueRpm: 10500, idle: 1300, redline: 14000 },
     quickshifter: true, weight: 202, topSpeed: 305, price: 26000,
-    liveries: [livery('Ultra Dark', '#17181b', '#2c2e33', '#d8202e', { pattern: 'racing', wheel: '#d8202e', suit: [BLK, '#d8202e'] }), livery('Racing Tricolor', '#1b1c1f', '#d8202e', '#6a3cbc', { pattern: 'tricolor', suit: [BLK, '#6a3cbc'] })],
+    liveries: [livery('Aprilia Racing', '#141518', '#d21f2b', '#5a2a8c', { pattern: 'racing', wheel: '#16171a', suit: [BLK, '#d21f2b'] }), livery('Lava Red', '#d21f2b', '#141518', '#5a2a8c', { pattern: 'split', wheel: '#16171a', suit: ['#d21f2b', BLK] })],
     look: { extras: ['winglets', 'bellypan'] },
     description: '65° V4: MotoGP\'deki en "tok" ses; Noale\'nin şaheseri.',
   }),
