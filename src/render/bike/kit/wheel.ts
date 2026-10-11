@@ -60,7 +60,7 @@ export function buildWheel(ctx: KitContext, front: boolean): WheelGeom {
       ? design.rimColor
         ? hard(design.rimColor, 0.9, 0.28, 0.4, Micro.anodised)
         : F.polishedAlu
-      : hard(design.color, design.type === 'forged' ? 0.55 : 0.4, 0.3, 1, Micro.plain);
+      : hard(design.liveryColor ? ctx.livery.wheel : design.color, design.type === 'forged' ? 0.55 : 0.4, 0.3, 1, Micro.plain);
   buildRim(ctx, g, design, wheelFin, (m, f) => add(m, f));
 
   // ── hub, spokes ──

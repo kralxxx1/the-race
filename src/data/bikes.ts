@@ -349,8 +349,8 @@ export const BIKES: BikeSpec[] = [
     engine: { layout: 'I3', cc: 890, hp: 119, hpRpm: 10000, torque: 93, torqueRpm: 7000, idle: 1100, redline: 11000 },
     quickshifter: true, weight: 193, topSpeed: 230, price: 10500,
     liveries: [
-      livery('Cyan Storm', '#5b6169', '#2a2d31', '#18c7e8', { pattern: 'split', wheel: '#18c7e8' }),
-      livery('Icon Blue', '#0d3fa6', '#1a1b1e', '#7aa2ff', { pattern: 'split' }),
+      livery('Cyan Storm', '#5b6169', '#2a2d31', '#18c7e8', { pattern: 'split', wheel: '#18c7e8', frame: '#26282c' }),
+      livery('Icon Blue', '#0d3fa6', '#1a1b1e', '#7aa2ff', { pattern: 'split', wheel: '#1846b5', frame: '#26282c' }),
     ],
     description: 'Crossplane felsefeli üçlü: karanlık tarafın torku.',
   }),

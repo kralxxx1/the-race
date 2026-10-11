@@ -8,7 +8,7 @@ import type { ForkLayout } from './front';
 export function frameFinish(ctx: KitContext): Finish {
   const f = ctx.bp.frame;
   const micro = f.type === 'twinSpar' || f.type === 'monocoque' ? Micro.cast : Micro.plain;
-  return hard(f.color, f.metal, f.rough, f.metal < 0.5 ? 0.9 : 0.3, micro);
+  return hard(f.liveryColor ? ctx.livery.frame : f.color, f.metal, f.rough, f.metal < 0.5 ? 0.9 : 0.3, micro);
 }
 
 /** Swept beam with a tall rounded-rectangle section and per-point taper. */
