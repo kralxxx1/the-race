@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { BikeSpec } from '../data/bikes';
 import { damp } from '../core/math';
+import { bikeDetailFrom } from './bike/bikeSettings';
 import { BikeModel } from './bikeModel';
 import { Materials } from './materials';
 import type { Renderer } from './renderer';
@@ -85,8 +86,9 @@ export class Showroom {
       this.holder.remove(this.bike.root);
       this.bike.dispose();
     }
-    this.bike = new BikeModel(spec, livery, this.mats);
-    this.bike.root.position.z = spec.look.wheelbase / 2;
+    // Garage close-ups always use LOD0 at the player's chosen detail.
+    this.bike = new BikeModel(spec, livery, this.mats, { detail: bikeDetailFrom(this.renderer.settings), lod: 0 });
+    this.bike.root.position.z = this.bike.frame.L / 2;
     this.bike.root.traverse((o) => {
       if ((o as THREE.Mesh).isMesh) o.castShadow = true;
     });
