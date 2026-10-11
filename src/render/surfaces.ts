@@ -136,6 +136,18 @@ vec2 P = vec2(xM, sM);
 float camDist = length(vViewPosition);
 // ── base asphalt: two unrelated scales of the fresh set, worn set blended in patches and on the shoulders
 vec2 t1 = P / uTile.x;
+float shoulder = smoothstep(uLaneEdge - 0.05, uLaneEdge + 0.25, abs(xM));
+#ifdef ROAD_LITE
+// Phones: one fetch per map, no worn set, no procedural damage.
+vec3 albF = texture2D(tAsA, t1).rgb;
+vec3 armF = texture2D(tAsR, t1).rgb;
+vec2 nF = texture2D(tAsN, t1).xy * 2.0 - 1.0;
+float wornMask = shoulder * 0.5;
+vec3 albW = albF * 1.12;
+vec3 armW = armF;
+vec2 nW = nF;
+float macro = sfN(P * vec2(0.35, 0.09) + 3.0);
+#else
 vec2 t2 = (sfRot(0.62) * P * 0.43 + vec2(3.7, 11.3)) / uTile.x;
 vec3 meanA = textureLod(tAsA, vec2(0.5), 11.0).rgb;
 vec3 albF = sfBlend(texture2D(tAsA, t1).rgb, texture2D(tAsA, t2).rgb, meanA);
@@ -146,7 +158,6 @@ vec2 nF1 = texture2D(tAsN, t1).xy * 2.0 - 1.0;
 vec2 nF2 = texture2D(tAsN, t2).xy * 2.0 - 1.0;
 // the second sample is rotated by 0.62 rad: rotate its tangent-space xy back into the road frame
 vec2 nF = (nF1 + sfRot(-0.62) * nF2) * 0.70710678;
-float shoulder = smoothstep(uLaneEdge - 0.05, uLaneEdge + 0.25, abs(xM));
 float wornMask = clamp(smoothstep(0.6, 0.8, sfF(P * vec2(0.17, 0.045) + 7.0)) * 0.8 + shoulder * 0.85, 0.0, 1.0);
 vec3 albW = vec3(0.0);
 vec3 armW = vec3(1.0, 0.9, 0.0);
@@ -159,11 +170,12 @@ if (wornMask > 0.01) {
   armW = (texture2D(tWoR, w1).rgb + texture2D(tWoR, w2).rgb) * 0.5;
   nW = (texture2D(tWoN, w1).xy * 2.0 - 1.0 + sfRot(-1.1) * (texture2D(tWoN, w2).xy * 2.0 - 1.0)) * 0.70710678;
 }
+float macro = sfF(P * vec2(0.35, 0.09) + 3.0);
+#endif
 vec3 alb = mix(albF, albW * 0.9, wornMask) * uBase;
 vec3 arm = mix(armF, armW, wornMask);
 vec2 nXY = mix(nF, nW, wornMask);
 // Macro tone variation breaks up the uniform look at distance.
-float macro = sfF(P * vec2(0.35, 0.09) + 3.0);
 alb *= 0.86 + macro * 0.3;
 
 // ── tyre tracks: polished, darker bands where wheels run, oil in the lane centre
@@ -179,13 +191,18 @@ for (int i = 0; i < 6; i++) {
   centreOil = max(centreOil, exp(-cc * cc));
 }
 wear *= 0.55 + 0.45 * sfN(P * vec2(0.8, 0.12) + 5.0);
+#ifdef ROAD_LITE
+float oil = 0.0;
+#else
 float oil = smoothstep(0.6, 0.85, sfF(P * vec2(1.2, 0.4) + 31.0)) * centreOil * (1.0 - wear);
+#endif
 alb *= 1.0 - wear * 0.2;
 alb *= 1.0 - oil * 0.45;
 
 // ── repair patches: rectangular, darker, with a sealed border
 float patchMask = 0.0;
 float patchEdge = 0.0;
+#ifndef ROAD_LITE
 {
   vec2 cell = floor(vec2(xM / 3.6 + 0.5, sM / 14.0));
   float h = sfH(cell + 5.3);
@@ -199,11 +216,13 @@ float patchEdge = 0.0;
     patchEdge = (1.0 - smoothstep(0.012, 0.012 + aa, abs(dd))) ;
   }
 }
+#endif
 alb = mix(alb, alb * vec3(0.72, 0.72, 0.74), patchMask);
 alb = mix(alb, vec3(0.03), patchEdge * 0.8);
 
 // ── cracks (near field only: they are sub-pixel further away)
 float crack = 0.0;
+#ifndef ROAD_LITE
 if (camDist < 45.0) {
   vec2 cp = P * vec2(0.55, 0.55) + vec2(sfN(P * 1.7), sfN(P * 1.7 + 9.0)) * 0.35;
   float e = sfEdge(cp);
@@ -213,6 +232,7 @@ if (camDist < 45.0) {
   crack = (1.0 - smoothstep(widthM * 0.55 - ww, widthM * 0.55 + ww, e * 1.8)) * region * (1.0 - smoothstep(30.0, 45.0, camDist));
   alb *= 1.0 - crack * 0.78;
 }
+#endif
 
 // ── lane markings (analytic, anti-aliased by screen-space derivatives)
 float paint = 0.0;
@@ -231,8 +251,13 @@ float yellow = 0.0;
     else paint = max(paint, max(sfCov(xM, c - 0.13, 0.06), sfCov(xM, c + 0.13, 0.06)));
   }
   // Worn paint: chipped, thinned under the tyre tracks, speckled.
+#ifdef ROAD_LITE
+  float chip = smoothstep(0.1, 0.4, sfN(P * vec2(11.0, 2.4)) + 0.3 - wear * 0.2);
+  float fleck = 0.0;
+#else
   float chip = smoothstep(0.12, 0.5, sfF(P * vec2(11.0, 2.4)) + 0.22 - wear * 0.2);
   float fleck = step(0.965, sfH(floor(P * vec2(70.0, 45.0))));
+#endif
   paint *= chip * (1.0 - fleck * 0.8);
   paint *= 1.0 - crack * 0.6;
   paintCol = mix(paintCol, vec3(0.78, 0.58, 0.10), yellow);
@@ -254,7 +279,12 @@ float rumble = 0.0;
 float puddle = 0.0;
 float film = 0.0;
 if (uWet > 0.0) {
-  float basin = sfF(P * vec2(0.6, 0.3) + 41.0) + wear * 0.3 + smoothstep(uLaneEdge - 0.6, uLaneEdge + 0.4, abs(xM)) * 0.12 + sfN(P * vec2(3.0, 1.0)) * 0.08;
+#ifdef ROAD_LITE
+  float basinNoise = sfN(P * vec2(0.6, 0.3) + 41.0);
+#else
+  float basinNoise = sfF(P * vec2(0.6, 0.3) + 41.0);
+#endif
+  float basin = basinNoise + wear * 0.3 + smoothstep(uLaneEdge - 0.6, uLaneEdge + 0.4, abs(xM)) * 0.12 + sfN(P * vec2(3.0, 1.0)) * 0.08;
   puddle = smoothstep(0.58, 0.68, basin) * uWet;
   film = uWet * (0.3 + 0.18 * wear) + puddle * 0.7;
   alb *= 1.0 - uWet * 0.38 - puddle * 0.22;
@@ -329,11 +359,17 @@ const TERRAIN_FRAG_MAIN = /* glsl */ `
 vec2 gp = vTUv * 9.0;
 float camD = length(vViewPosition);
 vec2 g1 = gp / uTileG;
+#ifdef TERRAIN_LITE
+vec3 alb = texture2D(tGa, g1).rgb * uGroundTint;
+vec3 arm = texture2D(tGr, g1).rgb;
+vec2 nxy = texture2D(normalMap, g1).xy * 2.0 - 1.0;
+#else
 vec2 g2 = (sfRot(0.71) * gp * 0.41 + vec2(5.3, 1.9)) / uTileG;
 vec3 meanG = textureLod(tGa, vec2(0.5), 11.0).rgb;
 vec3 alb = sfBlend(texture2D(tGa, g1).rgb, texture2D(tGa, g2).rgb, meanG) * uGroundTint;
 vec3 arm = (texture2D(tGr, g1).rgb + texture2D(tGr, g2).rgb) * 0.5;
 vec2 nxy = (texture2D(normalMap, g1).xy * 2.0 - 1.0 + sfRot(-0.71) * (texture2D(normalMap, g2).xy * 2.0 - 1.0)) * 0.70710678;
+#endif
 float rough = clamp(arm.g, 0.4, 1.0);
 float tAo = arm.r;
 if (uBlend > 0.5) {
@@ -430,6 +466,8 @@ function photoRoad(o: SurfaceOptions, fresh: PBRSet, worn: PBRSet): THREE.MeshPh
     normalMap: flatNormal,
     envMapIntensity: wet ? 1.15 : 0.7,
   });
+  // The simple forward preset (phones) gets a lighter road shader: fewer fetches, no procedural damage.
+  if (!quality.postFx) mat.defines = { ROAD_LITE: 1 };
   const dirs = lanes.dirs;
   const sep: number[] = [0, 0, 0, 0, 0, 0];
   for (let l = 1; l < lanes.lanes && l <= 6; l++) sep[l - 1] = lanes.layout === 'twoway' && dirs[l - 1] !== dirs[l] ? 2 : 1;
@@ -457,7 +495,7 @@ function photoRoad(o: SurfaceOptions, fresh: PBRSet, worn: PBRSet): THREE.MeshPh
     Object.assign(shader.uniforms, uniforms);
     roadShader(shader);
   };
-  mat.customProgramCacheKey = () => `road:${wet ? 'w' : 'd'}:${quality.detailNormals ? 1 : 0}`;
+  mat.customProgramCacheKey = () => `road:${wet ? 'w' : 'd'}:${quality.detailNormals ? 1 : 0}:${quality.postFx ? 'f' : 'l'}`;
   mat.userData.surface = 'road';
   return mat;
 }
@@ -473,6 +511,7 @@ function photoGround(o: SurfaceOptions, base: PBRSet, rock: PBRSet | null, grave
   const mat = new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 1, metalness: 0, normalMap: base.normalMap });
   const snow = base.key === 'snow';
   const tint = snow ? new THREE.Color(1, 1, 1) : env.terrain === 'sand' ? new THREE.Color(1.0, 0.95, 0.9) : new THREE.Color(1, 1, 1);
+  if (!quality.postFx) mat.defines = { TERRAIN_LITE: 1 };
   const uniforms: Record<string, THREE.IUniform> = {
     tGa: { value: base.map },
     tGr: { value: base.arm },
@@ -491,7 +530,7 @@ function photoGround(o: SurfaceOptions, base: PBRSet, rock: PBRSet | null, grave
     Object.assign(shader.uniforms, uniforms);
     terrainShader(shader);
   };
-  mat.customProgramCacheKey = () => `terrain:${quality.terrainBlend && rock && gravel ? 1 : 0}`;
+  mat.customProgramCacheKey = () => `terrain:${quality.terrainBlend && rock && gravel ? 1 : 0}:${quality.postFx ? 'f' : 'l'}`;
   mat.userData.surface = 'terrain';
   return mat;
 }

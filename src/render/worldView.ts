@@ -447,8 +447,9 @@ export class WorldView {
         this.local(c, s, d, crown, _v);
         const i = r * cols + k;
         pos.set([_v.x, _v.y, _v.z], i * 3);
-        // v is the global distance along the road (wrapped far away) so markings, patches and cracks never repeat per chunk.
-        uv.set([(ROAD_COLS[k] + 1) / 2, ((s % (ROAD_TEX_LENGTH * 1000)) / ROAD_TEX_LENGTH)], i * 2);
+        // v counts road distance in texture repeats. The chunk start wraps every 2.4 km (a multiple of every texture period) to keep
+        // float precision in the surface shader; wrapping per chunk, not per row, keeps v continuous inside a chunk.
+        uv.set([(ROAD_COLS[k] + 1) / 2, (((((c.s0 % 2400) + 2400) % 2400) + r * STEP) / ROAD_TEX_LENGTH)], i * 2);
       }
     }
     const idx: number[] = [];
