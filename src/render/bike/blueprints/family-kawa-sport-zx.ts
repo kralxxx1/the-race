@@ -223,3 +223,62 @@ export function zxBody(d: ZxBody): (ctx: KitContext) => void {
     d.extras?.(ctx, ob);
   };
 }
+
+/**
+ * Re-map every longitudinal coordinate of a body description through `S(z)` (and
+ * optionally every height through `H(y)`): derives a sibling model's bodywork from
+ * a family member with different proportions (shorter wheelbase, lower screen…).
+ */
+export function remapZxBody(d: ZxBody, S: (z: number) => number, H: (y: number) => number = (y) => y): ZxBody {
+  const sv = (pts: readonly P2[]): P2[] => pts.map(([z, y]) => [S(z), H(y)] as P2);
+  const pl = (pts: readonly P2[]): P2[] => pts.map(([z, x]) => [S(z), x] as P2);
+  const fv = (pts: readonly P2[]): P2[] => pts.map(([x, y]) => [x, H(y)] as P2);
+  const lamp = (l: ZxLamp): ZxLamp => ({ poly: fv(l.poly), zMax: S(l.zMax), emit: l.emit?.map(fv), drl: l.drl?.map(fv) });
+  const seat = (o: SeatOpts): SeatOpts => ({ ...o, front: S(o.front), back: S(o.back), yFront: H(o.yFront), y: H(o.y), yBack: H(o.yBack) });
+  const t = d.tank;
+  return {
+    ...d,
+    fairing: {
+      ...d.fairing,
+      zs: d.fairing.zs.map(S),
+      top: sv(d.fairing.top),
+      bottom: sv(d.fairing.bottom),
+      half: pl(d.fairing.half),
+      sections: d.fairing.sections.map((k) => ({ z: S(k.z), pts: k.pts })),
+    },
+    sideEdge: sv(d.sideEdge),
+    underScreen: { ...d.underScreen, base: S(d.underScreen.base), rear: S(d.underScreen.rear), y: H(d.underScreen.y) },
+    intake: d.intake ? { ...d.intake, poly: fv(d.intake.poly), zMax: S(d.intake.zMax) } : d.intake,
+    heads: d.heads.map(lamp),
+    wingDuct: d.wingDuct
+      ? { poly: sv(d.wingDuct.poly), lip: d.wingDuct.lip ? [S(d.wingDuct.lip[0]), S(d.wingDuct.lip[1]), H(d.wingDuct.lip[2]), H(d.wingDuct.lip[3]), d.wingDuct.lip[4]] : undefined }
+      : d.wingDuct,
+    cowl: sv(d.cowl),
+    belly: d.belly ? sv(d.belly) : d.belly,
+    vents: d.vents.map((v) => ({ ...v, poly: sv(v.poly) })),
+    inner: { top: sv(d.inner.top), bottom: sv(d.inner.bottom), half: pl(d.inner.half) },
+    screen: { ...d.screen, zs: [S(d.screen.zs[0]), S(d.screen.zs[1])], top: sv(d.screen.top), bottom: sv(d.screen.bottom), half: pl(d.screen.half) },
+    tank: {
+      ...t,
+      front: S(t.front),
+      back: S(t.back),
+      top: H(t.top),
+      bottomFront: H(t.bottomFront),
+      bottomBack: H(t.bottomBack),
+      capZ: t.capZ !== undefined ? S(t.capZ) : undefined,
+      topLine: t.topLine ? sv(t.topLine) : undefined,
+      bottomLine: t.bottomLine ? sv(t.bottomLine) : undefined,
+      halfLine: t.halfLine ? pl(t.halfLine) : undefined,
+    },
+    seat: seat(d.seat),
+    pillion: d.pillion ? seat(d.pillion) : d.pillion,
+    tail: { ...d.tail, z0: S(d.tail.z0), z1: S(d.tail.z1), top: sv(d.tail.top), bottom: sv(d.tail.bottom), half: pl(d.tail.half) },
+    seatHole: { rider: sv(d.seatHole.rider), pillion: d.seatHole.pillion ? sv(d.seatHole.pillion) : undefined, plan: pl(d.seatHole.plan) },
+    tailVent: d.tailVent ? sv(d.tailVent) : d.tailVent,
+    undertray: { z0: S(d.undertray.z0), z1: S(d.undertray.z1), top: sv(d.undertray.top), bottom: sv(d.undertray.bottom), half: pl(d.undertray.half) },
+    tailLight: { ...d.tailLight, at: [d.tailLight.at[0], H(d.tailLight.at[1]), S(d.tailLight.at[2])] },
+    plate: { fromZ: S(d.plate.fromZ), fromY: H(d.plate.fromY) },
+    fasteners: sv(d.fasteners),
+    frontIndicators: d.frontIndicators ? ([S(d.frontIndicators[0]), H(d.frontIndicators[1])] as P2) : d.frontIndicators,
+  };
+}

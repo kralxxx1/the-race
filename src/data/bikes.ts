@@ -422,7 +422,10 @@ export const BIKES: BikeSpec[] = [
     id: 'kawasaki-zx6r', brand: 'Kawasaki', model: 'Ninja ZX-6R', year: 2024, style: 'sport',
     engine: { layout: 'I4', cc: 636, hp: 127, hpRpm: 13500, torque: 70.8, torqueRpm: 11000, idle: 1300, redline: 16000, limiter: 16500 },
     weight: 197, topSpeed: 260, price: 11300,
-    liveries: [livery('Lime Green', '#5fd02c', BLK, W, { pattern: 'racing', suit: ['#5fd02c', BLK] }), livery('Metallic Graphite', '#3a3c40', BLK, '#5fd02c')],
+    liveries: [
+      livery('KRT Edition Lime Green / Ebony / Pearl Blizzard White', '#5fd02c', '#16171a', '#eef0f2', { pattern: 'racing', suit: ['#5fd02c', BLK] }),
+      livery('Metallic Flat Spark Black / Ebony', '#26282c', '#141518', '#5fd02c', { suit: [BLK, '#5fd02c'] }),
+    ],
     voice: { resonance: 620, brightness: 0.88 },
     description: '636 cc ile sınıfının tork avantajı.',
   }),

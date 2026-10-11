@@ -1,7 +1,7 @@
-import type { BikeSpec, Livery } from '../../../data/bikes';
-import { ALL_VIEWS, type LiveryCanvas, type LiveryEnv, type Pen } from '../livery';
+import type { BikeSpec } from '../../../data/bikes';
 import type { P2 } from '../mesh';
 import type { BikeBlueprint } from '../types';
+import { KRT, kawaLivery, type KawaLiveryGeo, type KawaScheme } from './family-kawa-sport-livery';
 import { zxBody, type ZxBody } from './family-kawa-sport-zx';
 
 /**
@@ -114,58 +114,38 @@ export const ZX10R_BODY: ZxBody = {
   fasteners: [[-1.26, 0.87], [-1.0, 0.8], [-0.82, 0.55], [-0.98, 0.33], [-0.64, 0.3], [-1.47, 0.79]],
 };
 
-function lettering(p: Pen, ninja: string, model: string, logo: string): void {
-  if (p.view !== 'right' && p.view !== 'left') return;
-  p.text('Ninja', -0.86, 0.42, { color: ninja, size: 0.065, italic: true, weight: '900', stretch: 1.05 });
-  p.text(model, -0.02, 0.905, { color: model === ninja ? ninja : ninja, size: 0.028, italic: true, weight: '900' });
-  p.text('KAWASAKI', -1.36, 0.83, { color: logo, size: 0.024, weight: '900', spacing: 0.1 });
-}
+export const ZX10R_LIVERY_GEO: KawaLiveryGeo = {
+  lower: [[-1.66, 0.6], [-1.42, 0.56], [-1.12, 0.5], [-0.86, 0.52], [-0.6, 0.6], [-0.4, 0.66], [-0.4, -0.1], [-1.7, -0.1]],
+  splitLine: [[-1.66, 0.608], [-1.42, 0.568], [-1.12, 0.508], [-0.86, 0.528], [-0.6, 0.608], [-0.4, 0.668]],
+  slash: [[-1.24, 0.5], [-1.08, 0.48], [-0.82, 0.62], [-0.74, 0.74], [-0.8, 0.76], [-0.92, 0.64]],
+  tailLower: [[-0.66, 0.78], [-0.2, 0.85], [0.2, 0.95], [0.2, 0.6], [-0.66, 0.6]],
+  tailLine: [[-0.62, 0.79], [-0.2, 0.862], [0.17, 0.958]],
+  chin: [[-1.72, 0.735], [-1.6, 0.7], [-1.5, 0.64], [-1.6, 0.6], [-1.72, 0.6]],
+  frontLowerY: 0.705,
+  tankStripe: [-1.12, -0.6, 0.03],
+  texts: [
+    { str: 'Ninja', z: -0.86, y: 0.42, size: 0.065, role: 'model' },
+    { str: 'ZX-10R', z: -0.05, y: 0.865, size: 0.028, role: 'model' },
+    { str: 'KAWASAKI', z: -1.36, y: 0.83, size: 0.024, role: 'logo' },
+    { str: 'KRT', z: -0.42, y: 0.25, size: 0.03, role: 'accent' },
+  ],
+  topText: { str: 'ZX-10R', z: 0.02, size: 0.03 },
+};
 
-export function zx10rLivery(c: LiveryCanvas, _lv: Livery, env: LiveryEnv): void {
-  const white = env.index === 1;
-  const green = '#5fd02c', ebony = '#16171a', snow = '#eef0f2', graphite = '#4a4e55';
-  c.views(ALL_VIEWS, (p) => {
-    if (white) {
-      // Pearl Robotic White over Metallic Carbon Gray, green pinstripes.
-      p.fill(snow, 'pearl');
-      if (p.view === 'right' || p.view === 'left') {
-        p.poly([[-1.62, 0.62], [-1.3, 0.56], [-0.98, 0.6], [-0.7, 0.66], [-0.45, 0.7], [-0.45, -0.1], [-1.7, -0.1]], graphite, 'metallic');
-        p.line([[-1.62, 0.63], [-1.3, 0.575], [-0.98, 0.615], [-0.7, 0.675], [-0.45, 0.715]], green, 0.007);
-        p.poly([[-0.62, 0.8], [0.2, 0.95], [0.2, 0.6], [-0.62, 0.6]], graphite, 'metallic');
-        p.line([[-0.6, 0.81], [0.18, 0.96]], green, 0.006);
-        lettering(p, '#1b1c1f', 'ZX-10R', '#1b1c1f');
-      } else if (p.view === 'front') {
-        p.rect(-1, -1, 1, 0.66, graphite, 'metallic');
-      }
-      return;
-    }
-    // KRT: Lime Green / Ebony / Pearl Blizzard White.
-    p.fill(green, 'gloss');
-    if (p.view === 'right' || p.view === 'left') {
-      // Ebony lower fairing and belly, rising towards the tail.
-      p.poly([[-1.66, 0.6], [-1.42, 0.56], [-1.12, 0.5], [-0.86, 0.52], [-0.6, 0.6], [-0.4, 0.66], [-0.4, -0.1], [-1.7, -0.1]], ebony, 'gloss');
-      // White KRT slash from the side panel up to the tank.
-      p.poly([[-1.24, 0.5], [-1.08, 0.48], [-0.82, 0.62], [-0.74, 0.74], [-0.8, 0.76], [-0.92, 0.64]], snow, 'gloss');
-      p.line([[-1.66, 0.61], [-1.42, 0.572], [-1.25, 0.535]], snow, 0.006);
-      // Tail: ebony lower half, white stripe, green top.
-      p.poly([[-0.66, 0.78], [-0.2, 0.85], [0.2, 0.95], [0.2, 0.6], [-0.66, 0.6]], ebony, 'gloss');
-      p.line([[-0.62, 0.79], [-0.2, 0.862], [0.17, 0.958]], snow, 0.008);
-      // Black around the headlights / chin.
-      p.poly([[-1.72, 0.735], [-1.6, 0.7], [-1.5, 0.64], [-1.6, 0.6], [-1.72, 0.6]], ebony, 'gloss');
-      lettering(p, snow, 'ZX-10R', ebony);
-      p.text('KRT', -0.42, 0.25, { color: green, size: 0.03, weight: '900', italic: true });
-    } else if (p.view === 'front') {
-      p.rect(-1, -1, 1, 0.705, ebony, 'gloss');
-      p.poly([[-0.02, 0.79], [0.02, 0.79], [0.0, 0.76]], ebony);
-    } else if (p.view === 'top') {
-      // Ebony centre stripe from the screen over the tank to the tail.
-      p.rect(-1.12, -0.03, -0.6, 0.03, ebony, 'gloss');
-      p.rect(-0.25, -0.012, 0.15, 0.012, snow, 'gloss');
-    } else if (p.view === 'rear') {
-      p.rect(-1, -1, 1, 0.9, ebony, 'gloss');
-    }
-  });
-}
+/** Pearl Robotic White over Metallic Carbon Gray with green pinstripes. */
+const ROBOTIC_WHITE: KawaScheme = {
+  base: '#eef0f2',
+  baseFinish: 'pearl',
+  lower: '#4a4e55',
+  lowerFinish: 'metallic',
+  stripe: '#5fd02c',
+  slash: false,
+  model: '#eef0f2',
+  logo: '#1b1c1f',
+  accent: '#5fd02c',
+};
+
+export const zx10rLivery = kawaLivery(ZX10R_LIVERY_GEO, [KRT, ROBOTIC_WHITE]);
 
 export function zx10rBlueprint(spec: BikeSpec): BikeBlueprint {
   return {

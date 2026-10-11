@@ -9,6 +9,7 @@ import { kitQuality } from '../../src/render/bike/quality';
 const SPECS: Record<string, { wheelbase: number; rake: number; trail: number; seat: number; front: string; rear: string }> = {
   'kawasaki-h2r': { wheelbase: 1.45, rake: 25.1, trail: 0.108, seat: 0.83, front: '120/70ZR17', rear: '190/55ZR17' },
   'kawasaki-zx10r': { wheelbase: 1.45, rake: 25.0, trail: 0.107, seat: 0.835, front: '120/70ZR17', rear: '190/55ZR17' },
+  'kawasaki-zx6r': { wheelbase: 1.4, rake: 23.5, trail: 0.101, seat: 0.83, front: '120/70ZR17', rear: '180/55ZR17' },
 };
 
 describe('Kawasaki sport family blueprints', () => {
