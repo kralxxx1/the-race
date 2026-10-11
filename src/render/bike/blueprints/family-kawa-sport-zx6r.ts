@@ -67,7 +67,7 @@ const FLAT_SPARK_BLACK: KawaScheme = {
 
 const GEO = remapLiveryGeo(ZX10R_LIVERY_GEO, S, [
   { str: 'Ninja', z: S(-0.86), y: 0.42, size: 0.065, role: 'model' },
-  { str: 'ZX-6R', z: -0.05, y: 0.865, size: 0.028, role: 'model' },
+  { str: 'ZX-6R', z: -0.08, y: 0.82, size: 0.026, role: 'model' },
   { str: 'KAWASAKI', z: S(-1.36), y: 0.83, size: 0.024, role: 'logo' },
   { str: '636', z: S(-1.1), y: 0.69, size: 0.045, role: 'model' },
 ]);
