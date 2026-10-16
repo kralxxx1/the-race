@@ -106,8 +106,8 @@ function body(ctx: KitContext): void {
     ctx,
     [[-1.235, 0.752], [-1.16, 0.765], [-1.08, 0.76], [-1.08, 0.754], [-1.16, 0.756], [-1.235, 0.746]],
     [[-1.215, 0.69], [-1.14, 0.703], [-1.065, 0.698], [-1.065, 0.692], [-1.14, 0.694], [-1.215, 0.684]],
-    0.238,
-    0.292,
+    0.236,
+    0.305,
     carbonish,
   );
   // Tank over the airbox: high crowned front, deep knee cut-outs, long tail under the seat.
@@ -162,7 +162,7 @@ function body(ctx: KitContext): void {
     ctx.add('chassis', extrude(smooth2([[-0.66, 0.79], [-0.5, 0.78], [-0.44, 0.7], [-0.56, 0.64], [-0.66, 0.7]], 3, true), 0.01, { plane: 'zy', bevel: 0.003, center: s * 0.135 }), F.texturedBlack);
   }
   frontFender(ctx, { from: -0.62, to: 0.8, gap: 0.02, width: 0.15 });
-  hugger(ctx, blackGloss, -0.15, 0.85);
+  hugger(ctx, blackGloss, -0.15, 0.6);
   plateHanger(ctx, { fromZ: -0.1, fromY: 0.79 });
 }
 

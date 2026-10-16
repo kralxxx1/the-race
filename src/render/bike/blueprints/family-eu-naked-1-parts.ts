@@ -143,7 +143,10 @@ export function biplaneWing(ctx: KitContext, upper: readonly P2[], lower: readon
     y0 = Math.min(y0, y);
     y1 = Math.max(y1, y);
   }
-  const plate = smooth2([[z0 + 0.01, y1 + 0.004], [z1 - 0.004, y1 - 0.004], [z1, y0 + 0.008], [z0 + 0.03, y0 - 0.004], [z0, (y0 + y1) / 2]], 3, true);
+  // Slim end plate joining the trailing halves of both blades: from the side the pair reads as two
+  // separate wings tied together at the tips, not as a solid disc.
+  const za = z0 + (z1 - z0) * 0.45;
+  const plate = smooth2([[za, y1 + 0.003], [z1 - 0.006, y1 + 0.001], [z1 + 0.002, (y0 + y1) / 2], [z1 - 0.01, y0 - 0.002], [za + 0.02, y0 - 0.003], [za + 0.012, (y0 + y1) / 2]], 3, true);
   for (const s of [-1, 1]) ctx.add('chassis', extrude(plate, 0.004, { plane: 'zy', bevel: 0.0012, center: s * (x1 + 0.001) }), f);
 }
 
