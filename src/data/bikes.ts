@@ -296,7 +296,10 @@ export const BIKES: BikeSpec[] = [
     id: 'honda-cb500-hornet', brand: 'Honda', model: 'CB500 Hornet', year: 2024, style: 'naked',
     engine: { layout: 'P2_180', cc: 471, hp: 47, hpRpm: 8600, torque: 43, torqueRpm: 6500, idle: 1300, redline: 9500 },
     weight: 188, topSpeed: 185, price: 6500,
-    liveries: [livery('Matte Goldfinch', '#e3b31c', '#1b1c1f', BLK, { pattern: 'split' }), livery('Grand Prix Kırmızı', '#c8102e', BLK, W)],
+    liveries: [
+      livery('Matt Goldfinch Yellow', '#e2b01a', '#1b1c1f', BLK, { pattern: 'split', frame: '#17181b', suit: [BLK, '#e2b01a'] }),
+      livery('Grand Prix Kırmızı', '#c8102e', '#1b1c1f', W, { frame: '#17181b' }),
+    ],
     description: 'Hafif ve çevik 471 cc paralel ikili; şehirde ve otoyolda dengeli.',
   }),
   bike({
@@ -349,8 +352,8 @@ export const BIKES: BikeSpec[] = [
     engine: { layout: 'I3', cc: 890, hp: 119, hpRpm: 10000, torque: 93, torqueRpm: 7000, idle: 1100, redline: 11000 },
     quickshifter: true, weight: 193, topSpeed: 230, price: 10500,
     liveries: [
-      livery('Cyan Storm', '#5b6169', '#2a2d31', '#18c7e8', { pattern: 'split', wheel: '#18c7e8' }),
-      livery('Icon Blue', '#0d3fa6', '#1a1b1e', '#7aa2ff', { pattern: 'split' }),
+      livery('Cyan Storm', '#5b6169', '#2a2d31', '#18c7e8', { pattern: 'split', wheel: '#18c7e8', frame: '#26282c' }),
+      livery('Icon Blue', '#0d3fa6', '#1a1b1e', '#7aa2ff', { pattern: 'split', wheel: '#1846b5', frame: '#26282c' }),
     ],
     description: 'Crossplane felsefeli üçlü: karanlık tarafın torku.',
   }),
@@ -358,7 +361,7 @@ export const BIKES: BikeSpec[] = [
     id: 'yamaha-mt07', brand: 'Yamaha', model: 'MT-07', year: 2024, style: 'naked',
     engine: { layout: 'P2_270', cc: 689, hp: 73, hpRpm: 8750, torque: 67, torqueRpm: 6500, idle: 1250, redline: 10000 },
     weight: 184, topSpeed: 214, price: 8000,
-    liveries: [livery('Icon Blue', '#0d3fa6', '#1b1c1f', '#7aa2ff'), livery('Cyan Storm', '#5b6169', '#2a2d31', '#18c7e8', { wheel: '#18c7e8' })],
+    liveries: [livery('Icon Blue', '#0d3fa6', '#1b1c1f', '#7aa2ff', { wheel: '#1846b5', frame: '#202125' }), livery('Cyan Storm', '#5b6169', '#2a2d31', '#18c7e8', { wheel: '#18c7e8', frame: '#202125' })],
     description: '270° CP2 ikili: kalın alt-orta devir ve şımarık ön teker.',
   }),
   bike({
@@ -441,7 +444,10 @@ export const BIKES: BikeSpec[] = [
     id: 'kawasaki-z900', brand: 'Kawasaki', model: 'Z900', year: 2024, style: 'naked',
     engine: { layout: 'I4', cc: 948, hp: 125, hpRpm: 9500, torque: 98.6, torqueRpm: 7700, idle: 1100, redline: 11000 },
     weight: 212, topSpeed: 240, price: 9400,
-    liveries: [livery('Metallic Spark Black', '#1b1c1f', '#3a3c40', '#5fd02c', { frame: '#5fd02c' }), livery('Candy Lime Green', '#4fb81f', BLK, W)],
+    liveries: [
+      livery('Metallic Spark Black / Metallic Matte Graphenesteel Gray', '#1b1c1f', '#3d4045', '#5fd02c', { frame: '#5fd02c', suit: [BLK, '#5fd02c'] }),
+      livery('Candy Lime Green / Metallic Spark Black', '#4fb81f', BLK, W, { frame: '#1b1c1f' }),
+    ],
     look: { extras: ['trellis'] },
     voice: { resonance: 430, brightness: 0.65 },
     description: 'Sugomi tasarımı ve emme sesi tuned sıralı dört.',
@@ -490,7 +496,10 @@ export const BIKES: BikeSpec[] = [
     id: 'suzuki-sv650', brand: 'Suzuki', model: 'SV650', year: 2024, style: 'naked',
     engine: { layout: 'L2', cc: 645, hp: 75, hpRpm: 8500, torque: 64, torqueRpm: 8100, idle: 1300, redline: 10500 },
     weight: 199, topSpeed: 210, price: 7500,
-    liveries: [livery('Pearl Glacier White', W, '#1b1c1f', '#1747a6', { frame: '#1747a6' }), livery('Glass Sparkle Black', BLK, '#2c2d31', '#c8102e')],
+    liveries: [
+      livery('Pearl Glacier White', W, '#1b1c1f', '#1747a6', { frame: '#1747a6', wheel: '#1747a6', suit: [W, '#1747a6'] }),
+      livery('Glass Sparkle Black', BLK, '#2c2d31', '#c8102e', { frame: '#2a2c30' }),
+    ],
     look: { headlight: 'round', extras: ['trellis'] },
     description: 'Klasik 90° V-twin naked; eğlenceli ve dürüst.',
   }),
@@ -823,7 +832,10 @@ export const BIKES: BikeSpec[] = [
     id: 'cfmoto-800nk', brand: 'CFMoto', model: '800NK', year: 2024, style: 'naked',
     engine: { layout: 'P2_270', cc: 799, hp: 95, hpRpm: 9250, torque: 81, torqueRpm: 8000, idle: 1300, redline: 10000 },
     weight: 200, topSpeed: 220, price: 8500,
-    liveries: [livery('Nebula Black', '#17181b', '#2c2e33', '#00b7c2', { wheel: '#00b7c2' }), livery('Zircon Black / Orange', '#17181b', '#ff6a13', W)],
+    liveries: [
+      livery('Nebula Black', '#17181b', '#2c2e33', '#00b7c2', { wheel: '#17181b', frame: '#2a2c30', suit: [BLK, '#00b7c2'] }),
+      livery('Zircon Black / Orange', '#17181b', '#ff6a13', W, { wheel: '#17181b', frame: '#ff6a13', suit: [BLK, '#ff6a13'] }),
+    ],
     look: { headlight: 'ledBar' },
     description: 'KTM kökenli 799 cc ikili ve agresif tasarım.',
   }),

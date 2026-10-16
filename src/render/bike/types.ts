@@ -27,6 +27,8 @@ export interface WheelDesign {
   crossSpoke?: boolean;
   /** Anodised rim colour for wire wheels (default polished aluminium), e.g. the GS Trophy's gold rims. */
   rimColor?: string;
+  /** Take the colour from the catalogue livery (`Livery.wheel`) instead of `color` (wheel colour varies per livery). */
+  liveryColor?: boolean;
 }
 
 export interface WheelEnd {
@@ -92,6 +94,8 @@ export interface FrameSpec {
   subframeColor: string;
   /** Beam outer width at the widest point (m). */
   width?: number;
+  /** Take the frame colour from the catalogue livery (`Livery.frame`) instead of `color` (frame colour varies per livery). */
+  liveryColor?: boolean;
 }
 
 export interface SwingarmSpec {

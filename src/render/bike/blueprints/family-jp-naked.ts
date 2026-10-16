@@ -1,0 +1,22 @@
+import type { BikeSpec } from '../../../data/bikes';
+import type { BikeBlueprint } from '../types';
+import { nk800Blueprint } from './family-jp-naked-800nk';
+import { hornetBlueprint } from './family-jp-naked-hornet';
+import { mt07Blueprint } from './family-jp-naked-mt07';
+import { mt09Blueprint } from './family-jp-naked-mt09';
+import { sv650Blueprint } from './family-jp-naked-sv650';
+import { z900Blueprint } from './family-jp-naked-z900';
+
+/**
+ * Japanese / Chinese middleweight naked family: authored blueprints for the Honda CB500
+ * Hornet, Yamaha MT-09 and MT-07, Kawasaki Z900, Suzuki SV650 and CFMoto 800NK.
+ * Discovered by `blueprints/index.ts` (family-*.ts modules).
+ */
+export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
+  'honda-cb500-hornet': hornetBlueprint,
+  'yamaha-mt09': mt09Blueprint,
+  'yamaha-mt07': mt07Blueprint,
+  'kawasaki-z900': z900Blueprint,
+  'suzuki-sv650': sv650Blueprint,
+  'cfmoto-800nk': nk800Blueprint,
+};
