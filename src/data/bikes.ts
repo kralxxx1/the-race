@@ -666,7 +666,7 @@ export const BIKES: BikeSpec[] = [
     id: 'triumph-speed-triple', brand: 'Triumph', model: 'Speed Triple 1200 RS', year: 2024, style: 'naked',
     engine: { layout: 'I3', cc: 1160, hp: 180, hpRpm: 10750, torque: 125, torqueRpm: 9000, idle: 1100, redline: 11150 },
     quickshifter: true, weight: 198, topSpeed: 270, price: 19500,
-    liveries: [livery('Granite / Diablo Red', '#4a4d52', '#b5121b', '#d6d8dc', { pattern: 'split', suit: [BLK, '#b5121b'] }), livery('Sapphire Black', '#141518', '#2a2c30', '#e8c23a')],
+    liveries: [livery('Granite / Diablo Red', '#4a4d52', '#b5121b', '#d6d8dc', { pattern: 'split', suit: [BLK, '#b5121b'] }), livery('Sapphire Black', '#141518', '#2a2c30', '#b5121b', { suit: [BLK, '#b5121b'] })],
     look: { headlight: 'round', extras: ['singleSided'] },
     voice: { resonance: 280 },
     description: 'Üç silindirin kükremesi; streetfighter türünün atası.',

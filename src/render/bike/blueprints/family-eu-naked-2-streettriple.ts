@@ -187,8 +187,8 @@ const RED = '#b5121b';
 
 function lettering(p: Pen, main: string, accent: string): void {
   if (p.view !== 'right' && p.view !== 'left') return;
-  p.text('STREET TRIPLE', -0.9, 0.93, { color: main, size: 0.021, weight: '800', italic: true, spacing: 0.03 });
-  p.text('RS', -0.58, 0.92, { color: accent, size: 0.024, weight: '900', italic: true });
+  p.text('STREET TRIPLE', -1.03, 0.87, { color: main, size: 0.0155, weight: '800', italic: true, spacing: 0.03 });
+  p.text('RS', -0.77, 0.85, { color: accent, size: 0.022, weight: '900', italic: true });
 }
 
 function livery(c: LiveryCanvas, lv: Livery, env: LiveryEnv): void {
@@ -199,7 +199,7 @@ function livery(c: LiveryCanvas, lv: Livery, env: LiveryEnv): void {
       // Silver shrouds / tank, dark lower flanks, red flash along the tank edge and tail.
       p.poly([[-1.2, 0.62], [-1.2, 0.9], [-1.06, 0.97], [-0.8, 0.96], [-0.76, 0.8], [-0.86, 0.64], [-1.04, 0.62]], black ? '#1e2024' : lv.primary, black ? 'satin' : 'metallic');
       p.poly([[-0.64, 0.82], [-0.4, 0.81], [-0.25, 0.9], [0.0, 0.95], [0.2, 0.99], [0.2, 0.64], [-0.62, 0.64]], black ? '#1e2024' : '#202226', 'satin');
-      p.poly([[-1.06, 0.835], [-0.9, 0.81], [-0.76, 0.795], [-0.62, 0.82], [-0.76, 0.84], [-0.9, 0.86]], RED, 'gloss');
+      p.poly([[-1.1, 0.8], [-0.95, 0.775], [-0.8, 0.765], [-0.7, 0.78], [-0.8, 0.79], [-0.95, 0.805]], RED, 'gloss');
       p.line([[-0.36, 0.835], [-0.2, 0.9], [0.1, 0.96]], RED, 0.006);
       lettering(p, black ? '#d9dce0' : '#15161a', RED);
     } else if (p.view === 'top') {

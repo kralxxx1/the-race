@@ -190,9 +190,10 @@ const RED = '#b5121b';
 
 function lettering(p: Pen, main: string, accent: string): void {
   if (p.view !== 'right' && p.view !== 'left') return;
-  p.text('TRIUMPH', -0.88, 0.955, { color: main, size: 0.03, weight: '900', spacing: 0.05, stretch: 1.0 });
-  p.text('SPEED TRIPLE', -0.06, 0.9, { color: main, size: 0.021, weight: '800', italic: true, spacing: 0.03 });
+  p.text('TRIUMPH', -1.03, 0.8, { color: '#dfe1e4', size: 0.026, weight: '900', spacing: 0.05, stretch: 1.0 });
+  p.text('SPEED TRIPLE', -0.5, 0.78, { color: '#dfe1e4', size: 0.017, weight: '800', italic: true, spacing: 0.03 });
   p.text('RS', -0.1, 0.93, { color: accent, size: 0.024, weight: '900', italic: true });
+  void main;
 }
 
 function livery(c: LiveryCanvas, lv: Livery, env: LiveryEnv): void {
