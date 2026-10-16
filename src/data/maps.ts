@@ -207,6 +207,7 @@ export function resolveEnvironment(mapId: MapId, time: TimeOfDay, weather: Weath
     // Dark moss floor under the canopy: let the vertex colours darken the photograph strongly.
     env.world = { ...env.world, groundMix: 0.95 };
   }
+  if (map.id === 'desert') env.world = { ...env.world, groundMix: 0.85 };
   if (map.id === 'snow') {
     env.terrain = 'grass';
     env.mountains = { near: '#d7e1ea', far: '#eef3f8', height: 1.6 };

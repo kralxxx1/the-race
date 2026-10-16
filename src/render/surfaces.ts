@@ -52,7 +52,8 @@ export function groundKey(env: EnvDef): TextureKey {
   if (map === 'snow' || weather === 'snow') return 'snow';
   switch (env.terrain) {
     case 'sand':
-      return 'sand';
+      // The Konya steppe paints its own gold/clay/rust ground colours over a neutral sand photograph.
+      return map === 'desert' ? 'beach' : 'sand';
     case 'city':
       return 'pavement';
     case 'forest':
