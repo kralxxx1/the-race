@@ -641,7 +641,7 @@ export const BIKES: BikeSpec[] = [
     id: 'ktm-890-adventure-r', brand: 'KTM', model: '890 Adventure R', year: 2023, style: 'adventure',
     engine: { layout: 'V2_75', cc: 889, hp: 103, hpRpm: 8000, torque: 100, torqueRpm: 6500, idle: 1400, redline: 9500 },
     weight: 210, topSpeed: 210, price: 14500,
-    liveries: [livery('Rally Orange', '#ff6600', W, '#1d4f91', { frame: '#1d4f91', wheel: '#1b1c1f', suit: ['#ff6600', '#1d4f91'] })],
+    liveries: [livery('KTM Orange / White', '#ff6600', W, '#1b1c1f', { frame: '#ff6600', wheel: '#1b1c1f', suit: ['#ff6600', W] })],
     look: { headlight: 'ledBar', exhaust: 'side', extras: ['windscreenTall'] },
     description: '435° krank ile V-twin karakterli rally makinesi.',
   }),
