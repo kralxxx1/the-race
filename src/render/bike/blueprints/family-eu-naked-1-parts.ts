@@ -3,8 +3,8 @@ import type { KitContext } from '../context';
 import { bodyQ, shell } from '../kit/body';
 import { lamp, ledStrip, type LampKind, type LampOpts } from '../kit/lights';
 import { outlineLoft, type OutlineBody } from '../kit/shape';
-import { MeshData, extrude, rod, roundBox, smooth2, sweep, type P2, type P3 } from '../mesh';
-import { F, type Finish, type GroupName } from '../sink';
+import { MeshData, extrude, lathe, rod, roundBox, smooth2, sweep, type P2, type P3 } from '../mesh';
+import { F, hard, type Finish, type GroupName } from '../sink';
 import { cut, type Field } from '../surface';
 
 /**
@@ -187,3 +187,72 @@ function smoothPath(pts: readonly P3[], per: number): P3[] {
 }
 
 export { lamp, type LampOpts };
+
+/**
+ * Exhaust ports of a V / L engine, computed exactly as kit/engine.ts (`buildVee`) places them,
+ * for blueprints that route their own headers (`exhaust.route = 'none'`). Front bank first.
+ */
+export function veePorts(ctx: KitContext): { pos: P3; dir: P3; front: boolean }[] {
+  const e = ctx.bp.engine;
+  const k = Math.cbrt(Math.max(120, e.cc) / 1000);
+  const gamma = e.layout === 'V2_45' ? 45 : e.layout === 'V2_60' ? 60 : e.layout === 'V2_75' ? 75 : e.layout === 'V4A' ? 65 : 90;
+  const phiF = (e.tiltDeg * Math.PI) / 180;
+  const phiR = phiF + (gamma * Math.PI) / 180;
+  const four = e.layout === 'V4' || e.layout === 'V4A';
+  const perBank = four ? 2 : 1;
+  const bore = four ? 0.081 * k : 0.1 * k;
+  const len = four ? 0.2 * k : 0.25 * k;
+  const r = bore / 2 + 0.012;
+  const c = new THREE.Vector3(...e.crank);
+  const out: { pos: P3; dir: P3; front: boolean }[] = [];
+  for (const [phi, shift] of [[phiF, four ? -0.02 : 0], [phiR, four ? 0.02 : 0]] as const) {
+    const d = new THREE.Vector3(0, Math.sin(phi), -Math.cos(phi));
+    const front = phi === phiF;
+    for (let j = 0; j < perBank; j++) {
+      const x = perBank === 1 ? (front ? -0.02 : 0.02) : (j - 0.5) * (bore + 0.022) + shift;
+      const top = c.clone().add(new THREE.Vector3(x, 0, 0)).addScaledVector(d, 0.08 * k + len);
+      let pd = new THREE.Vector3(0, -Math.cos(phi), -Math.sin(phi));
+      if (!front) {
+        pd.negate();
+        if (pd.z < 0) pd.negate();
+      }
+      const pp = top.clone().addScaledVector(pd, r + 0.01);
+      if (front) pd = pd.addScaledVector(d, 0.2).normalize();
+      out.push({ pos: [pp.x, pp.y, pp.z], dir: [pd.x, pd.y, pd.z], front });
+    }
+  }
+  return out;
+}
+
+/** Elliptical (rx × ry) silencer body swept from a to b, capped, with an optional taper. */
+export function ovalCan(ctx: KitContext, a: P3, b: P3, rx: number, ry: number, f: Finish, taper = 1): MeshData {
+  const n = ctx.seg(8, 3);
+  const path: P3[] = [];
+  const scale: number[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    path.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]);
+    scale.push((1 + (taper - 1) * t) * (t < 0.08 ? 0.86 + (t / 0.08) * 0.14 : t > 0.94 ? 1 - (t - 0.94) * 1.6 : 1));
+  }
+  const m = sweep(path, ellipse(rx, ry, ctx.seg(28, 12)), { up: [0, 1, 0], scale, capStart: true, capEnd: true });
+  ctx.add('chassis', m, f);
+  return m;
+}
+
+function ellipse(rx: number, ry: number, n: number): P2[] {
+  const out: P2[] = [];
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * Math.PI * 2;
+    out.push([Math.cos(t) * rx, Math.sin(t) * ry]);
+  }
+  return out;
+}
+
+/** Short round tail pipe with a sooty inside between a and b. */
+export function tailPipe(ctx: KitContext, a: P3, b: P3, r: number, f: Finish = F.steel): void {
+  ctx.add('chassis', rod(a, b, r, r, ctx.seg(20, 8)), f);
+  const d = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize();
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+  const m = new THREE.Matrix4().compose(new THREE.Vector3(b[0] + d.x * 0.0005, b[1] + d.y * 0.0005, b[2] + d.z * 0.0005), q, new THREE.Vector3(1, 1, 1));
+  ctx.add('chassis', lathe([[0, -0.002], [r * 0.82, -0.002], [r * 0.82, 0.0005], [0, 0.0005]], { segs: ctx.seg(20, 8), axis: 'y' }), hard('#090909', 0, 0.9), m);
+}

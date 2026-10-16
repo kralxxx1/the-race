@@ -20,6 +20,7 @@ interface Sheet {
 
 const SPEC: Record<string, Sheet> = {
   'ducati-streetfighter-v4': { wheelbase: 1.488, rake: 24.5, trail: 0.1, seat: 0.845, front: '120/70ZR17', rear: '200/60ZR17', swingarm: 'singleSided', frame: 'monocoque' },
+  'ducati-monster': { wheelbase: 1.474, rake: 24, trail: 0.093, seat: 0.82, front: '120/70ZR17', rear: '180/55ZR17', swingarm: 'banana', frame: 'monocoque' },
 };
 
 describe('European naked blueprints (eu-naked-1)', () => {

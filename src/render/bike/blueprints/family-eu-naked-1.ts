@@ -1,5 +1,6 @@
 import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
+import { monsterBlueprint } from './family-eu-naked-1-monster';
 import { sfv4Blueprint } from './family-eu-naked-1-sfv4';
 
 /**
@@ -9,4 +10,5 @@ import { sfv4Blueprint } from './family-eu-naked-1-sfv4';
  */
 export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'ducati-streetfighter-v4': sfv4Blueprint,
+  'ducati-monster': monsterBlueprint,
 };
