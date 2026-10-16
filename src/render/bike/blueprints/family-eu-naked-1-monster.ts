@@ -73,11 +73,11 @@ function headUnit(ctx: KitContext): void {
   }
   forkBrackets(ctx, [-0.11, -0.215], LAMP_Z + 0.11, 0.05);
   // Flyscreen (Monster +): a small smoked screen on two stays above the lamp, raked back.
-  const scr = smooth2([[-0.085, 0], [0.085, 0], [0.095, 0.05], [0.07, 0.115], [0.0, 0.13], [-0.07, 0.115], [-0.095, 0.05]], 4, true);
-  const sm = mul(T(0, LAMP_Y + LAMP_R - 0.012, LAMP_Z + 0.02), RX(0.62));
+  const scr = smooth2([[-0.088, 0], [0.088, 0], [0.1, 0.06], [0.08, 0.15], [0.0, 0.172], [-0.08, 0.15], [-0.1, 0.06]], 4, true);
+  const sm = mul(T(0, LAMP_Y + LAMP_R - 0.012, LAMP_Z + 0.018), RX(0.5));
   ctx.add('steer', extrude(scr, 0.0035, { plane: 'xy', bevel: 0.0012, curveSegs: 1 }), F.screen, steerMat(ctx, sm));
   for (const s of [-1, 1]) {
-    ctx.add('steer', roundBox(0.008, 0.07, 0.012, 0.003), F.texturedBlack, steerMat(ctx, mul(T(s * 0.055, LAMP_Y + LAMP_R + 0.012, LAMP_Z + 0.07), RX(0.62))));
+    ctx.add('steer', roundBox(0.008, 0.07, 0.012, 0.003), F.texturedBlack, steerMat(ctx, mul(T(s * 0.055, LAMP_Y + LAMP_R + 0.014, LAMP_Z + 0.064), RX(0.5))));
   }
 }
 
