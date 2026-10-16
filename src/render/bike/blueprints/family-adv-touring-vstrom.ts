@@ -195,7 +195,7 @@ export function vstrom650Blueprint(spec: BikeSpec): BikeBlueprint {
     fork: { type: 'rwu', stanchion: 0.043, spacing: 0.19, outerColor: '#1b1c1f', innerColor: '#c9ccd2', footColor: '#1b1c1f', capColor: '#1b1c1f', aboveClamp: 0.01, clampGap: 0.18 },
     frontBrake: { discs: 2, discDia: 0.31, disc: 'floating', carrierColor: '#2a2c30', caliper: 'axial2', caliperColor: '#2a2c30', caliperAngleDeg: 70 },
     rearBrake: { discs: 1, discDia: 0.26, disc: 'fixed', carrierColor: '#2a2c30', caliper: 'axial1', caliperColor: '#2a2c30', caliperAngleDeg: 205 },
-    frame: { type: 'twinSpar', color: '#a4a9b0', metal: 0.85, rough: 0.38, subframe: 'tubular', subframeColor: '#1b1c1f', width: 0.3 },
+    frame: { type: 'twinSpar', color: '#3b3e43', metal: 0.7, rough: 0.42, subframe: 'tubular', subframeColor: '#1b1c1f', width: 0.3 },
     swingarm: { type: 'box', length: 0.6, angleDeg: 6, color: '#9aa0a7', metal: 0.85, rough: 0.4 },
     shock: { layout: 'mono', springColor: '#1747a6', bodyColor: '#1b1c1f', reservoir: false },
     drive: { type: 'chain', side: 'left', frontTeeth: 15, rearTeeth: 46, pitch: 0.015875, sprocketColor: '#2a2c30' },

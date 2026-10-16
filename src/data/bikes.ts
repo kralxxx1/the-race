@@ -489,7 +489,7 @@ export const BIKES: BikeSpec[] = [
     id: 'suzuki-vstrom650', brand: 'Suzuki', model: 'V-Strom 650 XT', year: 2024, style: 'adventure',
     engine: { layout: 'L2', cc: 645, hp: 70, hpRpm: 8800, torque: 62, torqueRpm: 6400, idle: 1300, redline: 10000 },
     weight: 216, topSpeed: 200, price: 9400,
-    liveries: [livery('Champion Yellow No.2', '#f6c500', '#1b1c1f', '#1747a6', { wheel: '#1b1c1f', frame: '#a4a9b0' }), livery('Pearl Glacier White', W, '#1b1c1f', '#1747a6', { wheel: '#1b1c1f', frame: '#a4a9b0' })],
+    liveries: [livery('Champion Yellow No.2', '#f6c500', '#1b1c1f', '#1747a6', { wheel: '#1b1c1f', frame: '#3b3e43' }), livery('Pearl Glacier White', W, '#1b1c1f', '#1747a6', { wheel: '#1b1c1f', frame: '#3b3e43' })],
     description: '90° V-twin: güvenilir, ekonomik ve sınırsız macera.',
   }),
   bike({
