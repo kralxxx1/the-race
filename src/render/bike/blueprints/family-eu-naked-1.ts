@@ -4,6 +4,7 @@ import { duke390Blueprint } from './family-eu-naked-1-duke390';
 import { monsterBlueprint } from './family-eu-naked-1-monster';
 import { superDukeBlueprint } from './family-eu-naked-1-sdr';
 import { sfv4Blueprint } from './family-eu-naked-1-sfv4';
+import { tuonoBlueprint } from './family-eu-naked-1-tuono';
 
 /**
  * European naked-bike family "eu-naked-1": authored blueprints for the Ducati Streetfighter
@@ -15,4 +16,5 @@ export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'ducati-monster': monsterBlueprint,
   'ktm-1290-superduke-r': superDukeBlueprint,
   'ktm-390-duke': duke390Blueprint,
+  'aprilia-tuono-v4': tuonoBlueprint,
 };
