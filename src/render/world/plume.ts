@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { glowTexture } from '../textures';
+import { softGlow } from './glow';
 import type { WorldUniforms } from './worldMaterials';
 
 /**
@@ -52,7 +52,7 @@ export interface PlumeOptions {
 }
 
 export function plumeMaterial(u: WorldUniforms, o: PlumeOptions): THREE.MeshBasicMaterial {
-  const m = new THREE.MeshBasicMaterial({ map: glowTexture(), color: new THREE.Color(o.color), transparent: true, depthWrite: false, fog: true });
+  const m = new THREE.MeshBasicMaterial({ map: softGlow(), color: new THREE.Color(o.color), transparent: true, depthWrite: false, fog: true });
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uTime = u.uTime;
     shader.uniforms.uWind = u.uWind;

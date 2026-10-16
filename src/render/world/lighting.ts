@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { glowTexture } from '../textures';
+import { softGlow } from './glow';
 import { lampGeometry, lampHeadMaterial, type LampStyle } from './props';
 import type { ChunkBuild } from './scenery';
 
@@ -53,7 +53,7 @@ export class LampKit {
       g.rotateX(-Math.PI / 2);
       const m = define.adopt(
         new THREE.MeshBasicMaterial({
-          map: glowTexture(),
+          map: softGlow(),
           color: new THREE.Color(opts.pool).multiplyScalar(0.55),
           transparent: true,
           blending: THREE.AdditiveBlending,

@@ -57,8 +57,8 @@ export class EnclosureFx {
     const t = this.t;
     const dark = clamp(k, 0, 1);
     t.sun.intensity = this.sunBase * (1 - 0.97 * dark);
-    t.hemi.intensity = this.hemiBase * (1 - 0.86 * dark);
-    t.scene.environmentIntensity = this.envBase * (1 - 0.9 * dark);
+    t.hemi.intensity = this.hemiBase * (1 - 0.5 * dark);
+    t.scene.environmentIntensity = this.envBase * (1 - 0.62 * dark);
     const fog = t.scene.fog as THREE.Fog | null;
     if (fog) {
       fog.color.copy(this.fogBase).lerp(DARK_FOG, dark);
@@ -66,7 +66,7 @@ export class EnclosureFx {
       fog.far = this.fogFar + (260 - this.fogFar) * dark;
     }
     // Eye adaptation: open the exposure while adapted to the dark, close it again after the exit glare.
-    t.renderer.toneMappingExposure = t.exposure * Math.pow(2, 1.5 * this.adapt);
+    t.renderer.toneMappingExposure = t.exposure * Math.pow(2, 0.95 * this.adapt);
   }
 
   private restore(): void {

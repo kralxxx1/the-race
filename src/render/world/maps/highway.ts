@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { fbm2, noise2, smoothstep } from '../../../core/math';
 import { rgb } from '../kit';
+import { footbridge, overpass } from '../bridges';
 import { gantry, kmPost } from '../furniture';
 import { simpleProp } from '../instances';
 import { buildRock } from '../rocks';
 import { CHUNK_LENGTH, Scenery, type ChunkBuild, type SceneryHost } from '../scenery';
 import { NEAR_BAND, h2, patchy, scatter } from '../scatter';
 import { REGION_CITIES, type SignDest } from '../signs';
+import { wall } from '../strips';
 
 const FIELD_GREEN = rgb('#6f8a3a');
 const FIELD_STRAW = rgb('#9c9560');
@@ -48,6 +50,11 @@ export class HighwayScenery extends Scenery {
       );
     }
     this.defineStatic('steel', host.worldMats.plain({ roughness: 0.55, metalness: 0.5 }), true);
+    this.defineStatic('conc', host.worldMats.pbr('concrete', { roughness: 1 }), true);
+    this.defineStatic('asphalt', host.worldMats.pbr('asphalt_worn', { roughness: 1 }), true);
+    this.defineStatic('glass', host.worldMats.glass(), false);
+    this.defineStatic('lit', host.worldMats.glowing(host.env.scenery.lightsOn ? 1.9 : 0.5), false);
+    this.defineStatic('baffle', host.worldMats.pbr('concrete', { roughness: 0.9 }), true);
   }
 
   /** Dry Aegean hills: higher, rounder ridges with terraces on the far side. */
@@ -135,6 +142,29 @@ export class HighwayScenery extends Scenery {
     scatter(ctx, this.shrub, { count: 40, offMin: 2.2, offMax: 70, pow: 1.5, scale: [0.6, 1.6], tint: [1.15, 1.1, 0.85], tintJitter: 0.25 });
     scatter(ctx, this.rocks, { count: 7, offMin: 6, offMax: 180, pow: 1.6, scale: [0.5, 1.9], sink: 0.35, tilt: 0.12 });
 
+    // Overpasses: a road bridge or footbridge every ~1.3 km, clear of the gantries.
+    const ok = 1300;
+    for (let b = Math.floor(ctx.s0 / ok); b <= Math.ceil((ctx.s0 + CHUNK_LENGTH) / ok); b++) {
+      const s = b * ok + 400 + h2(b, 61, seed) * 300;
+      if (s < ctx.s0 || s >= ctx.s0 + CHUNK_LENGTH || h2(b, 62, seed) > 0.7) continue;
+      const gs2 = Math.floor(s / 1400) * 1400 + 280 + h2(Math.floor(s / 1400), 1, seed) * 300;
+      if (Math.abs(gs2 - s) < 70) continue;
+      if (h2(b, 63, seed) > 0.4) overpass(ctx, s, { lit: this.host.env.scenery.lightsOn, ramp: 54 });
+      else footbridge(ctx, s, { lit: this.host.env.scenery.lightsOn });
+    }
+
+    // Noise barriers beside the villages: 3.4 m acoustic walls on the right for a few hundred metres.
+    const cell = 900;
+    for (let b = Math.floor(ctx.s0 / cell) - 1; b <= Math.floor((ctx.s0 + CHUNK_LENGTH) / cell); b++) {
+      if (h2(b, 71, seed) > 0.45) continue;
+      const a = b * cell + h2(b, 72, seed) * 300;
+      const e = a + 220 + h2(b, 73, seed) * 260;
+      const lo = Math.max(a, ctx.s0);
+      const hi = Math.min(e, ctx.s0 + CHUNK_LENGTH);
+      if (hi - lo < 4) continue;
+      this.noiseBarrier(ctx, 1);
+    }
+
     // Kilometre posts on the right every 1000 m and guide-sign gantries every ~1.4 km.
     const k0 = Math.ceil(ctx.s0 / 1000);
     if (k0 * 1000 < ctx.s0 + CHUNK_LENGTH) kmPost(ctx, k0 * 1000, 1);
@@ -149,6 +179,24 @@ export class HighwayScenery extends Scenery {
       gantry(ctx, gs, [[{ ...pick(1), arrow: '↑' }, pick(2)], [{ ...pick(3), arrow: '↗' }, pick(4)]], 'E-87', { lit: this.host.env.scenery.lightsOn });
     }
   }
+
+  /** Acoustic wall along the whole chunk: concrete skin on steel posts every 4 m, both faces, with a cap. */
+  noiseBarrier(ctx: ChunkBuild, side: 1 | -1): void {
+    const half = this.host.half;
+    const d = side * (half + 3.4);
+    const b = ctx.stat('baffle');
+    const k = this.host.worldMats.uv('concrete');
+    wall(b, ctx, d, -0.5, 3.3, side, 'ground', { color: [_barrier[0], _barrier[1], _barrier[2]], uvPerM: k }, 4);
+    wall(b, ctx, d + side * 0.01, -0.5, 3.3, (-side) as 1 | -1, 'ground', { color: [_barrier[0] * 0.9, _barrier[1] * 0.9, _barrier[2] * 0.9], uvPerM: k }, 4);
+    const steel = ctx.stat('steel');
+    for (let s = Math.ceil(ctx.s0 / 4) * 4; s < ctx.s0 + CHUNK_LENGTH; s += 4) {
+      ctx.frame(steel, s, d, 0, undefined, 0.5);
+      steel.box(0, 1.9, 0, 0.16, 3.8, 0.34, { color: [0.45, 0.48, 0.5] });
+      steel.pop();
+    }
+  }
 }
 
 const _c = new THREE.Color();
+const _barrier = [0.74, 0.8, 0.76] as const;
+

@@ -14,7 +14,7 @@ import { CHUNK_LENGTH } from './scenery';
  * curvature), with explicit winding checks so every lining face points at the tunnel axis.
  */
 
-export const TUNNEL_FIRST = 1250;
+export const TUNNEL_FIRST = 1252;
 export const TUNNEL_PERIOD = 3100;
 /** Interior height at the crown above the road. */
 export const BORE_HEIGHT = 8.6;
@@ -86,7 +86,7 @@ function boreProfile(W: number): [number, number][] {
 const TILE: RGB = rgb('#ece9df');
 const CEIL: RGB = rgb('#c9c6be');
 const CONC_COL: RGB = rgb('#c8c5bc');
-const ROCK_COL: RGB = [0.78, 0.72, 0.68];
+const ROCK_COL: RGB = [0.62, 0.74, 0.86];
 
 /**
  * Build the bore, fixtures, cap and portals of one tunnel into the chunk (only the part inside it).

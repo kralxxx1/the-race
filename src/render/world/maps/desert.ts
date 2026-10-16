@@ -118,9 +118,9 @@ export class DesertScenery extends Scenery {
 
     // ── Steppe cover: straw tufts and tall clumps, thorn scrub, boulders.
     const scrubMask = (s: number, d: number) => 0.25 + 0.75 * patchy(s, d, 80, 3, 0.3, 0.6);
-    scatter(ctx, this.tuft, { count: 190, offMin: 1.2, offMax: 60, pow: 1.3, scale: [0.7, 1.5], tint: [3.2, 2.1, 0.7], tintJitter: 0.3, spin: true, mask: scrubMask });
-    scatter(ctx, this.tall, { count: 60, offMin: 2.5, offMax: 50, pow: 1.3, scale: [0.9, 2.0], tint: [3.4, 2.3, 0.75], tintJitter: 0.25, mask: scrubMask });
-    scatter(ctx, this.shrub, { count: 34, offMin: 2.5, offMax: 140, pow: 1.5, scale: [0.6, 1.5], tint: [1.75, 1.4, 1.0], tintJitter: 0.25, mask: scrubMask });
+    scatter(ctx, this.tuft, { count: 190, offMin: 1.2, offMax: 60, pow: 1.3, scale: [0.7, 1.5], tint: [2.8, 1.8, 0.55], tintJitter: 0.3, spin: true, mask: scrubMask });
+    scatter(ctx, this.tall, { count: 60, offMin: 2.5, offMax: 50, pow: 1.3, scale: [0.9, 2.0], tint: [2.7, 1.75, 0.55], tintJitter: 0.25, mask: scrubMask });
+    scatter(ctx, this.shrub, { count: 34, offMin: 2.5, offMax: 140, pow: 1.5, scale: [0.6, 1.5], tint: [1.35, 1.08, 0.78], tintJitter: 0.25, mask: scrubMask });
     scatter(ctx, this.rocks, { count: 12, offMin: 4, offMax: 150, pow: 1.5, scale: [0.5, 2.6], sink: 0.4, tilt: 0.18 });
 
     // ── Buttes on the horizon: at most one per 380 m cell per side, far from the road.

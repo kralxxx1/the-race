@@ -27,7 +27,7 @@ import { CHUNK_LENGTH, Scenery, type ChunkBuild, type SceneryHost } from '../sce
 import { h2, scatter } from '../scatter';
 import { REGION_CITIES, infoSignTexture, type SignDest } from '../signs';
 import { buildTunnel, mountainMask, mountainRise, poolGeometry, tunnelEnclosure, tunnelNear, tunnelSpan, TUNNEL_FIRST, TUNNEL_PERIOD } from '../tunnel';
-import { glowTexture } from '../../textures';
+import { softGlow } from '../glow';
 
 const LOT = 170;
 type LotKind = 'factory' | 'tanks' | 'containers' | 'warehouses' | 'power' | 'silos' | 'open';
@@ -93,7 +93,7 @@ export class IndustrialScenery extends Scenery {
     this.defineProp('smoke', plumeGeometry(), smoke, { max: 6, renderOrder: 4 });
     this.defineProp('steam', plumeGeometry(), steam, { max: 6, renderOrder: 4 });
     const pool = m.adopt(
-      new THREE.MeshBasicMaterial({ map: glowTexture(), color: new THREE.Color('#fff1d6').multiplyScalar(0.26), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
+      new THREE.MeshBasicMaterial({ map: softGlow(), color: new THREE.Color('#fff1d6').multiplyScalar(0.34), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
     );
     this.defineProp('tpool', poolGeometry(host.half + 0.9), pool, { max: 30, renderOrder: 2 });
     this.defineStatic('metal', m.pbr('facade_industrial', { roughness: 0.6, metalness: 0.05 }), true);
