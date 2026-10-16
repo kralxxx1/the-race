@@ -2,6 +2,7 @@ import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
 import { africaTwinBlueprint } from './family-adv-touring-africatwin';
 import { goldWingBlueprint } from './family-adv-touring-goldwing';
+import { vstrom650Blueprint } from './family-adv-touring-vstrom';
 
 /**
  * Adventure / touring family: authored blueprints for the Honda Africa Twin and Gold Wing,
@@ -11,4 +12,5 @@ import { goldWingBlueprint } from './family-adv-touring-goldwing';
 export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'honda-africa-twin': africaTwinBlueprint,
   'honda-gold-wing': goldWingBlueprint,
+  'suzuki-vstrom650': vstrom650Blueprint,
 };
