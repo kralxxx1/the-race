@@ -202,6 +202,11 @@ export function resolveEnvironment(mapId: MapId, time: TimeOfDay, weather: Weath
     env.sky = { ...env.sky, sunElevation: 4, sunAzimuth: -60, zenith: '#3b4f7a', horizon: '#f2b27a' };
     env.exposure = 1.05;
   }
+  if (map.id === 'forest') {
+    env.terrain = 'grass';
+    // Dark moss floor under the canopy: let the vertex colours darken the photograph strongly.
+    env.world = { ...env.world, groundMix: 0.95 };
+  }
   if (map.id === 'snow') {
     env.terrain = 'grass';
     env.mountains = { near: '#d7e1ea', far: '#eef3f8', height: 1.6 };

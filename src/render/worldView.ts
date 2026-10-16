@@ -6,7 +6,8 @@ import type { GlowPoints } from './effects';
 import type { Materials } from './materials';
 import type { QualityProfile } from './quality';
 import { createSurfaces, type WorldSurfaces } from './surfaces';
-import { ROAD_TEX_LENGTH, mountainTexture } from './textures';
+import { ROAD_TEX_LENGTH } from './textures';
+import { Backdrop } from './world/backdrop';
 import { createScenery } from './world/maps';
 import { ChunkBuild, SceneryChunk, type Scenery, type SceneryHost } from './world/scenery';
 import { WorldMaterials } from './world/worldMaterials';
@@ -100,6 +101,7 @@ export class WorldView implements SceneryHost {
   private postGeo: THREE.BufferGeometry;
   private postMat: THREE.MeshStandardMaterial;
   private backdrop: THREE.Group;
+  private backdropObj: Backdrop;
   readonly half: number;
   private originS = 0;
   readonly seed: number;
@@ -107,6 +109,8 @@ export class WorldView implements SceneryHost {
   /** Scenery materials of this run (foliage, PBR sets); also feeds wind/snow uniforms. */
   readonly worldMats: WorldMaterials;
   private lastPlayerS = 0;
+  /** Terrain mesh columns: the shared set plus whatever the map's relief needs. */
+  private terrainOffs: number[];
   /** Pending origin shift that dynamic objects must also apply (consumed by the game view). */
   readonly shiftEvents: THREE.Vector3[] = [];
 
@@ -132,33 +136,11 @@ export class WorldView implements SceneryHost {
     this.worldMats.uniforms.uSnow.value = env.world.snow;
     this.worldMats.uniforms.uNight.value = env.scenery.lightsOn ? 1 : 0;
     this.scenery = createScenery(this);
+    this.terrainOffs = [...new Set([...TERRAIN_OFFS, ...this.scenery.extraTerrainOffsets()])].sort((a, b) => a - b);
     this.group.add(this.scenery.group);
-    this.backdrop = this.buildBackdrop();
+    this.backdropObj = new Backdrop(this.scenery.ranges(), env.fog.color);
+    this.backdrop = this.backdropObj.group;
     this.group.add(this.backdrop);
-  }
-
-  private buildBackdrop(): THREE.Group {
-    const g = new THREE.Group();
-    const env = this.env;
-    const layers: [number, number, string, string, number][] = [
-      [3200, 520, env.mountains.far, env.fog.color, 0],
-      [2600, 360, env.mountains.near, env.mountains.far, 1],
-    ];
-    for (const [r, h, near, far, i] of layers) {
-      // Silhouettes depend on the environment only, so the cached texture is reused across runs.
-      const tex = mountainTexture(near, far, env.mountains.height, 17 + i * 7);
-      tex.repeat.set(2, 1);
-      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, fog: false, depthWrite: false, side: THREE.BackSide });
-      // Blend towards the horizon haze colour.
-      mat.color = new THREE.Color(env.fog.color).lerp(new THREE.Color('#ffffff'), i === 0 ? 0.25 : 0.55);
-      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 64, 1, true), mat);
-      cyl.position.y = h / 2 - 40;
-      cyl.renderOrder = -5 + i;
-      g.add(cyl);
-    }
-    g.frustumCulled = false;
-    g.traverse((o) => (o.frustumCulled = false));
-    return g;
   }
 
   /** World (rebased) position of a road-space point. */
@@ -323,7 +305,7 @@ export class WorldView implements SceneryHost {
   }
 
   private buildTerrain(c: Chunk): void {
-    const offs = TERRAIN_OFFS;
+    const offs = this.terrainOffs;
     const cols = offs.length;
     const vcount = ROWS * cols * 2;
     const pos = new Float32Array(vcount * 3);
@@ -461,6 +443,7 @@ export class WorldView implements SceneryHost {
 
   dispose(): void {
     this.scenery.dispose();
+    this.backdropObj.dispose();
     for (const c of this.chunks) {
       c.scn.dispose();
       c.posts.dispose();

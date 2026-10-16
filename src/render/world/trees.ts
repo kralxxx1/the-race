@@ -68,7 +68,7 @@ export const TREE_SPECS: Readonly<Record<TreeId, TreeSpec>> = {
   cypress: { id: 'cypress', kind: 'broad', atlas: 'fir', height: 10, trunkR: 0.18, crownStart: 0.1, radius: 1.05, radiusY: 4.6, card: 1.6, count: 56, tint: [0.7, 0.92, 0.7], bark: rgb('#8a7560'), cells: [0, 1, 2, 3], lean: 0, sway: 0.06, variants: 1 },
   stonepine: { id: 'stonepine', kind: 'umbrella', atlas: 'pine', height: 13, trunkR: 0.34, crownStart: 0.62, radius: 5.2, radiusY: 2.4, card: 2.3, count: 64, tint: [1.0, 1.12, 0.9], bark: rgb('#b9825c'), cells: [0, 1, 2, 3, 4, 5, 6, 7], lean: 0.8, sway: 0.2, variants: 2 },
   redpine: { id: 'redpine', kind: 'umbrella', atlas: 'pine', height: 16, trunkR: 0.3, crownStart: 0.55, radius: 3.8, radiusY: 4.2, card: 2.2, count: 70, tint: [1.0, 1.1, 0.88], bark: rgb('#b87a54'), cells: [0, 1, 2, 3, 4, 5, 6, 7], lean: 0.5, sway: 0.2, variants: 2 },
-  spruce: { id: 'spruce', kind: 'conifer', atlas: 'fir', height: 19, trunkR: 0.34, crownStart: 0.12, radius: 3.3, card: 1.0, count: 15, perWhorl: 5, tint: [0.85, 1.05, 0.9], bark: rgb('#8c7258'), cells: [0, 1, 2, 3, 4, 5, 6, 7], droop: 0.38, sway: 0.22, variants: 2 },
+  spruce: { id: 'spruce', kind: 'conifer', atlas: 'fir', height: 19, trunkR: 0.34, crownStart: 0.1, radius: 3.7, card: 1.0, count: 20, perWhorl: 6, tint: [0.8, 1.0, 0.85], bark: rgb('#6f6458'), cells: [0, 1, 2, 3, 4, 5, 6, 7], droop: 0.38, sway: 0.22, variants: 2 },
   palm: { id: 'palm', kind: 'palm', atlas: 'palm', height: 10, trunkR: 0.26, crownStart: 1, radius: 3.4, card: 4.4, count: 15, tint: [1.0, 1.12, 0.9], bark: rgb('#b3a287'), cells: [0, 1, 2, 3, 4, 5, 6, 7], lean: 0.6, sway: 0.3, variants: 1 },
   shrub: { id: 'shrub', kind: 'shrub', atlas: 'broad', height: 1.5, trunkR: 0.03, crownStart: 0, radius: 1.1, radiusY: 0.7, card: 1.05, count: 18, tint: [0.95, 1.1, 0.82], bark: rgb('#6a5a48'), cells: [0, 1, 2, 3, 4, 5, 6, 7], sway: 0.05, variants: 1 },
   // Mediterranean scrub (maki): low silver-green thorny shrubs.
@@ -216,7 +216,7 @@ function trunkPath(spec: TreeSpec, rng: Rng, topY: number, segs: number): V3[] {
 }
 
 /** The bark photograph is dark and cavity-occluded: lift it so trunks read as bark, not black. */
-const BARK_GAIN = 4.2;
+const BARK_GAIN = 5.5;
 
 function buildTrunk(spec: TreeSpec, plan: LodPlan, path: V3[], paint: { color: RGB; uvPerM: number }): GeoBuilder {
   const b = new GeoBuilder({ sway: true });
@@ -317,9 +317,9 @@ function coniferLod(spec: TreeSpec, variant: number, lod: 0 | 1 | 2): TreeLod {
     const t = whorls === 1 ? 0 : i / (whorls - 1);
     const y = H * (start + (0.975 - start) * t);
     // Spruce silhouette: widest near the lower third, tapering to a spike.
-    const rr = Math.max(0.28, spec.radius * Math.pow(1 - t, 0.82) * (0.78 + 0.22 * Math.sin(Math.min(1, t * 2.5) * Math.PI * 0.5)));
+    const rr = Math.max(0.5, spec.radius * Math.pow(1 - t, 0.82) * (0.78 + 0.22 * Math.sin(Math.min(1, t * 2.5) * Math.PI * 0.5)));
     const len = rr * 1.2 * (0.9 + crng.float() * 0.2);
-    const size = Math.max(len, 0.7) * 1.15 * (lod === 0 ? 1 : lod === 1 ? 1.35 : 1.8);
+    const size = Math.max(len, 0.9) * 1.35 * (lod === 0 ? 1 : lod === 1 ? 1.3 : 1.7);
     for (let k = 0; k < per; k++) {
       const a = i * golden + (k / per) * Math.PI * 2 + crng.float() * 0.5;
       const h: V3 = [Math.cos(a), 0, Math.sin(a)];

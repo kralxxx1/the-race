@@ -17,6 +17,8 @@ export interface WorldDesc {
   heat: number;
   /** Mist density multiplier for valley/forest fog sheets. */
   mist: number;
+  /** How strongly the per-map terrain vertex colours darken/tint the ground photograph (0..1, default 0.55). */
+  groundMix?: number;
 }
 
 export const DEFAULT_WORLD: WorldDesc = { map: 'highway', wind: 0.35, snow: 0, heat: 0, mist: 0 };

@@ -27,6 +27,27 @@ export interface RockOptions {
   angular?: boolean;
 }
 
+/** Replace flat per-face normals by the average over all vertices at the same position (round, lumpy boulders). */
+function smoothNormals(g: THREE.BufferGeometry): void {
+  const pos = g.getAttribute('position') as THREE.BufferAttribute;
+  const nor = g.getAttribute('normal') as THREE.BufferAttribute;
+  const acc = new Map<string, [number, number, number]>();
+  const key = (i: number) => `${Math.round(pos.getX(i) * 1000)},${Math.round(pos.getY(i) * 1000)},${Math.round(pos.getZ(i) * 1000)}`;
+  for (let i = 0; i < pos.count; i++) {
+    const k = key(i);
+    const a = acc.get(k) ?? [0, 0, 0];
+    a[0] += nor.getX(i);
+    a[1] += nor.getY(i);
+    a[2] += nor.getZ(i);
+    acc.set(k, a);
+  }
+  for (let i = 0; i < pos.count; i++) {
+    const a = acc.get(key(i))!;
+    const l = Math.hypot(a[0], a[1], a[2]) || 1;
+    nor.setXYZ(i, a[0] / l, a[1] / l, a[2] / l);
+  }
+}
+
 export function buildRock(o: RockOptions): THREE.BufferGeometry {
   const g = new THREE.IcosahedronGeometry(1, o.detail);
   const p = g.getAttribute('position') as THREE.BufferAttribute;
@@ -49,9 +70,10 @@ export function buildRock(o: RockOptions): THREE.BufferGeometry {
     p.setXYZ(i, v.x, v.y, v.z);
   }
   g.computeVertexNormals();
+  if (!o.angular) smoothNormals(g);
   // Non-indexed so each triangle can take a box-projected UV without seams smearing.
-  const ng = g.toNonIndexed();
-  g.dispose();
+  const ng = g.index ? g.toNonIndexed() : g;
+  if (ng !== g) g.dispose();
   const pos = ng.getAttribute('position') as THREE.BufferAttribute;
   const nor = ng.getAttribute('normal') as THREE.BufferAttribute;
   const uv = new Float32Array(pos.count * 2);

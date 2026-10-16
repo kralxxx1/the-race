@@ -523,7 +523,7 @@ function photoGround(o: SurfaceOptions, base: PBRSet, rock: PBRSet | null, grave
     uTileG: { value: base.sizeM },
     uTileR: { value: rock?.sizeM ?? 2.7 },
     uTileP: { value: gravel?.sizeM ?? 2 },
-    uVcMix: { value: snow ? 0.15 : 0.55 },
+    uVcMix: { value: snow ? 0.15 : (env.world.groundMix ?? 0.55) },
     // Hue pull of the per-map ground colours (fields, steppe, moss…); snow stays white.
     uVcHue: { value: snow ? 0.1 : 0.72 },
     uBlend: { value: quality.terrainBlend && rock && gravel ? 1 : 0 },

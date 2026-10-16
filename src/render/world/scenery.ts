@@ -7,6 +7,7 @@ import { GeoBuilder, composeMatrix, rgb, type RGB } from './kit';
 import { PropSet, type PropDef } from './instances';
 import { simpleProp, treePropDef } from './instances';
 import { TREE_SPECS, buildTree, disposeTree, type TreeId, type TreeModel } from './trees';
+import type { RangeSpec } from './backdrop';
 import { LampKit, type LampKitOptions } from './lighting';
 import type { WorldMaterials } from './worldMaterials';
 
@@ -318,6 +319,11 @@ export abstract class Scenery {
     return base;
   }
 
+  /** Extra terrain mesh columns (metres beyond the paved edge) for maps with fine relief: river banks, cliffs. */
+  extraTerrainOffsets(): number[] {
+    return [];
+  }
+
   /** Ground colour override (vertex colour of the terrain); return false to keep the default. */
   groundColor(_s: number, _off: number, _h: number, _out: THREE.Color, _side: number): boolean {
     return false;
@@ -328,6 +334,15 @@ export abstract class Scenery {
 
   /** Per-frame hook (animation, water, smoke…). `playerS` in road metres, `time` seconds. */
   update(_playerS: number, _time: number, _camera: THREE.Vector3): void {}
+
+  /** Distant mountain ranges (back to front); maps override for alpine peaks, sea horizons, skylines. */
+  ranges(): RangeSpec[] {
+    const m = this.host.env.mountains;
+    return [
+      { radius: 3200, height: 520, low: m.far, mid: m.far, peak: m.far, snowLine: 9, sharp: 0.3, amp: 0.5 * m.height, seed: 3, haze: 0.5 },
+      { radius: 2600, height: 360, low: m.near, mid: m.near, peak: m.far, snowLine: 9, sharp: 0.4, amp: 0.55 * m.height, seed: 8, haze: 0.28 },
+    ];
+  }
 
   /** 0..1 how enclosed the rider is at s (tunnels); drives lighting and audio reverb. */
   enclosure(_s: number): number {

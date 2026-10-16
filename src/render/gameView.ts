@@ -25,6 +25,9 @@ import { ShadowSystem } from './postfx/shadows';
 import { SkySystem, parseEnv } from './sky';
 import { TrafficView } from './trafficView';
 import { WorldView } from './worldView';
+import { EnclosureFx } from './world/enclosureFx';
+import { Snowfall } from './world/snowfall';
+import type { ReverbKind } from '../audio/dsp/impulse';
 
 const _v = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
@@ -52,6 +55,9 @@ export class GameView {
   readonly sparks = new Sparks(600);
   readonly smoke = new Smoke(320);
   private rain: Rain | null = null;
+  /** Falling snow (snow weather) and the tunnel lighting/eye-adaptation response of the scenery. */
+  private snowfall: Snowfall | null = null;
+  private enclosureFx: EnclosureFx | null = null;
   readonly skid = new SkidMarks();
   crash: CrashSim | null = null;
   private crashClock = 0;
@@ -148,11 +154,21 @@ export class GameView {
       scene.add(this.rain.lines);
       this.smoke.material.uniforms.tint.value.set('#c9d1d8');
     }
+    if (parseEnv(env).weather === 'snow') {
+      this.snowfall = new Snowfall(q.sceneryDensity, env.world.wind);
+      scene.add(this.snowfall.points);
+    }
     renderer.setBloom(env.bloom.strength, env.bloom.threshold, env.bloom.radius);
     renderer.renderer.toneMappingExposure = env.exposure;
+    this.enclosureFx = new EnclosureFx({ scene, sun: this.sky.sun, hemi: this.sky.hemi, renderer: renderer.renderer, exposure: env.exposure });
     this.world.prewarm(session.bike.s);
     this.placeBike(0.016);
     this.cam.startIntro(3);
+  }
+
+  /** Acoustic zone override for the audio engine: tunnels while the rider is inside one. */
+  audioZone(): ReverbKind | undefined {
+    return this.world.enclosure(this.session.bike.s) > 0.55 ? 'tunnel' : undefined;
   }
 
   /** Time scale of the simulation `t` real seconds after the crash (slow motion, replay pacing). */
@@ -444,6 +460,7 @@ export class GameView {
     this.sky.follow(this.crash ? this.crash.focus : this.bike.root.position);
     this.sky.mesh.position.copy(camPos);
     this.sky.update(dt, this.time, (delay) => this.onLightning(delay));
+    this.enclosureFx?.update(realDt, this.world.enclosure(b.s));
 
     // Lights / glows
     this.glow.begin();
@@ -466,6 +483,7 @@ export class GameView {
     this.sparks.update(dt);
     this.smoke.update(dt);
     if (this.rain) this.rain.update(realDt, camPos, this.bikeVel);
+    this.snowfall?.update(realDt, camPos, this.renderer.viewportHeight, this.cam.camera.fov);
 
     // Dashboard redraw (~15 Hz)
     this.dashTimer -= realDt;
@@ -494,7 +512,8 @@ export class GameView {
     const speedK = smoothstep(28, 95, b.v);
     this.fx.nearStatic = this.cam.mode === 'helmet' ? 1.3 : 0;
     this.fx.rain = this.env.rain ? 1 : 0;
-    this.fx.heat = this.env.terrain === 'sand' ? 0.8 : this.env.sky.sunElevation > 20 && !this.env.wet ? 0.3 : 0;
+    // Heat shimmer from the map's climate (desert 1, steppe/highway a little) while the sun is up.
+    this.fx.heat = this.env.wet ? 0 : Math.min(1, this.env.world.heat * (this.env.sky.sunElevation > 5 ? 0.9 : 0.35) + (this.env.sky.sunElevation > 20 ? 0.12 : 0));
     this.renderer.atmosphere.fogBase = this.session.road.height(b.s) - this.world.origin.y - 1.5;
     this.fx.blur = this.crash ? 0 : speedK * (this.cam.mode === 'helmet' ? 1 : 0.8);
     this.fx.aberration = this.crash ? 0.5 : speedK * 0.6;
@@ -636,6 +655,8 @@ export class GameView {
       if (Array.isArray(mat)) mat.forEach((x) => mats.add(x));
       else if (mat) mats.add(mat);
     });
+    this.snowfall?.dispose();
+    this.enclosureFx?.dispose();
     this.crash?.dispose();
     this.mirrors.dispose();
     this.visor.dispose();
