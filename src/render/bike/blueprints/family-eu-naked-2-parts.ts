@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import type { KitContext } from '../context';
+import { T, mul, type KitContext } from '../context';
 import type { Hardpoints } from '../hardpoints';
 import { bodyQ, shell } from '../kit/body';
-import { lamp, ledStrip, type LampOpts } from '../kit/lights';
+import { lamp, ledStrip, offsetOutline, type LampOpts } from '../kit/lights';
 import { outlineLoft, type OutlineBody } from '../kit/shape';
-import { MeshData, extrude, rod, roundBox, smooth2, sweep, type P2, type P3 } from '../mesh';
+import { MeshData, extrude, flat, lathe, rod, roundBox, smooth2, sweep, type P2, type P3 } from '../mesh';
 import { F, type Finish, type GroupName } from '../sink';
 import { cut, type Field } from '../surface';
 
@@ -148,4 +148,128 @@ export function drlArc(ctx: KitContext, cx: number, cy: number, z: number, r: nu
     path.push([cx + Math.cos(a) * r, cy + Math.sin(a) * ry, z]);
   }
   steerStrip(ctx, path, width, thick, kind);
+}
+
+// ───────────────────────────── LED lamps & bug-eye faces ─────────────────────────────
+
+export interface LedLampOpts {
+  /** Housing depth behind the lens (m). */
+  depth?: number;
+  /** Housing rim around the lens (m). */
+  rim?: number;
+  housing?: Finish;
+  /** Projector discs in lamp-local XY: [x, y, radius]. */
+  projectors: ReadonlyArray<readonly [number, number, number]>;
+  /** LED light-guide path in lamp-local XY (z-less), e.g. an eyebrow along the lamp edge. */
+  drl?: readonly P2[];
+  drlWidth?: number;
+  /** Interior floor finish (default dark satin: LED units read as dark with bright cores). */
+  floor?: Finish;
+}
+
+/**
+ * LED headlight authored in lamp-local XY facing +Z: black housing, dark floor, chrome
+ * projector bowls with small emissive cores, optional light-guide DRL and a clear lens.
+ * Unlike `lamp()` the interior is dark, so the lens does not wash out into a white disc.
+ */
+export function ledLamp(ctx: KitContext, group: GroupName, outline: readonly P2[], m: THREE.Matrix4, o: LedLampOpts): void {
+  const depth = o.depth ?? 0.05;
+  const rim = o.rim ?? 0.005;
+  ctx.add(group, extrude(offsetOutline(outline, rim), depth, { bevel: Math.min(rim * 0.8, 0.003), plane: 'xy', center: -depth / 2, curveSegs: 1 }), o.housing ?? F.texturedBlack, m);
+  ctx.add(group, flat(outline, 'xy', 0.0012, 1), o.floor ?? hardDark(), m);
+  const seg = ctx.seg(22, 10);
+  for (const [x, y, r] of o.projectors) {
+    const bowl = lathe([[0, -0.016], [r * 1.18, -0.01], [r * 1.34, 0.0015]], { segs: seg, axis: 'z' });
+    ctx.add(group, bowl, F.chrome, mul(m, T(x, y, 0)));
+    // Bezel ring around the projector lens.
+    ctx.add(group, lathe([[r * 0.86, 0.0018], [r * 1.12, 0.0018], [r * 1.12, 0.0042], [r * 0.86, 0.0042]], { segs: seg, axis: 'z', sharp: true }), F.glossBlack, mul(m, T(x, y, 0)));
+    const lens = lathe(([[0, r * 0.3], [r * 0.55, r * 0.22], [r * 0.82, 0.0]] as P2[]).reverse(), { segs: seg, axis: 'z' });
+    ctx.add(group, lens, F.head, mul(m, T(x, y, 0.0032)));
+  }
+  ctx.add(group, flat(outline, 'xy', 0.006, 1), F.lens, m);
+  if (o.drl && o.drl.length > 1) {
+    const pts = o.drl.map(([x, y]) => new THREE.Vector3(x, y, 0.0045).applyMatrix4(m));
+    const up = new THREE.Vector3(0, 0, 1).transformDirection(m);
+    ledStrip(ctx, group, pts.map((v) => [v.x, v.y, v.z] as P3), o.drlWidth ?? 0.0055, 0.0035, 'drl', [up.x, up.y, up.z]);
+  }
+}
+
+function hardDark(): Finish {
+  return { ...F.glossBlack, rough: 0.35 };
+}
+
+/** The part of a closed outline between fractions t0 → t1 of its loop, pulled towards the centroid by `inset`. */
+export function outlineArc(outline: readonly P2[], t0: number, t1: number, inset: number): P2[] {
+  const n = outline.length;
+  let cx = 0, cy = 0;
+  for (const [x, y] of outline) {
+    cx += x / n;
+    cy += y / n;
+  }
+  const out: P2[] = [];
+  const steps = Math.max(2, Math.round(Math.abs(t1 - t0) * n));
+  for (let i = 0; i <= steps; i++) {
+    const t = t0 + ((t1 - t0) * i) / steps;
+    const f = (((t % 1) + 1) % 1) * n;
+    const a = Math.floor(f) % n, b = (a + 1) % n, u = f - Math.floor(f);
+    const x = outline[a][0] + (outline[b][0] - outline[a][0]) * u;
+    const y = outline[a][1] + (outline[b][1] - outline[a][1]) * u;
+    const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy) || 1;
+    out.push([x - (dx / d) * inset, y - (dy / d) * inset]);
+  }
+  return out;
+}
+
+/** A lamp authored in the steering-local frame (outline in local XY, facing local −Z). */
+export function steerLedLamp(ctx: KitContext, outline: readonly P2[], at: P3, o: LedLampOpts, tiltX = 0, yaw = 0): void {
+  const m = new THREE.Matrix4().makeTranslation(at[0], at[1], at[2]);
+  m.multiply(new THREE.Matrix4().makeRotationY(Math.PI + yaw));
+  if (tiltX) m.multiply(new THREE.Matrix4().makeRotationX(tiltX));
+  ledLamp(ctx, 'steer', outline, steerMat(ctx, m), o);
+}
+
+export interface BugEyeOpts {
+  /** Right-hand lamp outline (bike-x orientation, relative to its centre, counter-clockwise from the outer point). */
+  outline: readonly P2[];
+  /** Right lamp centre in steering-local coordinates (mirrored for the left lamp). */
+  x: number;
+  y: number;
+  z: number;
+  /** Toe-in (rad) and nose-down tilt (rad). */
+  yaw?: number;
+  tilt?: number;
+  depth: number;
+  projectors: ReadonlyArray<readonly [number, number, number]>;
+  /** DRL eyebrow: loop fractions of the outline, inset and strip width. */
+  drl?: { t0: number; t1: number; inset: number; width: number };
+  /** Black mask shell between the lamps (steering-local outline body). */
+  mask?: OutlineBody;
+  /** Flyscreen (steering-local outline body). */
+  visor?: OutlineBody;
+  visorTint?: Finish;
+  /** Fork brackets behind the face. */
+  brackets?: { ys: readonly number[]; toZ: number; toHalf: number };
+  /** Right front indicator blade, steering-local (mirrored). */
+  indicator?: { a: P3; b: P3; r?: number };
+}
+
+/** Twin "bug-eye" LED headlights with a mask, DRL eyebrows, flyscreen and indicators, on the fork. */
+export function bugEyeFace(ctx: KitContext, o: BugEyeOpts): void {
+  if (o.mask) loftPart(ctx, o.mask, hardBlack(), { steer: true, capFront: true, capBack: true, depth: 0.006 });
+  for (const s of [-1, 1]) {
+    const local = s > 0 ? mirrorOutline(o.outline) : o.outline.map(([x, y]) => [x, y] as P2);
+    const drl = o.drl ? outlineArc(o.outline, o.drl.t0, o.drl.t1, o.drl.inset).map(([x, y]) => [-s * x, y] as P2) : undefined;
+    steerLedLamp(ctx, local, [s * o.x, o.y, o.z], { depth: o.depth, rim: 0.0055, projectors: o.projectors.map(([x, y, r]) => [-s * x, y, r] as const), drl, drlWidth: o.drl?.width }, o.tilt ?? 0, s * -(o.yaw ?? 0));
+    if (o.indicator) bladeIndicator(ctx, 'steer', ctx.fromSteer([s * o.indicator.a[0], o.indicator.a[1], o.indicator.a[2]]), ctx.fromSteer([s * o.indicator.b[0], o.indicator.b[1], o.indicator.b[2]]), o.indicator.r ?? 0.0075);
+  }
+  if (o.brackets) forkBrackets(ctx, o.brackets.ys, o.brackets.toZ, o.brackets.toHalf);
+  if (o.visor) {
+    const vm = outlineLoft(o.visor, { su: ctx.seg(8, 3), sv: ctx.seg(4, 2) });
+    vm.transform(ctx.steerM);
+    ctx.add('steer', vm, o.visorTint ?? F.screen);
+  }
+}
+
+function hardBlack(): Finish {
+  return { ...F.satinBlack, rough: 0.5 };
 }
