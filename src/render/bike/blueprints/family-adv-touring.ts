@@ -6,6 +6,7 @@ import { k1600gtBlueprint } from './family-adv-touring-k1600';
 import { ktm890Blueprint } from './family-adv-touring-ktm890';
 import { multistradaV4Blueprint } from './family-adv-touring-multistrada';
 import { panAmericaBlueprint } from './family-adv-touring-panamerica';
+import { trk502xBlueprint } from './family-adv-touring-trk502';
 import { vstrom650Blueprint } from './family-adv-touring-vstrom';
 
 /**
@@ -21,4 +22,5 @@ export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'bmw-k1600gt': k1600gtBlueprint,
   'ktm-890-adventure-r': ktm890Blueprint,
   'harley-pan-america': panAmericaBlueprint,
+  'benelli-trk-502x': trk502xBlueprint,
 };

@@ -824,7 +824,7 @@ export const BIKES: BikeSpec[] = [
     id: 'benelli-trk-502x', brand: 'Benelli', model: 'TRK 502 X', year: 2024, style: 'adventure',
     engine: { layout: 'P2_360', cc: 500, hp: 47.6, hpRpm: 8500, torque: 46, torqueRpm: 6000, idle: 1300, redline: 9500 },
     weight: 235, topSpeed: 160, price: 6000,
-    liveries: [livery('Metal Gri', '#5a5e63', '#1b1c1f', '#2e7d32', { wheel: '#9ea3aa' }), livery('Beyaz', W, '#1b1c1f', '#b0121a', { wheel: '#9ea3aa' })],
+    liveries: [livery('Metal Gri / Yeşil', '#5a5e63', '#1b1c1f', '#2e7d32', { wheel: '#2a2c30', frame: '#1b1c1f' }), livery('İnci Beyaz / Kırmızı', W, '#1b1c1f', '#b0121a', { wheel: '#2a2c30', frame: '#1b1c1f' })],
     look: { extras: ['crashbars', 'windscreenTall', 'panniers'] },
     description: 'Türkiye yollarının favori macera ikilisi.',
   }),
