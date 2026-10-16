@@ -724,6 +724,7 @@ export class Game {
       surface: surfaceAt(b.d, pavedHalfWidth(s.lanes), view.env.id.endsWith(':snow')),
       lean: b.lean,
       crashed: b.crashed,
+      zone: view.audioZone(),
     });
     t0 = this.prof('audio', t0);
 

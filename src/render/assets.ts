@@ -28,7 +28,17 @@ export type TextureKey =
   | 'pavement'
   | 'facade_city'
   | 'facade_industrial'
-  | 'bark';
+  | 'bark'
+  // Roadside scenery (src/render/world): building, cliff and tunnel surfaces.
+  | 'roof_tiles'
+  | 'plaster'
+  | 'brick'
+  | 'planks'
+  | 'container'
+  | 'cliff'
+  | 'beach'
+  | 'tile_white'
+  | 'dry_ground';
 export type TextureMapKind = 'albedo' | 'normal' | 'arm';
 export type HdriKey = 'dawn' | 'day' | 'cloudy' | 'overcast' | 'fog' | 'sunset' | 'night' | 'city_night';
 
@@ -70,6 +80,15 @@ export const TEXTURE_SETS: Readonly<Record<TextureKey, TextureSetDef>> = {
   facade_city: { source: ACG, id: 'Facade020A', authors: 'ambientCG (Lennart Demes)', sizeM: 12, res: ['1k', '2k'] },
   facade_industrial: { source: PH, id: 'corrugated_iron_02', authors: 'Jenelle van Heerden, Sergej Majboroda', sizeM: 2.7, res: ['1k'] },
   bark: { source: PH, id: 'bark_brown_02', authors: 'Rob Tuytel', sizeM: 1, res: ['1k'] },
+  roof_tiles: { source: PH, id: 'clay_roof_tiles_02', authors: 'Amal Kumar', sizeM: 2.5, res: ['1k'] },
+  plaster: { source: PH, id: 'beige_wall_001', authors: 'Dimitrios Savva, Rico Cilliers', sizeM: 3, res: ['1k'] },
+  brick: { source: PH, id: 'red_brick', authors: 'Rob Tuytel', sizeM: 1.4, res: ['1k'] },
+  planks: { source: PH, id: 'raw_plank_wall', authors: 'Dimitrios Savva', sizeM: 1.9, res: ['1k'] },
+  container: { source: PH, id: 'container_side', authors: 'Dimitrios Savva', sizeM: 1.9, res: ['1k'] },
+  cliff: { source: PH, id: 'cliff_side', authors: 'James Ray Cock, Jenelle van Heerden, Dario Barresi', sizeM: 1.8, res: ['1k'] },
+  beach: { source: PH, id: 'coast_sand_03', authors: 'Rob Tuytel', sizeM: 3, res: ['1k'] },
+  tile_white: { source: PH, id: 'long_white_tiles', authors: 'Jenelle van Heerden, Sergej Majboroda', sizeM: 1.3, res: ['1k'] },
+  dry_ground: { source: PH, id: 'dry_mud_field_001', authors: 'Rob Tuytel, Rico Cilliers', sizeM: 3, res: ['1k'] },
 };
 
 // Sun directions and backdrop scales are measured by tools/build-assets.py.

@@ -30,6 +30,15 @@ the OpenGL (+Y) convention.
 | facade_city | Facade 020 A | https://ambientcg.com/a/Facade020A | ambientCG (Lennart Demes) | CC0 | 1K, 2K |
 | facade_industrial | Corrugated Iron 02 | https://polyhaven.com/a/corrugated_iron_02 | Jenelle van Heerden, Sergej Majboroda | CC0 | 1K |
 | bark | Bark Brown 02 | https://polyhaven.com/a/bark_brown_02 | Rob Tuytel | CC0 | 1K |
+| roof_tiles | Clay Roof Tiles 02 | https://polyhaven.com/a/clay_roof_tiles_02 | Amal Kumar | CC0 | 1K |
+| plaster | Beige Wall 001 | https://polyhaven.com/a/beige_wall_001 | Dimitrios Savva, Rico Cilliers | CC0 | 1K |
+| brick | Red Brick | https://polyhaven.com/a/red_brick | Rob Tuytel | CC0 | 1K |
+| planks | Raw Plank Wall | https://polyhaven.com/a/raw_plank_wall | Dimitrios Savva | CC0 | 1K |
+| container | Container Side | https://polyhaven.com/a/container_side | Dimitrios Savva | CC0 | 1K |
+| cliff | Cliff Side | https://polyhaven.com/a/cliff_side | James Ray Cock, Jenelle van Heerden, Dario Barresi | CC0 | 1K |
+| beach | Coast Sand 03 | https://polyhaven.com/a/coast_sand_03 | Rob Tuytel | CC0 | 1K |
+| tile_white | Long White Tiles | https://polyhaven.com/a/long_white_tiles | Jenelle van Heerden, Sergej Majboroda | CC0 | 1K |
+| dry_ground | Dry Mud Field 001 | https://polyhaven.com/a/dry_mud_field_001 | Rob Tuytel, Rico Cilliers | CC0 | 1K |
 
 ## HDR environments (`hdri/<key>_1k.hdr`, `sky/<key>_{2k,4k}.jpg`)
 
@@ -43,3 +52,18 @@ the OpenGL (+Y) convention.
 | sunset | Belfast Sunset (Pure Sky) | https://polyhaven.com/a/belfast_sunset_puresky | Greg Zaal, Dimitrios Savva, Jarod Guest | CC0 | lighting + sky |
 | night | Kloppenheim 02 (Pure Sky) | https://polyhaven.com/a/kloppenheim_02_puresky | Greg Zaal, Jarod Guest | CC0 | lighting + sky |
 | city_night | Shanghai Bund | https://polyhaven.com/a/shanghai_bund | Greg Zaal | CC0 | lighting only (city at night) |
+
+## Roadside foliage atlases (`world/foliage_<key>_{hi,lo}.webp`)
+
+RGBA sprite atlases (4×2 cells, 1024×512 / 512×256) cut and recomposed from the leaf, needle and grass
+photographs of the Poly Haven plant models below by `tools/build-foliage.py` (cropping, straightening,
+re-arranging into leaf sprays; the photographic pixels are otherwise unchanged).
+
+| Key | Source asset(s) | Source URL | Author(s) | License | Used for |
+| --- | --- | --- | --- | --- | --- |
+| fir | Fir Tree 01 (twig texture) | https://polyhaven.com/a/fir_tree_01 | Rob Tuytel, Rico Cilliers | CC0 | spruce / fir branches |
+| pine | Pine Tree 01 (twig texture) | https://polyhaven.com/a/pine_tree_01 | Rob Tuytel, Rico Cilliers | CC0 | pine needle tufts |
+| olive | Shrub 02 (leaf texture) | https://polyhaven.com/a/shrub_02 | Rico Cilliers | CC0 | olive and scrub foliage |
+| broad | Shrub 03 (leaf texture) | https://polyhaven.com/a/shrub_03 | Rico Cilliers | CC0 | broadleaf foliage |
+| palm | Jacaranda Tree (leaf texture) | https://polyhaven.com/a/jacaranda_tree | Rob Tuytel, Rico Cilliers | CC0 | palm fronds |
+| grass | Grass Bermuda 01 (blade texture) | https://polyhaven.com/a/grass_bermuda_01 | Rico Cilliers | CC0 | grass tufts |

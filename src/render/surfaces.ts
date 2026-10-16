@@ -52,7 +52,8 @@ export function groundKey(env: EnvDef): TextureKey {
   if (map === 'snow' || weather === 'snow') return 'snow';
   switch (env.terrain) {
     case 'sand':
-      return 'sand';
+      // The Konya steppe paints its own gold/clay/rust ground colours over a neutral sand photograph.
+      return map === 'desert' ? 'beach' : 'sand';
     case 'city':
       return 'pavement';
     case 'forest':
@@ -350,6 +351,7 @@ uniform float uTileG;
 uniform float uTileR;
 uniform float uTileP;
 uniform float uVcMix;
+uniform float uVcHue;
 uniform float uBlend;
 uniform vec3 uGroundTint;
 ${NOISE}
@@ -400,7 +402,7 @@ if (uBlend > 0.5) {
 nxy *= 1.0 - smoothstep(60.0, 220.0, camD) * 0.85;
 float vcLum = dot(vColor.rgb, vec3(0.333));
 alb *= mix(1.0, clamp(vcLum * 1.9, 0.35, 1.5), uVcMix);
-alb *= mix(vec3(1.0), normalize(vColor.rgb + 0.05) * 1.7, uVcMix * 0.5);
+alb *= mix(vec3(1.0), normalize(vColor.rgb + 0.05) * 1.7, uVcHue);
 vec3 terrainN = normalize(vec3(nxy, 1.0));
 float terrainRough = rough;
 float terrainAo = mix(tAo, 1.0, 0.25);
@@ -522,7 +524,9 @@ function photoGround(o: SurfaceOptions, base: PBRSet, rock: PBRSet | null, grave
     uTileG: { value: base.sizeM },
     uTileR: { value: rock?.sizeM ?? 2.7 },
     uTileP: { value: gravel?.sizeM ?? 2 },
-    uVcMix: { value: snow ? 0.15 : 0.55 },
+    uVcMix: { value: snow ? 0.15 : (env.world.groundMix ?? 0.55) },
+    // Hue pull of the per-map ground colours (fields, steppe, moss…); snow stays white.
+    uVcHue: { value: snow ? 0.1 : 0.72 },
     uBlend: { value: quality.terrainBlend && rock && gravel ? 1 : 0 },
     uGroundTint: { value: tint },
   };

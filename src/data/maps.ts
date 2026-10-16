@@ -1,4 +1,4 @@
-import { ENV_BY_ID, type EnvDef, type EnvId } from './environments';
+import { ENV_BY_ID, type EnvDef, type EnvId, type WorldDesc } from './environments';
 import type { ModeId } from './modes';
 
 /**
@@ -157,6 +157,18 @@ export function defaultRunConfig(): RunConfig {
   return { mode: 'endless', map: 'highway', time: 'day', weather: 'clear' };
 }
 
+/** Per-map atmosphere of the scenery (wind, heat haze, valley mist); weather then adjusts it. */
+const WORLD_BASE: Record<MapId, Pick<WorldDesc, 'wind' | 'heat' | 'mist'>> = {
+  suburb: { wind: 0.3, heat: 0.1, mist: 0 },
+  highway: { wind: 0.4, heat: 0.3, mist: 0 },
+  desert: { wind: 0.5, heat: 1, mist: 0 },
+  city: { wind: 0.2, heat: 0.1, mist: 0 },
+  coast: { wind: 0.75, heat: 0.1, mist: 0.1 },
+  forest: { wind: 0.4, heat: 0, mist: 1 },
+  snow: { wind: 0.65, heat: 0, mist: 0.4 },
+  industrial: { wind: 0.25, heat: 0.1, mist: 0.1 },
+};
+
 const TIME_TEMPLATE: Record<TimeOfDay, EnvId> = { dawn: 'sunset', day: 'day', sunset: 'sunset', night: 'night' };
 
 /**
@@ -184,11 +196,18 @@ export function resolveEnvironment(mapId: MapId, time: TimeOfDay, weather: Weath
     rain: false,
     lightning: false,
     grip: 1.08,
+    world: { map: map.id, ...WORLD_BASE[map.id], snow: map.id === 'snow' ? 1 : 0 },
   };
   if (time === 'dawn') {
     env.sky = { ...env.sky, sunElevation: 4, sunAzimuth: -60, zenith: '#3b4f7a', horizon: '#f2b27a' };
     env.exposure = 1.05;
   }
+  if (map.id === 'forest') {
+    env.terrain = 'grass';
+    // Dark moss floor under the canopy: let the vertex colours darken the photograph strongly.
+    env.world = { ...env.world, groundMix: 0.95 };
+  }
+  if (map.id === 'desert') env.world = { ...env.world, groundMix: 0.85 };
   if (map.id === 'snow') {
     env.terrain = 'grass';
     env.mountains = { near: '#d7e1ea', far: '#eef3f8', height: 1.6 };
@@ -206,6 +225,7 @@ export function resolveEnvironment(mapId: MapId, time: TimeOfDay, weather: Weath
       env.sky = { ...env.sky, clouds: Math.max(env.sky.clouds, 0.75), sunIntensity: env.sky.sunIntensity * 0.6 };
       break;
     case 'rain': {
+      env.world = { ...env.world, wind: Math.min(1, env.world.wind * 1.5 + 0.15), heat: 0 };
       const rain = ENV_BY_ID.get('rain')!;
       env.wet = true;
       env.rain = true;
@@ -217,12 +237,14 @@ export function resolveEnvironment(mapId: MapId, time: TimeOfDay, weather: Weath
       break;
     }
     case 'fog':
+      env.world = { ...env.world, heat: 0, mist: Math.max(env.world.mist, 0.6) };
       env.fog = { ...env.fog, near: 15, far: 260 };
       env.sky = { ...env.sky, clouds: 1, sunDisc: 0, sunIntensity: env.sky.sunIntensity * 0.45 };
       env.headlights = true;
       env.grip = 1.0;
       break;
     case 'snow':
+      env.world = { ...env.world, snow: 1, heat: 0, wind: Math.min(1, env.world.wind + 0.15) };
       env.wet = true;
       env.grip = 0.78;
       env.sky = { ...env.sky, clouds: 0.9, sunIntensity: env.sky.sunIntensity * 0.55 };
