@@ -5,8 +5,9 @@ import type { LaneConfig, RoadPath } from '../../world/road';
 import type { QualityProfile } from '../quality';
 import { GeoBuilder, composeMatrix, rgb, type RGB } from './kit';
 import { PropSet, type PropDef } from './instances';
-import { treePropDef } from './instances';
+import { simpleProp, treePropDef } from './instances';
 import { TREE_SPECS, buildTree, disposeTree, type TreeId, type TreeModel } from './trees';
+import { LampKit, type LampKitOptions } from './lighting';
 import type { WorldMaterials } from './worldMaterials';
 
 /**
@@ -280,6 +281,26 @@ export abstract class Scenery {
     return keys;
   }
 
+  /** Register a single-LOD instanced prop from baked geometry (the scenery owns and disposes the geometry). */
+  protected defineProp(key: string, geometry: THREE.BufferGeometry, material: THREE.Material, o: { max: number; shadow?: boolean; renderOrder?: number }): void {
+    const def = simpleProp(key, geometry, material, { max: Math.max(2, Math.ceil(o.max)), shadow: (o.shadow ?? false) && this.host.quality.worldShadows });
+    def.renderOrder = o.renderOrder;
+    this.propDefs.set(key, def);
+    this.ownedGeometry.push(geometry);
+  }
+
+  protected ownedGeometry: THREE.BufferGeometry[] = [];
+
+  /** Street-lamp family (poles, heads, pools, glows) registered on this scenery. */
+  protected defineLamps(opts: LampKitOptions): LampKit {
+    return new LampKit(
+      { prop: (k, g, m, o) => this.defineProp(k, g, m, o), adopt: (m) => this.host.worldMats.adopt(m) },
+      opts,
+      this.host.worldMats.plain({ roughness: 0.55, metalness: 0.5 }),
+      this.host.env.scenery.lightsOn,
+    );
+  }
+
   protected defineStatic(key: string, material: THREE.Material, shadow = false, sway = false): void {
     this.statics.set(key, { material, shadow });
     if (sway) this.staticSway.add(key);
@@ -321,6 +342,8 @@ export abstract class Scenery {
     this.disposables.length = 0;
     for (const t of this.trees) disposeTree(t);
     this.trees.length = 0;
+    for (const g of this.ownedGeometry) g.dispose();
+    this.ownedGeometry.length = 0;
     this.group.traverse((o) => {
       const m = o as THREE.Mesh;
       if (m.isMesh) m.geometry.dispose();

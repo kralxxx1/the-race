@@ -90,6 +90,16 @@ async function main(): Promise<void> {
       cam.updateProjectionMatrix();
       cam.updateMatrixWorld(true);
     }
+    // Debug: hide classes of objects to bisect rendering problems (hide=instanced,statics).
+    const hide = (q.get('hide') ?? '').split(',');
+    if (hide[0]) {
+      view.scene.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh) return;
+        const inst = (m as unknown as THREE.InstancedMesh).isInstancedMesh === true;
+        if ((hide.includes('instanced') && inst) || (hide.includes('plain') && !inst && m.parent?.name === 'scenery')) o.visible = false;
+      });
+    }
     renderer.renderer.info.reset();
     const t = performance.now();
     // A few frames so TAA / temporal passes converge.

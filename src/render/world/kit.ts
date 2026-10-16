@@ -240,31 +240,41 @@ export class GeoBuilder {
   }
 
   /**
-   * Gable roof over a rectangle (width sx across, depth sz along z), ridge along z at height `rise`
-   * above `y`, with an eave overhang. Slopes carry metric UVs, gable ends are triangles.
+   * Roof slopes of a gable over a rectangle (width sx across, depth sz along z): ridge along z at
+   * `rise` above `y`, eaves overhanging by `overhang`. Metric UVs (u along the eave, v up the slope).
    */
-  gable(cx: number, y: number, cz: number, sx: number, sz: number, rise: number, overhang: number, roof: Paint, wall: Paint): this {
-    const hx = sx / 2 + overhang, hz = sz / 2 + overhang * 0.6;
+  roofSlopes(cx: number, y: number, cz: number, sx: number, sz: number, rise: number, overhang: number, roof: Paint): this {
+    const hx = sx / 2 + overhang;
+    const hz = sz / 2 + overhang * 0.6;
     const k = roof.uvPerM ?? 0.4;
     const run = Math.hypot(hx, rise);
-    const left: [number, number, number][] = [[cx - hx, y, cz + hz], [cx - hx, y, cz - hz], [cx, y + rise, cz - hz], [cx, y + rise, cz + hz]];
-    const right: [number, number, number][] = [[cx + hx, y, cz - hz], [cx + hx, y, cz + hz], [cx, y + rise, cz + hz], [cx, y + rise, cz - hz]];
-    const uv = [0, 0, 2 * hz * k, 0, 2 * hz * k, run * k, 0, run * k] as const;
-    this.quad(left[0], left[3], left[2], left[1], roof, [uv[0], uv[1], uv[6], uv[7], uv[4], uv[5], uv[2], uv[3]]);
-    this.quad(right[0], right[3], right[2], right[1], roof, [uv[0], uv[1], uv[6], uv[7], uv[4], uv[5], uv[2], uv[3]]);
-    // Gable end triangles (front +z and back −z), at the wall line.
+    const ua = 2 * hz * k;
+    const va = run * k;
+    // a = eave front, b = ridge front, c = ridge back, d = eave back; uv: u along the ridge, v up the slope.
+    this.quad([cx - hx, y, cz + hz], [cx, y + rise, cz + hz], [cx, y + rise, cz - hz], [cx - hx, y, cz - hz], roof, [0, 0, 0, va, ua, va, ua, 0]);
+    this.quad([cx + hx, y, cz - hz], [cx, y + rise, cz - hz], [cx, y + rise, cz + hz], [cx + hx, y, cz + hz], roof, [0, 0, 0, va, ua, va, ua, 0]);
+    return this;
+  }
+
+  /** Triangular gable end walls (front +z and back −z) under a gable of the given dimensions. */
+  gableEnds(cx: number, y: number, cz: number, sx: number, sz: number, rise: number, overhang: number, wall: Paint): this {
     const gx = sx / 2;
     const gk = wall.uvPerM ?? 0.3;
+    const c = wall.color ?? [1, 1, 1];
+    const top = rise * (gx / (gx + overhang));
     for (const [z, nz] of [[cz + sz / 2, 1], [cz - sz / 2, -1]] as const) {
-      const c = wall.color ?? [1, 1, 1];
       const a = this.vertex(cx - gx, y, z, 0, 0, nz, 0, 0, c);
       const b = this.vertex(cx + gx, y, z, 0, 0, nz, sx * gk, 0, c);
-      const t = this.vertex(cx, y + rise * (gx / hx), z, 0, 0, nz, sx * gk * 0.5, rise * gk, c);
+      const t = this.vertex(cx, y + top, z, 0, 0, nz, sx * gk * 0.5, top * gk, c);
       if (nz > 0) this.tri(a, b, t);
       else this.tri(b, a, t);
     }
-    // Underside so the overhang does not show daylight through the eaves.
     return this;
+  }
+
+  /** Gable roof with its end walls in one builder (see roofSlopes / gableEnds to split them over two). */
+  gable(cx: number, y: number, cz: number, sx: number, sz: number, rise: number, overhang: number, roof: Paint, wall: Paint): this {
+    return this.roofSlopes(cx, y, cz, sx, sz, rise, overhang, roof).gableEnds(cx, y, cz, sx, sz, rise, overhang, wall);
   }
 
   /** Merge a THREE geometry (indexed or not) into the builder. */

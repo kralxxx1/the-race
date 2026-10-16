@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { assets, type PBRSet, type TextureKey } from '../assets';
+import { TEXTURE_SETS, assets, type PBRSet, type TextureKey } from '../assets';
 import type { QualityProfile } from '../quality';
 import { foliageRes, worldAssets, type FoliageKey } from './worldAssets';
 
@@ -78,6 +78,22 @@ const FOLIAGE_FRAG_SNOW = /* glsl */ `
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.9, 0.97), uSnow * wsTop * 0.92);
 }
 `;
+
+const SURFACE_FRAG_LIFT = /* glsl */ `
+#include <emissivemap_fragment>
+totalEmissiveRadiance += diffuseColor.rgb * mix(uLift, 0.0, uNight);
+`;
+
+/** Ambient-light lift for ordinary scenery surfaces: sunless façades keep some sky bounce (fades out at night). */
+function patchSurface(shader: { uniforms: Record<string, THREE.IUniform>; fragmentShader: string }, u: WorldUniforms, o: { snow: boolean; lift: number }): void {
+  shader.uniforms.uNight = u.uNight;
+  shader.uniforms.uSnow = u.uSnow;
+  shader.uniforms.uLift = { value: o.lift };
+  let frag = shader.fragmentShader.replace('#include <common>', `#include <common>\nuniform float uNight;\nuniform float uSnow;\nuniform float uLift;`);
+  if (o.snow) frag = frag.replace('#include <color_fragment>', FOLIAGE_FRAG_SNOW);
+  frag = frag.replace('#include <emissivemap_fragment>', SURFACE_FRAG_LIFT);
+  shader.fragmentShader = frag;
+}
 
 interface PatchOpts {
   sway: number;
@@ -180,6 +196,7 @@ export class WorldMaterials {
   private foliageCache = new Map<string, THREE.MeshStandardMaterial>();
   private pbrCache = new Map<string, THREE.MeshStandardMaterial>();
   private plainCache = new Map<string, THREE.MeshStandardMaterial>();
+  private glowCache = new Map<string, THREE.MeshBasicMaterial>();
 
   constructor(
     readonly quality: QualityProfile,
@@ -244,15 +261,8 @@ export class WorldMaterials {
         side: o.side ?? THREE.FrontSide,
       }),
     );
-    if (this.snowy) {
-      m.onBeforeCompile = (shader) => {
-        shader.uniforms.uSnow = this.uniforms.uSnow;
-        shader.fragmentShader = shader.fragmentShader
-          .replace('#include <common>', `#include <common>\nuniform float uSnow;`)
-          .replace('#include <color_fragment>', FOLIAGE_FRAG_SNOW);
-      };
-      m.customProgramCacheKey = () => 'wpbr:snow';
-    }
+    m.onBeforeCompile = (shader) => patchSurface(shader, this.uniforms, { snow: this.snowy, lift: 0.14 });
+    m.customProgramCacheKey = () => `wsurf:${this.snowy ? 's' : 'n'}:0.14`;
     this.pbrCache.set(id, m);
     return m;
   }
@@ -274,7 +284,31 @@ export class WorldMaterials {
         opacity: o.opacity ?? 1,
       }),
     );
+    m.onBeforeCompile = (shader) => patchSurface(shader, this.uniforms, { snow: this.snowy, lift: 0.1 });
+    m.customProgramCacheKey = () => `wsurf:${this.snowy ? 's' : 'n'}:0.1`;
     this.plainCache.set(id, m);
+    return m;
+  }
+
+  /** Texture repeats per metre of a PBR set (metric UVs for the geometry builders). */
+  uv(key: TextureKey): number {
+    return 1 / TEXTURE_SETS[key].sizeM;
+  }
+
+  /** Dark glossy window glazing (vertex colours tint it). */
+  glass(): THREE.MeshStandardMaterial {
+    return this.plain({ roughness: 0.06, metalness: 0.35 });
+  }
+
+  /** Self-lit surface (lit windows, neon, signs): unaffected by lights, bright enough to bloom at night. */
+  glowing(gain = 1.6): THREE.MeshBasicMaterial {
+    const id = `glow:${gain}`;
+    let m = this.glowCache.get(id);
+    if (!m) {
+      m = this.keep(new THREE.MeshBasicMaterial({ vertexColors: true }));
+      m.color.setScalar(gain);
+      this.glowCache.set(id, m);
+    }
     return m;
   }
 
@@ -300,5 +334,6 @@ export class WorldMaterials {
     this.foliageCache.clear();
     this.pbrCache.clear();
     this.plainCache.clear();
+    this.glowCache.clear();
   }
 }

@@ -33,6 +33,8 @@ export interface PropDef {
   max: number;
   /** Bounding radius of one object (frustum culling margin). */
   radius: number;
+  /** Draw order for transparent/additive props (light pools). */
+  renderOrder?: number;
 }
 
 interface Entry {
@@ -63,6 +65,7 @@ export class PropSet {
         mesh.matrixAutoUpdate = false;
         mesh.visible = false;
         mesh.name = def.key;
+        mesh.renderOrder = def.renderOrder ?? 0;
         parent.add(mesh);
         this.entries.push({ mesh, lod, n: 0 });
       }
