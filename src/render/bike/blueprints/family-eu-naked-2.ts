@@ -1,6 +1,8 @@
 import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
+import { brutaleBlueprint } from './family-eu-naked-2-brutale';
 import { speedTripleBlueprint } from './family-eu-naked-2-speedtriple';
+import { svartpilenBlueprint } from './family-eu-naked-2-svartpilen';
 import { streetTripleBlueprint } from './family-eu-naked-2-streettriple';
 
 /**
@@ -11,4 +13,6 @@ import { streetTripleBlueprint } from './family-eu-naked-2-streettriple';
 export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'triumph-speed-triple': speedTripleBlueprint,
   'triumph-street-triple': streetTripleBlueprint,
+  'mv-agusta-brutale-1000-rr': brutaleBlueprint,
+  'husqvarna-svartpilen-401': svartpilenBlueprint,
 };
