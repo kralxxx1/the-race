@@ -31,7 +31,7 @@ import { bladeIndicator, forkBrackets, loftPart, outletCan, outlineArc, panelPai
 const LAMP_R = 0.078;
 
 function face(ctx: KitContext): void {
-  const y = -0.07, z = -0.2;
+  const y = -0.1, z = -0.2;
   const ring = Array.from({ length: 40 }, (_, i) => [Math.cos((i / 40) * Math.PI * 2) * LAMP_R, Math.sin((i / 40) * Math.PI * 2) * LAMP_R] as P2);
   const drl = outlineArc(ring, 0, 1, 0.0105);
   steerLedLamp(ctx, ring, [0, y, z], { depth: 0.07, rim: 0.0045, projectors: [[0, 0, 0.034], [-0.052, 0.0, 0.011], [0.052, 0.0, 0.011]], drl, drlWidth: 0.0065 }, 0.03);
@@ -40,8 +40,8 @@ function face(ctx: KitContext): void {
   // Lamp cowl behind the lens: a compact black shell between lamp and fork.
   const cowl: OutlineBody = {
     zs: stationsBetween(-0.2, -0.05, 7, 0.3),
-    top: curve([[-0.2, 0.012], [-0.15, 0.03], [-0.05, 0.05]]),
-    bottom: curve([[-0.2, -0.128], [-0.15, -0.15], [-0.05, -0.16]]),
+    top: curve([[-0.2, -0.018], [-0.15, 0.0], [-0.05, 0.02]]),
+    bottom: curve([[-0.2, -0.158], [-0.15, -0.18], [-0.05, -0.19]]),
     half: curve([[-0.2, 0.084], [-0.15, 0.1], [-0.05, 0.108]]),
     sections: [{ z: 0, pts: [[0, 1], [0.55, 0.99], [0.9, 0.9], [1, 0.6], [0.92, 0.2], [0.6, 0.02], [0, 0]] }],
   };
@@ -49,8 +49,8 @@ function face(ctx: KitContext): void {
   // Tiny flyscreen over the lamp.
   const visor: OutlineBody = {
     zs: stationsBetween(-0.2, -0.085, 6, 0.4),
-    top: curve([[-0.2, 0.02], [-0.16, 0.075], [-0.085, 0.13]]),
-    bottom: curve([[-0.2, 0.014], [-0.16, 0.066], [-0.085, 0.122]]),
+    top: curve([[-0.2, -0.01], [-0.16, 0.045], [-0.085, 0.1]]),
+    bottom: curve([[-0.2, -0.016], [-0.16, 0.036], [-0.085, 0.092]]),
     half: curve([[-0.2, 0.078], [-0.15, 0.086], [-0.085, 0.082]]),
     sections: [{ z: 0, pts: [[0, 1], [0.5, 0.985], [0.85, 0.9], [1, 0.4], [1, 0]] }],
   };
@@ -61,10 +61,10 @@ function face(ctx: KitContext): void {
   for (const s of [-1, 1]) {
     const w: P2[] = [[s * 0.07, -0.2], [s * 0.125, -0.178], [s * 0.15, -0.15], [s * 0.145, -0.135], [s * 0.07, -0.135]];
     const mesh = extrude(smooth2(s > 0 ? w : w.slice().reverse(), 1, true), 0.006, { plane: 'xz', bevel: 0.0015, curveSegs: 1, center: 0 });
-    ctx.addSteer('steer', mesh, F.carbon, T(0, -0.045, 0));
-    bladeIndicator(ctx, 'steer', ctx.fromSteer([s * 0.088, -0.12, -0.16]), ctx.fromSteer([s * 0.1, -0.125, -0.17]), 0.0075);
+    ctx.addSteer('steer', mesh, F.carbon, T(0, -0.075, 0));
+    bladeIndicator(ctx, 'steer', ctx.fromSteer([s * 0.088, -0.15, -0.16]), ctx.fromSteer([s * 0.1, -0.155, -0.17]), 0.0075);
   }
-  forkBrackets(ctx, [-0.065, -0.14], -0.15, 0.06);
+  forkBrackets(ctx, [-0.095, -0.17], -0.15, 0.06);
 }
 
 /** Aluminium-look tank side covers (silver on the Rosso / Argento livery). */
