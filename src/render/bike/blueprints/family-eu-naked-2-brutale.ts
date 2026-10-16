@@ -59,7 +59,7 @@ function face(ctx: KitContext): void {
   ctx.add('steer', vm, tint(F.screen, '#3a424c'));
   // Winglets either side of the lamp (aluminium-look leading edge, carbon upper surface).
   for (const s of [-1, 1]) {
-    const w: P2[] = [[s * 0.07, -0.205], [s * 0.15, -0.175], [s * 0.185, -0.135], [s * 0.178, -0.115], [s * 0.07, -0.13]];
+    const w: P2[] = [[s * 0.07, -0.2], [s * 0.125, -0.178], [s * 0.15, -0.15], [s * 0.145, -0.135], [s * 0.07, -0.135]];
     const mesh = extrude(smooth2(s > 0 ? w : w.slice().reverse(), 1, true), 0.006, { plane: 'xz', bevel: 0.0015, curveSegs: 1, center: 0 });
     ctx.addSteer('steer', mesh, F.carbon, T(0, -0.045, 0));
     bladeIndicator(ctx, 'steer', ctx.fromSteer([s * 0.088, -0.12, -0.16]), ctx.fromSteer([s * 0.1, -0.125, -0.17]), 0.0075);
@@ -73,10 +73,10 @@ function cheek(): OutlineBody {
     zs: stationsBetween(-1.18, -0.72, 11, 0.4),
     top: curve([[-1.18, 0.93], [-1.1, 0.965], [-1.0, 0.99], [-0.9, 0.995], [-0.82, 0.98], [-0.72, 0.945]]),
     bottom: curve([[-1.18, 0.78], [-1.12, 0.7], [-1.04, 0.655], [-0.95, 0.645], [-0.86, 0.68], [-0.78, 0.74], [-0.72, 0.8]]),
-    half: curve([[-1.18, 0.125], [-1.1, 0.168], [-1.0, 0.19], [-0.9, 0.195], [-0.82, 0.18], [-0.72, 0.15]]),
+    half: curve([[-1.18, 0.115], [-1.1, 0.152], [-1.0, 0.172], [-0.9, 0.176], [-0.82, 0.166], [-0.72, 0.14]]),
     sections: [
-      { z: -1.18, pts: [[0.55, 1], [0.86, 0.97], [0.99, 0.84], [1, 0.45], [0.94, 0.14], [0.8, 0]] },
-      { z: -0.72, pts: [[0.5, 1], [0.84, 0.97], [0.98, 0.86], [1, 0.5], [0.97, 0.2], [0.86, 0]] },
+      { z: -1.18, pts: [[0.55, 1], [0.84, 0.98], [0.98, 0.9], [1, 0.62], [1, 0.3], [0.9, 0.05], [0.7, 0]] },
+      { z: -0.72, pts: [[0.5, 1], [0.82, 0.98], [0.97, 0.9], [1, 0.62], [1, 0.3], [0.92, 0.06], [0.75, 0]] },
     ],
   };
 }
@@ -86,7 +86,7 @@ function radiatorDuct(): OutlineBody {
     zs: stationsBetween(-1.16, -0.9, 7, 0.4),
     top: curve([[-1.16, 0.8], [-1.05, 0.8], [-0.9, 0.78]]),
     bottom: curve([[-1.16, 0.7], [-1.05, 0.65], [-0.98, 0.645], [-0.9, 0.67]]),
-    half: curve([[-1.16, 0.12], [-1.08, 0.165], [-0.98, 0.188], [-0.9, 0.172]]),
+    half: curve([[-1.16, 0.105], [-1.08, 0.142], [-0.98, 0.162], [-0.9, 0.15]]),
     sections: [{ z: 0, pts: [[0.7, 1], [0.92, 0.9], [1, 0.62], [0.98, 0.3], [0.9, 0]] }],
   };
 }
@@ -121,9 +121,9 @@ function body(ctx: KitContext): void {
     style: 'muscle',
     knee: 0.2,
     capZ: -0.92,
-    topLine: [[-1.13, 0.965], [-1.07, 1.005], [-0.98, 1.04], [-0.88, 1.063], [-0.78, 1.058], [-0.7, 1.03], [-0.65, 0.99], [-0.6, 0.945]],
+    topLine: [[-1.13, 0.965], [-1.07, 1.005], [-0.98, 1.04], [-0.88, 1.063], [-0.78, 1.058], [-0.71, 1.025], [-0.66, 0.96], [-0.6, 0.875]],
     bottomLine: [[-1.13, 0.865], [-0.9, 0.825], [-0.6, 0.83]],
-    halfLine: [[-1.13, 0.062], [-1.07, 0.112], [-0.98, 0.15], [-0.88, 0.16], [-0.78, 0.15], [-0.7, 0.112], [-0.6, 0.08]],
+    halfLine: [[-1.13, 0.062], [-1.07, 0.112], [-0.98, 0.15], [-0.88, 0.16], [-0.78, 0.15], [-0.7, 0.11], [-0.6, 0.072]],
   });
   buildSeat(ctx, { front: -0.66, back: -0.31, yFront: 0.855, y: 0.846, yBack: 0.87, width: 0.29, thick: 0.07, frontWidth: 0.17 });
   buildSeat(ctx, { front: -0.295, back: -0.03, yFront: 0.915, y: 0.93, yBack: 0.955, width: 0.18, thick: 0.045, frontWidth: 0.13 }, tint(seatFinish(ctx), '#18191b'));
@@ -135,7 +135,7 @@ function body(ctx: KitContext): void {
   addPanel(ctx, 'chassis', tm, fNot(seatHole), PAINT, 0.0025, 0.012);
   // Thin LED tail light across the tail tip, kicked up.
   tailLamp(ctx, smooth2([[-0.05, -0.005], [0.05, -0.005], [0.054, 0.003], [0.0, 0.009], [-0.054, 0.003]], 4, true), [0, 0.985, 0.19], -0.8, { count: 1 });
-  sideCovers(ctx, [[-0.62, 0.79], [-0.44, 0.78], [-0.4, 0.68], [-0.56, 0.63], [-0.64, 0.7]], 0.13, dark);
+  sideCovers(ctx, [[-0.58, 0.775], [-0.44, 0.77], [-0.41, 0.69], [-0.52, 0.66], [-0.58, 0.71]], 0.128, dark);
   frontFender(ctx, { from: -0.5, to: 0.86, gap: 0.02, width: 0.15, f: F.carbon });
   hugger(ctx, F.texturedBlack);
   plateHanger(ctx, { fromZ: -0.02, fromY: 0.88 });
@@ -229,8 +229,8 @@ export function brutaleBlueprint(spec: BikeSpec): BikeBlueprint {
     forkLength: 0.75,
     front: { tyre: '120/70ZR17', rimWidthIn: 3.5, crown: 0.9, tread: 'sport', tyreLabel: 'Sport Radial' },
     rear: { tyre: '200/55ZR17', rimWidthIn: 6.0, crown: 0.95, tread: 'sport', tyreLabel: 'Sport Radial' },
-    frontWheel: { type: 'forged', spokes: 5, shape: 'y', color: lv.wheel, stripe: '#b5121b' },
-    rearWheel: { type: 'forged', spokes: 5, shape: 'y', color: lv.wheel, stripe: '#b5121b' },
+    frontWheel: { type: 'forged', spokes: 5, shape: 'y', color: lv.wheel, },
+    rearWheel: { type: 'forged', spokes: 5, shape: 'y', color: lv.wheel },
     fork: { type: 'usd', stanchion: 0.043, spacing: 0.205, outerColor: '#17181b', innerColor: '#c9a65a', footColor: '#1b1c1f', capColor: '#2a2c30', adjusterColor: '#c99a2c', label: 'ÖHLINS', labelColor: '#c9a65a', aboveClamp: 0.01, clampGap: 0.2 },
     frontBrake: { discs: 2, discDia: 0.32, disc: 'floating', carrierColor: '#2b2d31', caliper: 'radialMono4', caliperColor: '#25272b', caliperText: 'brembo', caliperTextColor: '#f2f2f2', caliperAngleDeg: 76 },
     rearBrake: { discs: 1, discDia: 0.22, disc: 'fixed', carrierColor: '#2b2d31', caliper: 'axial2', caliperColor: '#25272b', caliperAngleDeg: 200 },

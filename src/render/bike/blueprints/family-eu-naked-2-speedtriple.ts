@@ -73,10 +73,10 @@ function shroud(): OutlineBody {
     zs: stationsBetween(-1.215, -0.8, 11, 0.4),
     top: curve([[-1.215, 0.9], [-1.15, 0.945], [-1.07, 0.985], [-0.97, 1.0], [-0.88, 0.985], [-0.8, 0.935]]),
     bottom: curve([[-1.215, 0.77], [-1.16, 0.7], [-1.08, 0.66], [-0.98, 0.655], [-0.9, 0.69], [-0.83, 0.75], [-0.8, 0.8]]),
-    half: curve([[-1.215, 0.14], [-1.16, 0.178], [-1.07, 0.2], [-0.97, 0.206], [-0.88, 0.196], [-0.8, 0.17]]),
+    half: curve([[-1.215, 0.13], [-1.16, 0.162], [-1.07, 0.182], [-0.97, 0.188], [-0.88, 0.18], [-0.8, 0.158]]),
     sections: [
-      { z: -1.215, pts: [[0.55, 1], [0.86, 0.97], [0.99, 0.84], [1, 0.45], [0.94, 0.14], [0.8, 0]] },
-      { z: -0.8, pts: [[0.5, 1], [0.84, 0.97], [0.98, 0.86], [1, 0.5], [0.97, 0.2], [0.86, 0]] },
+      { z: -1.215, pts: [[0.55, 1], [0.84, 0.98], [0.98, 0.9], [1, 0.62], [1, 0.3], [0.9, 0.05], [0.7, 0]] },
+      { z: -0.8, pts: [[0.5, 1], [0.82, 0.98], [0.97, 0.9], [1, 0.62], [1, 0.3], [0.92, 0.06], [0.75, 0]] },
     ],
   };
 }
@@ -87,7 +87,7 @@ function scoop(): OutlineBody {
     zs: stationsBetween(-1.2, -0.9, 8, 0.4),
     top: curve([[-1.2, 0.8], [-1.1, 0.8], [-0.9, 0.78]]),
     bottom: curve([[-1.2, 0.7], [-1.1, 0.63], [-1.0, 0.62], [-0.9, 0.65]]),
-    half: curve([[-1.2, 0.135], [-1.12, 0.18], [-1.0, 0.2], [-0.9, 0.185]]),
+    half: curve([[-1.2, 0.118], [-1.12, 0.158], [-1.0, 0.176], [-0.9, 0.165]]),
     sections: [{ z: 0, pts: [[0.7, 1], [0.92, 0.9], [1, 0.62], [0.98, 0.3], [0.9, 0]] }],
   };
 }
@@ -125,9 +125,9 @@ function body(ctx: KitContext): void {
     style: 'muscle',
     knee: 0.16,
     capZ: -0.94,
-    topLine: [[-1.17, 0.985], [-1.1, 1.025], [-1.0, 1.062], [-0.9, 1.077], [-0.8, 1.07], [-0.72, 1.04], [-0.66, 0.995], [-0.62, 0.95]],
+    topLine: [[-1.17, 0.985], [-1.1, 1.025], [-1.0, 1.062], [-0.9, 1.077], [-0.8, 1.07], [-0.72, 1.035], [-0.66, 0.97], [-0.62, 0.89]],
     bottomLine: [[-1.17, 0.88], [-0.95, 0.835], [-0.62, 0.84]],
-    halfLine: [[-1.17, 0.07], [-1.1, 0.125], [-1.0, 0.163], [-0.9, 0.172], [-0.8, 0.16], [-0.7, 0.12], [-0.62, 0.085]],
+    halfLine: [[-1.17, 0.07], [-1.1, 0.125], [-1.0, 0.163], [-0.9, 0.172], [-0.8, 0.16], [-0.7, 0.12], [-0.62, 0.075]],
   });
   // Seat, pillion pad, tail.
   buildSeat(ctx, { front: -0.67, back: -0.31, yFront: 0.835, y: 0.826, yBack: 0.852, width: 0.3, thick: 0.075, frontWidth: 0.17 });
@@ -139,7 +139,7 @@ function body(ctx: KitContext): void {
   );
   addPanel(ctx, 'chassis', tm, fNot(seatHole), PAINT, 0.0025, 0.012);
   tailLamp(ctx, smooth2([[-0.058, -0.006], [0.058, -0.006], [0.064, 0.004], [0.0, 0.011], [-0.064, 0.004]], 4, true), [0, 0.95, 0.125], -0.78, { count: 1 });
-  sideCovers(ctx, [[-0.66, 0.79], [-0.44, 0.78], [-0.4, 0.68], [-0.58, 0.63], [-0.67, 0.7]], 0.132, dark);
+  sideCovers(ctx, [[-0.6, 0.77], [-0.46, 0.765], [-0.43, 0.69], [-0.55, 0.655], [-0.61, 0.7]], 0.13, dark);
   // Carbon front mudguard (RS), black rear hugger.
   frontFender(ctx, { from: -0.5, to: 0.86, gap: 0.02, width: 0.15, f: F.carbon });
   hugger(ctx, F.texturedBlack);
@@ -233,7 +233,7 @@ export function speedTripleBlueprint(spec: BikeSpec): BikeBlueprint {
     fork: { type: 'usd', stanchion: 0.043, spacing: 0.21, outerColor: '#17181b', innerColor: '#c9a65a', footColor: '#1b1c1f', capColor: '#2a2c30', adjusterColor: '#c99a2c', label: 'ÖHLINS', labelColor: '#c9a65a', aboveClamp: 0.01, clampGap: 0.2 },
     frontBrake: { discs: 2, discDia: 0.32, disc: 'floating', carrierColor: '#2b2d31', caliper: 'radialMono4', caliperColor: '#25272b', caliperText: 'brembo', caliperTextColor: '#f2f2f2', caliperAngleDeg: 76 },
     rearBrake: { discs: 1, discDia: 0.22, disc: 'fixed', carrierColor: '#2b2d31', caliper: 'axial2', caliperColor: '#25272b', caliperAngleDeg: 200 },
-    frame: { type: 'twinSpar', color: '#2a2c30', metal: 0.8, rough: 0.4, subframe: 'cast', subframeColor: '#232428', width: 0.36 },
+    frame: { type: 'twinSpar', color: '#2a2c30', metal: 0.8, rough: 0.4, subframe: 'cast', subframeColor: '#232428', width: 0.25 },
     swingarm: { type: 'singleSided', length: 0.6, angleDeg: 8.5, side: 'left', color: '#2a2c30', metal: 0.75, rough: 0.4 },
     shock: { layout: 'mono', springColor: '#1d1e22', bodyColor: '#c99a2c', reservoir: true },
     drive: { type: 'chain', side: 'left', frontTeeth: 17, rearTeeth: 44, pitch: 0.015875, sprocketColor: '#1e1f22' },
