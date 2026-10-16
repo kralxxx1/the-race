@@ -596,7 +596,7 @@ export const BIKES: BikeSpec[] = [
     id: 'bmw-k1600gt', brand: 'BMW', model: 'K 1600 GT', year: 2024, style: 'touring',
     engine: { layout: 'I6', cc: 1649, hp: 160, hpRpm: 7750, torque: 180, torqueRpm: 5250, idle: 900, redline: 8500 },
     weight: 343, topSpeed: 250, price: 25000,
-    liveries: [livery('Blue Ridge Metallic', '#24426b', '#16243a', '#c4c7cc', { pattern: 'solid' }), livery('Black Storm', '#1b1c1f', '#2f3135', '#c4c7cc', { pattern: 'solid' })],
+    liveries: [livery('Cosmic Blue Metallic', '#1f3f7a', '#16171a', '#c4c7cc', { pattern: 'solid', wheel: '#1b1c1f', frame: '#3a3d42', suit: ['#1f3f7a', '#16171a'] }), livery('Black Storm Metallic', '#16171a', '#2f3135', '#c4c7cc', { pattern: 'solid', wheel: '#1b1c1f', frame: '#3a3d42', suit: ['#16171a', '#c4c7cc'] })],
     look: { extras: ['panniers', 'windscreenTall', 'singleSided'] },
     description: 'Sıralı altı: ipeksi güç ve Avrupa\'yı bir depoda geçme konforu.',
   }),
