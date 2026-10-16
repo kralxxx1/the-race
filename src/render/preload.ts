@@ -4,6 +4,7 @@ import type { QualityProfile } from './quality';
 import { hdriFor } from './sky';
 import { surfaceKeys } from './surfaces';
 import { setTextureAnisotropy } from './textures';
+import { preloadScenery } from './world/worldAssets';
 
 /** Everything a run in `env` will sample, for the selected quality (nothing at the procedural tier). */
 export function assetRequests(env: EnvDef, q: QualityProfile): AssetRequest[] {
@@ -19,5 +20,6 @@ export function assetRequests(env: EnvDef, q: QualityProfile): AssetRequest[] {
 export async function preloadWorld(env: EnvDef, q: QualityProfile, onProgress?: (p: number) => void): Promise<void> {
   assets.setAnisotropy(q.anisotropy);
   setTextureAnisotropy(q.anisotropy);
-  await assets.preload(assetRequests(env, q), onProgress);
+  // Roadside scenery (foliage atlases, building/cliff texture sets) loads alongside the road and sky sets.
+  await Promise.all([assets.preload(assetRequests(env, q), onProgress), preloadScenery(env.world.map, q)]);
 }

@@ -1,4 +1,25 @@
+import type { MapId } from './maps';
+
 export type EnvId = 'day' | 'sunset' | 'night' | 'rain';
+
+/**
+ * Per-map scenery description consumed by the world renderer (src/render/world): which scenery
+ * builder to run and the atmosphere knobs it reads. Filled by resolveEnvironment.
+ */
+export interface WorldDesc {
+  /** Scenery builder to run. */
+  map: MapId;
+  /** Wind strength 0 (calm) .. 1 (storm): foliage sway amplitude. */
+  wind: number;
+  /** Snow lying on foliage, roofs, banks and rocks (0 none .. 1 deep). */
+  snow: number;
+  /** Heat-haze shimmer over the asphalt (hot, dry maps). */
+  heat: number;
+  /** Mist density multiplier for valley/forest fog sheets. */
+  mist: number;
+}
+
+export const DEFAULT_WORLD: WorldDesc = { map: 'highway', wind: 0.35, snow: 0, heat: 0, mist: 0 };
 
 export interface EnvDef {
   /** Template id (`day`, `rain`…) or a resolved `map:time:weather` id. */
@@ -41,6 +62,7 @@ export interface EnvDef {
   /** Vehicles drive with headlights on. */
   headlights: boolean;
   ambience: 'country' | 'desert' | 'city' | 'rain';
+  world: WorldDesc;
 }
 
 export const ENVIRONMENTS: EnvDef[] = [
@@ -65,6 +87,7 @@ export const ENVIRONMENTS: EnvDef[] = [
     bloom: { strength: 0.18, threshold: 0.92, radius: 0.4 },
     headlights: false,
     ambience: 'country',
+    world: DEFAULT_WORLD,
   },
   {
     id: 'sunset',
@@ -87,6 +110,7 @@ export const ENVIRONMENTS: EnvDef[] = [
     bloom: { strength: 0.35, threshold: 0.8, radius: 0.55 },
     headlights: true,
     ambience: 'desert',
+    world: DEFAULT_WORLD,
   },
   {
     id: 'night',
@@ -109,6 +133,7 @@ export const ENVIRONMENTS: EnvDef[] = [
     bloom: { strength: 0.9, threshold: 0.55, radius: 0.6 },
     headlights: true,
     ambience: 'city',
+    world: DEFAULT_WORLD,
   },
   {
     id: 'rain',
@@ -131,6 +156,7 @@ export const ENVIRONMENTS: EnvDef[] = [
     bloom: { strength: 0.3, threshold: 0.75, radius: 0.5 },
     headlights: true,
     ambience: 'rain',
+    world: DEFAULT_WORLD,
   },
 ];
 
