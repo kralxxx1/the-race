@@ -3,8 +3,8 @@ import type { KitContext } from '../context';
 import { T, mul } from '../context';
 import { bodyQ, shell } from '../kit/body';
 import { lamp, ledStrip, type LampKind, type LampOpts } from '../kit/lights';
-import { outlineLoft, stationsBetween, curve, type OutlineBody } from '../kit/shape';
-import { MeshData, extrude, lathe, rod, roundBox, smooth2, sweep, type P2, type P3 } from '../mesh';
+import { outlineLoft, stationPts, stationsBetween, curve, type OutlineBody } from '../kit/shape';
+import { MeshData, extrude, flat, lathe, rod, roundBox, smooth2, sweep, type P2, type P3 } from '../mesh';
 import { F, hard, tint, type Finish, type GroupName } from '../sink';
 import { cut, type Field } from '../surface';
 
@@ -55,12 +55,33 @@ export interface PartOpts {
   steer?: boolean;
 }
 
+/**
+ * Flat cap closing one end of an outline body at station z, facing along +Z (`back`) or −Z. Built
+ * from the section polygon with the normal-driven winding of `flat`, so it shades correctly on both
+ * ends (the loft's own caps are wound the wrong way round on the rear end).
+ */
+export function capMesh(ob: OutlineBody, z: number, back: boolean): MeshData {
+  const pts = stationPts(ob, z);
+  const dx = ob.xOff ? ob.xOff(z) : 0;
+  const poly: P2[] = pts.map(([x, y]) => [x + dx, y] as P2);
+  for (let i = pts.length - 1; i >= 0; i--) if (Math.abs(pts[i][0]) > 1e-6) poly.push([-pts[i][0] + dx, pts[i][1]]);
+  return flat(poly, 'xy', z, back ? 1 : -1);
+}
+
 /** A symmetric lofted part (mirrored about x = 0) with folded edges. */
 export function loftPart(ctx: KitContext, ob: OutlineBody, f: Finish, o: PartOpts = {}): MeshData {
-  let m = outlineLoft(ob, { ...bodyQ(ctx, o.q ?? 1), creases: o.creases, capFront: o.capFront, capBack: o.capBack });
+  let m = outlineLoft(ob, { ...bodyQ(ctx, o.q ?? 1), creases: o.creases });
   if (o.region) m = cut(m, o.region);
   if (o.steer) m.transform(ctx.steerM);
-  shell(ctx, o.group ?? (o.steer ? 'steer' : 'chassis'), m, f, o.depth ?? 0.008);
+  const g = o.group ?? (o.steer ? 'steer' : 'chassis');
+  shell(ctx, g, m, f, o.depth ?? 0.008);
+  const zs = ob.zs;
+  for (const [on, z, back] of [[o.capFront, zs[0], false], [o.capBack, zs[zs.length - 1], true]] as const) {
+    if (!on) continue;
+    const cap = capMesh(ob, z, back);
+    if (o.steer) cap.transform(ctx.steerM);
+    ctx.add(g, cap, f);
+  }
   return m;
 }
 
@@ -278,8 +299,10 @@ export function luggageCase(ctx: KitContext, o: CaseOpts, side: 1 | -1 | 0 = 1):
     sections: [{ z: o.front, pts: o.section ?? BOXY }],
     xOff: () => xc,
   };
-  const m = outlineLoft(ob, { ...bodyQ(ctx, 1.1), capFront: true, capBack: true });
+  const m = outlineLoft(ob, { ...bodyQ(ctx, 1.1) });
   shell(ctx, 'chassis', m, o.f, 0.008);
+  ctx.add('chassis', capMesh(ob, o.front, false), o.f);
+  ctx.add('chassis', capMesh(ob, o.back, true), o.f);
   const trim = o.trim ?? F.texturedBlack;
   // Lid seam: a dark groove-and-band wrapped round the case.
   const k = o.seam ?? 0.28;

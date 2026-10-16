@@ -313,7 +313,7 @@ export const BIKES: BikeSpec[] = [
     id: 'honda-gold-wing', brand: 'Honda', model: 'Gold Wing Tour', year: 2024, style: 'touring',
     engine: { layout: 'F6', cc: 1833, hp: 125, hpRpm: 5500, torque: 170, torqueRpm: 4500, idle: 800, redline: 6000 },
     gears: 7, quickshifter: true, weight: 390, topSpeed: 200, price: 29000,
-    liveries: [livery('Eternal Gray', '#5b6068', '#33363b', '#b8bcc4', { pattern: 'solid', wheel: '#2a2c30' }), livery('Bordo', '#5e1420', '#2a0a10', '#c4c7cc', { pattern: 'solid' })],
+    liveries: [livery('Pearl Glare White', '#f1f2f3', '#1b1c1f', '#b8bcc4', { pattern: 'solid', wheel: '#1b1c1f', frame: '#2a2c30', suit: ['#f1f2f3', '#1b1c1f'] }), livery('Candy Ardent Red', '#9d1020', '#1b1c1f', '#c4c7cc', { pattern: 'solid', wheel: '#1b1c1f', frame: '#2a2c30', suit: ['#9d1020', '#1b1c1f'] })],
     voice: { resonance: 210 },
     description: 'Yatay altı silindir, 7 ileri DCT; turbin kadar pürüzsüz bir uzun yol koltuğu.',
   }),
