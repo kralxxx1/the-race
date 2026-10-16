@@ -18,7 +18,7 @@ import { bugEyeFace, panelPair, sideCovers, steerToBike } from './family-eu-nake
  * Triumph Speed Triple 1200 RS (2021+).
  * Spec sheet: wheelbase 1455 mm, rake 23.5°, trail 93 mm, seat 830 mm, 120/70ZR17 +
  * 190/55ZR17, 43 mm Öhlins NIX30 USD fork, Brembo Stylema radial calipers on twin 320 mm
- * discs, Öhlins TTX36 shock, aluminium twin-spar frame, single-sided aluminium swingarm,
+ * discs, Öhlins TTX36 shock, aluminium twin-spar frame, twin-sided cast aluminium swingarm (the single-sided arm belonged to the pre-2011 bikes),
  * 1160 cc inline triple (cylinders inclined ~20° forward).
  * Design cues: the twin "bug-eye" LED headlights hung low on the fork under a black mask
  * with a tiny flyscreen, a tall muscular tank with big airbox shrouds, the three headers
@@ -235,7 +235,7 @@ export function speedTripleBlueprint(spec: BikeSpec): BikeBlueprint {
     frontBrake: { discs: 2, discDia: 0.32, disc: 'floating', carrierColor: '#2b2d31', caliper: 'radialMono4', caliperColor: '#25272b', caliperText: 'brembo', caliperTextColor: '#f2f2f2', caliperAngleDeg: 76 },
     rearBrake: { discs: 1, discDia: 0.22, disc: 'fixed', carrierColor: '#2b2d31', caliper: 'axial2', caliperColor: '#25272b', caliperAngleDeg: 200 },
     frame: { type: 'twinSpar', color: '#2a2c30', metal: 0.8, rough: 0.4, subframe: 'cast', subframeColor: '#232428', width: 0.25 },
-    swingarm: { type: 'singleSided', length: 0.6, angleDeg: 8.5, side: 'left', color: '#2a2c30', metal: 0.75, rough: 0.4 },
+    swingarm: { type: 'box', length: 0.6, angleDeg: 8.5, color: '#9a9ea5', metal: 0.8, rough: 0.4 },
     shock: { layout: 'mono', springColor: '#1d1e22', bodyColor: '#c99a2c', reservoir: true },
     drive: { type: 'chain', side: 'left', frontTeeth: 17, rearTeeth: 44, pitch: 0.015875, sprocketColor: '#1e1f22' },
     engine: {

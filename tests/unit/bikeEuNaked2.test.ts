@@ -7,7 +7,7 @@ import { kitQuality } from '../../src/render/bike/quality';
 
 /** Spec-sheet numbers of the European naked family 2: Triumph triples, MV Agusta Brutale, Husqvarna Svartpilen. */
 const SPECS: Record<string, { wheelbase: number; rake: number; trail: number; seat: number; front: string; rear: string; swingarm: string }> = {
-  'triumph-speed-triple': { wheelbase: 1.455, rake: 23.5, trail: 0.093, seat: 0.83, front: '120/70ZR17', rear: '190/55ZR17', swingarm: 'singleSided' },
+  'triumph-speed-triple': { wheelbase: 1.455, rake: 23.5, trail: 0.093, seat: 0.83, front: '120/70ZR17', rear: '190/55ZR17', swingarm: 'box' },
   'triumph-street-triple': { wheelbase: 1.399, rake: 23.9, trail: 0.0983, seat: 0.825, front: '120/70ZR17', rear: '180/55ZR17', swingarm: 'box' },
   'mv-agusta-brutale-1000-rr': { wheelbase: 1.415, rake: 24.0, trail: 0.102, seat: 0.845, front: '120/70ZR17', rear: '200/55ZR17', swingarm: 'singleSided' },
   'husqvarna-svartpilen-401': { wheelbase: 1.357, rake: 25.0, trail: 0.098, seat: 0.835, front: '110/70R17', rear: '150/60R17', swingarm: 'box' },
@@ -62,11 +62,9 @@ describe('European naked family 2 blueprints', () => {
     expect(blueprintFor(getBike('triumph-street-triple')).engine.layout).toBe('I3');
     expect(blueprintFor(getBike('mv-agusta-brutale-1000-rr')).engine.layout).toBe('I4');
     expect(blueprintFor(getBike('husqvarna-svartpilen-401')).engine.layout).toBe('SINGLE');
-    // Single-sided swingarms on the left (chain side) for the Speed Triple and the Brutale.
-    for (const id of ['triumph-speed-triple', 'mv-agusta-brutale-1000-rr']) {
-      const sw = blueprintFor(getBike(id)).swingarm;
-      expect(sw.type).toBe('singleSided');
-      expect(sw.side).toBe('left');
-    }
+    // The Brutale keeps its single-sided arm on the left (chain side); the 1200 RS has the twin-sided cast arm.
+    const sw = blueprintFor(getBike('mv-agusta-brutale-1000-rr')).swingarm;
+    expect(sw.type).toBe('singleSided');
+    expect(sw.side).toBe('left');
   });
 });
