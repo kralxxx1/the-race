@@ -306,7 +306,7 @@ export const BIKES: BikeSpec[] = [
     id: 'honda-africa-twin', brand: 'Honda', model: 'CRF1100L Africa Twin', year: 2024, style: 'adventure',
     engine: { layout: 'P2_270', cc: 1084, hp: 101, hpRpm: 7500, torque: 112, torqueRpm: 5500, idle: 1250, redline: 8500 },
     weight: 231, topSpeed: 205, price: 15000,
-    liveries: [livery('Tricolor', W, '#c8102e', '#1d3c8f', { pattern: 'tricolor', wheel: '#9ea3aa' }), livery('Siyah', BLK, '#2b2d31', '#c8102e', { wheel: '#9ea3aa' })],
+    liveries: [livery('Tricolour', W, '#c8102e', '#1d3c8f', { pattern: 'tricolor', wheel: '#1b1c1f', frame: '#1f2024', suit: [W, '#c8102e'] }), livery('Matt Ballistic Black', '#17181b', '#2b2d31', '#c8102e', { wheel: '#1b1c1f', frame: '#1f2024', suit: ['#17181b', '#c8102e'] })],
     description: 'Paris–Dakar ruhu: 270° krank ile V-twin karakterli macera ikilisi.',
   }),
   bike({
