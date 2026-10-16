@@ -27,6 +27,20 @@ const SPEC: Record<string, Sheet> = {
 };
 
 describe('European naked blueprints (eu-naked-1)', () => {
+  it('wheels follow the livery when liveryColor is set (Monster Aviator Grey has GP red wheels)', () => {
+    const spec = getBike('ducati-monster');
+    expect(blueprintFor(spec).frontWheel.liveryColor).toBe(true);
+    const redness = (idx: number): number => {
+      const geo = assembleBike(spec, idx, kitQuality('low', 1)).geoms.get('frontSpokes')?.get('hard');
+      const col = geo?.getAttribute('color');
+      expect(col).toBeTruthy();
+      let r = 0;
+      for (let i = 0; i < col!.count; i++) r += col!.getX(i) - Math.max(col!.getY(i), col!.getZ(i));
+      return r / col!.count;
+    };
+    expect(redness(1)).toBeGreaterThan(redness(0) + 0.3);
+  }, 60000);
+
   for (const [id, s] of Object.entries(SPEC)) {
     it(`${id} is authored and matches its spec sheet`, () => {
       expect(authoredIds()).toContain(id);

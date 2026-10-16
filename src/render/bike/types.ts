@@ -27,6 +27,9 @@ export interface WheelDesign {
   crossSpoke?: boolean;
   /** Anodised rim colour for wire wheels (default polished aluminium), e.g. the GS Trophy's gold rims. */
   rimColor?: string;
+  /** Cast / forged wheels: paint them in the active livery's `wheel` colour instead of `color`
+   *  (factory schemes whose wheel colour changes with the paint, e.g. Monster Aviator Grey + GP red). */
+  liveryColor?: boolean;
 }
 
 export interface WheelEnd {
