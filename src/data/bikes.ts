@@ -623,7 +623,7 @@ export const BIKES: BikeSpec[] = [
     id: 'ktm-390-duke', brand: 'KTM', model: '390 Duke', year: 2024, style: 'naked',
     engine: { layout: 'SINGLE', cc: 399, hp: 44, hpRpm: 8500, torque: 39, torqueRpm: 7000, idle: 1500, redline: 10500, limiter: 11000 },
     weight: 165, topSpeed: 170, price: 5800,
-    liveries: [livery('Electronic Orange', '#ff6600', '#1b1c1f', W, { frame: '#ff6600', wheel: '#ff6600', suit: ['#ff6600', BLK] }), livery('Atlantic Blue', '#1d4f91', '#1b1c1f', '#ff6600', { wheel: '#ff6600' })],
+    liveries: [livery('Electronic Orange', '#ff6600', '#1b1c1f', W, { frame: '#ff6600', wheel: '#ff6600', suit: ['#ff6600', BLK] }), livery('Atlantic Blue', '#1d4f91', '#1b1c1f', '#ff6600', { frame: '#ff6600', wheel: '#ff6600', suit: ['#1d4f91', BLK] })],
     look: { extras: ['trellis'], frontTireW: 0.11, rearTireW: 0.15 },
     voice: { resonance: 170, brightness: 0.55 },
     description: 'Tek silindirli "corner rocket"; hafif ve sinirli.',
