@@ -2,6 +2,7 @@ import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
 import { africaTwinBlueprint } from './family-adv-touring-africatwin';
 import { goldWingBlueprint } from './family-adv-touring-goldwing';
+import { multistradaV4Blueprint } from './family-adv-touring-multistrada';
 import { vstrom650Blueprint } from './family-adv-touring-vstrom';
 
 /**
@@ -13,4 +14,5 @@ export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'honda-africa-twin': africaTwinBlueprint,
   'honda-gold-wing': goldWingBlueprint,
   'suzuki-vstrom650': vstrom650Blueprint,
+  'ducati-multistrada-v4': multistradaV4Blueprint,
 };
