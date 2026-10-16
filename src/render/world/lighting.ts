@@ -66,16 +66,20 @@ export class LampKit {
     }
   }
 
-  /** Place one lamp at road distance s on `side` (±1), `off` metres outside the paved edge. */
-  place(ctx: ChunkBuild, s: number, side: 1 | -1, off: number): void {
+  /**
+   * Place one lamp at road distance s on `side` (±1), `off` metres outside the paved edge. `baseY` overrides the
+   * world height of the pole base (bridges, where the terrain is far below the deck).
+   */
+  place(ctx: ChunkBuild, s: number, side: 1 | -1, off: number, baseY?: number): void {
     const d = side * (ctx.host.half + off);
     const yaw = side > 0 ? 0 : Math.PI;
-    ctx.put(this.poleKey, s, d, { yaw }, true);
-    ctx.put(this.headKey, s, d, { yaw }, true);
+    ctx.put(this.poleKey, s, d, { yaw, y: baseY }, true);
+    ctx.put(this.headKey, s, d, { yaw, y: baseY }, true);
     if (!this.on) return;
     const lampD = d - side * this.reach;
     ctx.put(this.poolKey, s, lampD * 0.9, { y: ctx.host.road.height(s) + 0.06, yaw: 0 }, true);
     const [r, g, b, size] = this.opts.glow;
-    ctx.glow(s, lampD, this.lightH + (ctx.groundY(s, d) - ctx.host.road.height(s)), r, g, b, size);
+    const base = baseY ?? ctx.groundY(s, d);
+    ctx.glow(s, lampD, this.lightH + (base - ctx.host.road.height(s)), r, g, b, size);
   }
 }

@@ -1,5 +1,6 @@
 import type { MapId } from '../../../data/maps';
 import type { Scenery, SceneryHost } from '../scenery';
+import { CityScenery } from './city';
 import { CoastScenery } from './coast';
 import { DesertScenery } from './desert';
 import { ForestScenery } from './forest';
@@ -21,6 +22,8 @@ export function createScenery(host: SceneryHost): Scenery {
       return new SuburbScenery(host);
     case 'desert':
       return new DesertScenery(host);
+    case 'city':
+      return new CityScenery(host);
     default:
       return new HighwayScenery(host);
   }

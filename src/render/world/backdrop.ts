@@ -30,6 +30,8 @@ export interface RangeSpec {
   forest?: string;
   /** Vertical placement offset below the rider's ground (metres). */
   drop?: number;
+  /** Paint a city skyline (towers with windows, lit at night) instead of mountains. */
+  skyline?: { lit: boolean; seed: number };
 }
 
 const W = 2048;
@@ -63,9 +65,94 @@ function toSrgb(v: number): number {
   return Math.round((v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055) * 255);
 }
 
+/**
+ * City skyline ring: hundreds of towers of random width and height (taller toward a few downtown clusters),
+ * flat-shaded in the range colours with a window grid, lit windows at night, antennas and aerial haze.
+ */
+function skylineTexture(spec: RangeSpec, fogColor: THREE.Color): THREE.Texture {
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d')!;
+  const img = g.createImageData(W, H);
+  const sky = spec.skyline!;
+  const low = parse(spec.low);
+  const mid = parse(spec.mid);
+  const fog: [number, number, number] = [fogColor.r, fogColor.g, fogColor.b];
+  let state = (sky.seed * 2654435761) >>> 0;
+  const rnd = () => ((state = (Math.imul(state, 1664525) + 1013904223) >>> 0) / 4294967296);
+  const put = (x: number, y: number, r: number, gg: number, b: number) => {
+    if (x < 0 || x >= W || y < 0 || y >= H) return;
+    const i = (y * W + x) * 4;
+    img.data[i] = toSrgb(r);
+    img.data[i + 1] = toSrgb(gg);
+    img.data[i + 2] = toSrgb(b);
+    img.data[i + 3] = 255;
+  };
+  // Downtown clusters: a few angles around the ring where the towers get tall.
+  const hubs = [rnd() * W, rnd() * W, rnd() * W, rnd() * W];
+  let x = 0;
+  while (x < W) {
+    const w = 5 + Math.floor(rnd() * 22);
+    let near = 1e9;
+    for (const h of hubs) near = Math.min(near, Math.min(Math.abs(x - h), W - Math.abs(x - h)));
+    const cluster = Math.exp(-near / 160);
+    const hgt = Math.floor(H * spec.amp * (0.12 + 0.45 * rnd() * (0.5 + cluster) + 0.4 * cluster * rnd()));
+    const top = H - Math.min(H - 4, hgt);
+    const tone = 0.7 + 0.5 * rnd();
+    // Faces get a vertical gradient (lighter near the haze line) and a darker side column.
+    for (let xx = x; xx < Math.min(W, x + w); xx++) {
+      const side = xx === x || xx === x + w - 1 ? 0.78 : 1;
+      for (let y = top; y < H; y++) {
+        const alt = (H - y) / H;
+        const k = tone * side;
+        const mixT = Math.min(1, alt * 1.6);
+        let r = (low[0] + (mid[0] - low[0]) * mixT) * k;
+        let gg = (low[1] + (mid[1] - low[1]) * mixT) * k;
+        let b = (low[2] + (mid[2] - low[2]) * mixT) * k;
+        const hz = Math.min(1, spec.haze + (1 - alt) * 0.1);
+        r += (fog[0] - r) * hz;
+        gg += (fog[1] - gg) * hz;
+        b += (fog[2] - b) * hz;
+        put(xx, y, r, gg, b);
+      }
+    }
+    // Windows: a 3×4 px grid; at night a share of them lit (warm/cool), by day a faint glass sheen.
+    for (let y = top + 3; y < H - 2; y += 4) {
+      for (let xx = x + 2; xx < Math.min(W, x + w) - 1; xx += 3) {
+        if (!sky.lit) {
+          if (rnd() < 0.5) put(xx, y, 0.6 * (1 - spec.haze) + fog[0] * spec.haze, 0.68 * (1 - spec.haze) + fog[1] * spec.haze, 0.78 * (1 - spec.haze) + fog[2] * spec.haze);
+          continue;
+        }
+        if (rnd() < 0.34 + 0.2 * cluster) {
+          const cool = rnd() < 0.25;
+          const l = 0.55 + 0.45 * rnd();
+          put(xx, y, (cool ? 0.7 : 1.0) * l, (cool ? 0.85 : 0.72) * l, (cool ? 1.0 : 0.42) * l);
+        }
+      }
+    }
+    // Mast on the tall ones.
+    if (hgt > H * spec.amp * 0.55 && rnd() < 0.6) {
+      const mx = x + Math.floor(w / 2);
+      const mh = 8 + Math.floor(rnd() * 20);
+      for (let y = top - mh; y < top; y++) put(mx, y, low[0] * 0.8 + fog[0] * 0.3, low[1] * 0.8 + fog[1] * 0.3, low[2] * 0.8 + fog[2] * 0.3);
+      if (sky.lit) put(mx, top - mh, 1.6, 0.15, 0.1);
+    }
+    x += w + Math.floor(rnd() * 4);
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = THREE.RepeatWrapping;
+  t.anisotropy = 4;
+  t.userData.owned = true;
+  return t;
+}
+
 /** Paint one range into a canvas texture (RGBA, transparent above the skyline). */
 export function rangeTexture(spec: RangeSpec, fogColor: THREE.Color): THREE.Texture | null {
   if (typeof document === 'undefined') return null;
+  if (spec.skyline) return skylineTexture(spec, fogColor);
   const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
