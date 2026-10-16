@@ -192,25 +192,29 @@ const SILVER = '#b9bdc3';
 
 function lettering(p: Pen, main: string): void {
   if (p.view !== 'right' && p.view !== 'left') return;
-  p.text('MV AGUSTA', -1.0, 0.8, { color: main, size: 0.022, weight: '900', spacing: 0.06 });
+  p.text('MV AGUSTA', -0.93, 0.8, { color: main, size: 0.022, weight: '900', spacing: 0.06 });
   p.text('BRUTALE', -0.2, 0.9, { color: main, size: 0.022, weight: '800', italic: true, spacing: 0.04 });
   p.text('1000 RR', -0.2, 0.86, { color: main, size: 0.016, weight: '800', italic: true });
 }
 
-function livery(c: LiveryCanvas, lv: Livery, _env: LiveryEnv): void {
+function livery(c: LiveryCanvas, lv: Livery, env: LiveryEnv): void {
+  // 0 = Rosso Ago / Argento Metal (red top, silver covers); 1 = Nero Ago / Rosso (black, red covers).
+  const alt = env.index === 1;
+  const cover = alt ? lv.secondary : SILVER;
+  const finish = alt ? 'gloss' : 'metallic';
   c.views(ALL_VIEWS, (p) => {
     p.fill(lv.primary, 'gloss');
     if (p.view === 'right' || p.view === 'left') {
-      // Silver tank covers and a silver stripe through the tail, red top of the tank.
-      p.poly([[-1.22, 0.62], [-1.22, 0.9], [-1.1, 0.97], [-0.84, 0.96], [-0.74, 0.82], [-0.86, 0.64], [-1.04, 0.62]], SILVER, 'metallic');
+      // Tank covers, a stripe through the tail and a thin line over the tank shoulder.
+      p.poly([[-1.22, 0.62], [-1.22, 0.9], [-1.1, 0.97], [-0.84, 0.96], [-0.74, 0.82], [-0.86, 0.64], [-1.04, 0.62]], cover, finish);
       p.poly([[-0.64, 0.8], [-0.4, 0.8], [-0.25, 0.88], [0.0, 0.94], [0.22, 1.0], [0.22, 0.64], [-0.62, 0.64]], '#202226', 'satin');
-      p.poly([[-0.3, 0.86], [-0.12, 0.93], [0.1, 0.975], [0.1, 0.96], [-0.1, 0.915], [-0.28, 0.85]], SILVER, 'metallic');
+      p.poly([[-0.3, 0.86], [-0.12, 0.93], [0.1, 0.975], [0.1, 0.96], [-0.1, 0.915], [-0.28, 0.85]], alt ? lv.secondary : SILVER, finish);
       p.line([[-1.12, 0.99], [-0.98, 1.04], [-0.8, 1.05], [-0.66, 0.99]], SILVER, 0.008);
-      lettering(p, '#15161a');
+      lettering(p, alt ? '#e7e9ec' : '#15161a');
     } else if (p.view === 'top') {
-      p.rect(-1.12, -0.02, -0.62, 0.02, SILVER, 'metallic');
+      p.rect(-1.12, -0.02, -0.62, 0.02, cover, finish);
     } else if (p.view === 'front') {
-      p.rect(-1, 0.6, 1, 0.86, SILVER, 'metallic');
+      p.rect(-1, 0.6, 1, 0.86, cover, finish);
     }
   });
 }
