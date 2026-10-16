@@ -4,8 +4,8 @@ import type { Hardpoints } from '../hardpoints';
 import { bodyQ, shell } from '../kit/body';
 import { lamp, ledStrip, offsetOutline, type LampOpts } from '../kit/lights';
 import { outlineLoft, type OutlineBody } from '../kit/shape';
-import { MeshData, extrude, flat, lathe, rod, roundBox, smooth2, sweep, type P2, type P3 } from '../mesh';
-import { F, type Finish, type GroupName } from '../sink';
+import { MeshData, extrude, flat, lathe, rod, roundBox, roundRect, smooth2, sweep, type P2, type P3 } from '../mesh';
+import { F, hard, type Finish, type GroupName } from '../sink';
 import { cut, type Field } from '../surface';
 
 /**
@@ -272,4 +272,89 @@ export function bugEyeFace(ctx: KitContext, o: BugEyeOpts): void {
 
 function hardBlack(): Finish {
   return { ...F.satinBlack, rough: 0.5 };
+}
+
+// ───────────────────────────── multi-outlet silencers ─────────────────────────────
+
+export interface OutletCanOpts {
+  /** Inlet / outlet-end centre of the body (bike space). */
+  a: P3;
+  b: P3;
+  /** Body radii at the inlet / end (width = height for 'round'). */
+  r0: number;
+  r1: number;
+  /** Cross-section: round, oval (flatter), box (rounded rectangle) or lobed (rounded triangle, point down). */
+  shape: 'round' | 'oval' | 'box' | 'lobed';
+  /** Height ÷ width of the cross-section (box / oval). */
+  aspect?: number;
+  body: Finish;
+  cap: Finish;
+  /** Outlet tubes in the can's (right, up) plane at the end: offsets, radius, protrusion beyond the end cap. */
+  outlets: ReadonlyArray<{ dx: number; dy: number; r: number; len: number }>;
+  /** Tube finish (default brushed steel). */
+  tube?: Finish;
+  band?: Finish;
+}
+
+function outletProfile(shape: OutletCanOpts['shape'], aspect: number, n: number): P2[] {
+  if (shape === 'box') return roundRect(2, 2 * aspect, 0.55, 4).map(([x, y]) => [x, y] as P2);
+  const pts: P2[] = [];
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * Math.PI * 2;
+    let rr = 1;
+    let ry = aspect;
+    if (shape === 'lobed') {
+      rr = 0.88 + 0.12 * Math.cos(3 * (t - Math.PI / 2));
+      ry = rr;
+    }
+    pts.push([Math.cos(t) * rr, Math.sin(t) * ry * (shape === 'oval' ? 1 : 1)]);
+  }
+  return pts;
+}
+
+/** A silencer with several separate outlet tubes (organ pipes, tri-tip stubby cans). */
+export function outletCan(ctx: KitContext, o: OutletCanOpts): void {
+  const A = new THREE.Vector3(...o.a), B = new THREE.Vector3(...o.b);
+  const d = B.clone().sub(A).normalize();
+  const n = ctx.seg(10, 4);
+  const path: P3[] = [];
+  for (let i = 0; i <= n; i++) path.push([A.x + (B.x - A.x) * (i / n), A.y + (B.y - A.y) * (i / n), A.z + (B.z - A.z) * (i / n)]);
+  const aspect = o.aspect ?? (o.shape === 'oval' ? 0.8 : 1);
+  const prof = outletProfile(o.shape, aspect, ctx.seg(30, 14));
+  const scale: number[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    let r = o.r0 + (o.r1 - o.r0) * t;
+    if (t < 0.07) r *= 0.84 + (t / 0.07) * 0.16;
+    if (t > 0.94) r *= 1 - ((t - 0.94) / 0.06) * 0.07;
+    scale.push(r);
+  }
+  ctx.add('chassis', sweep(path, prof, { scale, capStart: true, capEnd: true, up: [0, 1, 0] }), o.body);
+  // End plate: dark dished cap over the body end.
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+  const right = new THREE.Vector3(1, 0, 0);
+  const up = new THREE.Vector3().crossVectors(right, d).normalize();
+  const rgt = new THREE.Vector3().crossVectors(d, up).normalize();
+  const capM = new THREE.Matrix4().compose(B.clone().addScaledVector(d, -0.004), q, new THREE.Vector3(1, 1, 1));
+  const capR = o.r1 * 0.93;
+  ctx.add('chassis', lathe([[0, 0], [capR, 0], [capR * 0.97, 0.005], [capR * 0.8, 0.008], [0, 0.009]], { segs: ctx.seg(28, 12), axis: 'y' }), o.cap, capM.clone().multiply(new THREE.Matrix4().makeScale(1, 1, aspect)));
+  // Inlet clamp band.
+  const band = A.clone().addScaledVector(d, B.distanceTo(A) * 0.1);
+  const rb = o.r0 + (o.r1 - o.r0) * 0.1;
+  ctx.add('chassis', lathe([[rb * 1.0, 0], [rb * 1.05, 0.004], [rb * 1.05, 0.016], [rb * 1.0, 0.02]], { segs: ctx.seg(26, 12), axis: 'y' }), o.band ?? F.polishedAlu, new THREE.Matrix4().compose(band, q, new THREE.Vector3(1, 1, aspect)));
+  // Outlet tubes.
+  const tubeF = o.tube ?? vary2Steel();
+  for (const t of o.outlets) {
+    const p0 = B.clone().addScaledVector(rgt, t.dx).addScaledVector(up, t.dy).addScaledVector(d, -0.012);
+    const p1 = p0.clone().addScaledVector(d, 0.012 + t.len);
+    ctx.add('chassis', rod([p0.x, p0.y, p0.z], [p1.x, p1.y, p1.z], t.r, t.r * 1.03, ctx.seg(18, 8), false), tubeF);
+    const inner = p1.clone().addScaledVector(d, -0.012);
+    ctx.add('chassis', lathe([[0, 0], [t.r * 0.94, 0]], { segs: ctx.seg(18, 8), axis: 'y' }), hard('#0b0b0b', 0, 0.9), new THREE.Matrix4().compose(inner, q, new THREE.Vector3(1, 1, 1)));
+    // Rolled rim.
+    ctx.add('chassis', lathe([[t.r * 0.96, 0], [t.r * 1.06, 0.002], [t.r * 1.06, 0.005], [t.r * 0.96, 0.006]], { segs: ctx.seg(18, 8), axis: 'y' }), F.polishedAlu, new THREE.Matrix4().compose(p1.clone().addScaledVector(d, -0.006), q, new THREE.Vector3(1, 1, 1)));
+  }
+}
+
+function vary2Steel(): Finish {
+  return { ...F.steel, rough: 0.34 };
 }

@@ -675,7 +675,7 @@ export const BIKES: BikeSpec[] = [
     id: 'triumph-street-triple', brand: 'Triumph', model: 'Street Triple 765 RS', year: 2024, style: 'naked',
     engine: { layout: 'I3', cc: 765, hp: 130, hpRpm: 12000, torque: 80, torqueRpm: 9500, idle: 1200, redline: 12650 },
     quickshifter: true, weight: 188, topSpeed: 250, price: 13000,
-    liveries: [livery('Cosmic Yellow', '#e8c23a', '#1b1c1f', '#4a4d52', { suit: [BLK, '#e8c23a'] }), livery('Carnival Red', '#b5121b', '#1b1c1f', W)],
+    liveries: [livery('Silver Ice / Carnival Red', '#aeb3ba', '#1b1c1f', '#b5121b', { wheel: '#1b1c1f', suit: [BLK, '#b5121b'] }), livery('Carbon Black / Carnival Red', '#17181b', '#b5121b', '#aeb3ba', { wheel: '#1b1c1f', pattern: 'solid', suit: [BLK, '#b5121b'] })],
     look: { headlight: 'angular' },
     voice: { resonance: 330, brightness: 0.78 },
     description: 'Moto2 motorundan türeyen hafif üçlü.',
