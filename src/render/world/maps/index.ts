@@ -5,6 +5,7 @@ import { CoastScenery } from './coast';
 import { DesertScenery } from './desert';
 import { ForestScenery } from './forest';
 import { HighwayScenery } from './highway';
+import { IndustrialScenery } from './industrial';
 import { SnowScenery } from './snow';
 import { SuburbScenery } from './suburb';
 
@@ -24,6 +25,8 @@ export function createScenery(host: SceneryHost): Scenery {
       return new DesertScenery(host);
     case 'city':
       return new CityScenery(host);
+    case 'industrial':
+      return new IndustrialScenery(host);
     default:
       return new HighwayScenery(host);
   }

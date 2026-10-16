@@ -267,6 +267,53 @@ export class WorldMaterials {
     return m;
   }
 
+  /**
+   * Tunnel lining: a photographic PBR set that is lit by the tunnel's own lamps rather than the sun. The surface
+   * glows in proportion to its albedo, brightest under each luminaire row (`spacing` metres apart along the
+   * road, taken from the v texture coordinate), so the walls stay readable while EnclosureFx dims the sun.
+   */
+  tunnel(key: TextureKey, o: PbrOptions & { spacing?: number; lit?: number } = {}): THREE.MeshStandardMaterial {
+    const id = `tun:${key}:${o.spacing ?? 12}:${o.lit ?? 0.55}`;
+    const hit = this.pbrCache.get(id);
+    if (hit) return hit;
+    const set = assets.textureSet(key, this.quality.textures);
+    const size = TEXTURE_SETS[key].sizeM;
+    const m = this.keep(
+      new THREE.MeshStandardMaterial({
+        color: o.color ?? '#ffffff',
+        vertexColors: true,
+        map: set?.map ?? null,
+        normalMap: set?.normalMap ?? null,
+        normalScale: new THREE.Vector2(0.7, 0.7),
+        roughnessMap: set?.arm ?? null,
+        aoMap: set?.arm ?? null,
+        roughness: o.roughness ?? 0.6,
+        metalness: 0,
+        side: o.side ?? THREE.FrontSide,
+      }),
+    );
+    const spacing = o.spacing ?? 12;
+    const lit = o.lit ?? 0.55;
+    m.onBeforeCompile = (shader) => {
+      shader.uniforms.uSize = { value: size };
+      shader.uniforms.uSpacing = { value: spacing };
+      shader.uniforms.uTunLit = { value: lit };
+      shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vTunUv;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvTunUv = uv;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec2 vTunUv;\nuniform float uSize;\nuniform float uSpacing;\nuniform float uTunLit;')
+        .replace(
+          '#include <emissivemap_fragment>',
+          `#include <emissivemap_fragment>
+float tPh = vTunUv.y * uSize / uSpacing;
+float tPool = 0.5 + 0.5 * pow(0.5 + 0.5 * cos(tPh * 6.2831853), 2.0);
+totalEmissiveRadiance += diffuseColor.rgb * uTunLit * tPool;`,
+        );
+    };
+    m.customProgramCacheKey = () => `wtunnel:${spacing}:${lit}`;
+    this.pbrCache.set(id, m);
+    return m;
+  }
+
   /** Flat-coloured material (vertex colours only) for the parts that need no texture. */
   plain(o: { roughness?: number; metalness?: number; emissive?: THREE.ColorRepresentation; emissiveIntensity?: number; side?: THREE.Side; transparent?: boolean; opacity?: number } = {}): THREE.MeshStandardMaterial {
     const id = JSON.stringify(o);

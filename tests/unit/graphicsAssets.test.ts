@@ -120,7 +120,7 @@ describe('sky and surface selection per environment', () => {
     for (const env of ENVIRONMENTS) expect(parseEnv(env).time).toMatch(/day|sunset|night/);
     expect(parseEnv(resolveEnvironment('snow', 'dawn', 'snow'))).toMatchObject({ map: 'snow', time: 'dawn', weather: 'snow' });
     expect(groundKey(resolveEnvironment('snow', 'day', 'clear'))).toBe('snow');
-    expect(groundKey(resolveEnvironment('desert', 'day', 'clear'))).toBe('sand');
+    expect(groundKey(resolveEnvironment('desert', 'day', 'clear'))).toBe('beach');
     expect(groundKey(resolveEnvironment('city', 'day', 'clear'))).toBe('pavement');
   });
 

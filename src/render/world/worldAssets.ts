@@ -55,7 +55,7 @@ export function sceneryTextureKeys(map: string): TextureKey[] {
       keys.push('rock', 'cliff', 'snow', 'planks');
       break;
     case 'industrial':
-      keys.push('container', 'concrete', 'tile_white', 'facade_industrial', 'brick');
+      keys.push('container', 'concrete', 'tile_white', 'facade_industrial', 'brick', 'cliff', 'asphalt_worn');
       break;
   }
   return keys;
