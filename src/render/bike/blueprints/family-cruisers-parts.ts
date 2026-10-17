@@ -168,3 +168,29 @@ export function cruiserTank(ctx: KitContext, o: CruiserTankOpts, f: Finish = PAI
   }
   return ob;
 }
+
+// ───────────────────────────── radiator ─────────────────────────────
+
+/** Radiator block (textured core, black tanks and frame) facing forward, tilted back by `tiltDeg`. */
+export function radiatorBlock(ctx: KitContext, o: { cx: number; cy: number; cz: number; w: number; h: number; tiltDeg: number; depth?: number }): void {
+  const depth = o.depth ?? 0.04;
+  const m = mul(T(o.cx, o.cy, o.cz), new THREE.Matrix4().makeRotationX((-o.tiltDeg * Math.PI) / 180));
+  const core = new MeshData();
+  for (const face of [-1, 1]) {
+    const base = core.vcount;
+    const nz = face < 0 ? -1 : 1;
+    for (const x of [-0.5, 0.5]) {
+      for (const y of [-0.5, 0.5]) core.v(x * o.w, y * o.h, (face * depth) / 2, 0, 0, nz, (x + 0.5) * (o.w / 0.1), (y + 0.5) * (o.h / 0.1));
+    }
+    if (face > 0) {
+      core.t(base, base + 2, base + 1);
+      core.t(base + 1, base + 2, base + 3);
+    } else {
+      core.t(base, base + 1, base + 2);
+      core.t(base + 1, base + 3, base + 2);
+    }
+  }
+  ctx.add('chassis', core, F.radiator, m);
+  for (const sx of [-1, 1]) ctx.add('chassis', roundBox(0.03, o.h + 0.02, depth + 0.012, 0.008, 2), F.texturedBlack, mul(m, T(sx * (o.w / 2 + 0.012), 0, 0)));
+  for (const sy of [-1, 1]) ctx.add('chassis', roundBox(o.w + 0.03, 0.016, depth + 0.006, 0.005, 1), F.texturedBlack, mul(m, T(0, sy * (o.h / 2 + 0.007), 0)));
+}
