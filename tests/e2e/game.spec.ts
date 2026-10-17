@@ -97,6 +97,9 @@ test.describe('The Race — production build', () => {
     await page.getByTestId('bike-ducati-panigale-v4s').click();
     await expect(page.getByTestId('garage-model')).toHaveText('Panigale V4 S');
     await page.getByTestId('btn-buy').click();
+    // Purchases ask for confirmation first.
+    await expect(page.getByTestId('buy-summary')).toBeVisible();
+    await page.getByTestId('buy-confirm').click();
     // Buying can unlock achievements whose rewards top the balance up.
     const cashAfterBuy = (await api(page, 'save')).cash;
     expect(cashAfterBuy).toBeGreaterThanOrEqual(69000);
@@ -168,6 +171,8 @@ test.describe('The Race — production build', () => {
       await page.getByTestId('pause-btn').click();
       await waitState(page, 'paused');
       await page.getByTestId('btn-quit').click();
+      // Leaving a ride asks for confirmation (setting "Çıkışta onay iste" is on by default).
+      await page.getByTestId('quit-confirm').click();
       await waitState(page, 'menu');
       // Quitting still records the ride (distance/cash are not lost).
       expect((await api(page, 'save')).gamesPlayed).toBe(1);

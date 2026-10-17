@@ -1,0 +1,145 @@
+/* ───────────── garage ───────────── */
+.panel-garage { background: transparent; }
+.garage-body { gap: 0.9rem; padding: 0 calc(var(--pad) + var(--safe-r)) calc(0.9rem + var(--safe-b)) calc(var(--pad) + var(--safe-l)); align-items: stretch; pointer-events: none; }
+.garage-list, .garage-detail { pointer-events: auto; }
+.garage-list { flex: 0 0 min(370px, 30vw); width: min(370px, 30vw); min-width: 0; display: flex; flex-direction: column; min-height: 0; padding: 0.7rem; gap: 0.6rem; overflow: hidden; }
+.garage-tools { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; flex: 0 0 auto; }
+.garage-row2 { display: grid; grid-template-columns: 1fr auto; gap: 0.4rem; }
+.sort-box { display: flex; gap: 0.3rem; align-items: center; }
+.sort-box .select { width: 9.5rem; }
+.sort-box .btn.flip .ico { transform: scaleY(-1); }
+.garage-row3 { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.garage-filter-toggle { display: none; }
+.garage-count { font-size: 0.74rem; color: var(--muted); font-weight: 700; letter-spacing: 0.04em; }
+.chip-row.styles { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; padding-bottom: 2px; }
+.chip-row.styles::-webkit-scrollbar { display: none; }
+.chip-row.styles .chip { flex: 0 0 auto; }
+.garage-cards { flex: 1; display: flex; flex-direction: column; gap: 0.4rem; padding-right: 4px; margin-right: -4px; }
+.bike-card { appearance: none; display: grid; grid-template-columns: 5.6rem 1fr auto; align-items: center; gap: 0.65rem; text-align: left; width: 100%; padding: 0.4rem 0.6rem 0.4rem 0.4rem; border-radius: 0.85rem; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); color: var(--text); cursor: pointer; transition: transform 0.16s var(--ease), background 0.15s, border-color 0.15s; flex: 0 0 auto; }
+.bike-card:hover { transform: translateX(3px); background: rgba(255, 255, 255, 0.09); border-color: var(--line-2); }
+.bike-card.sel { border-color: var(--accent); background: rgba(255, 90, 31, 0.1); box-shadow: 0 0 0 1px var(--accent) inset; }
+.bike-card.locked { opacity: 0.62; }
+.bc-thumb { display: grid; place-items: center; width: 5.6rem; height: 3.5rem; border-radius: 0.65rem; overflow: hidden; color: rgba(255, 255, 255, 0.55); background: radial-gradient(circle at 30% 20%, var(--c1, #444) 0, transparent 70%), linear-gradient(135deg, #1a1f2b, var(--c2, #10131b)); position: relative; }
+.bc-thumb.big { width: 7rem; height: 4.4rem; }
+.bc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; animation: fadeIn 0.3s ease both; }
+.bc-thumb.has-img { background: #0b0d12; }
+.bc-main { display: flex; flex-direction: column; min-width: 0; gap: 0.05rem; }
+.bc-brand { font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.bc-model { font-weight: 900; font-size: 0.95rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bc-foot { font-size: 0.72rem; color: var(--text-2); }
+.bc-tag { display: flex; align-items: center; }
+.bc-price { color: var(--gold); font-weight: 900; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 2rem 1rem; color: var(--muted); text-align: center; }
+
+.garage-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; pointer-events: none; }
+.viewbar { pointer-events: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem 0.8rem; padding: 0.5rem 0.7rem; border-radius: 999px; max-width: 100%; }
+.viewbar-tools { display: flex; align-items: center; gap: 0.3rem; }
+.viewbar .chip { padding: 0.35rem 0.7rem; }
+.viewbar .looks { display: inline-flex; gap: 4px; margin-left: 0.4rem; }
+.viewbar .chip.look { padding: 0.25rem 0.6rem; font-size: 0.7rem; }
+.viewbar-hint { display: none; width: 100%; justify-content: center; align-items: center; gap: 0.4rem; font-size: 0.68rem; color: var(--muted); }
+@media (min-width: 1100px) { .viewbar-hint { display: flex; } .viewbar { border-radius: 1.2rem; } }
+
+.garage-detail { flex: 0 0 min(410px, 32vw); width: min(410px, 32vw); min-width: 0; max-height: 100%; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.gd-scroll { flex: 1; min-height: 0; padding: 1rem 1.1rem 0.8rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.gd-head { display: flex; flex-direction: column; gap: 0.3rem; }
+.bike-brand { font-size: 0.74rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.bike-model { font-size: clamp(1.5rem, 2.8vw, 2.1rem); font-weight: 900; font-style: italic; line-height: 1.05; letter-spacing: 0.01em; }
+.bike-desc { margin: 0; font-size: 0.84rem; line-height: 1.5; color: var(--text-2); }
+.chip.static.good { background: rgba(52, 208, 88, 0.16); border-color: rgba(52, 208, 88, 0.4); color: #8be6a3; }
+.perf-bars { display: flex; flex-direction: column; gap: 0.5rem; }
+.stat-label { display: flex; justify-content: space-between; font-size: 0.74rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); margin-bottom: 0.25rem; }
+.stat-label b { color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: 0; text-transform: none; }
+.bar.delta { position: relative; }
+.bar.delta > i.plus { position: absolute; top: 0; background: repeating-linear-gradient(45deg, var(--c-good) 0 4px, rgba(52, 208, 88, 0.45) 4px 8px); border-radius: 0 4px 4px 0; transition: none; }
+.spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.1rem 1rem; }
+.kv { display: flex; justify-content: space-between; gap: 0.6rem; padding: 0.38rem 0; border-bottom: 1px solid var(--line); font-size: 0.8rem; }
+.kv span { color: var(--muted); font-weight: 700; }
+.kv b { font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+.swatch-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+.swatches { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+.swatch { appearance: none; width: 2.1rem; height: 2.1rem; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.25); cursor: pointer; padding: 0; transition: transform 0.15s var(--ease), border-color 0.15s; }
+.swatch:hover { transform: scale(1.12); }
+.swatch.sel { border-color: #fff; box-shadow: 0 0 0 3px var(--accent); }
+.upgrades { display: flex; flex-direction: column; gap: 0.45rem; }
+.up-row { display: grid; grid-template-columns: auto 1fr auto; gap: 0.7rem; align-items: center; padding: 0.55rem 0.7rem; border-radius: 0.8rem; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); }
+.up-row.off { opacity: 0.55; }
+.up-ico { display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 0.6rem; background: rgba(255, 255, 255, 0.07); color: var(--gold); }
+.up-main { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.up-label { font-weight: 800; font-size: 0.88rem; }
+.up-label small { color: var(--muted); font-weight: 700; }
+.up-delta { color: var(--muted); font-size: 0.7rem; line-height: 1.3; }
+.pips { display: flex; gap: 4px; }
+.pips i { width: 1.4rem; height: 0.4rem; border-radius: 2px; background: rgba(255, 255, 255, 0.15); }
+.pips i.on { background: linear-gradient(90deg, var(--accent), var(--gold)); box-shadow: 0 0 8px rgba(255, 140, 40, 0.5); }
+.gd-actions { flex: 0 0 auto; padding: 0.7rem 1.1rem 0.9rem; background: rgba(8, 10, 15, 0.7); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.5rem; }
+.gd-actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.gd-actions-row .btn small { font-size: 0.6rem; opacity: 0.7; letter-spacing: 0.04em; text-transform: none; }
+.gd-actions .btn.primary { width: 100%; }
+.tag { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.8rem 1rem; border-radius: 0.75rem; font-weight: 900; letter-spacing: 0.08em; font-size: 0.86rem; background: rgba(255, 255, 255, 0.07); border: 1px solid var(--line); text-transform: uppercase; }
+.tag.sel { background: rgba(52, 208, 88, 0.14); border-color: rgba(52, 208, 88, 0.5); color: #8be6a3; }
+.tag.lock { background: rgba(255, 176, 32, 0.1); border-color: rgba(255, 176, 32, 0.4); color: #ffd58a; }
+
+.buy-bike { display: flex; flex-direction: column; gap: 0.15rem; }
+.buy-bike b { font-size: 1.2rem; font-style: italic; }
+.buy-bike small { color: var(--muted); }
+.dialog .sum .total { border-top: 1px solid var(--line-2); padding-top: 0.45rem; margin-top: 0.15rem; font-size: 1.02rem; }
+.dialog .sum .neg { color: #ff9a92; }
+
+/* compare */
+.compare-pick { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+.compare-pick .select { flex: 1; min-width: 14rem; }
+.cmp-table { display: flex; flex-direction: column; }
+.cmp-row { display: grid; grid-template-columns: 1fr 7.5rem 1fr; align-items: center; gap: 0.6rem; padding: 0.28rem 0; border-bottom: 1px solid var(--line); }
+.cmp-row.heads { align-items: end; }
+.cmp-head { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; text-align: center; }
+.cmp-head b { font-style: italic; font-weight: 900; }
+.cmp-head small { color: var(--muted); }
+.cmp-label { text-align: center; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 800; }
+.cmp-cell { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.2rem 0.6rem; border-radius: 0.5rem; font-variant-numeric: tabular-nums; }
+.cmp-cell.a { align-items: flex-end; }
+.cmp-cell.a .bar { align-self: stretch; transform: scaleX(-1); }
+.cmp-cell.win { background: rgba(52, 208, 88, 0.14); }
+.cmp-cell.win b { color: var(--c-good); }
+.cmp-cell.win .bar > i { background: linear-gradient(90deg, #1f9d44, var(--c-good)); }
+
+@media (max-width: 900px) {
+  .garage-body { flex-direction: column; padding-left: calc(10px + var(--safe-l)); padding-right: calc(10px + var(--safe-r)); gap: 0.5rem; }
+  .garage-list { flex: 0 0 auto; width: auto; padding: 0.5rem; gap: 0.4rem; }
+  .garage-filter-toggle { display: inline-flex; align-self: flex-start; }
+  .garage-tools { display: none; gap: 0.4rem; }
+  .garage-list.tools-open .garage-tools { display: flex; }
+  .garage-row3 { display: none; }
+  .garage-cards { flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 0 0 4px; margin: 0; touch-action: pan-x; }
+  .bike-card { grid-template-columns: 1fr; width: 9.2rem; padding: 0.35rem; gap: 0.3rem; flex: 0 0 auto; }
+  .bike-card .bc-thumb { width: 100%; height: 4.2rem; }
+  .bike-card .bc-tag { position: absolute; top: 0.55rem; right: 0.55rem; }
+  .bike-card { position: relative; }
+  .bike-card:hover { transform: none; }
+  .garage-mid { flex: 1; min-height: 3rem; }
+  .viewbar { border-radius: 1rem; padding: 0.3rem 0.4rem; gap: 0.3rem; }
+  .viewbar .chip span:not(.ico-wrap) { display: none; }
+  .viewbar .chip { padding: 0.4rem 0.55rem; }
+  .viewbar .looks { display: none; }
+  .garage-detail { flex: 0 0 auto; width: auto; max-height: 42vh; }
+  .gd-scroll { padding: 0.8rem 0.9rem 0.5rem; }
+  .bike-model { font-size: 1.4rem; }
+  .spec-grid { grid-template-columns: 1fr; }
+  .gd-actions { padding: 0.5rem 0.9rem 0.6rem; flex-direction: row; align-items: stretch; }
+  .gd-actions-row { flex: 0 0 auto; display: flex; gap: 0.4rem; }
+  .gd-actions-row .btn small, .gd-actions-row .lbl { display: none; }
+  .gd-actions-row .btn { padding: 0.6rem 0.8rem; }
+  .gd-actions .btn.primary, .gd-actions .tag { flex: 1; }
+  .cmp-row { grid-template-columns: 1fr 4.6rem 1fr; }
+  .bc-thumb.big { width: 5rem; height: 3.2rem; }
+}
+@media (max-width: 900px) and (orientation: landscape) {
+  .garage-body { flex-direction: row; }
+  .garage-list { flex: 0 0 38%; }
+  .garage-cards { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+  .bike-card { width: 100%; grid-template-columns: 4.6rem 1fr auto; }
+  .bike-card .bc-thumb { height: 2.9rem; }
+  .bike-card .bc-tag { position: static; }
+  .garage-mid { display: none; }
+  .garage-detail { flex: 1; max-height: none; width: auto; }
+}

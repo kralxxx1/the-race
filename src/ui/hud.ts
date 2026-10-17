@@ -1,8 +1,17 @@
 import type { MissionHudView } from '../game/missions';
 import type { InputManager } from '../input/input';
 import { clear, fmtDistance, fmtInt, fmtTime, h } from './dom';
-import { Tacho } from './tacho';
-import './gameplay.css';
+import { icon } from './icons';
+import { Tacho, gaugeSize, type GaugeStyle } from './tacho';
+import { haptic } from './uiApply';
+import './hud.css';
+
+/** The subset of the settings reader the HUD needs. */
+export interface HudSettings {
+  num(key: string): number;
+  bool(key: string): boolean;
+  str(key: string): string;
+}
 
 export interface HudState {
   score: number;
@@ -41,6 +50,8 @@ export class Hud {
   private chipEls = new Map<string, HTMLElement>();
   readonly tacho = new Tacho();
   private touch: HTMLElement | null = null;
+  private gauge: HTMLElement;
+  private gaugeScale = 1;
   private lastScore = -1;
   // Career mission panel
   private mission: HTMLElement;
@@ -60,10 +71,11 @@ export class Hud {
     parent: HTMLElement,
     private input: InputManager,
     private actions: { camera: () => void; pause: () => void },
+    private settings: HudSettings | null = null,
   ) {
     this.score = h('div', { class: 'hud-score', 'data-testid': 'hud-score' }, '0');
     this.dist = h('div', { class: 'hud-sub', 'data-testid': 'hud-distance' }, '0 m');
-    this.combo = h('div', { class: 'hud-combo' });
+    this.combo = h('div', { class: 'hud-combo', 'data-testid': 'hud-combo' });
     this.near = h('div', { class: 'hud-sub' });
     this.timer = h('div', { class: 'hud-timer', 'data-testid': 'hud-timer' });
     this.best = h('div', { class: 'hud-best' });
@@ -84,28 +96,32 @@ export class Hud {
     this.hints = h(
       'div',
       { class: 'hud-hints' },
-      h('span', {}, '↑/W gaz'),
-      h('span', {}, '↓/S fren'),
-      h('span', {}, '←→/A D direksiyon'),
-      h('span', {}, 'Boşluk wheelie'),
-      h('span', {}, 'B arkaya bak'),
-      h('span', {}, 'C kamera'),
-      h('span', {}, 'H korna'),
-      h('span', {}, 'Esc duraklat'),
+      h('span', {}, h('i', { class: 'kbd' }, '↑ W'), 'gaz'),
+      h('span', {}, h('i', { class: 'kbd' }, '↓ S'), 'fren'),
+      h('span', {}, h('i', { class: 'kbd' }, '← →'), 'direksiyon'),
+      h('span', {}, h('i', { class: 'kbd' }, 'Boşluk'), 'wheelie'),
+      h('span', {}, h('i', { class: 'kbd' }, 'B'), 'arkaya bak'),
+      h('span', {}, h('i', { class: 'kbd' }, 'H'), 'korna'),
+      h('span', {}, h('i', { class: 'kbd' }, 'Esc'), 'duraklat'),
     );
     const speedBox = h('div', { class: 'hud-gauge', 'data-testid': 'hud-gauge' }, this.tacho.canvas);
     this.root = h(
       'div',
       { class: 'hud', 'data-testid': 'hud' },
-      h('div', { class: 'hud-tl' }, h('div', { class: 'hud-label' }, 'PUAN'), this.score, this.dist, this.near, this.combo, this.mission),
+      h('div', { class: 'hud-tl' },
+        h('div', { class: 'hud-scorebox' }, h('div', { class: 'hud-label' }, 'PUAN'), this.score, this.dist, this.near, this.combo),
+        this.mission,
+      ),
       h('div', { class: 'hud-tc' }, this.timer, this.best),
       h(
         'div',
         { class: 'hud-tr' },
-        h('button', { class: 'icon-btn', title: 'Kamera (C)', 'aria-label': 'Kamera', onclick: () => this.actions.camera() }, '◉'),
-        h('button', { class: 'icon-btn', title: 'Duraklat (Esc)', 'aria-label': 'Duraklat', 'data-testid': 'pause-btn', onclick: () => this.actions.pause() }, '❚❚'),
+        h('div', { class: 'hud-buttons' },
+          h('button', { class: 'icon-btn', title: 'Kamera (C)', 'aria-label': 'Kamera', onclick: () => this.actions.camera() }, icon('camera', 20)),
+          h('button', { class: 'icon-btn', title: 'Duraklat (Esc)', 'aria-label': 'Duraklat', 'data-testid': 'pause-btn', onclick: () => this.actions.pause() }, icon('pause', 20)),
+        ),
+        this.chips,
       ),
-      this.chips,
       this.toasts,
       this.popups,
       this.center,
@@ -113,7 +129,9 @@ export class Hud {
       this.hints,
       this.fps,
     );
+    this.gauge = speedBox;
     parent.append(this.root);
+    this.applySettings();
     if (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window) this.buildTouch();
     window.setTimeout(() => this.hints.classList.add('fade'), 7000);
     this.onResize();
@@ -121,7 +139,27 @@ export class Hud {
 
   onResize(): void {
     const small = Math.min(window.innerWidth, window.innerHeight) < 520;
-    this.tacho.resize(small ? 150 : 220);
+    const size = gaugeSize(this.tacho.opts.style, small);
+    this.tacho.resize(Math.round(size.w * this.gaugeScale), Math.round(size.h * this.gaugeScale));
+  }
+
+  /** Read the HUD / gauge options (style, scale, element toggles) from the settings. */
+  applySettings(): void {
+    const s = this.settings;
+    if (!s) {
+      this.onResize();
+      return;
+    }
+    const style = (['dial', 'bar', 'digital'].includes(s.str('hud.gaugeStyle')) ? s.str('hud.gaugeStyle') : 'dial') as GaugeStyle;
+    this.tacho.opts = { style, rpm: s.bool('hud.showRpm'), gear: s.bool('hud.showGear'), shiftLights: s.bool('hud.shiftLights') };
+    this.gaugeScale = s.num('hud.gaugeScale') / 100 || 1;
+    this.kmMarkers = s.bool('hud.kmMarkers');
+    this.gauge.dataset.style = style;
+    this.onResize();
+  }
+
+  private buzz(): void {
+    if (this.settings) haptic(this.settings);
   }
 
   private buildTouch(): void {
@@ -129,6 +167,7 @@ export class Hud {
       const start = (e: Event) => {
         e.preventDefault();
         el.classList.add('down');
+        this.buzz();
         on();
       };
       const end = (e: Event) => {
@@ -143,19 +182,23 @@ export class Hud {
       return el;
     };
     const i = this.input;
-    const left = hold(h('div', { class: 'tbtn steer' }, '◀'), () => i.setTouch('left', 1), () => i.setTouch('left', 0));
-    const right = hold(h('div', { class: 'tbtn steer' }, '▶'), () => i.setTouch('right', 1), () => i.setTouch('right', 0));
-    const gas = hold(h('div', { class: 'tbtn gas' }, 'GAZ'), () => i.setTouch('throttle', 1), () => i.setTouch('throttle', 0));
-    const brake = hold(h('div', { class: 'tbtn brake' }, 'FREN'), () => i.setTouch('brake', 1), () => i.setTouch('brake', 0));
-    const wheelie = hold(h('div', { class: 'tbtn small' }, 'WHEELIE'), () => i.setTouchWheelie(true), () => i.setTouchWheelie(false));
-    const horn = h('div', { class: 'tbtn small', onpointerdown: () => i.touchEdge('horn') }, 'KORNA');
+    const label = (t: string) => h('span', { class: 'tl' }, t);
+    const left = hold(h('div', { class: 'tbtn steer', role: 'button', 'aria-label': 'Sola yat' }, icon('left', 34)), () => i.setTouch('left', 1), () => i.setTouch('left', 0));
+    const right = hold(h('div', { class: 'tbtn steer', role: 'button', 'aria-label': 'Sağa yat' }, icon('right', 34)), () => i.setTouch('right', 1), () => i.setTouch('right', 0));
+    const gas = hold(h('div', { class: 'tbtn gas', role: 'button', 'aria-label': 'Gaz' }, icon('bolt', 26), label('GAZ')), () => i.setTouch('throttle', 1), () => i.setTouch('throttle', 0));
+    const brake = hold(h('div', { class: 'tbtn brake', role: 'button', 'aria-label': 'Fren' }, icon('brake', 24), label('FREN')), () => i.setTouch('brake', 1), () => i.setTouch('brake', 0));
+    const wheelie = hold(h('div', { class: 'tbtn small', role: 'button' }, label('WHEELIE')), () => i.setTouchWheelie(true), () => i.setTouchWheelie(false));
+    const horn = h('div', { class: 'tbtn small', role: 'button', onpointerdown: () => {
+      this.buzz();
+      i.touchEdge('horn');
+    } }, label('KORNA'));
     // Hold to turn the head over the shoulder and read the traffic behind.
-    const look = hold(h('div', { class: 'tbtn small', 'data-testid': 'lookback-btn' }, 'ARKAYA BAK'), () => i.setTouchLookBack(true), () => i.setTouchLookBack(false));
+    const look = hold(h('div', { class: 'tbtn small', role: 'button', 'data-testid': 'lookback-btn' }, label('ARKAYA BAK')), () => i.setTouchLookBack(true), () => i.setTouchLookBack(false));
     this.touch = h(
       'div',
       { class: 'touch' },
-      h('div', { class: 'touch-left' }, left, right),
-      h('div', { class: 'touch-right' }, h('div', { class: 'touch-col' }, wheelie, look, horn), brake, gas),
+      h('div', { class: 'touch-steer' }, left, right),
+      h('div', { class: 'touch-pedals' }, h('div', { class: 'touch-col' }, wheelie, look, horn), brake, gas),
     );
     this.root.append(this.touch);
     this.hints.style.display = 'none';
@@ -168,7 +211,7 @@ export class Hud {
   setChip(key: string, text: string, on: boolean, cls = ''): void {
     let el = this.chipEls.get(key);
     if (!el) {
-      el = h('div', { class: `chip ${cls}` }, text);
+      el = h('div', { class: `hud-chip ${cls}` }, text);
       this.chipEls.set(key, el);
       this.chips.append(el);
     }
@@ -182,14 +225,14 @@ export class Hud {
       this.score.textContent = fmtInt(s.score);
     }
     this.dist.textContent = fmtDistance(s.distance);
-    this.near.textContent = s.nearMisses > 0 ? `Kıl payı: ${s.nearMisses}` : '';
-    this.combo.textContent = s.combo > 1 ? `KOMBO x${s.multiplier.toFixed(2).replace(/\.?0+$/, '')}` : '';
+    this.near.textContent = s.nearMisses > 0 ? `${s.nearMisses} kıl payı` : '';
+    this.combo.textContent = s.combo > 1 ? `KOMBO x${s.multiplier.toFixed(2).replace(/\.?0+$/, '').replace('.', ',')}` : '';
     this.combo.classList.toggle('on', s.combo > 1);
     if (s.timeLeft !== null) {
       this.timer.textContent = fmtTime(s.timeLeft);
       this.timer.classList.toggle('warn', s.timeLeft < 10);
     } else this.timer.textContent = '';
-    this.best.textContent = s.best > 0 ? `Rekor ${fmtInt(s.best)}` : '';
+    this.best.textContent = s.best > 0 ? `REKOR ${fmtInt(s.best)}` : '';
     this.setChip('opp', 'TERS YÖN x2', s.opposite, 'red');
     this.setChip('wheelie', 'WHEELIE', s.wheelie, 'gold');
     this.setChip('draft', 'RÜZGAR TÜNELİ', s.draft, 'blue');

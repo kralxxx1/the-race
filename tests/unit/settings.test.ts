@@ -6,7 +6,7 @@ describe('settings registry', () => {
     const keys = SETTINGS.list().map((d) => d.key);
     expect(new Set(keys).size).toBe(keys.length);
     for (const d of SETTINGS.list()) {
-      expect(d.key).toMatch(/^[a-z]+\.[A-Za-z0-9]+$/);
+      expect(d.key).toMatch(/^[a-z0-9]+\.[A-Za-z0-9]+$/);
       expect(sanitizeValue(d, d.default)).toBe(d.default);
       for (const p of QUALITY_PRESETS) {
         const v = d.presets?.[p];

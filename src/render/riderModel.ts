@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import type { BikeStyle, Livery } from '../data/bikes';
+import { VISOR_TINTS, type RiderGear } from '../data/riderGear';
+import { helmetTexture, suitTexture } from './gearTextures';
 import { clamp, damp, lerp, smoothstep } from '../core/math';
 import type { BikeModel } from './bikeModel';
 import { buildGlove, type GloveParts } from './fpv/hands';
@@ -144,16 +146,49 @@ export class RiderModel {
   private clutchS = 0;
   private brakeS = 0;
 
+  /** Textures and materials created for a customised look (disposed with the model). */
+  private owned: { dispose(): void }[] = [];
+
+  /**
+   * @param gear the player's own helmet / leathers / gloves; when absent or `follow` is set the
+   * colours come from the bike's livery.
+   */
   constructor(
     mats: Materials,
     livery: Livery,
     readonly style: BikeStyle,
+    gear: RiderGear | null = null,
   ) {
-    const [c1, c2] = livery.suit;
-    const suit = mats.suit(c1);
-    const suit2 = mats.suit(c2);
-    const glove = mats.leather('#141516');
-    const boot = mats.leather('#18191b');
+    const custom = gear && !gear.follow ? gear : null;
+    const [c1, c2] = custom ? [custom.helmet.base, custom.helmet.accent] : livery.suit;
+    let suit: THREE.Material = mats.suit(custom ? custom.suit.base : c1);
+    let suit2: THREE.Material = mats.suit(custom ? (custom.suit.design === 'panels' || custom.suit.design === 'split' ? custom.suit.accent : custom.suit.base) : c2);
+    let helmetBase: THREE.Material = mats.helmet(c1);
+    let visorMat: THREE.Material = mats.visor();
+    if (custom) {
+      const st = suitTexture(custom.suit.design, custom.suit.base, custom.suit.accent);
+      if (st) {
+        suit = new THREE.MeshPhysicalMaterial({ map: st, roughness: 0.42, metalness: 0.05, sheen: 0.4, sheenColor: new THREE.Color('#ffffff') });
+        this.owned.push(st, suit);
+      }
+      const ht = helmetTexture(custom.helmet.design, custom.helmet.base, custom.helmet.accent);
+      if (ht) {
+        helmetBase = new THREE.MeshPhysicalMaterial({ map: ht, roughness: 0.25, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.04 });
+        this.owned.push(ht, helmetBase);
+      }
+      const tint = VISOR_TINTS.find((t) => t.id === custom.helmet.visor);
+      const vm = (mats.visor() as THREE.MeshPhysicalMaterial).clone();
+      vm.color.set(tint?.color ?? '#0b0d12');
+      if (custom.helmet.visor === 'clear') {
+        vm.transparent = true;
+        vm.opacity = 0.35;
+        vm.metalness = 0.1;
+      }
+      visorMat = vm;
+      this.owned.push(vm);
+    }
+    const glove = mats.leather(custom ? custom.gloves.base : '#141516');
+    const boot = mats.leather(custom ? custom.boots : '#18191b');
     const capsule = (r: number, len: number, mat: THREE.Material) => {
       const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(0.001, len - 2 * r), 6, 12), mat);
       m.castShadow = true;
@@ -190,12 +225,14 @@ export class RiderModel {
     // Helmet
     this.headGroup = new THREE.Group();
     const helmetMat = mats.helmet(c1);
-    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.145, 24, 18), helmetMat);
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.145, 24, 18), helmetBase);
     shell.scale.set(0.95, 1.0, 1.12);
     shell.castShadow = true;
     const stripeH = new THREE.Mesh(new THREE.SphereGeometry(0.1465, 24, 18, Math.PI * 0.42, Math.PI * 0.16, 0, Math.PI * 0.75), mats.helmet(c2));
     stripeH.scale.copy(shell.scale);
-    const visor = new THREE.Mesh(new THREE.SphereGeometry(0.149, 24, 12, Math.PI * 0.63, Math.PI * 0.74, Math.PI * 0.32, Math.PI * 0.28), mats.visor());
+    // A customised helmet paints its own design into the shell texture.
+    stripeH.visible = !custom;
+    const visor = new THREE.Mesh(new THREE.SphereGeometry(0.149, 24, 12, Math.PI * 0.63, Math.PI * 0.74, Math.PI * 0.32, Math.PI * 0.28), visorMat);
     visor.scale.copy(shell.scale);
     const chin = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.12, 4, 10), helmetMat);
     chin.rotation.z = Math.PI / 2;
@@ -234,8 +271,8 @@ export class RiderModel {
     this.root.add(pelvisHolder, this.torso, this.headGroup);
     for (const l of [this.armL, this.armR, this.legL, this.legR]) this.root.add(l.upper, l.lower, l.end, l.joint);
     // Detailed gloves replace the box hands (the IK still ends at the wrist).
-    this.gloveR = buildGlove(mats, c2, '#141516');
-    this.gloveL = buildGlove(mats, c2, '#141516');
+    this.gloveR = buildGlove(mats, custom ? custom.gloves.accent : c2, custom ? custom.gloves.base : '#141516');
+    this.gloveL = buildGlove(mats, custom ? custom.gloves.accent : c2, custom ? custom.gloves.base : '#141516');
     this.gloveL.group.scale.x = -1;
     this.armL.end.visible = false;
     this.armR.end.visible = false;
@@ -348,6 +385,8 @@ export class RiderModel {
 
   dispose(): void {
     for (const g of [this.gloveR, this.gloveL]) for (const geo of g.geometries) geo.dispose();
+    for (const o of this.owned) o.dispose();
+    this.owned = [];
   }
 
   /** Place limb meshes from solved joint positions. */

@@ -1,4 +1,4 @@
-import { ACHIEVEMENTS } from '../data/achievements';
+import { ACHIEVEMENTS, type AchMetric, type AchievementDef } from '../data/achievements';
 import { BIKE_BY_ID } from '../data/bikes';
 import { MAPS, MAP_BY_ID, type MapId } from '../data/maps';
 import { FREE_MODE_IDS, MODE_BY_ID, type FreeModeId } from '../data/modes';
@@ -10,21 +10,33 @@ import { boardKey } from '../game/leaderboard';
 import { fmtClock, fmtKm } from '../game/missions';
 import { levelForXp } from '../game/progression';
 import { STAT_KEYS, type StatBlock } from '../game/stats';
-import type { SaveManager } from '../storage/save';
-import { levelBar } from './careerScreen';
-import { clear, fmtInt, fmtMoney, h } from './dom';
-import './gameplay.css';
+import { btn, header, type ProgressTab, type UiCtx } from './ctx';
+import { fmtInt, fmtMoney, h, rerender } from './dom';
+import { icon } from './icons';
+import { mapArt } from './mapArt';
+import { bar, cashChip, levelBar, statTile } from './widgets';
+import './progress.css';
 
-export type ProgressTab = 'achievements' | 'stats' | 'leaderboards' | 'daily';
+export type { ProgressTab } from './ctx';
 
-export interface ProgressActions {
-  back(): void;
-  claimDaily(): void;
-  click(): void;
-}
-
-const TAB_LABEL: Record<ProgressTab, string> = { achievements: 'Başarımlar', stats: 'İstatistikler', leaderboards: 'Skor Tablosu', daily: 'Günlük Ödül' };
+const TAB_LABEL: Record<ProgressTab, string> = { achievements: 'Başarımlar', stats: 'İstatistikler', leaderboards: 'Liderlik', daily: 'Günlük Ödül' };
 const TAB_TESTID: Record<ProgressTab, string> = { achievements: 'ach', stats: 'stats', leaderboards: 'lb', daily: 'daily' };
+const TAB_ICON: Record<ProgressTab, string> = { achievements: 'trophy', stats: 'chart', leaderboards: 'podium', daily: 'gift' };
+
+type AchCat = 'all' | 'road' | 'skill' | 'traffic' | 'world' | 'career';
+const CAT_LABEL: Record<AchCat, string> = { all: 'Tümü', road: 'Yol', skill: 'Hız ve Beceri', traffic: 'Trafik', world: 'Hava ve Zaman', career: 'Kariyer' };
+const METRIC_CAT: Record<AchMetric, Exclude<AchCat, 'all'>> = {
+  distance: 'road', rideTime: 'road', runDistance: 'road', mapsVisited: 'road',
+  topSpeed: 'skill', wheelieDistance: 'skill', longestWheelie: 'skill', maxCombo: 'skill',
+  nearMisses: 'traffic', overtakes: 'traffic', oppositeDistance: 'traffic', crashes: 'traffic',
+  nightDistance: 'world', rainDistance: 'world', snowDistance: 'world', fogDistance: 'world',
+  missions: 'career', stars: 'career', level: 'career', dailyStreak: 'career', bikesOwned: 'career',
+};
+const METRIC_ICON: Record<AchMetric, string> = {
+  distance: 'route', rideTime: 'clock', runDistance: 'route', mapsVisited: 'globe', topSpeed: 'speed', wheelieDistance: 'bike', longestWheelie: 'bike', maxCombo: 'fire',
+  nearMisses: 'bolt', overtakes: 'car', oppositeDistance: 'twoway', crashes: 'warn', nightDistance: 'moon', rainDistance: 'rain', snowDistance: 'snow', fogDistance: 'fog',
+  missions: 'career', stars: 'star', level: 'bolt', dailyStreak: 'calendar', bikesOwned: 'garage',
+};
 
 const STAT_LABEL: Record<keyof StatBlock, string> = {
   runs: 'Sürüş',
@@ -77,70 +89,112 @@ function fmtAchValue(metric: string, v: number): string {
   return fmtInt(v);
 }
 
+/** Achievements, statistics, leaderboards and the daily reward, as tabs of one screen. */
 export class ProgressScreens {
   tab: ProgressTab = 'achievements';
   private achFilter: 'all' | 'open' | 'locked' = 'all';
+  private achCat: AchCat = 'all';
   private statsScope: 'lifetime' | 'bikes' | 'maps' = 'lifetime';
   private lbMode: FreeModeId = 'endless';
   private lbMap: MapId = 'highway';
+  private host: HTMLElement | null = null;
 
-  constructor(private save: SaveManager) {}
+  constructor(private ctx: UiCtx) {}
 
-  render(p: HTMLElement, a: ProgressActions, rerender: () => void): void {
-    clear(p);
-    const d = this.save.data;
-    const tabs = h('div', { class: 'tabs' },
+  private redo(): void {
+    if (this.host) rerender(this.host, () => this.build(this.host as HTMLElement));
+  }
+
+  render(host: HTMLElement): void {
+    this.host = host;
+    this.build(host);
+  }
+
+  private build(host: HTMLElement): void {
+    const d = this.ctx.save.data;
+    const tabs = h('div', { class: 'tabs prog-tabs', 'data-tabs': '', role: 'tablist' },
       (Object.keys(TAB_LABEL) as ProgressTab[]).map((t) =>
-        h('button', { class: t === this.tab ? 'sel' : '', 'data-testid': `${TAB_TESTID[t]}-tab`, onclick: () => { a.click(); this.tab = t; rerender(); } }, TAB_LABEL[t]),
+        h('button', { class: t === this.tab ? 'sel' : '', type: 'button', role: 'tab', 'aria-selected': t === this.tab ? 'true' : 'false', 'data-testid': `${TAB_TESTID[t]}-tab`, 'data-nid': `ptab-${t}`, onclick: () => {
+          this.tab = t;
+          this.redo();
+        } }, icon(TAB_ICON[t], 18), TAB_LABEL[t]),
       ),
     );
     let body: HTMLElement;
     switch (this.tab) {
-      case 'achievements':
-        body = this.achievements(a, rerender);
-        break;
-      case 'stats':
-        body = this.stats(a, rerender);
-        break;
-      case 'leaderboards':
-        body = this.leaderboards(a, rerender);
-        break;
-      case 'daily':
-        body = this.daily(a);
-        break;
+      case 'achievements': body = this.achievements(); break;
+      case 'stats': body = this.stats(); break;
+      case 'leaderboards': body = this.leaderboards(); break;
+      case 'daily': body = this.daily(); break;
     }
-    p.append(
-      h('div', { class: 'header' },
-        h('button', { class: 'btn ghost', 'data-testid': 'progress-back', onclick: () => { a.click(); a.back(); } }, '‹ GERİ'),
-        h('div', { class: 'title' }, TAB_LABEL[this.tab].toLocaleUpperCase('tr-TR')),
-        h('div', { class: 'cash' }, fmtMoney(d.cash)),
+    host.append(
+      header(this.ctx, { title: TAB_LABEL[this.tab].toLocaleUpperCase('tr-TR'), icon: TAB_ICON[this.tab], backTestid: 'progress-back', right: [cashChip(d.cash)] }),
+      h('div', { class: 'scroll prog-body', 'data-keep': 'progress' },
+        h('div', { class: 'prog-inner' }, h('div', { class: 'prog-top glass' }, levelBar(d.xp, 'progress-level'), tabs), body),
       ),
-      h('div', { class: 'scroll gp-progress' }, levelBar(d.xp, 'progress-level'), tabs, body),
     );
   }
 
-  private achievements(a: ProgressActions, rerender: () => void): HTMLElement {
-    const d = this.save.data;
+  private seg<T extends string>(items: readonly [T, string][], cur: T, set: (v: T) => void, testPrefix: string): HTMLElement {
+    return h('div', { class: 'seg', role: 'group' }, items.map(([k, l]) =>
+      h('button', { class: k === cur ? 'sel' : '', type: 'button', 'aria-pressed': k === cur ? 'true' : 'false', 'data-testid': `${testPrefix}-${k}`, 'data-nid': `${testPrefix}-${k}`, onclick: () => {
+        set(k);
+        this.redo();
+      } }, l),
+    ));
+  }
+
+  // ───────────────────────────── achievements ─────────────────────────────
+  private achievements(): HTMLElement {
+    const d = this.ctx.save.data;
     const ctx = achContext(d);
     const total = ACHIEVEMENTS.length;
     const got = unlockedCount(d.achievements);
     const filters: ['all' | 'open' | 'locked', string][] = [['all', 'Tümü'], ['open', 'Açılanlar'], ['locked', 'Kilitliler']];
-    const list = ACHIEVEMENTS.filter((x) => this.achFilter === 'all' || (this.achFilter === 'open') === x.id in d.achievements);
+    const inCat = (x: AchievementDef) => this.achCat === 'all' || METRIC_CAT[x.metric] === this.achCat;
+    const catCount = (c: AchCat) => ACHIEVEMENTS.filter((x) => c === 'all' || METRIC_CAT[x.metric] === c).length;
+    const list = ACHIEVEMENTS.filter((x) => inCat(x) && (this.achFilter === 'all' || (this.achFilter === 'open') === x.id in d.achievements));
+    // Within a family show tiers in order; nearly-finished locked ones first.
+    list.sort((p, q) => {
+      const pd = p.id in d.achievements;
+      const qd = q.id in d.achievements;
+      if (pd !== qd && this.achFilter === 'all') return pd ? 1 : -1;
+      return pd ? p.group.localeCompare(q.group) || p.tier - q.tier : achievementProgress(q, ctx) - achievementProgress(p, ctx);
+    });
+    const cash = ACHIEVEMENTS.filter((x) => x.id in d.achievements).reduce((s, x) => s + x.reward.cash, 0);
     return h('div', { 'data-testid': 'ach-screen' },
-      h('div', { class: 'gp-summary' }, h('b', { 'data-testid': 'ach-count' }, `${got} / ${total}`), h('span', {}, 'başarım açıldı')),
-      h('div', { class: 'seg' }, filters.map(([k, l]) => h('button', { class: k === this.achFilter ? 'sel' : '', 'data-testid': `ach-filter-${k}`, onclick: () => { a.click(); this.achFilter = k; rerender(); } }, l))),
-      h('div', { class: 'gp-grid' },
+      h('div', { class: 'ach-summary glass' },
+        h('div', { class: 'ach-ring', style: `--p:${((got / total) * 100).toFixed(1)}` }, h('b', { 'data-testid': 'ach-count' }, `${got} / ${total}`), h('small', {}, 'başarım')),
+        h('div', { class: 'ach-sum-main' },
+          bar(got / total, 'thick'),
+          h('div', { class: 'ach-sum-line' }, h('span', {}, `%${Math.round((got / total) * 100)} tamamlandı`), h('span', {}, `Kazanılan ödül: ${fmtMoney(cash)}`)),
+        ),
+      ),
+      h('div', { class: 'prog-filters' },
+        this.seg(filters, this.achFilter, (v) => (this.achFilter = v), 'ach-filter'),
+        h('div', { class: 'chip-row', role: 'group', 'aria-label': 'Kategori' },
+          (Object.keys(CAT_LABEL) as AchCat[]).map((c) => h('button', { class: `chip ${c === this.achCat ? 'sel' : ''}`, type: 'button', 'data-testid': `ach-cat-${c}`, 'data-nid': `ach-cat-${c}`, onclick: () => {
+            this.achCat = c;
+            this.redo();
+          } }, `${CAT_LABEL[c]} · ${catCount(c)}`)),
+        ),
+      ),
+      h('div', { class: 'ach-grid' },
+        list.length === 0 ? h('div', { class: 'empty' }, icon('trophy', 28), h('b', {}, 'Bu filtrede başarım yok')) : null,
         list.map((x) => {
           const done = x.id in d.achievements;
           const prog = done ? 1 : achievementProgress(x, ctx);
           const v = Math.min(metricValue(x.metric, ctx), x.target);
-          return h('div', { class: `card gp-ach ${done ? 'done' : ''}`, 'data-testid': `ach-${x.id}`, 'data-unlocked': done ? '1' : '0' },
-            h('div', { class: 'card-title' }, `${done ? '🏆' : '🔒'} ${x.title}`),
-            h('div', { class: 'card-desc' }, x.description),
-            h('div', { class: 'gp-bar' }, h('div', { class: 'gp-bar-fill', style: `width:${(prog * 100).toFixed(1)}%` })),
-            h('div', { class: 'gp-ach-foot' },
-              h('span', {}, done ? 'Tamamlandı' : `${fmtAchValue(x.metric, v)} / ${fmtAchValue(x.metric, x.target)}`),
-              h('span', { class: 'card-foot' }, `${fmtMoney(x.reward.cash)}${x.reward.xp ? ` · ${x.reward.xp} XP` : ''}`),
+          return h('div', { class: `ach ${done ? 'done' : ''}`, 'data-testid': `ach-${x.id}`, 'data-unlocked': done ? '1' : '0' },
+            h('div', { class: 'ach-ico' }, icon(done ? METRIC_ICON[x.metric] : 'lock', 24)),
+            h('div', { class: 'ach-main' },
+              h('div', { class: 'ach-title' }, x.title, h('span', { class: 'ach-tier', title: `Kademe ${x.tier}` }, '★'.repeat(Math.min(5, x.tier)))),
+              h('div', { class: 'ach-desc' }, x.description),
+              bar(prog, done ? 'good thin' : 'thin'),
+              h('div', { class: 'ach-foot' },
+                h('span', {}, done ? 'Tamamlandı' : `${fmtAchValue(x.metric, v)} / ${fmtAchValue(x.metric, x.target)}`),
+                h('span', { class: 'ach-reward' }, `${fmtMoney(x.reward.cash)}${x.reward.xp ? ` · ${x.reward.xp} XP` : ''}`),
+              ),
             ),
           );
         }),
@@ -148,78 +202,81 @@ export class ProgressScreens {
     );
   }
 
-  private stats(a: ProgressActions, rerender: () => void): HTMLElement {
-    const d = this.save.data;
+  // ───────────────────────────── statistics ─────────────────────────────
+  private stats(): HTMLElement {
+    const d = this.ctx.save.data;
     const scopes: ['lifetime' | 'bikes' | 'maps', string][] = [['lifetime', 'Genel'], ['bikes', 'Motorlar'], ['maps', 'Haritalar']];
-    const table = (b: StatBlock, keys: readonly (keyof StatBlock)[]) =>
-      h('div', { class: 'gp-stat-grid' }, keys.map((k) => h('div', { class: 'go-cell', 'data-testid': `stats-${k}` }, h('b', {}, fmtStat(k, b[k])), h('span', {}, STAT_LABEL[k]))));
+    const STAT_ICON: Partial<Record<keyof StatBlock, string>> = { runs: 'play', distance: 'route', rideTime: 'clock', crashes: 'warn', nearMisses: 'bolt', overtakes: 'car', topSpeed: 'speed', longestWheelie: 'bike', wheelieDistance: 'bike', oppositeDistance: 'twoway', maxCombo: 'fire', bestScore: 'trophy', bestDistance: 'route', nightDistance: 'moon', rainDistance: 'rain', fogDistance: 'fog', snowDistance: 'snow', missionsCompleted: 'career' };
+    const tiles = (b: StatBlock, keys: readonly (keyof StatBlock)[]) =>
+      h('div', { class: 'stat-grid' }, keys.map((k) => statTile(fmtStat(k, b[k]), STAT_LABEL[k], STAT_ICON[k], `stats-${k}`)));
     let content: (HTMLElement | null)[];
     if (this.statsScope === 'lifetime') {
       content = [
-        table(d.stats.lifetime, STAT_KEYS),
+        tiles(d.stats.lifetime, STAT_KEYS),
         h('div', { class: 'section-title' }, 'Kariyer ve ilerleme'),
-        h('div', { class: 'gp-stat-grid' },
-          h('div', { class: 'go-cell' }, h('b', {}, String(levelForXp(d.xp))), h('span', {}, 'Seviye')),
-          h('div', { class: 'go-cell' }, h('b', {}, fmtInt(d.xp)), h('span', {}, 'Toplam XP')),
-          h('div', { class: 'go-cell' }, h('b', {}, `${completedCount(d.career)} / 80`), h('span', {}, 'Görev')),
-          h('div', { class: 'go-cell' }, h('b', {}, `${totalStars(d.career)} / ${MAX_STARS}`), h('span', {}, 'Yıldız')),
-          h('div', { class: 'go-cell' }, h('b', {}, String(d.ownedBikes.length)), h('span', {}, 'Motosiklet')),
-          h('div', { class: 'go-cell' }, h('b', {}, `${unlockedCount(d.achievements)}`), h('span', {}, 'Başarım')),
+        h('div', { class: 'stat-grid' },
+          statTile(String(levelForXp(d.xp)), 'Seviye', 'bolt'),
+          statTile(fmtInt(d.xp), 'Toplam XP', 'sparkle'),
+          statTile(`${completedCount(d.career)} / 80`, 'Görev', 'career'),
+          statTile(`${totalStars(d.career)} / ${MAX_STARS}`, 'Yıldız', 'star'),
+          statTile(String(d.ownedBikes.length), 'Motosiklet', 'garage'),
+          statTile(`${unlockedCount(d.achievements)}`, 'Başarım', 'trophy'),
         ),
         h('div', { class: 'section-title' }, 'En iyi skorlar (mod × harita)'),
         this.bestScoreTable(),
       ];
     } else if (this.statsScope === 'bikes') {
-      const ids = Object.keys(d.stats.bikes).sort((x, y) => d.stats.bikes[y].distance - d.stats.bikes[x].distance);
+      const ids = Object.keys(d.stats.bikes).filter((id) => BIKE_BY_ID.has(id)).sort((x, y) => d.stats.bikes[y].distance - d.stats.bikes[x].distance);
       content = ids.length
         ? ids.map((id) => {
             const b = BIKE_BY_ID.get(id)!;
-            return h('div', { class: 'gp-stat-block', 'data-testid': `stats-bike-${id}` }, h('div', { class: 'section-title' }, `${b.brand} ${b.model}`), table(d.stats.bikes[id], ['runs', 'distance', 'rideTime', 'topSpeed', 'nearMisses', 'overtakes', 'crashes', 'bestScore']));
+            return h('div', { class: 'stat-block', 'data-testid': `stats-bike-${id}` }, h('div', { class: 'section-title' }, `${b.brand} ${b.model}`), tiles(d.stats.bikes[id], ['runs', 'distance', 'rideTime', 'topSpeed', 'nearMisses', 'overtakes', 'crashes', 'bestScore']));
           })
-        : [h('div', { class: 'gp-note' }, 'Henüz sürüş kaydı yok.')];
+        : [h('div', { class: 'empty' }, icon('bike', 28), h('b', {}, 'Henüz sürüş kaydı yok'), h('small', {}, 'Bir sürüş yap, motor bazlı istatistikler burada görünür.'))];
     } else {
       content = MAPS.map((m) => {
         const b = d.stats.maps[m.id];
-        return h('div', { class: 'gp-stat-block', 'data-testid': `stats-map-${m.id}` },
-          h('div', { class: 'section-title' }, `${m.name} · ★${totalStars(d.career, m.id)}/30`),
-          b ? table(b, ['runs', 'distance', 'rideTime', 'topSpeed', 'nearMisses', 'overtakes', 'crashes', 'bestScore']) : h('div', { class: 'gp-note' }, 'Bu haritada henüz sürmedin.'),
+        return h('div', { class: 'stat-block map', 'data-testid': `stats-map-${m.id}` },
+          h('div', { class: 'stat-map-head' }, h('span', { class: 'sm-art' }, mapArt(m.id, m.defaultTime, m.defaultWeather)), h('b', {}, m.name), h('small', {}, `★ ${totalStars(d.career, m.id)}/30`)),
+          b ? tiles(b, ['runs', 'distance', 'rideTime', 'topSpeed', 'nearMisses', 'overtakes', 'crashes', 'bestScore']) : h('div', { class: 'note' }, 'Bu haritada henüz sürmedin.'),
         );
       });
     }
-    return h('div', { 'data-testid': 'stats-screen' },
-      h('div', { class: 'seg' }, scopes.map(([k, l]) => h('button', { class: k === this.statsScope ? 'sel' : '', 'data-testid': `stats-scope-${k}`, onclick: () => { a.click(); this.statsScope = k; rerender(); } }, l))),
-      content,
-    );
+    return h('div', { 'data-testid': 'stats-screen' }, this.seg(scopes, this.statsScope, (v) => (this.statsScope = v), 'stats-scope'), content);
   }
 
   private bestScoreTable(): HTMLElement {
-    const lb = this.save.data.leaderboards;
-    return h('div', { class: 'gp-table-wrap' },
-      h('table', { class: 'gp-table', 'data-testid': 'stats-best-table' },
+    const lb = this.ctx.save.data.leaderboards;
+    return h('div', { class: 'table-wrap glass' },
+      h('table', { class: 'table', 'data-testid': 'stats-best-table' },
         h('thead', {}, h('tr', {}, h('th', {}, 'Harita'), FREE_MODE_IDS.map((m) => h('th', {}, MODE_BY_ID.get(m)!.name)))),
         h('tbody', {}, MAPS.map((map) => h('tr', {}, h('td', {}, map.name), FREE_MODE_IDS.map((m) => h('td', {}, lb[boardKey(m, map.id)]?.[0] ? fmtInt(lb[boardKey(m, map.id)][0].score) : '—'))))),
       ),
     );
   }
 
-  private leaderboards(a: ProgressActions, rerender: () => void): HTMLElement {
-    const board = this.save.data.leaderboards[boardKey(this.lbMode, this.lbMap)] ?? [];
-    const mapSel = h('select', { class: 'select', 'aria-label': 'Harita', 'data-testid': 'lb-map' }, MAPS.map((m) => h('option', { value: m.id, selected: m.id === this.lbMap }, m.name)));
-    mapSel.addEventListener('change', () => {
-      this.lbMap = mapSel.value as MapId;
-      rerender();
-    });
+  // ───────────────────────────── leaderboards ─────────────────────────────
+  private leaderboards(): HTMLElement {
+    const board = this.ctx.save.data.leaderboards[boardKey(this.lbMode, this.lbMap)] ?? [];
+    const modes = FREE_MODE_IDS.map((m) => [m, MODE_BY_ID.get(m)!.name] as [FreeModeId, string]);
+    const mapChips = h('div', { class: 'chip-row lb-maps', role: 'group', 'aria-label': 'Harita' },
+      MAPS.map((m) => h('button', { class: `chip ${m.id === this.lbMap ? 'sel' : ''}`, type: 'button', 'data-testid': `lb-map-${m.id}`, 'data-nid': `lb-map-${m.id}`, onclick: () => {
+        this.lbMap = m.id;
+        this.redo();
+      } }, m.name)),
+    );
+    const medal = (i: number) => (i < 3 ? h('span', { class: `medal m${i + 1}` }, String(i + 1)) : String(i + 1));
     return h('div', { 'data-testid': 'lb-screen' },
-      h('div', { class: 'seg' }, FREE_MODE_IDS.map((m) => h('button', { class: m === this.lbMode ? 'sel' : '', 'data-testid': `lb-mode-${m}`, onclick: () => { a.click(); this.lbMode = m; rerender(); } }, MODE_BY_ID.get(m)!.name))),
-      h('div', { class: 'gp-row' }, mapSel),
+      this.seg(modes, this.lbMode, (v) => (this.lbMode = v), 'lb-mode'),
+      mapChips,
       board.length
-        ? h('div', { class: 'gp-table-wrap' },
-            h('table', { class: 'gp-table', 'data-testid': 'lb-table' },
+        ? h('div', { class: 'table-wrap glass' },
+            h('table', { class: 'table lb', 'data-testid': 'lb-table' },
               h('thead', {}, h('tr', {}, h('th', {}, '#'), h('th', {}, 'Skor'), h('th', {}, 'Mesafe'), h('th', {}, 'Motor'), h('th', {}, 'Tarih'))),
               h('tbody', {}, board.map((e, i) => {
                 const b = BIKE_BY_ID.get(e.bike);
-                return h('tr', { 'data-testid': `lb-row-${i + 1}` },
-                  h('td', {}, String(i + 1)),
+                return h('tr', { class: i < 3 ? 'top' : '', 'data-testid': `lb-row-${i + 1}` },
+                  h('td', {}, medal(i)),
                   h('td', {}, h('b', {}, fmtInt(e.score))),
                   h('td', {}, fmtKm(e.distance)),
                   h('td', {}, b ? b.model : e.bike),
@@ -228,12 +285,14 @@ export class ProgressScreens {
               })),
             ),
           )
-        : h('div', { class: 'gp-note', 'data-testid': 'lb-empty' }, `${MODE_BY_ID.get(this.lbMode)!.name} · ${MAP_BY_ID.get(this.lbMap)!.name}: henüz skor yok.`),
+        : h('div', { class: 'empty', 'data-testid': 'lb-empty' }, icon('podium', 30), h('b', {}, 'Henüz skor yok'), h('small', {}, `${MODE_BY_ID.get(this.lbMode)!.name} · ${MAP_BY_ID.get(this.lbMap)!.name}: bir sürüş yap, ilk sırayı sen al.`)),
     );
   }
 
-  private daily(a: ProgressActions): HTMLElement {
-    const d = this.save.data;
+  // ───────────────────────────── daily reward ─────────────────────────────
+  private daily(): HTMLElement {
+    const { a, save } = this.ctx;
+    const d = save.data;
     const st = dailyStatus(d.daily, new Date());
     const can = st.availability === 'available';
     const streakNow = can ? st.nextStreak - 1 : d.daily.streak;
@@ -243,22 +302,27 @@ export class ProgressScreens {
         ? 'Bugünün ödülünü aldın. Yarın tekrar gel!'
         : 'Cihaz saati son ödül tarihinin gerisinde görünüyor. Ödül, takvim o günü geçince açılır.';
     return h('div', { 'data-testid': 'daily-screen' },
-      h('div', { class: 'gp-summary' }, h('b', { 'data-testid': 'daily-streak' }, `${streakNow} gün`), h('span', {}, 'üst üste seri')),
-      h('div', { class: 'gp-daily' },
+      h('div', { class: 'daily-hero glass' },
+        h('div', { class: 'daily-streak' }, icon('fire', 28), h('b', { 'data-testid': 'daily-streak' }, `${streakNow} gün`), h('small', {}, 'üst üste seri')),
+        h('div', { class: 'daily-msg', 'data-testid': 'daily-status' }, msg),
+        btn(can ? 'ÖDÜLÜ AL' : 'ALINDI', () => {
+          if (can) a.claimDaily();
+        }, `primary big ${can ? '' : 'disabled'}`, 'daily-claim', 'gift'),
+      ),
+      h('div', { class: 'daily-ladder' },
         DAILY_REWARDS.map((r, i) => {
           const dayNo = i + 1;
           const isNext = can && i === st.ladderIndex;
           const done = i < Math.min(streakNow, DAILY_REWARDS.length) && !(can && i >= st.ladderIndex);
-          return h('div', { class: `card gp-day ${isNext ? 'sel' : ''} ${done ? 'done' : ''}`, 'data-testid': `daily-day-${dayNo}` },
-            h('div', { class: 'card-sub' }, `${dayNo}. GÜN${dayNo === DAILY_REWARDS.length ? '+' : ''}`),
-            h('div', { class: 'card-title' }, fmtMoney(r.cash)),
-            h('div', { class: 'card-foot' }, `${r.xp} XP`),
+          return h('div', { class: `day ${isNext ? 'next' : ''} ${done ? 'done' : ''}`, 'data-testid': `daily-day-${dayNo}` },
+            h('small', {}, `${dayNo}. GÜN${dayNo === DAILY_REWARDS.length ? '+' : ''}`),
+            icon(done ? 'check' : dayNo === DAILY_REWARDS.length ? 'trophy' : 'gift', 22),
+            h('b', {}, fmtMoney(r.cash)),
+            h('em', {}, `${r.xp} XP`),
           );
         }),
       ),
-      h('div', { class: 'gp-note', 'data-testid': 'daily-status' }, msg),
-      h('button', { class: `btn primary big ${can ? '' : 'disabled'}`, 'data-testid': 'daily-claim', onclick: () => { a.click(); if (can) a.claimDaily(); } }, can ? 'ÖDÜLÜ AL' : 'ALINDI'),
-      h('div', { class: 'gp-best' }, 'Her gün ödülü al: seri büyüdükçe ödül artar. Bir gün kaçırırsan seri 1. günden başlar.'),
+      h('div', { class: 'muted daily-note' }, 'Her gün ödülü al: seri büyüdükçe ödül artar. Bir gün kaçırırsan seri 1. günden başlar.'),
     );
   }
 }
