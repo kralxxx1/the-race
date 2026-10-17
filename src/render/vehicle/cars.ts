@@ -73,6 +73,10 @@ export interface CarSpec {
   tailTall?: number;
   /** Pickup: distance from the nose where the load bed starts (the cab ends there). */
   bed?: number;
+  /** Van family: no B pillar and no rear seat (the cabin ends at a solid box). */
+  van?: boolean;
+  /** Lamp / plate offsets for tall bodies. */
+  tailW?: number;
 }
 
 /** Everything a variant (taxi, police, pickup bed) needs to dress the shared car body. */
@@ -189,7 +193,7 @@ export function buildCar(b: Build, s: CarSpec, extras?: (c: CarCtx) => void): vo
       const aBase = flank(cabin, zA + 0.06, belt + 0.02);
       b.P(rod(aBase, roofEdge(zRf), 0.034, 0.03, 7));
       const zb = Z(s.bPillar);
-      b.D(rod(flank(cabin, zb, belt + 0.02), roofEdge(zb), 0.036, 0.034, 7), GLOSS_BLACK, undefined, 0.2, 0.35);
+      if (!s.van) b.D(rod(flank(cabin, zb, belt + 0.02), roofEdge(zb), 0.036, 0.034, 7), GLOSS_BLACK, undefined, 0.2, 0.35);
       const cBase = flank(cabin, zB - 0.05, belt + 0.02);
       b.P(rod(cBase, roofEdge(zRr), s.hatch ? 0.06 : 0.05, 0.042, 7));
       // Belt moulding along the base of the side glass, window frame chrome above it.
@@ -234,9 +238,9 @@ export function buildCar(b: Build, s: CarSpec, extras?: (c: CarCtx) => void): vo
   if (extras) extras(ctx);
   if (lod === 0) {
     // Third brake light and exhaust.
-    const zr3 = Z(s.rearBase) - (s.hatch ? 0.14 : 0.12);
-    const y3 = s.hatch ? s.roof - 0.12 : s.belt + 0.08;
-    b.L2(chamferBox(0.5, 0.022, 0.015, 0.008), LAMP.tail, '#d01a10', mat(0, y3, zr3, -0.65));
+    const zr3 = s.van ? rz - 0.03 : Z(s.rearBase) - (s.hatch ? 0.14 : 0.12);
+    const y3 = s.van ? s.roof - 0.1 : s.hatch ? s.roof - 0.12 : s.belt + 0.08;
+    b.L2(chamferBox(0.5, 0.022, 0.015, 0.008), LAMP.tail, '#d01a10', mat(0, y3, zr3, s.van ? 0 : -0.65));
     b.set.tailGlow.push(new THREE.Vector3(0, y3, zr3));
     b.sym(() => tailpipe(b, W * 0.3, yb(L - 0.05) + 0.06, rz - 0.04));
   }
@@ -264,10 +268,12 @@ export function buildCar(b: Build, s: CarSpec, extras?: (c: CarCtx) => void): vo
     }
     occupant(b, -W * 0.2, deckY + 0.3, sf - 0.1, '#2a303a');
     occupant(b, W * 0.2, deckY + 0.3, sf - 0.1, '#4b4f57');
-    const sr = Z(s.seatR);
-    seatBlock(b, W * 0.72, 0.36, 0.11, 0, deckY - 0.02, sr, -0.2);
-    for (const hx of [-0.3, 0, 0.3]) seatBlock(b, 0.16, 0.12, 0.08, hx, deckY + 0.24, sr, -0.2, '#2a2b2e');
-    b.D(new THREE.BoxGeometry(W * 0.7, 0.025, 0.3), '#1a1b1e', mat(0, deckY + 0.03, Z(s.rearBase - 0.22)), 0, 0.9);
+    if (!s.van) {
+      const sr = Z(s.seatR);
+      seatBlock(b, W * 0.72, 0.36, 0.11, 0, deckY - 0.02, sr, -0.2);
+      for (const hx of [-0.3, 0, 0.3]) seatBlock(b, 0.16, 0.12, 0.08, hx, deckY + 0.24, sr, -0.2, '#2a2b2e');
+      b.D(new THREE.BoxGeometry(W * 0.7, 0.025, 0.3), '#1a1b1e', mat(0, deckY + 0.03, Z(s.rearBase - 0.22)), 0, 0.9);
+    }
   }
 }
 

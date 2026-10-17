@@ -1,5 +1,7 @@
 import type { VehicleKind } from '../../data/vehicles';
 import { Build, type VehicleGeometrySet } from './build';
+import { AMBULANCE, MINIBUS, VAN, ambulanceExtras, vanExtras } from './vans';
+import { CITY_BUS, COACH, buildBus, buildSemi, buildTanker, buildTruck } from './heavy';
 import { HATCH, PICKUP, SEDAN, SUV, buildCar, pickupBed, policeExtras, taxiExtras } from './cars';
 
 type Builder = (b: Build) => void;
@@ -11,6 +13,14 @@ const BUILDERS: Partial<Record<VehicleKind, Builder>> = {
   hatch: (b) => buildCar(b, HATCH),
   suv: (b) => buildCar(b, SUV),
   pickup: (b) => buildCar(b, PICKUP, pickupBed),
+  van: (b) => buildCar(b, VAN, (c) => vanExtras(c)),
+  minibus: (b) => buildCar(b, MINIBUS, (c) => vanExtras(c, 'band')),
+  ambulance: (b) => buildCar(b, AMBULANCE, ambulanceExtras),
+  truck: buildTruck,
+  semi: buildSemi,
+  tanker: buildTanker,
+  bus: (b) => buildBus(b, CITY_BUS),
+  coach: (b) => buildBus(b, COACH),
 };
 
 const cache = new Map<VehicleKind, VehicleGeometrySet>();
