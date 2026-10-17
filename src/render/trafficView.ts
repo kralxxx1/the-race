@@ -22,7 +22,6 @@ const _e = new THREE.Euler();
 const _s = new THREE.Vector3();
 const _one = new THREE.Vector3(1, 1, 1);
 const _t = new THREE.Vector3();
-const _c = new THREE.Color();
 const AXIS_X = new THREE.Vector3(1, 0, 0);
 const AXIS_Y = new THREE.Vector3(0, 1, 0);
 
@@ -130,6 +129,7 @@ export class TrafficView {
   private poolTex: THREE.Texture | null;
   private cones: THREE.InstancedMesh;
   private bound = new Map<number, TrafficCar>();
+  private colors = new WeakMap<TrafficCar, THREE.Color>();
   private crashed = new Set<CrashVehicle>();
   private time = 0;
   private readonly night: boolean;
@@ -328,6 +328,15 @@ export class TrafficView {
     }
   }
 
+  private colorOf(car: TrafficCar): THREE.Color {
+    let c = this.colors.get(car);
+    if (!c) {
+      c = new THREE.Color(car.color);
+      this.colors.set(car, c);
+    }
+    return c;
+  }
+
   /** Lamp intensities of a car this frame. */
   private lampState(car: TrafficCar, blink: boolean, beaconPhase: boolean, out: LampState): LampState {
     const night = this.night;
@@ -382,8 +391,7 @@ export class TrafficView {
       const set = vehicleGeometry(car.kind);
       const metal = hash01(car.seed, 1) < 0.58 ? 0.55 + hash01(car.seed, 2) * 0.4 : 0.1;
       const dirt = clamp(this.dirtBias + (hash01(car.seed, 3) - 0.35) * 0.5 + (car.arch.heavy ? 0.15 : 0), 0, 0.85);
-      _c.set(car.color);
-      if (!fleet.bucket(car.kind, lod).push(_m, _c, metal, dirt, Math.floor(hash01(car.seed, 4) * PLATE_ROWS), lamps)) continue;
+      if (!fleet.bucket(car.kind, lod).push(_m, this.colorOf(car), metal, dirt, Math.floor(hash01(car.seed, 4) * PLATE_ROWS), lamps)) continue;
       nCars++;
       if (lod === 0) n0++;
 
@@ -448,11 +456,10 @@ export class TrafficView {
       const car = cv.car;
       const metal = hash01(car.seed, 1) < 0.58 ? 0.55 + hash01(car.seed, 2) * 0.4 : 0.1;
       const dirt = clamp(this.dirtBias + (hash01(car.seed, 3) - 0.35) * 0.5, 0, 0.85);
-      _c.set(car.color);
       const dist = _p.distanceTo(camPos);
       const lod: 0 | 1 = dist < LOD1_DIST ? 0 : 1;
       cv.lamps.aux = this.night ? 3 : 0;
-      fleet.bucket(car.kind, lod).push(mw, _c, metal, dirt, Math.floor(hash01(car.seed, 4) * PLATE_ROWS), cv.lamps);
+      fleet.bucket(car.kind, lod).push(mw, this.colorOf(car), metal, dirt, Math.floor(hash01(car.seed, 4) * PLATE_ROWS), cv.lamps);
       for (let i = 0; i < cv.wheels.length; i++) {
         const w = cv.set.wheels[i];
         cv.wheels[i].updateMatrixWorld(true);

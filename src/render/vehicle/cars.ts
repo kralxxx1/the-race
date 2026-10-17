@@ -301,7 +301,7 @@ function frontFace(b: Build, s: CarSpec, nz: number, W: number, yb: (d: number) 
     b.D(chamferBox(W * 0.48, 0.022, 0.06, 0.008), CHROME, inFrame(gf, 0, -0.085, 0.02), 1, 0.2);
     for (let k = -3; k <= 3; k++) b.D(chamferBox(0.006, 0.12, 0.04, 0.002), '#1c1d20', inFrame(gf, k * W * 0.06, 0, 0.034), 0.6, 0.4);
     b.D(new THREE.CylinderGeometry(0.036, 0.036, 0.012, 14), CHROME, inFrame(gf, 0, 0, 0.044, Math.PI / 2), 1, 0.2);
-    b.D(chamferBox(W * 0.7, 0.09, 0.05, 0.03), BLACK, inFrame(gf, 0, -0.27, 0.0), 0, 0.8);
+    b.D(chamferBox(W * 0.66, 0.08, 0.04, 0.03), BLACK, inFrame(gf, 0, -0.27, -0.02), 0, 0.8);
     seam(b, s.grilleY - 0.16, nz, W * 0.42, -1);
   }
   b.sym(() => {

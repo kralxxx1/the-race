@@ -95,7 +95,7 @@ export function lampMaterial(): THREE.MeshStandardMaterial {
       '  int lci = int(lampCh + 0.5);\n  vLamp = lci < 4 ? aLampA[lci] : aLampB[lci - 4];',
       'varying float vLamp;',
       // An unlit lens is dark tinted plastic; a lit one glows in its own colour (the diffuse tint is vertex colour).
-      ['#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb *= 0.3;'],
+      ['#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb *= 0.16;'],
       ['#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += vColor.rgb * vLamp;'],
     );
   m.customProgramCacheKey = () => 'vehicle-lamp';

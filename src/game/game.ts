@@ -936,6 +936,11 @@ export class Game {
         }
         return best;
       },
+      /** Active slowdown zones (police stop / roadworks) with their distance ahead of the rider. */
+      trafficZones: () => {
+        const s = game.session;
+        return s ? s.traffic.zones.map((z) => ({ kind: z.kind, ds: z.blocker.s - s.bike.s, lane: z.lane, cones: z.cones.length })) : [];
+      },
       crash: () => game.session?.bike.crash('traffic'),
       pause: () => game.pause(),
       resume: () => game.resume(),

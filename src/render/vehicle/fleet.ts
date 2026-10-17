@@ -140,30 +140,34 @@ export class Bucket {
   }
 }
 
+/**
+ * Instances per model and LOD. Generous on purpose: a bucket that is full silently hides a car that still
+ * collides, and the buffers are tiny (about 150 bytes per instance).
+ */
 const CAPACITY: Record<VehicleKind, number> = {
-  sedan: 64,
-  hatch: 56,
-  suv: 48,
-  pickup: 24,
-  van: 28,
-  minibus: 20,
-  truck: 20,
-  semi: 20,
-  tanker: 14,
-  bus: 16,
-  coach: 16,
-  taxi: 28,
-  police: 12,
-  ambulance: 8,
+  sedan: 120,
+  hatch: 120,
+  suv: 120,
+  pickup: 96,
+  van: 96,
+  minibus: 96,
+  truck: 96,
+  semi: 96,
+  tanker: 96,
+  bus: 96,
+  coach: 96,
+  taxi: 120,
+  police: 64,
+  ambulance: 64,
 };
 
 /** The instanced traffic fleet: one bucket per model and LOD plus shared wheel buckets. */
 export class Fleet {
   readonly group = new THREE.Group();
   readonly mats: FleetMaterials;
-  private buckets = new Map<string, Bucket>();
+  private buckets = new Map<VehicleKind, [Bucket | undefined, Bucket | undefined]>();
   private wheelMeshes = new Map<WheelType, { mesh: THREE.InstancedMesh; n: number }>();
-  private wheelCap = 640;
+  private wheelCap = 1400;
   /** Live statistics for budgets / debugging. */
   stats = { cars: 0, wheels: 0, tris: 0 };
 
@@ -185,11 +189,15 @@ export class Fleet {
   }
 
   bucket(kind: VehicleKind, lod: 0 | 1): Bucket {
-    const key = `${kind}:${lod}`;
-    let b = this.buckets.get(key);
+    let pair = this.buckets.get(kind);
+    if (!pair) {
+      pair = [undefined, undefined];
+      this.buckets.set(kind, pair);
+    }
+    let b = pair[lod];
     if (!b) {
       b = new Bucket(kind, lod, vehicleGeometry(kind).lod[lod], this.mats, CAPACITY[kind], this.group);
-      this.buckets.set(key, b);
+      pair[lod] = b;
     }
     return b;
   }
@@ -202,8 +210,15 @@ export class Fleet {
     }
   }
 
+  private each(fn: (b: Bucket) => void): void {
+    for (const pair of this.buckets.values()) {
+      if (pair[0]) fn(pair[0]);
+      if (pair[1]) fn(pair[1]);
+    }
+  }
+
   begin(): void {
-    for (const b of this.buckets.values()) b.reset();
+    this.each((b) => b.reset());
     for (const w of this.wheelMeshes.values()) w.n = 0;
   }
 
@@ -216,11 +231,11 @@ export class Fleet {
   end(): void {
     let cars = 0;
     let tris = 0;
-    for (const b of this.buckets.values()) {
+    this.each((b) => {
       b.commit();
       cars += b.count;
       tris += b.count * vehicleGeometry(b.kind).lod[b.lod].tris;
-    }
+    });
     let wheels = 0;
     for (const w of this.wheelMeshes.values()) {
       w.mesh.count = w.n;
@@ -234,7 +249,7 @@ export class Fleet {
   }
 
   dispose(): void {
-    for (const b of this.buckets.values()) b.dispose();
+    this.each((b) => b.dispose());
     this.buckets.clear();
     for (const w of this.wheelMeshes.values()) {
       w.mesh.dispose();
