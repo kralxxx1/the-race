@@ -205,22 +205,22 @@ export function buildSingle(ctx: KitContext, o: SingleOpts): Port[] {
   crankcase(ctx, c, { zf: c.z - 0.13, zr: c.z + 0.3, width: 0.19, top: 0.08, bottom: 0.13, f: f.case });
   const b0 = 0.07, b1 = b0 + o.barrelH, h1 = b1 + o.headH;
   // Round-ish finned barrel (square fins with rounded corners) and a slightly larger head
-  finStack(ctx, fr, { d0: b0, d1: b1, w: 0.108, depth: 0.108, n: o.fins, finT: 0.0034, fin: f.block, core: f.block, edge: f.edge, r: 0.026 });
-  finStack(ctx, fr, { d0: b1, d1: h1, w: 0.118, depth: 0.128, n: Math.round(o.fins * 0.55), finT: 0.004, fin: f.block, core: f.block, edge: f.edge, r: 0.03 });
+  finStack(ctx, fr, { d0: b0, d1: b1, w: 0.12, depth: 0.12, n: o.fins, finT: 0.0034, fin: f.block, core: f.block, edge: f.edge, r: 0.026 });
+  finStack(ctx, fr, { d0: b1, d1: h1, w: 0.132, depth: 0.142, n: Math.round(o.fins * 0.55), finT: 0.004, fin: f.block, core: f.block, edge: f.edge, r: 0.03 });
   // Rocker cover: domed, polished edges
-  ctx.add('chassis', roundBox(0.122, 0.044, 0.126, 0.03, 2), f.cam, fr.m(h1 + 0.02));
-  ctx.add('chassis', roundBox(0.1, 0.012, 0.1, 0.03, 1), vary(f.cam, { rough: 0.3 }), fr.m(h1 + 0.045));
+  ctx.add('chassis', roundBox(0.136, 0.046, 0.14, 0.032, 2), f.cam, fr.m(h1 + 0.02));
+  ctx.add('chassis', roundBox(0.11, 0.012, 0.11, 0.03, 1), vary(f.cam, { rough: 0.3 }), fr.m(h1 + 0.046));
   if (o.camText && ctx.micro) {
     const r = ctx.label(o.camText, { color: '#e6e7e9', weight: '800' }, 48);
-    for (const s of [-1, 1]) ctx.decal('chassis', r, 0.016, P(fr.at(h1 + 0.02, 0, s * 0.0615)), [s, 0, 0], P(fr.axis));
+    for (const s of [-1, 1]) ctx.decal('chassis', r, 0.016, P(fr.at(h1 + 0.02, 0, s * 0.0685)), [s, 0, 0], P(fr.axis));
   }
   // Plug cap on top, exhaust port on the front, intake behind
   ctx.add('chassis', lathe([[0, 0], [0.015, 0], [0.015, 0.032], [0.011, 0.038], [0, 0.038]], { segs: ctx.seg(14, 6), axis: 'y', sharp: [1, 2] }), F.texturedBlack, mul(T(...P(fr.at(h1 + 0.05, -0.02))), fr.rot));
-  const pp = fr.at(b1 + o.headH * 0.4, -0.075);
+  const pp = fr.at(b1 + o.headH * 0.4, -0.085);
   const dir = fr.back.clone().multiplyScalar(-0.86).addScaledVector(fr.axis, -0.5).normalize();
   ports.push({ pos: P(pp), dir: P(dir), cyl: 0 });
   ctx.add('chassis', lathe([[0.024, 0], [0.038, 0], [0.038, 0.012], [0.024, 0.012]], { segs: ctx.seg(20, 8), axis: 'z', sharp: true }), vary(F.chrome, { rough: 0.2 }), mul(T(...P(pp)), fr.rot));
-  const ip = fr.at(b1 + o.headH * 0.45, 0.075);
+  const ip = fr.at(b1 + o.headH * 0.45, 0.085);
   ctx.add('chassis', rod(P(ip), [ip.x, ip.y + 0.03, ip.z + 0.13], 0.026, 0.026, ctx.seg(18, 8)), hard('#1b1c1f', 0.35, 0.5, 0.4, Micro.cast));
   // Side covers: round alternator (left), the big clutch / oil-window cover (right)
   roundCover(ctx, [-0.095 - 0.012, c.y + 0.01, c.z - 0.02], 0.075, 0.03, -1, f.cover, f.trim);
