@@ -121,7 +121,7 @@ export class Game {
       if (document.hidden) {
         if (this.state === 'playing') this.pause();
         audio.suspend();
-      } else if (this.state !== 'paused') audio.resume();
+      } else if (!this.runIsPaused()) audio.resume();
     });
     window.addEventListener('error', (e) => this.errors.push(String(e.message)));
   }
@@ -447,6 +447,11 @@ export class Game {
     this.endRun();
     audio.resume();
     this.toMenu();
+  }
+
+  /** A ride is on hold: the pause menu, or the settings opened from it. Audio must stay silent meanwhile. */
+  private runIsPaused(): boolean {
+    return this.state === 'paused' || (this.state === 'settings' && this.session !== null && this.prevScreen === 'paused');
   }
 
   private pause(): void {
