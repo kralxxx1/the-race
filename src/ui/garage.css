@@ -2,8 +2,8 @@
 .panel-garage { background: transparent; }
 .garage-body { gap: 0.9rem; padding: 0 calc(var(--pad) + var(--safe-r)) calc(0.9rem + var(--safe-b)) calc(var(--pad) + var(--safe-l)); align-items: stretch; pointer-events: none; }
 .garage-list, .garage-detail { pointer-events: auto; }
-.garage-list { flex: 0 0 min(370px, 30vw); display: flex; flex-direction: column; min-height: 0; padding: 0.7rem; gap: 0.6rem; }
-.garage-tools { display: flex; flex-direction: column; gap: 0.5rem; }
+.garage-list { flex: 0 0 min(370px, 30vw); width: min(370px, 30vw); min-width: 0; display: flex; flex-direction: column; min-height: 0; padding: 0.7rem; gap: 0.6rem; overflow: hidden; }
+.garage-tools { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; flex: 0 0 auto; }
 .garage-row2 { display: grid; grid-template-columns: 1fr auto; gap: 0.4rem; }
 .sort-box { display: flex; gap: 0.3rem; align-items: center; }
 .sort-box .select { width: 9.5rem; }
@@ -39,7 +39,8 @@
 .viewbar-hint { display: none; width: 100%; justify-content: center; align-items: center; gap: 0.4rem; font-size: 0.68rem; color: var(--muted); }
 @media (min-width: 1100px) { .viewbar-hint { display: flex; } .viewbar { border-radius: 1.2rem; } }
 
-.garage-detail { flex: 0 0 min(410px, 32vw); padding: 1rem 1.1rem 0.4rem; display: flex; flex-direction: column; gap: 0.6rem; min-height: 0; }
+.garage-detail { flex: 0 0 min(410px, 32vw); width: min(410px, 32vw); min-width: 0; max-height: 100%; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.gd-scroll { flex: 1; min-height: 0; padding: 1rem 1.1rem 0.8rem; display: flex; flex-direction: column; gap: 0.6rem; }
 .gd-head { display: flex; flex-direction: column; gap: 0.3rem; }
 .bike-brand { font-size: 0.74rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
 .bike-model { font-size: clamp(1.5rem, 2.8vw, 2.1rem); font-weight: 900; font-style: italic; line-height: 1.05; letter-spacing: 0.01em; }
@@ -70,7 +71,7 @@
 .pips { display: flex; gap: 4px; }
 .pips i { width: 1.4rem; height: 0.4rem; border-radius: 2px; background: rgba(255, 255, 255, 0.15); }
 .pips i.on { background: linear-gradient(90deg, var(--accent), var(--gold)); box-shadow: 0 0 8px rgba(255, 140, 40, 0.5); }
-.gd-actions { position: sticky; bottom: -1px; margin: auto -1.1rem 0; padding: 0.8rem 1.1rem 0.9rem; background: linear-gradient(0deg, rgba(10, 12, 18, 0.98) 70%, rgba(10, 12, 18, 0)); display: flex; flex-direction: column; gap: 0.5rem; z-index: 2; }
+.gd-actions { flex: 0 0 auto; padding: 0.7rem 1.1rem 0.9rem; background: rgba(8, 10, 15, 0.7); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.5rem; }
 .gd-actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 .gd-actions-row .btn small { font-size: 0.6rem; opacity: 0.7; letter-spacing: 0.04em; text-transform: none; }
 .gd-actions .btn.primary { width: 100%; }
@@ -88,13 +89,13 @@
 .compare-pick { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
 .compare-pick .select { flex: 1; min-width: 14rem; }
 .cmp-table { display: flex; flex-direction: column; }
-.cmp-row { display: grid; grid-template-columns: 1fr 7.5rem 1fr; align-items: center; gap: 0.6rem; padding: 0.5rem 0; border-bottom: 1px solid var(--line); }
+.cmp-row { display: grid; grid-template-columns: 1fr 7.5rem 1fr; align-items: center; gap: 0.6rem; padding: 0.28rem 0; border-bottom: 1px solid var(--line); }
 .cmp-row.heads { align-items: end; }
 .cmp-head { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; text-align: center; }
 .cmp-head b { font-style: italic; font-weight: 900; }
 .cmp-head small { color: var(--muted); }
 .cmp-label { text-align: center; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 800; }
-.cmp-cell { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.3rem 0.6rem; border-radius: 0.5rem; font-variant-numeric: tabular-nums; }
+.cmp-cell { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.2rem 0.6rem; border-radius: 0.5rem; font-variant-numeric: tabular-nums; }
 .cmp-cell.a { align-items: flex-end; }
 .cmp-cell.a .bar { align-self: stretch; transform: scaleX(-1); }
 .cmp-cell.win { background: rgba(52, 208, 88, 0.14); }
@@ -117,10 +118,14 @@
   .viewbar .chip span { display: none; }
   .viewbar .chip { padding: 0.4rem 0.55rem; }
   .viewbar .looks { display: none; }
-  .garage-detail { flex: 0 0 auto; max-height: 44vh; padding: 0.8rem 0.9rem 0.3rem; }
+  .garage-detail { flex: 0 0 auto; width: auto; max-height: 46vh; }
+  .gd-scroll { padding: 0.8rem 0.9rem 0.5rem; }
   .bike-model { font-size: 1.4rem; }
   .spec-grid { grid-template-columns: 1fr; }
-  .gd-actions { margin: auto -0.9rem 0; padding: 0.6rem 0.9rem 0.7rem; }
+  .gd-actions { padding: 0.5rem 0.9rem 0.6rem; flex-direction: row; align-items: stretch; }
+  .gd-actions-row { flex: 0 0 auto; }
+  .gd-actions-row .btn small { display: none; }
+  .gd-actions .btn.primary, .gd-actions .tag { flex: 1; }
   .cmp-row { grid-template-columns: 1fr 4.6rem 1fr; }
   .bc-thumb.big { width: 5rem; height: 3.2rem; }
 }
@@ -132,5 +137,5 @@
   .bike-card .bc-thumb { height: 2.9rem; }
   .bike-card .bc-tag { position: static; }
   .garage-mid { display: none; }
-  .garage-detail { flex: 1; max-height: none; }
+  .garage-detail { flex: 1; max-height: none; width: auto; }
 }

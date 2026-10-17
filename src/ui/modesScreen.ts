@@ -5,7 +5,7 @@ import { isCareerMapUnlocked } from '../game/careerProgress';
 import { bestScore } from '../game/leaderboard';
 import { levelForXp } from '../game/progression';
 import { btn, header, type UiCtx } from './ctx';
-import { fmtInt, fmtMoney, h, rerender } from './dom';
+import { fmtInt, h, rerender } from './dom';
 import { icon } from './icons';
 import { mapArt } from './mapArt';
 import { cashChip, chipEl } from './widgets';
@@ -104,9 +104,9 @@ export class ModesScreen {
     });
 
     const chips = <T extends string>(opts: readonly T[], all: readonly T[], labels: Record<T, string>, icons: Record<T, string>, cur: T, prefix: string, set: (v: T) => void) =>
-      h('div', { class: 'chip-row', role: 'group' }, all.map((o) => {
+      h('div', { class: 'chip-row pick', role: 'group' }, all.map((o) => {
         const on = opts.includes(o);
-        return h('button', { class: `chip big ${o === cur ? 'sel' : ''} ${on ? '' : 'off'}`, type: 'button', disabled: !on, 'data-testid': `${prefix}-${o}`, 'data-nid': `${prefix}-${o}`, 'aria-pressed': o === cur ? 'true' : 'false', title: on ? undefined : 'Bu haritada yok', onclick: () => {
+        return h('button', { class: `chip ${o === cur ? 'sel' : ''} ${on ? '' : 'off'}`, type: 'button', disabled: !on, 'data-testid': `${prefix}-${o}`, 'data-nid': `${prefix}-${o}`, 'aria-pressed': o === cur ? 'true' : 'false', title: on ? undefined : 'Bu haritada yok', onclick: () => {
           set(o);
           this.redo();
         } }, icon(icons[o], 18), labels[o]);
@@ -119,11 +119,15 @@ export class ModesScreen {
       h('div', { class: 'summary-art' }, mapArt(this.map, this.time, this.weather), h('span', { class: 'env-tag', style: `background:${map.color}` }, map.region)),
       h('div', { class: 'summary-title' }, h('b', {}, map.name), h('small', {}, `${mode.name}`)),
       h('div', { class: 'chip-row' },
-        chipEl(TIME_LABELS[this.time], TIME_ICON[this.time]),
-        chipEl(WEATHER_LABELS[this.weather], WEATHER_ICON[this.weather]),
         chipEl(mode.layout === 'twoway' ? 'Çift yön' : 'Tek yön', mode.layout === 'twoway' ? 'twoway' : 'road'),
         mode.timer ? chipEl(`${mode.timer.start} sn`, 'timer') : null,
         mode.respawn ? chipEl('Yeniden doğma', 'retry') : null,
+      ),
+      h('div', { class: 'summary-pick' },
+        h('div', { class: 'section-title' }, 'Saat'),
+        chips(map.times, allTimes, TIME_LABELS, TIME_ICON, this.time, 'time', (v) => (this.time = v)),
+        h('div', { class: 'section-title' }, 'Hava durumu'),
+        chips(map.weathers, allWeathers, WEATHER_LABELS, WEATHER_ICON, this.weather, 'weather', (v) => (this.weather = v)),
       ),
       h('div', { class: 'best-matrix', 'data-testid': 'modes-best' },
         h('div', { class: 'section-title' }, 'Bu harita için rekorlar'),
@@ -139,7 +143,7 @@ export class ModesScreen {
         btn('DEĞİŞTİR', () => a.openGarage(), 'small ghost', 'modes-garage'),
       ),
       h('div', { class: 'summary-actions' },
-        btn('Rastgele', () => this.randomise(), 'ghost', 'btn-random', 'dice'),
+        btn('Rastgele', () => this.randomise(), 'ghost sq-ish', 'btn-random', 'dice'),
         btn(['YOLA ÇIK ', icon('right', 18)], () => a.start({ mode: this.mode, map: this.map, time: this.time, weather: this.weather }), 'primary big', 'btn-start'),
       ),
     );
@@ -152,10 +156,6 @@ export class ModesScreen {
           h('div', { class: 'grid-modes' }, modeCards),
           h('div', { class: 'section-title' }, 'Harita'),
           h('div', { class: 'grid-maps' }, mapCards),
-          h('div', { class: 'section-title' }, 'Saat'),
-          chips(map.times, allTimes, TIME_LABELS, TIME_ICON, this.time, 'time', (v) => (this.time = v)),
-          h('div', { class: 'section-title' }, 'Hava durumu'),
-          chips(map.weathers, allWeathers, WEATHER_LABELS, WEATHER_ICON, this.weather, 'weather', (v) => (this.weather = v)),
           h('div', { class: 'modes-pad' }),
         ),
         summary,
@@ -163,7 +163,6 @@ export class ModesScreen {
     );
     this.ctx.nav.shortcuts.alt = () => this.randomise();
     this.ctx.nav.shortcuts.start = () => a.start({ mode: this.mode, map: this.map, time: this.time, weather: this.weather });
-    void fmtMoney;
   }
 
   private randomise(): void {

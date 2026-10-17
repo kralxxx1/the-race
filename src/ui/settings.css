@@ -9,7 +9,7 @@
 .set-tab:hover { background: rgba(255, 255, 255, 0.07); transform: translateX(3px); }
 .set-tab.sel { background: var(--accent); color: #fff; box-shadow: 0 6px 20px rgba(255, 90, 31, 0.3); }
 .set-tab.sel .ico { color: #fff; }
-.set-tab span { flex: 1; }
+.set-tab span { flex: 1; text-align: left; }
 .set-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); flex: 0 0 auto; }
 .set-tab.sel .set-dot { background: #fff; }
 .set-side-foot { margin-top: auto; }

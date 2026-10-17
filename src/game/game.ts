@@ -361,6 +361,7 @@ export class Game {
     this.renderer.applySettings();
     applyUiSettings(s);
     this.applyShowroomSettings();
+    this.hud?.applySettings();
     const changed = Object.keys(after).filter((k) => after[k] !== before[k]);
     if (this.session && changed.some((k) => SETTINGS.get(k)?.restart)) {
       this.screens.toast('Bazı ayarlar bir sonraki sürüşte uygulanır');
@@ -437,7 +438,7 @@ export class Game {
     this.hud = new Hud(this.container, this.input, {
       camera: () => this.hud?.popup('Birinci şahıs kamera', '', 'info'),
       pause: () => this.pause(),
-    });
+    }, this.settings);
     this.hud.tacho.configure(spec.engine.redline, spec.engine.limiter, spec.transmission !== 'manual', spec.engine.layout === 'ELECTRIC');
     this.hud.setTiltMode(this.input.tiltEnabled);
     this.hud.kmMarkers = st.bool('hud.kmMarkers');
@@ -454,7 +455,6 @@ export class Game {
     this.crashTimer = 0;
     this.countdownShown = -1;
     this.goTimer = 0;
-    this.screens.hideAll();
     audio.unlock();
     this.gameAudio.begin(spec, env, true);
     // Warm up shaders and GPU buffers so the first frames do not stutter.
@@ -465,6 +465,7 @@ export class Game {
     } catch (e) {
       console.warn('prewarm failed', e);
     }
+    this.screens.hideAll();
     this.state = 'playing';
     this.last = performance.now();
   }

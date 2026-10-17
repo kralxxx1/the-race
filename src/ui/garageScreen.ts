@@ -146,7 +146,7 @@ export class GarageScreen {
       }
     });
     const brandSel = h('select', { class: 'select', 'aria-label': 'Marka', 'data-testid': 'garage-brand', 'data-nid': 'garage-brand' },
-      h('option', { value: 'all' }, `Tüm markalar (${BRANDS.length})`),
+      h('option', { value: 'all' }, 'Tüm markalar'),
       [...BRANDS].sort((x, y) => x.localeCompare(y, 'tr')).map((b) => h('option', { value: b, selected: b === this.brand }, `${b} (${BIKES.filter((x) => x.brand === b).length})`)),
     );
     brandSel.addEventListener('change', () => {
@@ -187,7 +187,7 @@ export class GarageScreen {
 
     this.listEl = h('div', { class: 'scroll garage-cards', 'data-keep': 'garage-list', role: 'listbox', 'aria-label': 'Motosikletler' });
     this.countEl = h('div', { class: 'garage-count', 'data-testid': 'garage-count' });
-    this.detailEl = h('div', { class: 'scroll garage-detail glass', 'data-keep': 'garage-detail', 'data-testid': 'garage-detail' });
+    this.detailEl = h('div', { class: 'garage-detail glass', 'data-testid': 'garage-detail' });
     this.cashSlot = h('span', {});
     this.viewBar = this.buildViewBar();
 
@@ -438,7 +438,8 @@ export class GarageScreen {
       this.bar('İvmelenme', accel, fmtSec(p.zeroTo100)),
     );
 
-    el.replaceChildren(
+    const prevScroll = el.querySelector('.gd-scroll')?.scrollTop ?? 0;
+    const scroller = h('div', { class: 'scroll gd-scroll', 'data-keep': 'garage-detail' },
       h('div', { class: 'gd-head' },
         h('div', { class: 'bike-brand' }, `${b.brand} · ${b.year}`),
         h('div', { class: 'bike-model', 'data-testid': 'garage-model' }, b.model),
@@ -457,11 +458,15 @@ export class GarageScreen {
       h('div', { class: 'swatch-row' }, h('div', { class: 'swatches', role: 'group', 'aria-label': 'Renk' }, swatches), h('small', { class: 'muted' }, b.liveries[this.livery]?.name ?? '')),
       h('div', { class: 'section-title' }, icon('wrench', 14), 'Yükseltmeler'),
       this.upgradeTree(b, own),
+    );
+    el.replaceChildren(
+      scroller,
       h('div', { class: 'gd-actions' },
         h('div', { class: 'gd-actions-row' }, rev, btn('KARŞILAŞTIR', () => this.openCompare(), 'ghost', 'btn-compare', 'compare')),
         action,
       ),
     );
+    scroller.scrollTop = prevScroll;
     this.fillCash();
   }
 

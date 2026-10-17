@@ -95,7 +95,6 @@ export class MenuScreen {
 
     const stats = h('div', { class: 'menu-stats' },
       [
-        ['coin', fmtMoney(d.cash), 'Para'],
         ['trophy', best > 0 ? fmtInt(best) : '—', 'En iyi skor'],
         ['route', fmtDistance(d.totalDistance), 'Toplam mesafe'],
         ['career', `${completedCount(d.career)}/80`, 'Görev'],
@@ -162,7 +161,7 @@ export class MenuScreen {
     };
     this.tipIndex = Math.floor(Math.random() * tips.length);
     show();
-    const el = h('div', { class: 'menu-ticker', 'aria-live': 'off' }, icon('tip', 18), label, text);
+    const el = h('div', { class: 'menu-ticker', 'aria-live': 'off' }, icon('tip', 18), h('div', { class: 'tick-body' }, label, text));
     const id = window.setInterval(() => {
       if (!el.isConnected) window.clearInterval(id);
       else show();

@@ -370,13 +370,13 @@ export class SettingsScreen {
   // ───────────────────────────── HUD live preview ─────────────────────────────
   private hudPreview(): HTMLElement {
     this.previewEl = h('div', { class: 'hudp', 'data-testid': 'hud-preview', 'aria-hidden': 'true' });
-    this.updatePreview();
+    this.updatePreview(true);
     return h('div', { class: 'hudp-wrap' }, h('div', { class: 'section-title' }, 'Canlı önizleme'), this.previewEl);
   }
 
-  private updatePreview(): void {
+  private updatePreview(force = false): void {
     const el = this.previewEl;
-    if (!el || !el.isConnected) return;
+    if (!el || (!force && !el.isConnected)) return;
     const v = this.values;
     const n = (k: string, d: number) => (typeof v[k] === 'number' ? (v[k] as number) : d);
     const b = (k: string) => v[k] !== false;

@@ -437,7 +437,8 @@ export class Showroom {
   private viewTarget(id: ViewId): Cam {
     const f = this.bike?.frame;
     const L = f?.L ?? 1.45;
-    const k = this.portrait ? 1.32 : 1;
+    // Menus frame the bike a little wider so panels beside it never cover wheels or tail.
+    const k = (this.portrait ? 1.32 : 1) * (this.mode === 'menu' ? 1.14 : this.mode === 'garage' ? 1.08 : 1);
     const base: Cam = { angle: 0.6, pitch: 0.2, dist: 5.4 * k, tx: 0, ty: 0.62, tz: 0, fov: 30, cockpit: 0, local: 0 };
     switch (id) {
       case 'free':

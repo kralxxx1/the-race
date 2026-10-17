@@ -5,8 +5,8 @@
   position: absolute; inset: 0;
   display: grid;
   grid-template-columns: minmax(300px, 440px) 1fr minmax(260px, 360px);
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas: 'left . profile' 'left . .' 'left plate stats';
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-areas: 'left . profile' 'left . stats' 'left . .' 'left plate plate';
   gap: 0 1.2rem;
   padding: calc(1.2rem + var(--safe-t)) calc(var(--pad) + var(--safe-r)) calc(1.2rem + var(--safe-b)) calc(var(--pad) + var(--safe-l));
 }
@@ -55,16 +55,18 @@
   padding: 0.6rem 0.8rem; background: rgba(20, 24, 33, 0.7); border: 1px solid var(--line); border-radius: 0.8rem; backdrop-filter: blur(10px);
   transition: transform 0.16s var(--ease), background 0.16s, border-color 0.16s;
 }
-.mtile .ico { grid-row: 1 / 3; color: var(--accent-2); }
+.mtile .ico-wrap { grid-row: 1 / 3; color: var(--accent-2); }
 .mtile b { font-size: 0.78rem; letter-spacing: 0.08em; font-weight: 900; }
 .mtile small { font-size: 0.7rem; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mtile:hover, .mtile:focus-visible { transform: translateY(-2px); background: rgba(40, 46, 62, 0.85); border-color: var(--line-2); }
 
 .menu-ticker { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.7rem 0.9rem; border-radius: 0.8rem; background: rgba(8, 10, 14, 0.6); border: 1px solid var(--line); backdrop-filter: blur(8px); font-size: 0.82rem; line-height: 1.4; color: var(--text-2); min-height: 3.6rem; }
-.menu-ticker .ico { color: var(--accent-2); margin-top: 0.1rem; }
+.menu-ticker .ico-wrap { color: var(--accent-2); margin-top: 0.1rem; }
+.tick-body { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
 .tick-label { flex: 0 0 auto; font-size: 0.64rem; letter-spacing: 0.18em; font-weight: 900; color: var(--accent); margin-top: 0.22rem; }
-.tick-text { opacity: 0; transform: translateY(6px); }
-.tick-text.in { opacity: 1; transform: none; transition: opacity 0.5s, transform 0.5s var(--ease); }
+.tick-text { display: block; }
+.tick-text.in { animation: tickIn 0.5s var(--ease) both; }
+@keyframes tickIn { from { opacity: 0; transform: translateY(6px); } }
 .no-menu-tips .menu-ticker { display: none; }
 
 /* profile */
@@ -95,9 +97,9 @@
 .dot { appearance: none; width: 1.15rem; height: 1.15rem; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.25); cursor: pointer; padding: 0; background: linear-gradient(135deg, var(--c1) 0 55%, var(--c2) 55%); transition: transform 0.15s var(--ease), border-color 0.15s; }
 .dot:hover { transform: scale(1.2); }
 .dot.sel { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
-.menu-stats { grid-area: stats; align-self: end; justify-self: end; display: grid; grid-template-columns: repeat(5, auto); gap: 0.35rem 0.8rem; padding: 0.5rem 0.8rem; border-radius: 0.8rem; background: rgba(8, 10, 14, 0.6); border: 1px solid var(--line); backdrop-filter: blur(8px); animation: slideUp 0.5s 0.22s var(--ease) both; }
+.menu-stats { grid-area: stats; align-self: start; justify-self: stretch; margin-top: 0.6rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem 0.8rem; padding: 0.5rem 0.8rem; border-radius: 0.8rem; background: rgba(8, 10, 14, 0.6); border: 1px solid var(--line); backdrop-filter: blur(8px); animation: slideUp 0.5s 0.22s var(--ease) both; }
 .mstat { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 0.4rem; align-items: center; color: var(--muted); }
-.mstat .ico { grid-row: 1 / 3; color: var(--accent-2); }
+.mstat .ico-wrap { grid-row: 1 / 3; color: var(--accent-2); }
 .mstat b { color: var(--text); font-size: 0.86rem; font-variant-numeric: tabular-nums; }
 .mstat span { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .menu-warn { grid-column: 1 / -1; position: absolute; left: 50%; top: 0.8rem; transform: translateX(-50%); display: flex; gap: 0.5rem; align-items: center; z-index: 5; }
@@ -123,7 +125,7 @@
   .mbtn-txt b, .mbtn.primary .mbtn-txt b { font-size: 0.95rem; }
   .mtile { padding: 0.35rem 0.6rem; }
   .mtile small { display: none; }
-  .mtile .ico { grid-row: auto; }
+  .mtile .ico-wrap { grid-row: auto; }
   .mtile { grid-template-rows: auto; }
   .profile-card { padding: 0.4rem 0.6rem; }
   .avatar { width: 2.6rem; height: 2.6rem; }
@@ -155,7 +157,7 @@
   .mbtn:hover, .mbtn:focus-visible, .mbtn:active { transform: none; }
   .menu-tiles { grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
   .mtile { grid-template-columns: 1fr; grid-template-rows: auto auto; justify-items: center; text-align: center; padding: 0.5rem 0.2rem; row-gap: 0.15rem; }
-  .mtile .ico { grid-row: auto; }
+  .mtile .ico-wrap { grid-row: auto; }
   .mtile b { font-size: 0.56rem; letter-spacing: 0.02em; }
   .mtile small { display: none; }
   .menu-profile { flex-direction: row; align-items: center; gap: 0.5rem; }

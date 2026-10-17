@@ -26,7 +26,7 @@ export type { LoadingInfo } from './loadingScreen';
 function stageFor(name: string, portrait: boolean): { mode: 'menu' | 'garage' | 'rider'; x: number; y: number } {
   switch (name) {
     case 'menu':
-      return portrait ? { mode: 'menu', x: 0, y: -0.15 } : { mode: 'menu', x: 0.2, y: 0 };
+      return portrait ? { mode: 'menu', x: 0, y: -0.15 } : { mode: 'menu', x: 0.2, y: -0.07 };
     case 'garage':
       return portrait ? { mode: 'garage', x: 0, y: -0.22 } : { mode: 'garage', x: 0.02, y: -0.02 };
     case 'rider':

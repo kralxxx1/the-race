@@ -129,7 +129,7 @@ export class BikeThumbs {
       this.scene.add(bike.root);
       // Three-quarter front view, framed by the bike length.
       const L = bike.frame.L;
-      const dist = 3.4 + L * 1.25;
+      const dist = 0.7 + L * 1.62;
       const angle = -0.62;
       this.camera.position.set(Math.sin(angle) * dist, 0.62 + L * 0.12, Math.cos(angle) * dist);
       this.camera.lookAt(0, 0.56, 0);
