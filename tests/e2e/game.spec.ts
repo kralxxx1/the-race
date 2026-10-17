@@ -283,6 +283,16 @@ test.describe('The Race — production build', () => {
     expectNoErrors(errors);
   });
 
+  test('a saved "tilt controls" setting is armed again after a reload (first gesture), not silently ignored', async ({ page }) => {
+    const errors = trackErrors(page);
+    await seedSave(page, { settings: { 'gfx.preset': 'low', 'cam.shake': false, 'ctrl.tilt': true } });
+    await bootToMenu(page);
+    await page.mouse.click(10, 10);
+    await startRun(page, 'endless', 'highway');
+    await expect(page.getByTestId('hud')).toHaveClass(/tilt/);
+    expectNoErrors(errors);
+  });
+
   test('repeated runs do not leak GPU geometries', async ({ page }) => {
     await seedSave(page);
     await bootToMenu(page);

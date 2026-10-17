@@ -78,6 +78,7 @@ export class Game {
   private runSeed = 1;
   /** Bumped by every startRun: a start that was overtaken by a newer one (double tap) abandons itself. */
   private runToken = 0;
+  private tiltAsked = false;
   errors: string[] = [];
   /** Exponential moving averages of per-stage frame cost (ms) for the debug overlay. */
   readonly profile: Record<string, number> = {};
@@ -109,7 +110,10 @@ export class Game {
     this.screens = new Screens(container, this.save, this.actions());
     this.showroom.attachPointer(canvas);
 
-    const unlock = () => audio.unlock();
+    const unlock = () => {
+      audio.unlock();
+      this.armTilt();
+    };
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
     window.addEventListener('resize', () => this.onResize());
@@ -120,6 +124,16 @@ export class Game {
       } else if (this.state !== 'paused') audio.resume();
     });
     window.addEventListener('error', (e) => this.errors.push(String(e.message)));
+  }
+
+  /**
+   * The "tilt controls" setting is saved, but the sensor permission (iOS) needs a user gesture and is lost
+   * on reload: ask once on the first touch or key press so a saved ON really steers by tilt.
+   */
+  private armTilt(): void {
+    if (this.tiltAsked || this.input.tiltEnabled || !this.settings.bool('ctrl.tilt')) return;
+    this.tiltAsked = true;
+    void this.input.enableTilt();
   }
 
   /** Boot: build the showroom and show the main menu. */
