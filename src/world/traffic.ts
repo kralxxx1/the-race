@@ -307,6 +307,8 @@ export class TrafficSystem {
     const car = this.makeCar(kind, ln, s, dc, dir, v0);
     // Spawned inside a slowdown's approach: start at the speed the zone allows (it is beyond the fog anyway).
     car.v = Math.min(car.v, this.zoneCeiling(car));
+    // A car coming up from behind a slow rider appears already at speed.
+    if (minSpeed > 0) car.v = Math.max(car.v, minSpeed);
     // A fast spawn (police, ambulance) must be able to brake to the speed of whatever it appears behind, and a slow
     // one must not appear right in front of a fast car: the bare 28 m gap above ignores the closing speed.
     for (const o of this.cars) {
@@ -316,9 +318,8 @@ export class TrafficSystem {
       if (closing > 0 && gap < (closing * closing) / (2 * 3.5) + 12) return null;
     }
     if (minSpeed > 0) {
-      // A car coming up from behind a slow rider appears already at speed: it must be able to stop for whatever
-      // is ahead of it (a queue after a crash, a roadworks jam), because it cannot start from a standstill.
-      car.v = Math.max(car.v, minSpeed);
+      // ...and it must be able to stop for whatever is ahead of it, the rider included (a queue after a crash, a
+      // roadworks jam), because it cannot start from a standstill.
       const lead = this.leaderOf(car, ln, player);
       if (lead) {
         const closing = Math.max(0, car.v - lead.v);
