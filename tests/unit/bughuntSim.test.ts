@@ -163,3 +163,22 @@ describe('input: browser keys outside a ride', () => {
     input.dispose();
   });
 });
+
+describe('session: manual shift presses survive high refresh rates', () => {
+  // The fixed 120 Hz step only runs when enough time accumulated; on a 144/240 Hz display some frames run no step and the
+  // one-frame shift edge arriving on such a frame used to be dropped.
+  it.each([1 / 240, 1 / 144, 1 / 165])('a one-frame shift-up pulse always changes gear at %f s frames', (dt) => {
+    for (let phase = 0; phase < 6; phase++) {
+      const s = new GameSession({
+        bike: getBike('yamaha-r6'),
+        upgrades: { engine: 0, brakes: 0, handling: 0 },
+        mode: MODE_BY_ID.get('endless')!,
+        env: resolveEnvironment('highway', 'day', 'clear'),
+        seed: 3,
+        autoShift: false,
+      });
+      for (let f = 0; f < 12; f++) s.update(dt, f === phase + 2 ? { ...neutralInput(), shiftUp: true } : neutralInput());
+      expect(s.bike.gear, `phase ${phase}`).toBe(2);
+    }
+  });
+});

@@ -94,6 +94,8 @@ export class GameSession {
   private readonly sample: MissionSample = emptySample();
   private readonly inputBuf: RiderInput = neutralInput();
   private readonly subInput: RiderInput = neutralInput();
+  private shiftUpReq = false;
+  private shiftDownReq = false;
 
   constructor(readonly cfg: SessionConfig) {
     this.road = new RoadPath(cfg.seed, 1, cfg.env.terrain === 'city' ? 0.5 : 1);
@@ -196,16 +198,17 @@ export class GameSession {
     let steps = 0;
     let first = true;
     const input = this.assisted(rawInput);
+    // A frame shorter than a physics step (144/240 Hz displays) runs no step: the one-frame shift press is kept until one does.
+    this.shiftUpReq ||= input.shiftUp;
+    this.shiftDownReq ||= input.shiftDown;
     while (this.acc >= FIXED_DT && steps < MAX_STEPS_PER_FRAME) {
       this.acc -= FIXED_DT;
       steps++;
       // Edge-triggered shift requests only apply to the first sub-step.
-      let inp = input;
-      if (!first) {
-        inp = Object.assign(this.subInput, input);
-        inp.shiftUp = false;
-        inp.shiftDown = false;
-      }
+      const inp = Object.assign(this.subInput, input);
+      inp.shiftUp = first && this.shiftUpReq;
+      inp.shiftDown = first && this.shiftDownReq;
+      if (first) this.shiftUpReq = this.shiftDownReq = false;
       first = false;
       this.fixedStep(FIXED_DT, inp);
       if (this.state === 'finished' && this.coast <= 0) break;
