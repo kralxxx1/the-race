@@ -39,7 +39,7 @@ function fairing(ctx: KitContext): void {
       { z: -1.3, pts: [[0, 1], [0.62, 0.985], [0.95, 0.9], [1, 0.62], [0.99, 0.35], [0.94, 0.1], [0.8, 0]] },
     ],
   };
-  const master = outlineLoft(ob, { ...bodyQ(ctx, 1.6), creases: [2], capFront: true, capBack: true });
+  const master = outlineLoft(ob, { ...bodyQ(ctx, 1.15), creases: [2], capFront: true, capBack: true });
   // Dash opening in the top of the cowl behind the screen
   const dash = ctx.bp.cockpit.dashPos;
   const [dw, dh] = ctx.bp.cockpit.dashSize;
@@ -107,7 +107,7 @@ function floorAndTunnel(ctx: KitContext): void {
     half: curve([[-1.12, 0.26], [-0.9, 0.285], [-0.62, 0.275]]),
     sections: [{ z: -1.12, pts: [[0, 1], [0.6, 0.995], [0.92, 0.97], [1, 0.75], [1, 0.4], [0.95, 0.1], [0.8, 0]] }],
   };
-  ctx.add('chassis', outlineLoft(fb, { ...bodyQ(ctx, 1.1), capFront: true, capBack: true }), PAINT);
+  ctx.add('chassis', outlineLoft(fb, { ...bodyQ(ctx, 0.9), capFront: true, capBack: true }), PAINT);
   for (const s of [-1, 1]) {
     ctx.add('chassis', roundBox(0.14, 0.012, 0.4, 0.005, 2), F.rubber, T(s * 0.185, 0.314, -0.88));
     if (ctx.micro) for (let i = 0; i < 12; i++) ctx.add('chassis', roundBox(0.12, 0.004, 0.008, 0.002, 1), tint(F.rubber, '#232325'), T(s * 0.185, 0.32, -1.06 + i * 0.03));
@@ -121,7 +121,7 @@ function floorAndTunnel(ctx: KitContext): void {
     half: curve([[-1.1, 0.12], [-1.0, 0.125], [-0.85, 0.135], [-0.64, 0.17]]),
     sections: [{ z: -1.1, pts: [[0, 1], [0.55, 0.985], [0.9, 0.93], [1, 0.75], [1, 0.4], [0.96, 0.08], [0.85, 0]] }],
   };
-  shell(ctx, 'chassis', outlineLoft(tn, { ...bodyQ(ctx, 1.2), capFront: true, capBack: true }), PAINT, 0.01);
+  shell(ctx, 'chassis', outlineLoft(tn, { ...bodyQ(ctx, 0.9), capFront: true, capBack: true }), PAINT, 0.01);
 }
 
 function rearBody(ctx: KitContext): void {
@@ -137,7 +137,7 @@ function rearBody(ctx: KitContext): void {
       { z: -0.3, pts: [[0, 1], [0.62, 0.985], [0.95, 0.9], [1, 0.62], [0.99, 0.35], [0.95, 0.1], [0.8, 0.0], [0.4, 0], [0, 0]] },
     ],
   };
-  const master = outlineLoft(ob, { ...bodyQ(ctx, 1.6), creases: [2], capFront: true, capBack: true });
+  const master = outlineLoft(ob, { ...bodyQ(ctx, 1.15), creases: [2], capFront: true, capBack: true });
   const arch = (x: number, y: number, z: number): number => Math.min(0.31 - Math.hypot(z, y - hp.Rr), 0.07 - Math.abs(x));
   const body = cut(master, (x, y, z) => -arch(x, y, z));
   shell(ctx, 'chassis', body, PAINT, 0.012);
@@ -161,7 +161,7 @@ function seat(ctx: KitContext): void {
     half: curve([[z0, 0.11], [-0.64, 0.165], [-0.42, 0.19], [-0.2, 0.18], [0.0, 0.17], [0.16, 0.15], [z1, 0.1]]),
     sections: [{ z: z0, pts: [[0, 1], [0.55, 0.975], [0.9, 0.86], [1, 0.55], [0.96, 0.15], [0.9, 0]] }],
   };
-  const m = outlineLoft(ob, { ...bodyQ(ctx, 1.3), capFront: true, capBack: true });
+  const m = outlineLoft(ob, { ...bodyQ(ctx, 1.0), capFront: true, capBack: true });
   ctx.add('chassis', m, fin('seat', ctx.livery.seat, 0, 0.62, 0, Micro.grain));
   if (ctx.micro) {
     for (const s of [-1, 1]) {
