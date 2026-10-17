@@ -46,6 +46,11 @@ export class BikeThumbs {
   private running = false;
   private disposed = false;
   private failed = false;
+  /** Last keyboard/pointer/wheel activity: thumbnails wait while the player is typing or scrolling. */
+  private lastInput = 0;
+  private readonly onInput = (): void => {
+    this.lastInput = performance.now();
+  };
 
   constructor(
     private readonly renderer: Renderer,
@@ -53,6 +58,7 @@ export class BikeThumbs {
   ) {
     this.canvas.width = W;
     this.canvas.height = H;
+    for (const ev of ['keydown', 'pointerdown', 'wheel', 'touchmove'] as const) window.addEventListener(ev, this.onInput, { passive: true });
     this.target = new THREE.WebGLRenderTarget(W, H, { samples: 4, type: THREE.UnsignedByteType, depthBuffer: true });
     const s = this.scene;
     s.background = new THREE.Color('#0d1017');
@@ -97,8 +103,19 @@ export class BikeThumbs {
   private pump(): void {
     if (this.running || !this.queue.length) return;
     this.running = true;
-    // One thumbnail per animation frame keeps menus responsive; the first waits for the page to settle.
-    requestAnimationFrame(() => {
+    // One thumbnail per idle slot keeps menus responsive; a build costs tens of milliseconds, so wait
+    // while the player is typing or scrolling and let the browser pick a quiet moment.
+    const idle = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    const schedule = (cb: () => void): void => {
+      if (idle) idle(cb, { timeout: 400 });
+      else requestAnimationFrame(cb);
+    };
+    const run = (): void => {
+      if (this.disposed) return;
+      if (performance.now() - this.lastInput < 250) {
+        schedule(run);
+        return;
+      }
       const job = this.queue.shift();
       this.running = false;
       if (job) {
@@ -115,7 +132,8 @@ export class BikeThumbs {
       if (this.failed) {
         for (const j of this.queue.splice(0)) j.resolve(null);
       } else this.pump();
-    });
+    };
+    schedule(run);
   }
 
   private render(spec: BikeSpec, livery: number): string {
@@ -172,6 +190,7 @@ export class BikeThumbs {
 
   dispose(): void {
     this.disposed = true;
+    for (const ev of ['keydown', 'pointerdown', 'wheel', 'touchmove'] as const) window.removeEventListener(ev, this.onInput);
     for (const j of this.queue.splice(0)) j.resolve(null);
     this.target.dispose();
   }

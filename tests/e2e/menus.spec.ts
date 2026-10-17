@@ -21,7 +21,8 @@ test.describe('Menus: navigation, garage, rider and settings', () => {
 
   test('garage: search, filters, compare, view presets and the purchase dialog', async ({ page }) => {
     const errors = trackErrors(page);
-    await seedSave(page, { cash: 90000, xp: 200000 });
+    // Thumbnails are rendered with software WebGL here (seconds each): this test covers the list logic.
+    await seedSave(page, { cash: 90000, xp: 200000, settings: { 'gfx.preset': 'low', 'cam.shake': false, 'ui.confirmQuit': false, 'ui.thumbnails': false } });
     await bootToMenu(page);
     await page.getByTestId('btn-garage').click();
     await expect(page.getByTestId('garage-count')).toContainText('motosiklet');

@@ -329,6 +329,8 @@ test.describe('The Race — production build', () => {
   });
 
   test('repeated runs do not leak GPU geometries', async ({ page }) => {
+    // Three full rides with crashes: slow on software WebGL.
+    test.setTimeout(600_000);
     await seedSave(page);
     await bootToMenu(page);
     const counts: number[] = [];
