@@ -17,6 +17,15 @@ export const COUNTDOWN_SECONDS = 3;
 const COAST_SECONDS = 3;
 const COAST_INPUT: RiderInput = { ...neutralInput(), brake: 0.7 };
 
+/**
+ * Seconds a time-trial checkpoint adds. It shrinks by a second per checkpoint so the pace has to rise, but never
+ * below the floor: the bonus has to stay long enough to ride the next stretch at a speed the bikes can hold in traffic.
+ */
+export const TIME_TRIAL_MIN_BONUS = 24;
+export function timeTrialBonus(base: number, checkpointIndex: number): number {
+  return Math.max(TIME_TRIAL_MIN_BONUS, base - (checkpointIndex - 1));
+}
+
 export type SessionState = 'countdown' | 'running' | 'crashed' | 'finished';
 export type FinishReason = 'crash' | 'timeUp' | 'quit' | 'missionComplete' | 'missionFailed';
 
@@ -85,6 +94,8 @@ export class GameSession {
   private readonly sample: MissionSample = emptySample();
   private readonly inputBuf: RiderInput = neutralInput();
   private readonly subInput: RiderInput = neutralInput();
+  private shiftUpReq = false;
+  private shiftDownReq = false;
 
   constructor(readonly cfg: SessionConfig) {
     this.road = new RoadPath(cfg.seed, 1, cfg.env.terrain === 'city' ? 0.5 : 1);
@@ -187,16 +198,17 @@ export class GameSession {
     let steps = 0;
     let first = true;
     const input = this.assisted(rawInput);
+    // A frame shorter than a physics step (144/240 Hz displays) runs no step: the one-frame shift press is kept until one does.
+    this.shiftUpReq ||= input.shiftUp;
+    this.shiftDownReq ||= input.shiftDown;
     while (this.acc >= FIXED_DT && steps < MAX_STEPS_PER_FRAME) {
       this.acc -= FIXED_DT;
       steps++;
       // Edge-triggered shift requests only apply to the first sub-step.
-      let inp = input;
-      if (!first) {
-        inp = Object.assign(this.subInput, input);
-        inp.shiftUp = false;
-        inp.shiftDown = false;
-      }
+      const inp = Object.assign(this.subInput, input);
+      inp.shiftUp = first && this.shiftUpReq;
+      inp.shiftDown = first && this.shiftDownReq;
+      if (first) this.shiftUpReq = this.shiftDownReq = false;
       first = false;
       this.fixedStep(FIXED_DT, inp);
       if (this.state === 'finished' && this.coast <= 0) break;
@@ -291,8 +303,11 @@ export class GameSession {
         // Only count vehicles we actually overtook or met (not ones that spawned behind us).
         if (ds > -(c.length / 2 + 6)) {
           this.events.push({ type: 'pass', car: c, side, oncoming, clearance });
-          if (!oncoming) this.score.overtake();
-          if (clearance < NEAR_MISS_CLEARANCE) {
+          // One credit per vehicle: braking to let it go by and overtaking it again must not pay a second time.
+          const fresh = !c.credited;
+          c.credited = true;
+          if (fresh && !oncoming) this.score.overtake();
+          if (fresh && clearance < NEAR_MISS_CLEARANCE) {
             const pts = this.score.nearMiss(clearance, bike.speedKmh, oncoming);
             if (pts > 0) {
               c.nearMiss = true;
@@ -314,7 +329,7 @@ export class GameSession {
     const next = (this.checkpointIndex + 1) * t.checkpointEvery;
     if (this.score.distance >= next) {
       this.checkpointIndex++;
-      const bonus = Math.max(18, t.bonus - (this.checkpointIndex - 1) * 2);
+      const bonus = timeTrialBonus(t.bonus, this.checkpointIndex);
       this.timeLeft += bonus;
       this.score.addBonus(1000 * this.checkpointIndex);
       this.events.push({ type: 'checkpoint', index: this.checkpointIndex, bonus });

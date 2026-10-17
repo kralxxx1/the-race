@@ -1,0 +1,214 @@
+import { describe, expect, it } from 'vitest';
+import type { VehicleKind } from '../../src/data/vehicles';
+import { getBike } from '../../src/data/bikes';
+import { resolveEnvironment } from '../../src/data/maps';
+import { MODE_BY_ID } from '../../src/data/modes';
+import { GameSession, TIME_TRIAL_MIN_BONUS, timeTrialBonus } from '../../src/game/session';
+import { InputManager } from '../../src/input/input';
+import { BikePhysics, FLAT_ROAD, neutralInput } from '../../src/physics/bike';
+import { pilotInput } from './helpers/pilot';
+import { addCar, clearRoad } from './helpers/scenario';
+import { TrafficSystem, type PlayerProbe, type TrafficCar } from '../../src/world/traffic';
+import { laneCenter, makeLaneConfig } from '../../src/world/road';
+
+/** Regression tests for bugs found by the simulation bug hunt (see git log). */
+
+function overlap(a: TrafficCar, b: TrafficCar): boolean {
+  return a.dir === b.dir && Math.abs(a.s - b.s) < (a.length + b.length) / 2 - 0.3 && Math.abs(a.d - b.d) < (a.width + b.width) / 2 - 0.2;
+}
+
+type Maker = { makeCar(kind: VehicleKind, ln: number, s: number, d: number, dir: 1 | -1, v0: number): TrafficCar };
+
+describe('traffic: cars joining behind a stopped rider', () => {
+  // After a crash the rider stands still and the cars behind it stack up with hazard lights. The "slow rider lets
+  // faster traffic come from behind" spawner used to drop 28 m/s cars into that queue, which then ploughed into it.
+  it.each([1, 2, 3, 4, 5, 6])('seed %i: nobody drives through the queue behind a crashed rider', (seed) => {
+    const cfg = makeLaneConfig('oneway');
+    const sys = new TrafficSystem(cfg, { seed, baseDensity: 6, densityGrowth: 0, maxDensity: 6, aggression: 0.5, enabled: true, zones: false });
+    sys.reset(400);
+    const lane = 2;
+    const player: PlayerProbe = { s: 400, d: laneCenter(cfg, 3), v: 0 };
+    // A stopped queue in the fast lane just behind the crash site.
+    for (const back of [40, 75, 110]) {
+      const car = (sys as unknown as Maker).makeCar('sedan', lane, player.s - back, laneCenter(cfg, lane), 1, 0);
+      car.v = 0;
+      car.hazard = true;
+      car.nextDecision = 1e9;
+      sys.cars.push(car);
+    }
+    const dt = 1 / 60;
+    let overlaps = 0;
+    for (let i = 0; i < 60 * 120; i++) {
+      sys.update(dt, player, 400);
+      if (i % 6 === 0) for (let a = 0; a < sys.cars.length; a++) for (let b = a + 1; b < sys.cars.length; b++) if (overlap(sys.cars[a], sys.cars[b])) overlaps++;
+    }
+    expect(overlaps).toBe(0);
+  }, 60000);
+});
+
+describe('traffic: spawns respect the closing speed', () => {
+  // The spawner only kept 28 m to the neighbours in the lane; a police car (128+ km/h) appearing 30 m behind a
+  // 55 km/h truck could not stop in time and drove through it.
+  it.each([1, 2, 3, 4, 5, 6, 7, 8])('seed %i: a fast spawn never ends up inside a slow vehicle', (seed) => {
+    const cfg = makeLaneConfig('oneway');
+    const mix: Record<string, number> = {};
+    for (const k of ['sedan', 'hatch', 'suv', 'pickup', 'van', 'minibus', 'truck', 'semi', 'tanker', 'bus', 'coach', 'taxi', 'ambulance']) mix[k] = 0;
+    mix.police = 100;
+    const sys = new TrafficSystem(cfg, { seed, baseDensity: 0, densityGrowth: 0, maxDensity: 0, aggression: 0, enabled: true, zones: false, kindMix: mix });
+    sys.reset(900);
+    const lane = 3;
+    const truck = (sys as unknown as Maker).makeCar('truck', lane, 1000, laneCenter(cfg, lane), 1, 15);
+    truck.nextDecision = 1e9;
+    sys.cars.push(truck);
+    const spawn = (sys as unknown as { trySpawn(s: number, p: PlayerProbe, initial: boolean, lane?: number): TrafficCar | null }).trySpawn.bind(sys);
+    const player: PlayerProbe = { s: 900, d: laneCenter(cfg, 0), v: 30 };
+    let overlaps = 0;
+    for (let i = 0; i < 40; i++) {
+      // Try to drop a police car 20-60 m behind the truck.
+      spawn(1000 - 20 - ((i * 7) % 41), player, false, lane);
+    }
+    for (const c of sys.cars) c.nextDecision = 1e9;
+    for (let i = 0; i < 60 * 25; i++) {
+      truck.v = 15; // the truck keeps its speed
+      sys.update(1 / 60, player, 900);
+      if (i % 6 === 0) for (let a = 0; a < sys.cars.length; a++) for (let b = a + 1; b < sys.cars.length; b++) if (overlap(sys.cars[a], sys.cars[b])) overlaps++;
+    }
+    expect(overlaps).toBe(0);
+  });
+});
+
+describe('time trial pacing', () => {
+  // The first checkpoint used to need 2.5 km in 65 s from a standstill (138 km/h on average) and the later ones
+  // 2.5 km in 38 s (237 km/h): the starter bike never reached the first one and nobody reached the third.
+  it.each([1, 2, 3])('seed %i: the starter bike ridden by the reference rider makes several checkpoints', (seed) => {
+    const bike = getBike('yamaha-r3');
+    const s = new GameSession({
+      bike,
+      upgrades: { engine: 0, brakes: 0, handling: 0 },
+      mode: MODE_BY_ID.get('timetrial')!,
+      env: resolveEnvironment('highway', 'day', 'clear'),
+      seed,
+      autoShift: true,
+    });
+    for (let i = 0; i < 60 * 400 && s.state !== 'finished'; i++) {
+      s.update(1 / 60, pilotInput(s, { cruise: (bike.topSpeed / 3.6) * 0.9 }));
+      if (s.state === 'crashed') s.finishAfterCrash();
+    }
+    expect(s.checkpointIndex).toBeGreaterThanOrEqual(2);
+  }, 60000);
+
+  it('the checkpoint bonus shrinks one second at a time and never below the floor', () => {
+    expect(timeTrialBonus(40, 1)).toBe(40);
+    expect(timeTrialBonus(40, 2)).toBe(39);
+    expect(timeTrialBonus(40, 100)).toBe(TIME_TRIAL_MIN_BONUS);
+    // Even the floor leaves a pace a fast bike can hold in traffic over one checkpoint stretch.
+    const t = MODE_BY_ID.get('timetrial')!.timer!;
+    expect(t.checkpointEvery / TIME_TRIAL_MIN_BONUS) .toBeLessThan(65);
+  });
+});
+
+describe('scoring: one credit per vehicle', () => {
+  it('weaving back and forth past the same car pays its overtake and near miss once', () => {
+    const s = new GameSession({
+      bike: getBike('yamaha-r1'),
+      upgrades: { engine: 0, brakes: 0, handling: 0 },
+      mode: MODE_BY_ID.get('endless')!,
+      env: resolveEnvironment('highway', 'day', 'clear'),
+      seed: 3,
+      autoShift: true,
+    });
+    clearRoad(s);
+    const car = addCar(s, { ahead: 25, lane: 2, kmh: 112 });
+    let fast = true;
+    let passes = 0;
+    for (let i = 0; i < 60 * 110 && s.state !== 'finished'; i++) {
+      const b = s.bike;
+      const gap = car.s - b.s;
+      if (fast && gap < -9) fast = false;
+      if (!fast && gap > 9) fast = true;
+      const want = (fast ? 140 : 100) / 3.6;
+      const targetD = car.d + car.width / 2 + s.playerHalfWidth + 0.55; // 0.15 m off the flank
+      const steer = Math.max(-1, Math.min(1, (targetD - b.d) * 0.7 - b.heading * 8));
+      s.update(1 / 60, { ...neutralInput(), steer, throttle: b.v < want ? 1 : 0, brake: b.v > want + 2 ? 0.4 : 0 });
+      car.v = 112 / 3.6;
+      for (const e of s.drainEvents()) if (e.type === 'pass') passes++;
+    }
+    expect(s.state).not.toBe('crashed');
+    expect(passes).toBeGreaterThanOrEqual(3); // the passes themselves still happen (whoosh, camera punch)
+    expect(s.score.overtakes).toBe(1);
+    expect(s.score.nearMisses).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('input: browser keys outside a ride', () => {
+  function press(target: EventTarget, code: string): Event {
+    const ev = Object.assign(new Event('keydown', { cancelable: true }), { code, repeat: false });
+    target.dispatchEvent(ev);
+    return ev;
+  }
+
+  // Space on a focused menu button and the arrows on a slider were swallowed everywhere, not only during the ride.
+  it('Space and the arrows keep their browser meaning in the menus and are swallowed during a ride', () => {
+    const target = new EventTarget();
+    const input = new InputManager(target as unknown as Window);
+    for (const code of ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) expect(press(target, code).defaultPrevented, `menu ${code}`).toBe(false);
+    input.gameplay = true;
+    for (const code of ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) expect(press(target, code).defaultPrevented, `ride ${code}`).toBe(true);
+    // Letters are never swallowed.
+    expect(press(target, 'KeyW').defaultPrevented).toBe(false);
+    // Pause still arrives as an edge in the menus (resume from the pause menu).
+    input.gameplay = false;
+    press(target, 'Escape');
+    expect(input.update(0.016).pause).toBe(true);
+    input.dispose();
+  });
+});
+
+describe('session: manual shift presses survive high refresh rates', () => {
+  // The fixed 120 Hz step only runs when enough time accumulated; on a 144/240 Hz display some frames run no step and the
+  // one-frame shift edge arriving on such a frame used to be dropped.
+  it.each([1 / 240, 1 / 144, 1 / 165])('a one-frame shift-up pulse always changes gear at %f s frames', (dt) => {
+    for (let phase = 0; phase < 6; phase++) {
+      const s = new GameSession({
+        bike: getBike('yamaha-r6'),
+        upgrades: { engine: 0, brakes: 0, handling: 0 },
+        mode: MODE_BY_ID.get('endless')!,
+        env: resolveEnvironment('highway', 'day', 'clear'),
+        seed: 3,
+        autoShift: false,
+      });
+      for (let f = 0; f < 12; f++) s.update(dt, f === phase + 2 ? { ...neutralInput(), shiftUp: true } : neutralInput());
+      expect(s.bike.gear, `phase ${phase}`).toBe(2);
+    }
+  });
+});
+
+describe('physics: a crashed bike', () => {
+  // The bike used to freeze at its impact speed for the whole crash sequence, so the HUD, the wind/tyre/slide audio and
+  // the speed effects ran at full speed over a wreck that had stopped.
+  it('slides to a stop: speed, controls, scrape and rpm run down while the position stays put', () => {
+    const bike = new BikePhysics(getBike('yamaha-r1'));
+    const limits = { halfWidth: 8, grip: 1 };
+    bike.reset(0, 0, 40);
+    for (let i = 0; i < 120; i++) bike.step(1 / 120, { ...neutralInput(), throttle: 1 }, FLAT_ROAD, limits);
+    bike.scraping = 1;
+    bike.crash('barrier');
+    const at = { s: bike.s, d: bike.d, v: bike.v };
+    expect(at.v).toBeGreaterThan(35);
+    let last = at.v;
+    for (let i = 0; i < 120 * 2; i++) {
+      bike.step(1 / 120, { ...neutralInput(), throttle: 1 }, FLAT_ROAD, limits);
+      expect(bike.v).toBeLessThanOrEqual(last);
+      last = bike.v;
+    }
+    expect(bike.v).toBeLessThan(at.v - 8); // ~0.6 g of sliding friction
+    expect(bike.v).toBeGreaterThan(0);
+    for (let i = 0; i < 120 * 10; i++) bike.step(1 / 120, { ...neutralInput(), throttle: 1 }, FLAT_ROAD, limits);
+    expect(bike.v).toBe(0);
+    expect(bike.scraping).toBe(0);
+    expect(bike.throttle).toBe(0);
+    expect(bike.rpm).toBeLessThan(50);
+    expect(bike.s).toBe(at.s);
+    expect(bike.d).toBe(at.d);
+  });
+});

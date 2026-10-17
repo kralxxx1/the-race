@@ -180,6 +180,28 @@ test.describe('The Race — production build', () => {
     });
   }
 
+  test('restarting from the pause menu banks the abandoned ride; a run that never left the grid is not counted', async ({ page }) => {
+    const errors = trackErrors(page);
+    await seedSave(page);
+    await bootToMenu(page);
+    await startRun(page, 'endless', 'highway');
+    await page.evaluate(() => window.__THE_RACE__.pause());
+    await page.getByTestId('btn-quit').click(); // still in the countdown
+    await waitState(page, 'menu');
+    expect((await api(page, 'save')).gamesPlayed).toBe(0);
+    await startRun(page, 'endless', 'highway');
+    await page.evaluate(() => window.__THE_RACE__.clearTraffic());
+    await page.evaluate(() => window.__THE_RACE__.setInput({ throttle: 1 }));
+    await page.evaluate(() => window.__THE_RACE__.advance(8));
+    await page.evaluate(() => window.__THE_RACE__.pause());
+    await page.getByTestId('btn-restart').click();
+    await waitState(page, 'playing');
+    const save = await api(page, 'save');
+    expect(save.gamesPlayed).toBe(1);
+    expect((save as unknown as { totalDistance: number }).totalDistance).toBeGreaterThan(50);
+    expectNoErrors(errors);
+  });
+
   test('free ride respawns after a crash instead of ending', async ({ page }) => {
     await seedSave(page);
     await bootToMenu(page);
@@ -241,6 +263,70 @@ test.describe('The Race — production build', () => {
     const loud = await api(page, 'audioLevel');
     expect(await api(page, 'audioState')).toBe('running');
     expect(loud).toBeGreaterThan(0.005);
+    expectNoErrors(errors);
+  });
+
+  test('keyboard menus: Space presses the focused button', async ({ page }) => {
+    const errors = trackErrors(page);
+    await seedSave(page);
+    await bootToMenu(page);
+    await page.getByTestId('btn-play').focus();
+    await page.keyboard.press('Space');
+    await expect(page.getByTestId('mode-endless')).toBeVisible();
+    expectNoErrors(errors);
+  });
+
+  test('pausing holds the audio silent (a click or key on the pause menu must not wake it) until resume', async ({ page }) => {
+    const errors = trackErrors(page);
+    await seedSave(page);
+    await bootToMenu(page);
+    await page.getByTestId('btn-play').click(); // user gesture unlocks WebAudio
+    await page.getByTestId('btn-start').click();
+    await waitState(page, 'playing');
+    await page.evaluate(() => window.__THE_RACE__.advance(1));
+    await page.waitForTimeout(500);
+    expect(await api(page, 'audioState')).toBe('running');
+    await page.evaluate(() => window.__THE_RACE__.pause());
+    await waitState(page, 'paused');
+    await page.waitForTimeout(300);
+    expect(await api(page, 'audioState')).toBe('suspended');
+    await page.mouse.click(5, 5);
+    await page.keyboard.press('ArrowUp');
+    await page.waitForTimeout(400);
+    expect(await api(page, 'audioState')).toBe('suspended');
+    await page.getByTestId('btn-resume').click();
+    await waitState(page, 'playing');
+    await page.waitForTimeout(300);
+    expect(await api(page, 'audioState')).toBe('running');
+    expectNoErrors(errors);
+  });
+
+  test('starting a run twice in a row (double tap) leaves exactly one run and leaks nothing', async ({ page }) => {
+    const errors = trackErrors(page);
+    await seedSave(page);
+    await bootToMenu(page);
+    const boot = await api(page, 'memory');
+    await page.evaluate(() => Promise.all([window.__THE_RACE__.start('endless', 'highway'), window.__THE_RACE__.start('endless', 'city')]));
+    await waitState(page, 'playing');
+    await frames(page, 3);
+    await expect(page.getByTestId('hud')).toHaveCount(1);
+    await page.evaluate(() => window.__THE_RACE__.pause());
+    await page.getByTestId('btn-quit').click();
+    await waitState(page, 'menu');
+    await frames(page, 2);
+    await expect(page.getByTestId('hud')).toHaveCount(0);
+    const mem = await api(page, 'memory');
+    expect(mem.geometries).toBeLessThanOrEqual(boot.geometries + 10);
+    expectNoErrors(errors);
+  });
+
+  test('a saved "tilt controls" setting is armed again after a reload (first gesture), not silently ignored', async ({ page }) => {
+    const errors = trackErrors(page);
+    await seedSave(page, { settings: { 'gfx.preset': 'low', 'cam.shake': false, 'ctrl.tilt': true } });
+    await bootToMenu(page);
+    await page.mouse.click(10, 10);
+    await startRun(page, 'endless', 'highway');
+    await expect(page.getByTestId('hud')).toHaveClass(/tilt/);
     expectNoErrors(errors);
   });
 

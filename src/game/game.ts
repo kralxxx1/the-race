@@ -80,6 +80,9 @@ export class Game {
   private readonly liveShown = new Set<string>();
   private audioCars: AudioCar[] = [];
   private runSeed = 1;
+  /** Bumped by every startRun: a start that was overtaken by a newer one (double tap) abandons itself. */
+  private runToken = 0;
+  private tiltAsked = false;
   errors: string[] = [];
   /** Exponential moving averages of per-stage frame cost (ms) for the debug overlay. */
   readonly profile: Record<string, number> = {};
@@ -116,7 +119,10 @@ export class Game {
       this.input.lastDevice = 'pointer';
     }, true);
 
-    const unlock = () => audio.unlock();
+    const unlock = () => {
+      audio.unlock();
+      this.armTilt();
+    };
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
     window.addEventListener('resize', () => this.onResize());
@@ -124,9 +130,19 @@ export class Game {
       if (document.hidden) {
         if (this.state === 'playing') this.pause();
         audio.suspend();
-      } else if (this.state !== 'paused') audio.resume();
+      } else if (!this.runIsPaused()) audio.resume();
     });
     window.addEventListener('error', (e) => this.errors.push(String(e.message)));
+  }
+
+  /**
+   * The "tilt controls" setting is saved, but the sensor permission (iOS) needs a user gesture and is lost
+   * on reload: ask once on the first touch or key press so a saved ON really steers by tilt.
+   */
+  private armTilt(): void {
+    if (this.tiltAsked || this.input.tiltEnabled || !this.settings.bool('ctrl.tilt')) return;
+    this.tiltAsked = true;
+    void this.input.enableTilt();
   }
 
   /** Boot: build the showroom and show the main menu. */
@@ -199,7 +215,10 @@ export class Game {
         this.screens.refresh();
       },
       resume: () => this.resume(),
-      restart: () => void this.startRun(this.run),
+      restart: () => {
+        this.bankAbandonedRun();
+        void this.startRun(this.run);
+      },
       quitToMenu: () => this.quitToMenu(),
       enableTilt: () => this.input.enableTilt(),
       click: () => {
@@ -366,6 +385,13 @@ export class Game {
       this.screens.toast('Bazı ayarlar bir sonraki sürüşte uygulanır');
     }
     if (this.session && changed.includes('play.autoShift')) this.session.bike.autoShift = s.str('play.autoShift') === 'auto';
+    // Rider aids and the kilometre toasts are read once per ride: changing them from the pause menu applies at once.
+    const aids = this.session?.cfg.assists;
+    if (aids) {
+      aids.autoThrottle = autoThrottleActive(s.str('play.autoThrottle'), isTouchDevice());
+      aids.wheelie = s.bool('play.wheelieAssist');
+    }
+    if (this.hud) this.hud.kmMarkers = s.bool('hud.kmMarkers');
   }
 
   // ───────────────────────────── runs ─────────────────────────────
@@ -377,6 +403,7 @@ export class Game {
   }
 
   async startRun(cfg: RunConfig): Promise<void> {
+    const token = ++this.runToken;
     this.disposeRev();
     this.endRun();
     const mission: MissionDef | undefined = cfg.mode === 'career' && cfg.missionId ? MISSION_BY_ID.get(cfg.missionId) : undefined;
@@ -408,6 +435,7 @@ export class Game {
     this.screens.loading('Yol hazırlanıyor…', 0.05, info);
     await nextFrame();
     await nextFrame();
+    if (token !== this.runToken) return;
     const env = resolveEnvironment(this.run.map, this.run.time, this.run.weather);
     this.runSeed = (this.runSeed * 1103515245 + 12345 + Date.now()) % 2147483647 || 7;
     const st = this.settings;
@@ -425,8 +453,10 @@ export class Game {
     // CC0 PBR textures and HDRI skies for this environment (falls back to procedural ones offline).
     this.screens.loading('Sürüş oturumu kuruluyor…', 0.15, info);
     await preloadWorld(env, this.renderer.profile, (p) => this.screens.loading('Dokular ve gökyüzü yükleniyor…', 0.2 + p * 0.4, info));
+    if (token !== this.runToken) return;
     this.screens.loading('Trafik ve manzara oluşturuluyor…', 0.65, info);
     await nextFrame();
+    if (token !== this.runToken) return;
     const view = new GameView(this.renderer, session, env, this.save.livery(bikeId), this.settings, this.save.data.rider);
     view.lightningCb = (delay) => this.gameAudio.thunder(delay);
     // Secondary impacts of the crash simulation (rider bouncing, bike sliding into the rail, car crumple).
@@ -455,6 +485,8 @@ export class Game {
     this.countdownShown = -1;
     this.goTimer = 0;
     audio.unlock();
+    // A restart from the pause menu begins with the context held silent by the pause.
+    audio.resume();
     this.gameAudio.begin(spec, env, true);
     // Warm up shaders and GPU buffers so the first frames do not stutter.
     this.screens.loading('Gölgelendiriciler ısıtılıyor…', 0.95, info);
@@ -478,16 +510,28 @@ export class Game {
     this.hud = null;
   }
 
+  /**
+   * A paused run that is abandoned (quit or restart) still counts, so progress (distance, cash, XP) is not lost.
+   * A run that never left the start grid is not a run: no attempt, no statistics.
+   */
+  private bankAbandonedRun(): void {
+    const s = this.session;
+    if (!s || this.state !== 'paused' || s.state === 'finished' || s.state === 'countdown') return;
+    s.finish('quit');
+    this.recordRun('quit');
+  }
+
   private quitToMenu(): void {
-    if (this.session && this.state === 'paused' && this.session.state !== 'finished') {
-      // Count the abandoned run so progress (distance, cash) is not lost.
-      this.session.finish('quit');
-      this.recordRun('quit');
-    }
+    this.bankAbandonedRun();
     this.pendingResult = null;
     this.endRun();
     audio.resume();
     this.toMenu();
+  }
+
+  /** A ride is on hold: the pause menu, or the settings opened from it. Audio must stay silent meanwhile. */
+  private runIsPaused(): boolean {
+    return this.state === 'paused' || (this.state === 'settings' && this.session !== null && this.prevScreen === 'paused');
   }
 
   private pause(): void {
@@ -693,6 +737,7 @@ export class Game {
       this.fpsAcc = 0;
       this.fpsFrames = 0;
     }
+    this.input.gameplay = this.state === 'playing';
     // Menus: arrow keys / pad drive the focus; riding input is ignored while a panel is open.
     const menuOn = this.screens.screen !== '' && this.screens.screen !== 'loading';
     this.input.menuMode = menuOn;
