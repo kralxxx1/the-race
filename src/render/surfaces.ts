@@ -585,9 +585,12 @@ export function createSurfaces(o: SurfaceOptions): WorldSurfaces {
   );
   const barrier = keep(
     conc
-      ? standardSet(conc, 1 / conc.sizeM, { color: '#c4c1b9', metal: 0, rough: 1 })
+      ? standardSet(conc, 1 / conc.sizeM, { color: '#ffffff', metal: 0, rough: 1 })
       : new THREE.MeshStandardMaterial({ color: '#b9b6ae', roughness: 0.85, metalness: 0, side: THREE.DoubleSide }),
   );
+  // The photo albedo is already a dark 0.27 and the barrier's road-side face sits in shade, so any tint on top of it
+  // turned the whole median into a black band; lift it to the ~0.38 of weathered concrete instead.
+  if (conc) barrier.color.setRGB(1.4, 1.4, 1.4);
   let building: THREE.MeshStandardMaterial | null = null;
   if (o.env.scenery.buildings) {
     const f = facadeTextures();
