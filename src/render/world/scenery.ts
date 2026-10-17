@@ -307,6 +307,12 @@ export abstract class Scenery {
     if (sway) this.staticSway.add(key);
   }
 
+  /** Every material this scenery can draw (prop LODs and statics), including pieces no chunk has built yet. */
+  materials(out: Set<THREE.Material>): void {
+    for (const def of this.propDefs.values()) for (const lod of def.lods) for (const part of lod.parts) out.add(part.material);
+    for (const s of this.statics.values()) out.add(s.material);
+  }
+
   /** Create the instance buffers a chunk needs for this map. */
   attach(chunk: SceneryChunk): void {
     for (const [key, def] of this.propDefs) {

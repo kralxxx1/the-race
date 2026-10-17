@@ -4,6 +4,7 @@ import { assets } from './assets';
 import { AdaptiveResolution, FrameLimiter, FrameStats } from './postfx/frameControl';
 import { PostPipeline, type PostFrame } from './postfx/pipeline';
 import { profileFromSettings, type QualityProfile, type ToneMap } from './quality';
+import { uploadable } from './residency';
 import { setTextureAnisotropy } from './textures';
 
 export interface FxState {
@@ -329,9 +330,11 @@ export class Renderer {
     camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
   }
 
-  /** Compile every shader of a scene and of the post chain so the first frames do not stutter. */
-  warmup(scene: THREE.Scene, camera: THREE.Camera): void {
+  /** Compile every shader of a scene and of the post chain, upload `textures` and render one frame so the first frames do not stutter. */
+  warmup(scene: THREE.Scene, camera: THREE.Camera, textures: Iterable<THREE.Texture> = []): void {
     try {
+      // Upload now rather than on the frame a scenery piece first shows the texture (a mip-chain upload mid-ride).
+      for (const t of textures) if (uploadable(t)) this.renderer.initTexture(t);
       this.renderer.compile(scene, camera);
       this.render(scene, camera);
       this.pipeline.resetHistory();

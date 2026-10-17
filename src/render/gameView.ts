@@ -26,6 +26,7 @@ import { ShadowSystem } from './postfx/shadows';
 import { SkySystem, parseEnv } from './sky';
 import { TrafficView } from './trafficView';
 import { WorldView } from './worldView';
+import { collectObjectTextures } from './residency';
 import { EnclosureFx } from './world/enclosureFx';
 import { Snowfall } from './world/snowfall';
 import type { ReverbKind } from '../audio/dsp/impulse';
@@ -635,6 +636,14 @@ export class GameView {
       out.push({ id: c.id, heavy: c.arch.heavy, kind: c.kind, x: _v.x, y: _v.y, z: _v.z, vRad, speed: c.v, braking: c.braking });
     }
     return out;
+  }
+
+  /** Every texture this run's materials reference (scene plus scenery not built yet), uploaded during loading. */
+  warmTextures(): THREE.Texture[] {
+    const out = new Set<THREE.Texture>();
+    collectObjectTextures(this.scene, out);
+    this.world.textures(out);
+    return [...out];
   }
 
   render(): void {

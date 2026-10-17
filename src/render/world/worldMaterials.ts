@@ -364,6 +364,11 @@ totalEmissiveRadiance += diffuseColor.rgb * uTunLit * tPool;`,
     return this.keep(m);
   }
 
+  /** Every material created or adopted for this run. */
+  materials(out: Set<THREE.Material>): void {
+    for (const m of this.owned) out.add(m);
+  }
+
   adoptTexture<T extends THREE.Texture>(t: T): T {
     this.ownedTex.push(t);
     return t;

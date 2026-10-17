@@ -492,7 +492,7 @@ export class Game {
     this.screens.loading('Gölgelendiriciler ısıtılıyor…', 0.95, info);
     try {
       view.traffic.prewarm(this.renderer.renderer, view.cam.camera, view.scene);
-      this.renderer.warmup(view.scene, view.cam.camera);
+      this.renderer.warmup(view.scene, view.cam.camera, view.warmTextures());
     } catch (e) {
       console.warn('prewarm failed', e);
     }

@@ -5,6 +5,7 @@ import { pavedHalfWidth, type LaneConfig, type RoadPath } from '../world/road';
 import type { GlowPoints } from './effects';
 import type { Materials } from './materials';
 import type { QualityProfile } from './quality';
+import { collectMaterialTextures } from './residency';
 import { createSurfaces, type WorldSurfaces } from './surfaces';
 import { ROAD_TEX_LENGTH } from './textures';
 import { Backdrop } from './world/backdrop';
@@ -459,6 +460,18 @@ export class WorldView implements SceneryHost {
     this.worldMats.dispose();
     this.surfaces.dispose();
     this.group.clear();
+  }
+
+  /**
+   * Textures any world material can sample this run (surfaces, every scenery prop and static,
+   * including pieces no chunk has built yet), so the loading screen can upload them up front.
+   */
+  textures(out: Set<THREE.Texture>): void {
+    const mats = new Set<THREE.Material>([this.roadMat, this.terrainMat, this.railMat, this.barrierMat, this.postMat]);
+    if (this.surfaces.building) mats.add(this.surfaces.building);
+    this.scenery.materials(mats);
+    this.worldMats.materials(mats);
+    for (const m of mats) collectMaterialTextures(m, out);
   }
 
   /** Debug/test: instance counts per prop key over the active chunks, plus draw-visible meshes. */
