@@ -264,6 +264,25 @@ test.describe('The Race — production build', () => {
     expectNoErrors(errors);
   });
 
+  test('starting a run twice in a row (double tap) leaves exactly one run and leaks nothing', async ({ page }) => {
+    const errors = trackErrors(page);
+    await seedSave(page);
+    await bootToMenu(page);
+    const boot = await api(page, 'memory');
+    await page.evaluate(() => Promise.all([window.__THE_RACE__.start('endless', 'highway'), window.__THE_RACE__.start('endless', 'city')]));
+    await waitState(page, 'playing');
+    await frames(page, 3);
+    await expect(page.getByTestId('hud')).toHaveCount(1);
+    await page.evaluate(() => window.__THE_RACE__.pause());
+    await page.getByTestId('btn-quit').click();
+    await waitState(page, 'menu');
+    await frames(page, 2);
+    await expect(page.getByTestId('hud')).toHaveCount(0);
+    const mem = await api(page, 'memory');
+    expect(mem.geometries).toBeLessThanOrEqual(boot.geometries + 10);
+    expectNoErrors(errors);
+  });
+
   test('repeated runs do not leak GPU geometries', async ({ page }) => {
     await seedSave(page);
     await bootToMenu(page);

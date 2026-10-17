@@ -76,6 +76,8 @@ export class Game {
   private readonly liveShown = new Set<string>();
   private audioCars: AudioCar[] = [];
   private runSeed = 1;
+  /** Bumped by every startRun: a start that was overtaken by a newer one (double tap) abandons itself. */
+  private runToken = 0;
   errors: string[] = [];
   /** Exponential moving averages of per-stage frame cost (ms) for the debug overlay. */
   readonly profile: Record<string, number> = {};
@@ -314,6 +316,7 @@ export class Game {
   }
 
   async startRun(cfg: RunConfig): Promise<void> {
+    const token = ++this.runToken;
     this.disposeRev();
     this.endRun();
     const mission: MissionDef | undefined = cfg.mode === 'career' && cfg.missionId ? MISSION_BY_ID.get(cfg.missionId) : undefined;
@@ -335,6 +338,7 @@ export class Game {
     this.screens.loading('Yol hazırlanıyor…', 0.2);
     await nextFrame();
     await nextFrame();
+    if (token !== this.runToken) return;
     const d = this.save.data;
     const bikeId = d.selectedBike;
     const spec = getBike(bikeId);
@@ -354,8 +358,10 @@ export class Game {
     });
     // CC0 PBR textures and HDRI skies for this environment (falls back to procedural ones offline).
     await preloadWorld(env, this.renderer.profile, (p) => this.screens.loading('Dokular ve gökyüzü yükleniyor…', 0.2 + p * 0.4));
+    if (token !== this.runToken) return;
     this.screens.loading('Trafik ve manzara oluşturuluyor…', 0.6);
     await nextFrame();
+    if (token !== this.runToken) return;
     const view = new GameView(this.renderer, session, env, this.save.livery(bikeId), this.settings);
     view.lightningCb = (delay) => this.gameAudio.thunder(delay);
     // Secondary impacts of the crash simulation (rider bouncing, bike sliding into the rail, car crumple).
