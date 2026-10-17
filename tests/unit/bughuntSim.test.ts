@@ -5,7 +5,7 @@ import { resolveEnvironment } from '../../src/data/maps';
 import { MODE_BY_ID } from '../../src/data/modes';
 import { GameSession, TIME_TRIAL_MIN_BONUS, timeTrialBonus } from '../../src/game/session';
 import { InputManager } from '../../src/input/input';
-import { neutralInput } from '../../src/physics/bike';
+import { BikePhysics, FLAT_ROAD, neutralInput } from '../../src/physics/bike';
 import { pilotInput } from './helpers/pilot';
 import { addCar, clearRoad } from './helpers/scenario';
 import { TrafficSystem, type PlayerProbe, type TrafficCar } from '../../src/world/traffic';
@@ -180,5 +180,35 @@ describe('session: manual shift presses survive high refresh rates', () => {
       for (let f = 0; f < 12; f++) s.update(dt, f === phase + 2 ? { ...neutralInput(), shiftUp: true } : neutralInput());
       expect(s.bike.gear, `phase ${phase}`).toBe(2);
     }
+  });
+});
+
+describe('physics: a crashed bike', () => {
+  // The bike used to freeze at its impact speed for the whole crash sequence, so the HUD, the wind/tyre/slide audio and
+  // the speed effects ran at full speed over a wreck that had stopped.
+  it('slides to a stop: speed, controls, scrape and rpm run down while the position stays put', () => {
+    const bike = new BikePhysics(getBike('yamaha-r1'));
+    const limits = { halfWidth: 8, grip: 1 };
+    bike.reset(0, 0, 40);
+    for (let i = 0; i < 120; i++) bike.step(1 / 120, { ...neutralInput(), throttle: 1 }, FLAT_ROAD, limits);
+    bike.scraping = 1;
+    bike.crash('barrier');
+    const at = { s: bike.s, d: bike.d, v: bike.v };
+    expect(at.v).toBeGreaterThan(35);
+    let last = at.v;
+    for (let i = 0; i < 120 * 2; i++) {
+      bike.step(1 / 120, { ...neutralInput(), throttle: 1 }, FLAT_ROAD, limits);
+      expect(bike.v).toBeLessThanOrEqual(last);
+      last = bike.v;
+    }
+    expect(bike.v).toBeLessThan(at.v - 8); // ~0.6 g of sliding friction
+    expect(bike.v).toBeGreaterThan(0);
+    for (let i = 0; i < 120 * 10; i++) bike.step(1 / 120, { ...neutralInput(), throttle: 1 }, FLAT_ROAD, limits);
+    expect(bike.v).toBe(0);
+    expect(bike.scraping).toBe(0);
+    expect(bike.throttle).toBe(0);
+    expect(bike.rpm).toBeLessThan(50);
+    expect(bike.s).toBe(at.s);
+    expect(bike.d).toBe(at.d);
   });
 });

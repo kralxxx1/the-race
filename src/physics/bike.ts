@@ -246,7 +246,10 @@ export class BikePhysics {
   /** Advance the simulation by dt seconds (callers should use small fixed steps). */
   step(dt: number, input: RiderInput, road: RoadSample, limits: RoadLimits): void {
     this.time += dt;
-    if (this.crashed) return;
+    if (this.crashed) {
+      this.wreck(dt, limits.grip);
+      return;
+    }
     const spec = this.spec;
     const e = spec.engine;
     const ch = this.chassis;
@@ -437,6 +440,22 @@ export class BikePhysics {
       this.scraping = clamp(v / 40, 0.15, 1);
       this.events.push({ type: 'scrape', side, intensity: this.scraping });
     }
+  }
+
+  /**
+   * The bike is down: it slides to a stop and the engine dies. Position stays where the crash simulation took
+   * over, but speed, controls, scrape and rpm run down, so the HUD, the wind/tyre audio and the speed effects
+   * follow the wreck instead of staying frozen at the impact values until the run ends.
+   */
+  private wreck(dt: number, grip: number): void {
+    this.v = Math.max(0, this.v - 0.6 * grip * G * dt);
+    this.throttle = approach(this.throttle, 0, dt * 12);
+    this.brake = approach(this.brake, 0, dt * 8);
+    this.wheelspin = 0;
+    this.scraping *= Math.exp(-3 * dt);
+    if (this.scraping < 0.01) this.scraping = 0;
+    this.rpm *= Math.exp(-5 * dt);
+    this.accel = 0;
   }
 
   private updatePitch(dt: number, riderWheelie: boolean, rawThrottle: number): void {
