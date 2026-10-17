@@ -5,7 +5,7 @@ import type { ModeDef } from '../data/modes';
 import { clamp, smoothstep } from '../core/math';
 import { BikePhysics, neutralInput, type PhysicsEvent, type RiderInput, type RoadLimits, type Upgrades } from '../physics/bike';
 import { RoadPath, laneCenter, makeLaneConfig, pavedHalfWidth, type LaneConfig } from '../world/road';
-import { TrafficSystem, type TrafficCar, type TrafficEvent } from '../world/traffic';
+import { TrafficSystem, trafficContext, type TrafficCar, type TrafficEvent } from '../world/traffic';
 import { MissionTracker, emptySample, type MissionFailReason, type MissionSample } from './missions';
 import { computeWake, type WakeResult } from './wake';
 import { NEAR_MISS_CLEARANCE, ScoreKeeper } from './scoring';
@@ -92,7 +92,7 @@ export class GameSession {
     this.limits = { halfWidth: pavedHalfWidth(this.lanes) - 0.45, grip: cfg.env.grip };
     this.bike = new BikePhysics(cfg.bike, cfg.upgrades);
     this.bike.autoShift = cfg.autoShift;
-    this.traffic = new TrafficSystem(this.lanes, { seed: cfg.seed * 31 + 7, ...cfg.mode.traffic });
+    this.traffic = new TrafficSystem(this.lanes, { seed: cfg.seed * 31 + 7, ...trafficContext(cfg.env), ...cfg.mode.traffic });
     this.startPosition();
     this.traffic.reset(this.bike.s);
     if (cfg.mode.timer) this.timeLeft = cfg.mode.timer.start;

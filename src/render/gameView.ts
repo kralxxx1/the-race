@@ -467,7 +467,7 @@ export class GameView {
     // Lights / glows
     this.glow.begin();
     this.world.collectGlows(this.glow, camPos);
-    this.traffic.update(dt, this.glow, camPos);
+    this.traffic.update(dt, this.glow, camPos, this.session.traffic.zones);
     this.crash?.updateCarLights(this.traffic, this.glow, dt);
     if (!this.crash) {
       this.bike.chassis.updateMatrixWorld(true);

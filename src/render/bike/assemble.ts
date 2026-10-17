@@ -83,8 +83,11 @@ function plateText(id: string): string {
 export const kitDebug = { skip: new Set<string>(), timings: null as Map<string, number> | null };
 
 function runKit(ctx: KitContext, warnings: string[]): void {
+  // A blueprint can replace a generic stage with its own (built in `body`) by listing `skip:<stage>` in
+  // `features` (e.g. 'skip:engine', 'skip:frame'). Bikes without such a feature are unaffected.
+  const featureSkips = new Set((ctx.bp.features ?? []).filter((f) => f.startsWith('skip:')).map((f) => f.slice(5)));
   const safe = <T>(name: string, fn: () => T, fallback: T): T => {
-    if (kitDebug.skip.has(name)) return fallback;
+    if (kitDebug.skip.has(name) || featureSkips.has(name)) return fallback;
     const t0 = kitDebug.timings ? performance.now() : 0;
     try {
       return fn();
