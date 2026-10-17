@@ -3,6 +3,7 @@ import type { BikeBlueprint } from '../types';
 import { bonnevilleT120Blueprint } from './family-retro-scooter-ev-bonneville';
 import { classic350Blueprint, interceptor650Blueprint } from './family-retro-scooter-ev-enfield';
 import { liveWireOneBlueprint } from './family-retro-scooter-ev-livewire';
+import { scramblerIconBlueprint } from './family-retro-scooter-ev-scrambler';
 import { tmaxBlueprint } from './family-retro-scooter-ev-tmax';
 import { vespaGtsBlueprint } from './family-retro-scooter-ev-vespa';
 
@@ -18,4 +19,5 @@ export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'triumph-bonneville-t120': bonnevilleT120Blueprint,
   're-interceptor-650': interceptor650Blueprint,
   're-classic-350': classic350Blueprint,
+  'ducati-scrambler': scramblerIconBlueprint,
 };

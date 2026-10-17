@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { RX, T, mul, type KitContext } from '../context';
 import { alongY, extrude, lathe, rod, smooth2, type P2, type P3 } from '../mesh';
+import { bodyQ, buildTank, type TankOpts } from './body';
+import { outlineLoft, sideAt, type OutlineBody } from './shape';
+import { fAnd, panel as panelOf, sideRegion } from '../surface';
 import { F, Micro, hard, tint, vary, type Finish } from '../sink';
 import { can, clampRing, heatShield, link, pipe, portFlange } from './cruisers-exhaust';
 import type { Port } from './engine';
@@ -167,4 +170,85 @@ export function kneePads(ctx: KitContext, o: { z: number; y: number; x: number; 
     const m = extrude(outline.map(([a, b]) => [o.z + a, o.y + b] as P2), 0.0065, { plane: 'zy', bevel: 0.0022, curveSegs: 1, center: s * o.x });
     ctx.add('chassis', m, f);
   }
+}
+
+// ───────────────────────────── trellis frame ─────────────────────────────
+
+export interface TrellisFrameOpts {
+  f: Finish;
+  /** Main tube radius. */
+  r?: number;
+  /** Rail height under the tank and half-width at the engine. */
+  upperY: number;
+  halfX?: number;
+  /** Lower rail control points for the right side (x positive); mirrored. */
+  lower?: readonly P3[];
+  seatPost: [number, number];
+  tail: [number, number];
+  tailX?: number;
+  /** Number of diagonal braces between the rails. */
+  braces?: number;
+  /** Pivot plate finish (default: frame). */
+  plate?: Finish;
+}
+
+/** Exposed steel trellis: two upper rails under the tank, lower rails round the engine, Warren braces, pivot plates, tail loop. */
+export function trellisFrame(ctx: KitContext, o: TrellisFrameOpts): void {
+  const hp = ctx.hp;
+  const pv = hp.pivot;
+  const head = hp.head;
+  const r = o.r ?? 0.0125;
+  const hx = o.halfX ?? 0.135;
+  const ht = ctx.fromSteer([0, -0.05, 0.005]);
+  const hb = ctx.fromSteer([0, -0.2, 0.012]);
+  ctx.add('chassis', lathe([[0.034, -0.1], [0.04, -0.092], [0.04, 0.092], [0.034, 0.1]], { segs: ctx.seg(24, 10), axis: 'y', sharp: true }), o.f, alongY(ctx.fromSteer([0, -0.2, 0.005]), ctx.fromSteer([0, 0.0, 0.005])));
+  const tailX = o.tailX ?? 0.08;
+  const nBr = o.braces ?? 4;
+  for (const s of [-1, 1]) {
+    const upper: P3[] = [[s * 0.03, ht[1], ht[2] + 0.02], [s * 0.08, head[1] - 0.085, head[2] + 0.2], [s * (hx - 0.01), o.upperY, (head[2] + pv[2]) / 2 + 0.02], [s * hx, pv[1] + 0.2, pv[2] - 0.02]];
+    const lowerCtrl: P3[] = o.lower
+      ? o.lower.map(([x, y, z]) => [s * x, y, z] as P3)
+      : [[s * 0.035, hb[1], hb[2] + 0.01], [s * 0.1, 0.6, head[2] + 0.12], [s * hx, 0.48, (head[2] + pv[2]) / 2], [s * (hx + 0.005), pv[1] + 0.06, pv[2] + 0.0]];
+    const up = pipeAlong(ctx, 'chassis', upper, r, o.f);
+    const lo = pipeAlong(ctx, 'chassis', lowerCtrl, r, o.f);
+    for (let k = 0; k < nBr; k++) {
+      const t0 = 0.12 + (0.8 * k) / nBr, t1 = 0.12 + (0.8 * (k + 1)) / nBr;
+      const a = up[Math.round(t0 * (up.length - 1))];
+      const b = lo[Math.round(t1 * (lo.length - 1))];
+      const c = up[Math.round(t1 * (up.length - 1))];
+      const base = lo[Math.round(t0 * (lo.length - 1))];
+      ctx.add('chassis', rod(a, b, r * 0.72, r * 0.72, ctx.seg(10, 5), false), o.f);
+      ctx.add('chassis', rod(b, c, r * 0.72, r * 0.72, ctx.seg(10, 5), false), o.f);
+      if (k === 0) ctx.add('chassis', rod(base, a, r * 0.72, r * 0.72, ctx.seg(10, 5), false), o.f);
+    }
+    // Pivot plate
+    const plate = smooth2([[pv[2] - 0.075, pv[1] + 0.14], [pv[2] + 0.02, pv[1] + 0.16], [pv[2] + 0.055, pv[1] + 0.03], [pv[2] + 0.03, pv[1] - 0.08], [pv[2] - 0.06, pv[1] - 0.08], [pv[2] - 0.095, pv[1] + 0.02]], ctx.micro ? 4 : 2, true);
+    ctx.add('chassis', extrude(plate, 0.012, { plane: 'zy', bevel: 0.003, center: s * (hx + 0.012), curveSegs: 1 }), o.plate ?? o.f);
+    ctx.add('chassis', lathe([[0, 0], [0.021, 0], [0.023, 0.005], [0.021, 0.012], [0, 0.012]], { segs: 6, axis: 'x', sharp: true }), F.steel, mul(T(s * (hx + 0.024), pv[1], pv[2]), s > 0 ? new THREE.Matrix4() : new THREE.Matrix4().makeScale(-1, 1, 1)));
+    // Subframe: seat rail + lower stay up from the pivot plate to the tail loop
+    pipeAlong(ctx, 'chassis', [[s * hx, pv[1] + 0.2, pv[2] - 0.02], [s * 0.1, o.seatPost[1] - 0.02, o.seatPost[0]], [s * tailX, o.seatPost[1], (o.seatPost[0] + o.tail[0]) / 2], [s * tailX * 0.85, o.tail[1], o.tail[0]]], r * 0.95, o.f);
+    pipeAlong(ctx, 'chassis', [[s * hx, pv[1] + 0.08, pv[2] + 0.03], [s * 0.1, o.seatPost[1] - 0.14, (pv[2] + o.tail[0]) / 2], [s * tailX * 0.85, o.tail[1] - 0.02, o.tail[0] - 0.04]], r * 0.8, o.f);
+  }
+  pipeAlong(ctx, 'chassis', [[-hx * 0.9, hb[1] - 0.04, hb[2] + 0.2], [0, hb[1] - 0.05, hb[2] + 0.21], [hx * 0.9, hb[1] - 0.04, hb[2] + 0.2]], r * 0.8, o.f);
+  pipeAlong(ctx, 'chassis', [[-tailX * 0.85, o.tail[1], o.tail[0]], [0, o.tail[1] + 0.004, o.tail[0] + 0.012], [tailX * 0.85, o.tail[1], o.tail[0]]], r * 0.8, o.f);
+  pipeAlong(ctx, 'chassis', [[-0.095, o.seatPost[1] - 0.01, o.seatPost[0]], [0, o.seatPost[1] - 0.01, o.seatPost[0] + 0.004], [0.095, o.seatPost[1] - 0.01, o.seatPost[0]]], r * 0.8, o.f);
+}
+
+// ───────────────────────────── tank with side panels ─────────────────────────────
+
+/** Painted tank (kit tank, with its cap) plus proud side panels in another finish cut from the same surface. */
+export function tankWithPanels(ctx: KitContext, o: TankOpts, panel: readonly P2[], panelF: Finish, label?: { text: string; z: number; y: number; color: string; h: number }): OutlineBody {
+  const ob = buildTank(ctx, o);
+  const master = outlineLoft(ob, { ...bodyQ(ctx), capFront: false });
+  const region = fAnd(sideRegion(panel), (x) => Math.abs(x) - 0.04);
+  const p = panelOf(master, region, { gap: 0.0016, depth: 0.007, offset: 0.0022, roll: 0.001 });
+  if (p.tcount) ctx.add('chassis', p, panelF);
+  if (label && ctx.micro) {
+    const r = ctx.label(label.text, { color: label.color, weight: '800' }, 56);
+    for (const s of [-1, 1]) {
+      const sp = sideAt(ob, label.z, label.y, s);
+      ctx.decal('chassis', r, label.h, [sp.p[0] + s * 0.0035, sp.p[1], sp.p[2]], [s, 0, 0], [0, 1, 0]);
+    }
+  }
+  return ob;
 }
