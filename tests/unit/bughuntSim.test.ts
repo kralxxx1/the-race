@@ -4,6 +4,7 @@ import { getBike } from '../../src/data/bikes';
 import { resolveEnvironment } from '../../src/data/maps';
 import { MODE_BY_ID } from '../../src/data/modes';
 import { GameSession, TIME_TRIAL_MIN_BONUS, timeTrialBonus } from '../../src/game/session';
+import { InputManager } from '../../src/input/input';
 import { neutralInput } from '../../src/physics/bike';
 import { pilotInput } from './helpers/pilot';
 import { addCar, clearRoad } from './helpers/scenario';
@@ -136,5 +137,29 @@ describe('scoring: one credit per vehicle', () => {
     expect(passes).toBeGreaterThanOrEqual(3); // the passes themselves still happen (whoosh, camera punch)
     expect(s.score.overtakes).toBe(1);
     expect(s.score.nearMisses).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('input: browser keys outside a ride', () => {
+  function press(target: EventTarget, code: string): Event {
+    const ev = Object.assign(new Event('keydown', { cancelable: true }), { code, repeat: false });
+    target.dispatchEvent(ev);
+    return ev;
+  }
+
+  // Space on a focused menu button and the arrows on a slider were swallowed everywhere, not only during the ride.
+  it('Space and the arrows keep their browser meaning in the menus and are swallowed during a ride', () => {
+    const target = new EventTarget();
+    const input = new InputManager(target as unknown as Window);
+    for (const code of ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) expect(press(target, code).defaultPrevented, `menu ${code}`).toBe(false);
+    input.gameplay = true;
+    for (const code of ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) expect(press(target, code).defaultPrevented, `ride ${code}`).toBe(true);
+    // Letters are never swallowed.
+    expect(press(target, 'KeyW').defaultPrevented).toBe(false);
+    // Pause still arrives as an edge in the menus (resume from the pause menu).
+    input.gameplay = false;
+    press(target, 'Escape');
+    expect(input.update(0.016).pause).toBe(true);
+    input.dispose();
   });
 });

@@ -40,12 +40,18 @@ export class InputManager {
   tiltEnabled = false;
   /** Scripted input for automated tests (overrides everything when set). */
   override: Partial<FrameInput> | null = null;
+  /**
+   * True while a ride is live. Only then are the arrow keys and Space swallowed (so a focused HUD button is
+   * not clicked by the wheelie key); in the menus they keep their browser meaning: Space presses the focused
+   * button, the arrows scroll the page and move sliders and drop-downs.
+   */
+  gameplay = false;
   private disposers: (() => void)[] = [];
 
   constructor(target: Window = window) {
     const down = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+      if (this.gameplay && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
       this.keys.add(e.code);
       this.pressed.add(e.code);
     };

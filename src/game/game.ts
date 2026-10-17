@@ -644,6 +644,7 @@ export class Game {
       this.fpsAcc = 0;
       this.fpsFrames = 0;
     }
+    this.input.gameplay = this.state === 'playing';
     const input = this.input.update(dt);
     if (input.mute) {
       audio.setMuted(!audio.isMuted);

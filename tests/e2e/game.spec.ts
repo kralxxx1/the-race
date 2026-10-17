@@ -261,6 +261,16 @@ test.describe('The Race — production build', () => {
     expectNoErrors(errors);
   });
 
+  test('keyboard menus: Space presses the focused button', async ({ page }) => {
+    const errors = trackErrors(page);
+    await seedSave(page);
+    await bootToMenu(page);
+    await page.getByTestId('btn-play').focus();
+    await page.keyboard.press('Space');
+    await expect(page.getByTestId('mode-endless')).toBeVisible();
+    expectNoErrors(errors);
+  });
+
   test('pausing holds the audio silent (a click or key on the pause menu must not wake it) until resume', async ({ page }) => {
     const errors = trackErrors(page);
     await seedSave(page);
