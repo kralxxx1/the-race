@@ -66,11 +66,11 @@ export function detailMaterial(): THREE.MeshStandardMaterial {
 /** Tinted glass: see-through so the cabin interior shows, with strong sky reflections. */
 export function glassMaterial(): THREE.MeshPhysicalMaterial {
   const m = new THREE.MeshPhysicalMaterial({
-    color: 0x0a1016,
+    color: 0x070a0f,
     metalness: 0.0,
     roughness: 0.035,
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.72,
     clearcoat: 1,
     clearcoatRoughness: 0.02,
     envMapIntensity: 2.4,
@@ -94,6 +94,8 @@ export function lampMaterial(): THREE.MeshStandardMaterial {
       'attribute float lampCh;\nattribute vec4 aLampA;\nattribute vec4 aLampB;\nvarying float vLamp;',
       '  int lci = int(lampCh + 0.5);\n  vLamp = lci < 4 ? aLampA[lci] : aLampB[lci - 4];',
       'varying float vLamp;',
+      // An unlit lens is dark tinted plastic; a lit one glows in its own colour (the diffuse tint is vertex colour).
+      ['#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb *= 0.3;'],
       ['#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += vColor.rgb * vLamp;'],
     );
   m.customProgramCacheKey = () => 'vehicle-lamp';

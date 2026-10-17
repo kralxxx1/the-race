@@ -11,7 +11,7 @@ import { platesMaterial } from '../src/render/vehicle/plates';
 
 const q = new URLSearchParams(location.search);
 const num = (k: string, d: number) => (q.has(k) ? Number(q.get(k)) : d);
-const kinds: VehicleKind[] = q.get('lineup') === '1' ? [...VEHICLE_KINDS] : [(q.get('kind') as VehicleKind) ?? 'sedan'];
+const kinds: VehicleKind[] = q.get('kinds') ? (q.get('kinds') as string).split(',') as VehicleKind[] : q.get('lineup') === '1' ? [...VEHICLE_KINDS] : [(q.get('kind') as VehicleKind) ?? 'sedan'];
 const view = q.get('view') ?? 'rear34';
 const night = q.get('night') === '1';
 const lod = num('lod', 0) === 1 ? 1 : 0;
@@ -60,8 +60,8 @@ scene.add(plates.mesh);
 
 const lampTags = (q.get('lamps') ?? '').split(',');
 const lamps: LampState = newLampState();
-if (lampTags.includes('brake')) lamps.tail = 9;
-else if (night || lampTags.includes('tail')) lamps.tail = 0.55;
+if (lampTags.includes('brake')) lamps.tail = 3.4;
+else if (night || lampTags.includes('tail')) lamps.tail = 0.6;
 if (night || lampTags.includes('head')) lamps.head = 8;
 if (lampTags.includes('drl')) lamps.aux = 3;
 if (lampTags.includes('ind') || lampTags.includes('hazard')) {
