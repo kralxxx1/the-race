@@ -61,7 +61,7 @@ export async function seedSave(page: Page, save: Record<string, unknown> = {}): 
         sessionStorage.setItem('__seeded', '1');
       }
     },
-    [SAVE_KEY, { version: 3, settings: { 'gfx.preset': 'low', 'cam.shake': false }, ...save }] as const,
+    [SAVE_KEY, { version: 3, settings: { 'gfx.preset': 'low', 'cam.shake': false, 'ui.confirmQuit': false }, ...save }] as const,
   );
 }
 
@@ -100,4 +100,18 @@ export async function frames(page: Page, n = 2): Promise<void> {
 export function expectNoErrors(errors: string[]): void {
   const real = errors.filter((e) => !/favicon|GPU stall|WebGL: INVALID_ENUM|Automatic fallback to software WebGL/i.test(e));
   expect(real, real.join('\n')).toEqual([]);
+}
+
+/** Leave a paused ride through the pause menu, confirming when the game asks ("Çıkışta onay iste" is on by default). */
+export async function quitRide(page: Page): Promise<void> {
+  await page.getByTestId('btn-quit').click();
+  const confirm = page.getByTestId('quit-confirm');
+  if (await confirm.isVisible().catch(() => false)) await confirm.click();
+  else {
+    try {
+      await confirm.click({ timeout: 3000 });
+    } catch {
+      /* no confirmation configured */
+    }
+  }
 }

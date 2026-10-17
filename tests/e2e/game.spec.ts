@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { api, bootToMenu, expectNoErrors, frames, seedSave, startRun, trackErrors, waitState } from './helpers';
+import { api, bootToMenu, expectNoErrors, frames, seedSave, startRun, trackErrors, waitState, quitRide } from './helpers';
 
 test.describe('The Race — production build', () => {
   test('boots into the main menu with a WebGL canvas and no errors', async ({ page }) => {
@@ -170,9 +170,7 @@ test.describe('The Race — production build', () => {
       await page.evaluate(() => window.__THE_RACE__.clearInput());
       await page.getByTestId('pause-btn').click();
       await waitState(page, 'paused');
-      await page.getByTestId('btn-quit').click();
-      // Leaving a ride asks for confirmation (setting "Çıkışta onay iste" is on by default).
-      await page.getByTestId('quit-confirm').click();
+      await quitRide(page);
       await waitState(page, 'menu');
       // Quitting still records the ride (distance/cash are not lost).
       expect((await api(page, 'save')).gamesPlayed).toBe(1);
@@ -186,7 +184,7 @@ test.describe('The Race — production build', () => {
     await bootToMenu(page);
     await startRun(page, 'endless', 'highway');
     await page.evaluate(() => window.__THE_RACE__.pause());
-    await page.getByTestId('btn-quit').click(); // still in the countdown
+    await quitRide(page); // still in the countdown
     await waitState(page, 'menu');
     expect((await api(page, 'save')).gamesPlayed).toBe(0);
     await startRun(page, 'endless', 'highway');
@@ -311,7 +309,7 @@ test.describe('The Race — production build', () => {
     await frames(page, 3);
     await expect(page.getByTestId('hud')).toHaveCount(1);
     await page.evaluate(() => window.__THE_RACE__.pause());
-    await page.getByTestId('btn-quit').click();
+    await quitRide(page);
     await waitState(page, 'menu');
     await frames(page, 2);
     await expect(page.getByTestId('hud')).toHaveCount(0);
