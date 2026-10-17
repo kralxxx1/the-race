@@ -321,7 +321,10 @@ export const BIKES: BikeSpec[] = [
     id: 'honda-rebel-500', brand: 'Honda', model: 'Rebel 500', year: 2024, style: 'cruiser',
     engine: { layout: 'P2_180', cc: 471, hp: 46, hpRpm: 8500, torque: 43, torqueRpm: 6000, idle: 1300, redline: 9000 },
     weight: 191, topSpeed: 170, price: 6300,
-    liveries: [livery('Mat Siyah', '#1d1e21', '#111111', '#8d939b', { pattern: 'solid' }), livery('Pearl Smoky Gray', '#6f747c', '#2b2d31', '#c4c7cc')],
+    liveries: [
+      livery('Matte Gunpowder Black Metallic', '#26282b', '#111214', '#b9bdc4', { pattern: 'solid', wheel: '#17181a', frame: '#17181a' }),
+      livery('Pearl Smoky Gray', '#6d727a', '#2b2d31', '#1d1f22', { pattern: 'solid', wheel: '#17181a', frame: '#17181a' }),
+    ],
     look: { wheel: 'cast5', extras: ['fenderLong'], rearTireW: 0.15, wheelbase: 1.49 },
     description: 'Alçak sele ve bobber hatları; hafif ve kolay bir cruiser.',
   }),
