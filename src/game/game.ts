@@ -199,7 +199,10 @@ export class Game {
         this.previewBike(this.save.data.selectedBike, 0);
       },
       resume: () => this.resume(),
-      restart: () => void this.startRun(this.run),
+      restart: () => {
+        this.bankAbandonedRun();
+        void this.startRun(this.run);
+      },
       quitToMenu: () => this.quitToMenu(),
       enableTilt: () => this.input.enableTilt(),
       click: () => this.uiSounds.click(),
@@ -427,12 +430,19 @@ export class Game {
     this.hud = null;
   }
 
+  /**
+   * A paused run that is abandoned (quit or restart) still counts, so progress (distance, cash, XP) is not lost.
+   * A run that never left the start grid is not a run: no attempt, no statistics.
+   */
+  private bankAbandonedRun(): void {
+    const s = this.session;
+    if (!s || this.state !== 'paused' || s.state === 'finished' || s.state === 'countdown') return;
+    s.finish('quit');
+    this.recordRun('quit');
+  }
+
   private quitToMenu(): void {
-    if (this.session && this.state === 'paused' && this.session.state !== 'finished') {
-      // Count the abandoned run so progress (distance, cash) is not lost.
-      this.session.finish('quit');
-      this.recordRun('quit');
-    }
+    this.bankAbandonedRun();
     this.pendingResult = null;
     this.endRun();
     audio.resume();
