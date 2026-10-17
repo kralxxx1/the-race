@@ -74,7 +74,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     presets: { low: 100, medium: 100, high: 100, ultra: 125, extreme: 200 },
   },
   {
-    key: 'gfx.pixelRatio',
+    key: 'gfx.pixelRatio', advanced: true,
     category: 'graphics',
     group: 'Çözünürlük',
     label: 'Azami piksel oranı',
@@ -115,7 +115,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     visibleIf: (v) => v['gfx.adaptiveRes'] === true,
   },
   {
-    key: 'gfx.minScale',
+    key: 'gfx.minScale', advanced: true,
     category: 'graphics',
     group: 'Çözünürlük',
     label: 'En düşük dinamik ölçek',
@@ -181,7 +181,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     presets: { low: '4', medium: '0', high: '4', ultra: '4', extreme: '8' },
   },
   {
-    key: 'gfx.taaFeedback',
+    key: 'gfx.taaFeedback', advanced: true,
     category: 'graphics',
     group: 'Kenar yumuşatma',
     label: 'TAA geçmiş ağırlığı',
@@ -274,7 +274,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     visibleIf: shadowsOn,
   },
   {
-    key: 'gfx.shadowSoftness',
+    key: 'gfx.shadowSoftness', advanced: true,
     category: 'graphics',
     group: 'Gölgeler',
     label: 'Gölge yumuşaklığı',
@@ -329,7 +329,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     visibleIf: (v) => post(v) && v['gfx.ao'] !== 'off',
   },
   {
-    key: 'gfx.aoRadius',
+    key: 'gfx.aoRadius', advanced: true,
     category: 'graphics',
     group: 'Ortam kapatma (AO)',
     label: 'AO yarıçapı',
@@ -342,7 +342,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     visibleIf: (v) => post(v) && v['gfx.ao'] !== 'off',
   },
   {
-    key: 'gfx.aoIntensity',
+    key: 'gfx.aoIntensity', advanced: true,
     category: 'graphics',
     group: 'Ortam kapatma (AO)',
     label: 'AO yoğunluğu',
@@ -385,7 +385,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     presets: { low: '0', medium: '0', high: '30', ultra: '4', extreme: '1' },
   },
   {
-    key: 'gfx.envProbeRes',
+    key: 'gfx.envProbeRes', advanced: true,
     category: 'graphics',
     group: 'Yansımalar',
     label: 'Yansıma küpü çözünürlüğü',
@@ -437,7 +437,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     presets: { low: '2', medium: '4', high: '8', ultra: '16', extreme: '16' },
   },
   {
-    key: 'gfx.detailNormals',
+    key: 'gfx.detailNormals', advanced: true,
     category: 'graphics',
     group: 'Dokular',
     label: 'Mikro detay normal haritası',
@@ -448,7 +448,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     presets: { low: false, medium: true, high: true, ultra: true, extreme: true },
   },
   {
-    key: 'gfx.terrainBlend',
+    key: 'gfx.terrainBlend', advanced: true,
     category: 'graphics',
     group: 'Dokular',
     label: 'Arazi doku karışımı',
@@ -476,7 +476,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     presets: { low: 'basic', medium: 'physical', high: 'hdri', ultra: 'hdri', extreme: 'hdri' },
   },
   {
-    key: 'gfx.skyRes',
+    key: 'gfx.skyRes', advanced: true,
     category: 'graphics',
     group: 'Gökyüzü ve ışık',
     label: 'HDRI gökyüzü çözünürlüğü',
@@ -504,7 +504,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     presets: { low: 'sky', medium: 'hdri', high: 'hdri', ultra: 'hdri', extreme: 'hdri' },
   },
   {
-    key: 'gfx.iblIntensity',
+    key: 'gfx.iblIntensity', advanced: true,
     category: 'graphics',
     group: 'Gökyüzü ve ışık',
     label: 'Ortam ışığı yoğunluğu',
@@ -614,7 +614,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     visibleIf: post,
   },
   {
-    key: 'fx.lutStrength',
+    key: 'fx.lutStrength', advanced: true,
     category: 'effects',
     group: 'Renk',
     label: 'LUT yoğunluğu',
@@ -710,7 +710,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     visibleIf: post,
   },
   {
-    key: 'fx.fogDensity',
+    key: 'fx.fogDensity', advanced: true,
     category: 'effects',
     group: 'Atmosfer',
     label: 'Sis yoğunluğu',
@@ -747,7 +747,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     visibleIf: post,
   },
   {
-    key: 'fx.motionBlurStrength',
+    key: 'fx.motionBlurStrength', advanced: true,
     category: 'effects',
     group: 'Kamera',
     label: 'Hareket bulanıklığı şiddeti',
@@ -876,7 +876,7 @@ export const GRAPHICS_SETTINGS: SettingDef[] = [
     presets: { low: 700, medium: 950, high: 1200, ultra: 1450, extreme: 2200 },
   },
   {
-    key: 'world.shadowCasters',
+    key: 'world.shadowCasters', advanced: true,
     category: 'world',
     group: 'Çevre',
     label: 'Çevre gölgeleri',

@@ -108,7 +108,7 @@ test.describe('Menus: navigation, garage, rider and settings', () => {
     await page.getByTestId('tab-graphics').click();
     const before = await page.locator('.set-row').count();
     await page.getByTestId('settings-advanced').click();
-    expect(await page.locator('.set-row').count()).toBeGreaterThan(before);
+    await expect.poll(() => page.locator('.set-row').count()).toBeGreaterThan(before);
     // Reset for the tab restores the preset values.
     await page.getByTestId('tab-hud').click();
     await page.getByTestId('tab-reset').click();
