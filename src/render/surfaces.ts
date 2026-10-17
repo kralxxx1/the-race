@@ -327,7 +327,16 @@ function roadShader(shader: { vertexShader: string; fragmentShader: string }): v
     .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roadRough;')
     .replace('#include <normal_fragment_maps>', 'vec3 mapN = roadN; normal = normalize( tbn * mapN );')
     .replace('#include <lights_physical_fragment>', physical)
-    .replace('#include <aomap_fragment>', 'reflectedLight.indirectDiffuse *= roadAo; reflectedLight.indirectSpecular *= mix(1.0, roadAo, 0.6);');
+    .replace(
+      '#include <aomap_fragment>',
+      // The wet clearcoat is a near mirror, so the moon/sun/headlight glint on it is a sub-pixel spike thousands of times brighter
+      // than the road; bloom then turned it into a glowing ball beside the bike on every rainy or snowy night. Cap it at 0.6.
+      `reflectedLight.indirectDiffuse *= roadAo; reflectedLight.indirectSpecular *= mix(1.0, roadAo, 0.6);
+      reflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(0.6));
+      #ifdef USE_CLEARCOAT
+      clearcoatSpecularDirect = min(clearcoatSpecularDirect, vec3(0.6));
+      #endif`,
+    );
 }
 
 // ───────────────────────────── terrain ─────────────────────────────
@@ -585,9 +594,12 @@ export function createSurfaces(o: SurfaceOptions): WorldSurfaces {
   );
   const barrier = keep(
     conc
-      ? standardSet(conc, 1 / conc.sizeM, { color: '#c4c1b9', metal: 0, rough: 1 })
+      ? standardSet(conc, 1 / conc.sizeM, { color: '#ffffff', metal: 0, rough: 1 })
       : new THREE.MeshStandardMaterial({ color: '#b9b6ae', roughness: 0.85, metalness: 0, side: THREE.DoubleSide }),
   );
+  // The photo albedo is already a dark 0.27 and the barrier's road-side face sits in shade, so any tint on top of it
+  // turned the whole median into a black band; lift it to the ~0.38 of weathered concrete instead.
+  if (conc) barrier.color.setRGB(1.4, 1.4, 1.4);
   let building: THREE.MeshStandardMaterial | null = null;
   if (o.env.scenery.buildings) {
     const f = facadeTextures();

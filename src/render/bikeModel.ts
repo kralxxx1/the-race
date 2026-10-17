@@ -221,7 +221,8 @@ export class BikeModel {
     this.steer.add(this.gripL, this.gripR);
 
     if (opts.headlightSpot) {
-      const spot = new THREE.SpotLight('#fff1dc', 60, 120, 0.42, 0.55, 1.6);
+      // 420 cd: the night scenes are exposed for ~0.35-unit moonlight, so a 60 cd beam left no visible pool on the road.
+      const spot = new THREE.SpotLight('#fff1dc', 420, 140, 0.45, 0.65, 1.6);
       spot.position.set(0, 0.9, -f.L - 0.1);
       spot.target.position.set(0, 0, -f.L - 30);
       spot.castShadow = false;
@@ -401,6 +402,8 @@ export class BikeModel {
     this.headLight.dispose();
     this.drl.dispose();
     this.indicatorLight.dispose();
+    // With headlight shadows on, the spot owns a 1024² depth map.
+    this.headSpot?.dispose();
   }
 }
 
