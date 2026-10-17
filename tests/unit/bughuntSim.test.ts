@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { VehicleKind } from '../../src/data/vehicles';
+import { getBike } from '../../src/data/bikes';
+import { resolveEnvironment } from '../../src/data/maps';
+import { MODE_BY_ID } from '../../src/data/modes';
+import { GameSession, TIME_TRIAL_MIN_BONUS, timeTrialBonus } from '../../src/game/session';
+import { pilotInput } from './helpers/pilot';
 import { TrafficSystem, type PlayerProbe, type TrafficCar } from '../../src/world/traffic';
 import { laneCenter, makeLaneConfig } from '../../src/world/road';
 
@@ -36,4 +41,34 @@ describe('traffic: cars joining behind a stopped rider', () => {
     }
     expect(overlaps).toBe(0);
   }, 60000);
+});
+
+describe('time trial pacing', () => {
+  // The first checkpoint used to need 2.5 km in 65 s from a standstill (138 km/h on average) and the later ones
+  // 2.5 km in 38 s (237 km/h): the starter bike never reached the first one and nobody reached the third.
+  it.each([1, 2, 3])('seed %i: the starter bike ridden by the reference rider makes several checkpoints', (seed) => {
+    const bike = getBike('yamaha-r3');
+    const s = new GameSession({
+      bike,
+      upgrades: { engine: 0, brakes: 0, handling: 0 },
+      mode: MODE_BY_ID.get('timetrial')!,
+      env: resolveEnvironment('highway', 'day', 'clear'),
+      seed,
+      autoShift: true,
+    });
+    for (let i = 0; i < 60 * 400 && s.state !== 'finished'; i++) {
+      s.update(1 / 60, pilotInput(s, { cruise: (bike.topSpeed / 3.6) * 0.9 }));
+      if (s.state === 'crashed') s.finishAfterCrash();
+    }
+    expect(s.checkpointIndex).toBeGreaterThanOrEqual(2);
+  }, 60000);
+
+  it('the checkpoint bonus shrinks one second at a time and never below the floor', () => {
+    expect(timeTrialBonus(40, 1)).toBe(40);
+    expect(timeTrialBonus(40, 2)).toBe(39);
+    expect(timeTrialBonus(40, 100)).toBe(TIME_TRIAL_MIN_BONUS);
+    // Even the floor leaves a pace a fast bike can hold in traffic over one checkpoint stretch.
+    const t = MODE_BY_ID.get('timetrial')!.timer!;
+    expect(t.checkpointEvery / TIME_TRIAL_MIN_BONUS) .toBeLessThan(65);
+  });
 });

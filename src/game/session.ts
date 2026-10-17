@@ -17,6 +17,15 @@ export const COUNTDOWN_SECONDS = 3;
 const COAST_SECONDS = 3;
 const COAST_INPUT: RiderInput = { ...neutralInput(), brake: 0.7 };
 
+/**
+ * Seconds a time-trial checkpoint adds. It shrinks by a second per checkpoint so the pace has to rise, but never
+ * below the floor: the bonus has to stay long enough to ride the next stretch at a speed the bikes can hold in traffic.
+ */
+export const TIME_TRIAL_MIN_BONUS = 24;
+export function timeTrialBonus(base: number, checkpointIndex: number): number {
+  return Math.max(TIME_TRIAL_MIN_BONUS, base - (checkpointIndex - 1));
+}
+
 export type SessionState = 'countdown' | 'running' | 'crashed' | 'finished';
 export type FinishReason = 'crash' | 'timeUp' | 'quit' | 'missionComplete' | 'missionFailed';
 
@@ -314,7 +323,7 @@ export class GameSession {
     const next = (this.checkpointIndex + 1) * t.checkpointEvery;
     if (this.score.distance >= next) {
       this.checkpointIndex++;
-      const bonus = Math.max(18, t.bonus - (this.checkpointIndex - 1) * 2);
+      const bonus = timeTrialBonus(t.bonus, this.checkpointIndex);
       this.timeLeft += bonus;
       this.score.addBonus(1000 * this.checkpointIndex);
       this.events.push({ type: 'checkpoint', index: this.checkpointIndex, bonus });

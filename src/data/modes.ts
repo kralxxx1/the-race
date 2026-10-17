@@ -42,7 +42,7 @@ export const MODES: ModeDef[] = [
     description: 'Süre bitmeden kontrol noktalarına ulaş. Her kontrol noktası ek süre kazandırır.',
     layout: 'oneway',
     traffic: { baseDensity: 32, densityGrowth: 5, maxDensity: 58, aggression: 0.5, enabled: true },
-    timer: { start: 65, checkpointEvery: 2500, bonus: 38 },
+    timer: { start: 55, checkpointEvery: 1500, bonus: 40 },
     respawn: false,
   },
   {
