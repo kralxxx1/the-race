@@ -181,7 +181,8 @@ export function can(ctx: KitContext, a: P3, b: P3, o: CanOpts): void {
       const k = Math.max(0, (t - 0.38) / 0.62);
       const e = k * k * (3 - 2 * k);
       const base = t < 0.06 ? 0.9 + 0.1 * (t / 0.06) : 1;
-      scale.push([base * (1 + (fw - 1) * e), base * (1 + (fh - 1) * e)]);
+      // sweep scale = [profile x (local Z → world height), profile y (local X → world width)]
+      scale.push([base * (1 + (fh - 1) * e), base * (1 + (fw - 1) * e)]);
     }
     m = sweep(path, circle(r, ctx.seg(36, 14)), { scale, up: [0, 0, 1], capStart: false, capEnd: false });
     // Closing inlet disc.

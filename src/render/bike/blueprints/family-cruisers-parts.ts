@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { T, mul, type KitContext } from '../context';
 import { indicatorPod, lamp, ledStrip, type LampKind } from '../kit/lights';
-import { bodyQ, shell } from '../kit/body';
-import { curve, outlineLoft, stationPts, stationsBetween, type OutlineBody } from '../kit/shape';
+import { bodyQ, PAINT, shell, tankBody, type TankOpts } from '../kit/body';
+import { curve, outlineLoft, stationPts, stationsBetween, surfaceAt, type OutlineBody } from '../kit/shape';
 import { MeshData, catmull, circle, extrude, flat, lathe, rod, roundBox, smooth2, sweep, type P2, type P3 } from '../mesh';
 import { F, hard, tint, vary, type Finish, type GroupName } from '../sink';
 
@@ -139,3 +139,32 @@ export function sidePlate(ctx: KitContext, outline: readonly P2[], x: number, th
 }
 
 export { curve, stationsBetween, roundBox, rod, tint, vary, hard };
+
+// ───────────────────────────── tank ─────────────────────────────
+
+export interface CruiserTankOpts extends TankOpts {
+  /** Filler cap: lateral position / station / radius (the kit tank always puts a cap on the centre line). */
+  cap?: { x: number; z: number; r: number; f?: Finish; flip?: boolean };
+  /** Folded-edge depth of the shell. */
+  depth?: number;
+  q?: number;
+}
+
+/** Painted tank (no centre cap) with an optional offset filler cap. Returns the outline body for attachments. */
+export function cruiserTank(ctx: KitContext, o: CruiserTankOpts, f: Finish = PAINT): OutlineBody {
+  const ob = tankBody(o);
+  const m = outlineLoft(ob, { ...bodyQ(ctx, o.q ?? 1), capFront: false });
+  shell(ctx, 'chassis', m, f, o.depth ?? 0.02);
+  if (o.cap) {
+    const c = o.cap;
+    const sp = surfaceAt(ob, c.z, c.x);
+    const n = new THREE.Vector3(sp.n[0], sp.n[1], sp.n[2]).normalize();
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
+    const mat = new THREE.Matrix4().compose(new THREE.Vector3(sp.p[0], sp.p[1] - 0.001, sp.p[2]), q, new THREE.Vector3(1, 1, 1));
+    const cf = c.f ?? F.chrome;
+    ctx.add('chassis', lathe([[c.r, 0.0], [c.r * 0.96, 0.007], [c.r * 0.6, 0.009], [0, 0.009]].map(([r, a]) => [r, a] as P2), { segs: ctx.seg(32, 12), axis: 'y', sharp: [1] }), cf, mat);
+    ctx.add('chassis', lathe([[c.r * 1.12, -0.003], [c.r * 1.12, 0.002], [c.r, 0.002]].map(([r, a]) => [r, a] as P2), { segs: ctx.seg(32, 12), axis: 'y' }), F.texturedBlack, mat);
+    if (ctx.micro) ctx.add('chassis', roundBox(c.r * 0.9, 0.004, c.r * 0.26, 0.002, 1), F.texturedBlack, mul(mat, T(0, 0.0105, 0)));
+  }
+  return ob;
+}

@@ -1,5 +1,7 @@
 import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
+import { indianChiefBlueprint } from './family-cruisers-chief';
+import { fatBoyBlueprint } from './family-cruisers-fatboy';
 import { rebel500Blueprint } from './family-cruisers-rebel';
 
 /**
@@ -8,4 +10,6 @@ import { rebel500Blueprint } from './family-cruisers-rebel';
  */
 export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'honda-rebel-500': rebel500Blueprint,
+  'harley-fat-boy': fatBoyBlueprint,
+  'indian-chief': indianChiefBlueprint,
 };
