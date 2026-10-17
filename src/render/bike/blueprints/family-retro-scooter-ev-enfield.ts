@@ -5,7 +5,7 @@ import { PAINT, buildSeat, buildTank, seatFinish } from '../kit/body';
 import { can, clampRing, heatShield, pipe, portFlange } from '../kit/cruisers-exhaust';
 import { indicatorPod } from '../kit/lights';
 import { plateHanger } from '../kit/rear';
-import { cradleFrame, classicHeadlamp, kneePads, peashooters, polishedCan, twinClockBezels } from '../kit/retro-scooter-ev-classic';
+import { cradleFrame, classicHeadlamp, kneePads, peashooters, polishedCan, sideBadge, twinClockBezels } from '../kit/retro-scooter-ev-classic';
 import { bezelRing } from '../kit/retro-scooter-ev-body';
 import { buildAirTwin, buildSingle, castFinish } from '../kit/retro-scooter-ev-engines';
 import { sideAt } from '../kit/shape';
@@ -31,7 +31,7 @@ const BLACK_STEEL = (): ReturnType<typeof hard> => hard('#141517', 0.3, 0.45, 0.
 // ───────────────────────────── shared pieces ─────────────────────────────
 
 /** Fender, tail lamp, stays, plate bracket and side covers. */
-function rearEnd(ctx: KitContext, o: { cover: P2[]; lampZ?: number }): void {
+function rearEnd(ctx: KitContext, o: { cover: P2[]; badge: string; at: [number, number] }): void {
   const hp = ctx.hp;
   fenderArc(ctx, { group: 'chassis', cz: 0, cy: hp.Rr, r: hp.Rr + 0.03, a0: -0.5, a1: 1.66, half: 0.095, drop: 0.052, power: 2.3, f: PAINT, taper: [0.94, 0.9] });
   roundTailLamp(ctx, [0, hp.Rr + Math.cos(1.62) * (hp.Rr + 0.045) + 0.02, Math.sin(1.62) * (hp.Rr + 0.045)], 0.03, -0.15, 'chassis', CHROME);
@@ -41,6 +41,7 @@ function rearEnd(ctx: KitContext, o: { cover: P2[]; lampZ?: number }): void {
   }
   plateHanger(ctx, { fromZ: 0.05, fromY: 0.58 });
   sidePlate(ctx, o.cover, 0.127, 0.02, PAINT);
+  sideBadge(ctx, o.badge, o.at, 0.1385, 0.019);
 }
 
 function frontFender(ctx: KitContext): void {
@@ -77,7 +78,7 @@ function interceptorBody(ctx: KitContext): void {
   const sp = sideAt(ob, -0.67, 0.86, 1);
   kneePads(ctx, { z: -0.67, y: 0.855, x: sp.p[0] + 0.001, len: 0.12, hgt: 0.09 });
   buildSeat(ctx, { front: -0.58, back: 0.15, yFront: 0.83, y: 0.835, yBack: 0.87, width: 0.3, thick: 0.065, frontWidth: 0.17 }, tint(seatFinish(ctx), ctx.livery.seat));
-  rearEnd(ctx, { cover: [[-0.54, 0.665], [-0.36, 0.675], [-0.32, 0.6], [-0.35, 0.53], [-0.48, 0.5], [-0.56, 0.56]] });
+  rearEnd(ctx, { cover: [[-0.54, 0.665], [-0.36, 0.675], [-0.32, 0.6], [-0.35, 0.53], [-0.48, 0.5], [-0.56, 0.56]], badge: 'INT 650', at: [-0.45, 0.595] });
   bead(ctx, 'chassis', [[0.138, 0.62, -0.5], [0.141, 0.6, -0.42], [0.141, 0.585, -0.36]], 0.0018, tint(CHROME, '#dfe1e4'));
   frontFender(ctx);
   classicHeadlamp(ctx, { r: 0.0875, y: -0.125, chrome: true, led: false, trim: CHROME });
@@ -248,7 +249,7 @@ function classicBody(ctx: KitContext): void {
   // Sculpted rider saddle + separate pillion pad
   buildSeat(ctx, { front: -0.6, back: -0.1, yFront: 0.835, y: 0.822, yBack: 0.855, width: 0.28, thick: 0.07, frontWidth: 0.16 }, tint(seatFinish(ctx), ctx.livery.seat));
   buildSeat(ctx, { front: -0.09, back: 0.18, yFront: 0.835, y: 0.845, yBack: 0.85, width: 0.24, thick: 0.05, frontWidth: 0.22 }, tint(seatFinish(ctx), ctx.livery.seat));
-  rearEnd(ctx, { cover: [[-0.5, 0.665], [-0.34, 0.675], [-0.3, 0.6], [-0.33, 0.52], [-0.46, 0.49], [-0.52, 0.56]] });
+  rearEnd(ctx, { cover: [[-0.5, 0.665], [-0.34, 0.675], [-0.3, 0.6], [-0.33, 0.52], [-0.46, 0.49], [-0.52, 0.56]], badge: 'CLASSIC 350', at: [-0.42, 0.585] });
   frontFender(ctx);
   nacelle(ctx);
   const ports = buildSingle(ctx, {

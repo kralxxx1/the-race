@@ -252,3 +252,10 @@ export function tankWithPanels(ctx: KitContext, o: TankOpts, panel: readonly P2[
   }
   return ob;
 }
+
+/** Small lettering decal on both side covers (centre [z, y], plate surface at |x| = x). */
+export function sideBadge(ctx: KitContext, text: string, at: [number, number], x: number, h: number, color = '#e4e6ea'): void {
+  if (!ctx.micro) return;
+  const r = ctx.label(text, { color, weight: '800' }, 56);
+  for (const s of [-1, 1]) ctx.decal('chassis', r, h, [s * x, at[1], at[0]], [s, 0, 0], [0, 1, 0]);
+}

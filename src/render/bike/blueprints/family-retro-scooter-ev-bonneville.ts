@@ -3,7 +3,7 @@ import type { KitContext } from '../context';
 import { PAINT, buildSeat, buildTank, seatFinish } from '../kit/body';
 import { indicatorPod } from '../kit/lights';
 import { plateHanger } from '../kit/rear';
-import { cradleFrame, classicHeadlamp, kneePads, peashooters, polishedCan, twinClockBezels } from '../kit/retro-scooter-ev-classic';
+import { cradleFrame, classicHeadlamp, kneePads, peashooters, polishedCan, sideBadge, twinClockBezels } from '../kit/retro-scooter-ev-classic';
 import { buildAirTwin, castFinish } from '../kit/retro-scooter-ev-engines';
 import { sideAt, type OutlineBody } from '../kit/shape';
 import { ALL_VIEWS, type LiveryCanvas, type LiveryEnv, type Pen } from '../livery';
@@ -64,6 +64,7 @@ function rear(ctx: KitContext): void {
   // Twin side covers: right air-box cover with the badge, left battery / tool cover
   const cover: P2[] = [[-0.54, 0.665], [-0.36, 0.675], [-0.32, 0.6], [-0.35, 0.53], [-0.48, 0.5], [-0.56, 0.56]];
   sidePlate(ctx, cover, 0.126, 0.02, PAINT);
+  sideBadge(ctx, 'T120', [-0.44, 0.595], 0.1375, 0.02);
   bead(ctx, 'chassis', [[0.137, 0.62, -0.5], [0.14, 0.6, -0.42], [0.14, 0.585, -0.36]], 0.0018, tint(CHROME, '#dfe1e4'));
 }
 
