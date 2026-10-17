@@ -31,6 +31,8 @@ export interface DebugApi {
   start(mode?: string, map?: string, time?: string, weather?: string): Promise<void>;
   advance(seconds: number): void;
   crash(): void;
+  pause(): void;
+  resume(): void;
   clearTraffic(): void;
 }
 

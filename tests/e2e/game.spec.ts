@@ -239,6 +239,31 @@ test.describe('The Race — production build', () => {
     expectNoErrors(errors);
   });
 
+  test('pausing holds the audio silent (a click or key on the pause menu must not wake it) until resume', async ({ page }) => {
+    const errors = trackErrors(page);
+    await seedSave(page);
+    await bootToMenu(page);
+    await page.getByTestId('btn-play').click(); // user gesture unlocks WebAudio
+    await page.getByTestId('btn-start').click();
+    await waitState(page, 'playing');
+    await page.evaluate(() => window.__THE_RACE__.advance(1));
+    await page.waitForTimeout(500);
+    expect(await api(page, 'audioState')).toBe('running');
+    await page.evaluate(() => window.__THE_RACE__.pause());
+    await waitState(page, 'paused');
+    await page.waitForTimeout(300);
+    expect(await api(page, 'audioState')).toBe('suspended');
+    await page.mouse.click(5, 5);
+    await page.keyboard.press('ArrowUp');
+    await page.waitForTimeout(400);
+    expect(await api(page, 'audioState')).toBe('suspended');
+    await page.getByTestId('btn-resume').click();
+    await waitState(page, 'playing');
+    await page.waitForTimeout(300);
+    expect(await api(page, 'audioState')).toBe('running');
+    expectNoErrors(errors);
+  });
+
   test('repeated runs do not leak GPU geometries', async ({ page }) => {
     await seedSave(page);
     await bootToMenu(page);

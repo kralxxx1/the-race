@@ -384,6 +384,8 @@ export class Game {
     this.goTimer = 0;
     this.screens.hideAll();
     audio.unlock();
+    // A restart from the pause menu begins with the context held silent by the pause.
+    audio.resume();
     this.gameAudio.begin(spec, env, true);
     // Warm up shaders and GPU buffers so the first frames do not stutter.
     try {

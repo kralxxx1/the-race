@@ -44,6 +44,8 @@ export class AudioEngine implements DspBackend {
   private noise: AudioBuffer | null = null;
   private pink: AudioBuffer | null = null;
   private muted = false;
+  /** The game asked for silence (pause menu, hidden tab): a stray click or key press must not wake the context. */
+  private held = false;
   private listeners = new Set<() => void>();
 
   get ready(): boolean {
@@ -77,7 +79,7 @@ export class AudioEngine implements DspBackend {
         this.settled = this.loadWorklet(ctx);
         this.applyConfig();
       }
-      if (this.ctx.state === 'suspended') void this.ctx.resume();
+      if (this.ctx.state === 'suspended' && !this.held) void this.ctx.resume();
     } catch (e) {
       console.warn('Audio unavailable', e);
       this.ctx = null;
@@ -208,10 +210,12 @@ export class AudioEngine implements DspBackend {
   }
 
   suspend(): void {
+    this.held = true;
     if (this.ctx && this.ctx.state === 'running') void this.ctx.suspend();
   }
 
   resume(): void {
+    this.held = false;
     if (this.ctx && this.ctx.state === 'suspended') void this.ctx.resume();
   }
 
