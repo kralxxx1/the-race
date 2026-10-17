@@ -10,7 +10,7 @@ import { lathe, rod, roundBox, type P2, type P3 } from '../mesh';
 import { F, hard, vary } from '../sink';
 import type { BikeBlueprint } from '../types';
 import { footPegs, sideStand } from './family-cruisers-controls';
-import { bead, capMeshOf, fenderArc, loft, tubeAlong } from './family-cruisers-parts';
+import { bead, capMeshOf, fenderArc, loft, sidePlate, tubeAlong } from './family-cruisers-parts';
 
 /**
  * Yamaha VMAX (2017, 1679 cc 65° V4).
@@ -178,6 +178,9 @@ function body(ctx: KitContext): void {
   ctx.add('swingarm', rod([0.16, pv[1] - 0.01, pv[2] + 0.05], [0.16, hp.Rr, -0.05], 0.042, 0.038, ctx.seg(20, 8)), hard('#2a2c30', 0.6, 0.4, 0.6));
   ctx.add('swingarm', lathe([[0, -0.055], [0.075, -0.053], [0.09, -0.035], [0.092, 0.035], [0.075, 0.055], [0, 0.055]], { segs: ctx.seg(40, 14), axis: 'x', sharp: [1, 4] }), hard('#2a2c30', 0.6, 0.4, 0.6), T(0.165, hp.Rr, 0));
   ctx.add('swingarm', lathe([[0, 0], [0.046, 0], [0.05, 0.006], [0.042, 0.012], [0, 0.013]], { segs: ctx.seg(32, 10), axis: 'x', sharp: [1, 3] }), vary(F.brushedAlu, { rough: 0.28 }), T(0.218, hp.Rr, 0));
+
+  // ── Frame-mounted side covers over the under-seat fuel tank ──
+  sidePlate(ctx, [[-0.74, 0.79], [-0.44, 0.79], [-0.3, 0.75], [-0.28, 0.64], [-0.4, 0.57], [-0.62, 0.56], [-0.74, 0.62]], 0.158, 0.03, PAINT);
 
   // ── Foot controls, stand, frame bracing ──
   footPegs(ctx, { at: ctx.bp.rider.peg, f: hard('#2a2c30', 0.7, 0.35, 0.6), pivot: pv });
