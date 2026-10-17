@@ -4,7 +4,9 @@ import { getBike } from '../../src/data/bikes';
 import { resolveEnvironment } from '../../src/data/maps';
 import { MODE_BY_ID } from '../../src/data/modes';
 import { GameSession, TIME_TRIAL_MIN_BONUS, timeTrialBonus } from '../../src/game/session';
+import { neutralInput } from '../../src/physics/bike';
 import { pilotInput } from './helpers/pilot';
+import { addCar, clearRoad } from './helpers/scenario';
 import { TrafficSystem, type PlayerProbe, type TrafficCar } from '../../src/world/traffic';
 import { laneCenter, makeLaneConfig } from '../../src/world/road';
 
@@ -70,5 +72,38 @@ describe('time trial pacing', () => {
     // Even the floor leaves a pace a fast bike can hold in traffic over one checkpoint stretch.
     const t = MODE_BY_ID.get('timetrial')!.timer!;
     expect(t.checkpointEvery / TIME_TRIAL_MIN_BONUS) .toBeLessThan(65);
+  });
+});
+
+describe('scoring: one credit per vehicle', () => {
+  it('weaving back and forth past the same car pays its overtake and near miss once', () => {
+    const s = new GameSession({
+      bike: getBike('yamaha-r1'),
+      upgrades: { engine: 0, brakes: 0, handling: 0 },
+      mode: MODE_BY_ID.get('endless')!,
+      env: resolveEnvironment('highway', 'day', 'clear'),
+      seed: 3,
+      autoShift: true,
+    });
+    clearRoad(s);
+    const car = addCar(s, { ahead: 25, lane: 2, kmh: 112 });
+    let fast = true;
+    let passes = 0;
+    for (let i = 0; i < 60 * 110 && s.state !== 'finished'; i++) {
+      const b = s.bike;
+      const gap = car.s - b.s;
+      if (fast && gap < -9) fast = false;
+      if (!fast && gap > 9) fast = true;
+      const want = (fast ? 140 : 100) / 3.6;
+      const targetD = car.d + car.width / 2 + s.playerHalfWidth + 0.55; // 0.15 m off the flank
+      const steer = Math.max(-1, Math.min(1, (targetD - b.d) * 0.7 - b.heading * 8));
+      s.update(1 / 60, { ...neutralInput(), steer, throttle: b.v < want ? 1 : 0, brake: b.v > want + 2 ? 0.4 : 0 });
+      car.v = 112 / 3.6;
+      for (const e of s.drainEvents()) if (e.type === 'pass') passes++;
+    }
+    expect(s.state).not.toBe('crashed');
+    expect(passes).toBeGreaterThanOrEqual(3); // the passes themselves still happen (whoosh, camera punch)
+    expect(s.score.overtakes).toBe(1);
+    expect(s.score.nearMisses).toBeLessThanOrEqual(1);
   });
 });

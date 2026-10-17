@@ -41,6 +41,8 @@ export interface TrafficCar {
   yaw: number;
   /** Bookkeeping for near misses / pass events, owned by the session. */
   passed: boolean;
+  /** The rider already earned an overtake / near miss from this vehicle: passing it again pays nothing. */
+  credited?: boolean;
   nearMiss: boolean;
   honkCooldown: number;
   /** Rolling distance used for wheel rotation in the renderer. */

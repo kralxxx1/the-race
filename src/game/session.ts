@@ -300,8 +300,11 @@ export class GameSession {
         // Only count vehicles we actually overtook or met (not ones that spawned behind us).
         if (ds > -(c.length / 2 + 6)) {
           this.events.push({ type: 'pass', car: c, side, oncoming, clearance });
-          if (!oncoming) this.score.overtake();
-          if (clearance < NEAR_MISS_CLEARANCE) {
+          // One credit per vehicle: braking to let it go by and overtaking it again must not pay a second time.
+          const fresh = !c.credited;
+          c.credited = true;
+          if (fresh && !oncoming) this.score.overtake();
+          if (fresh && clearance < NEAR_MISS_CLEARANCE) {
             const pts = this.score.nearMiss(clearance, bike.speedKmh, oncoming);
             if (pts > 0) {
               c.nearMiss = true;
