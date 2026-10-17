@@ -45,3 +45,52 @@ export function fmtTime(sec: number): string {
   const r = Math.floor(s % 60);
   return `${m}:${String(r).padStart(2, '0')}`;
 }
+
+/** Signed number with an explicit "+" for positive values. */
+export function fmtSigned(n: number, digits = 0): string {
+  const v = Number(n.toFixed(digits));
+  return `${v > 0 ? '+' : ''}${v.toLocaleString('tr-TR', { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+}
+
+export function fmtDecimal(n: number, digits = 1): string {
+  return n.toLocaleString('tr-TR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+/** Turkish upper-casing ("i" becomes "İ"). */
+export function upper(s: string): string {
+  return s.toLocaleUpperCase('tr-TR');
+}
+
+/**
+ * Re-render a screen in place while keeping the scroll position of `[data-keep]` containers and
+ * the focused element (`data-nid`), so clicking inside long lists does not jump the view.
+ */
+export function rerender(host: HTMLElement, build: () => void): void {
+  const scrolls = new Map<string, [number, number]>();
+  host.querySelectorAll<HTMLElement>('[data-keep]').forEach((el) => scrolls.set(el.dataset.keep as string, [el.scrollTop, el.scrollLeft]));
+  const act = document.activeElement;
+  const active = act instanceof HTMLElement && host.contains(act) ? act.dataset.nid : undefined;
+  clear(host);
+  build();
+  host.querySelectorAll<HTMLElement>('[data-keep]').forEach((el) => {
+    const s = scrolls.get(el.dataset.keep as string);
+    if (s) {
+      el.scrollTop = s[0];
+      el.scrollLeft = s[1];
+    }
+  });
+  if (active) host.querySelector<HTMLElement>(`[data-nid="${CSS.escape(active)}"]`)?.focus({ preventScroll: true });
+}
+
+/** Trailing-edge debounce. */
+export function debounce<A extends unknown[]>(fn: (...a: A) => void, ms: number): (...a: A) => void {
+  let t = 0;
+  return (...a: A) => {
+    window.clearTimeout(t);
+    t = window.setTimeout(() => fn(...a), ms);
+  };
+}
+
+export function clampN(v: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, v));
+}

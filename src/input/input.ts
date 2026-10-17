@@ -11,6 +11,53 @@ export interface FrameInput extends RiderInput {
   lookBack: boolean;
 }
 
+export type MenuDir = 'up' | 'down' | 'left' | 'right';
+
+/**
+ * Menu navigation intents shared by keyboard and gamepad. `confirm` only comes from the pad:
+ * Enter and Space already activate a focused button natively.
+ */
+export type MenuIntent =
+  | { kind: 'move'; dir: MenuDir; source: 'key' | 'pad' }
+  | { kind: 'confirm' }
+  | { kind: 'back' }
+  | { kind: 'tabPrev' }
+  | { kind: 'tabNext' }
+  | { kind: 'alt' }
+  | { kind: 'alt2' }
+  | { kind: 'start' };
+
+/** True for elements that consume arrow keys / typing themselves. */
+function ownsKeys(t: EventTarget | null, code: string): boolean {
+  if (!(t instanceof HTMLElement)) return false;
+  if (t.isContentEditable) return true;
+  if (t instanceof HTMLTextAreaElement) return true;
+  if (t instanceof HTMLSelectElement) return code === 'ArrowUp' || code === 'ArrowDown' || code === 'Space' || code === 'Enter';
+  if (t instanceof HTMLInputElement) {
+    if (t.type === 'range') return code === 'ArrowLeft' || code === 'ArrowRight';
+    if (t.type === 'color' || t.type === 'checkbox' || t.type === 'button') return false;
+    return true;
+  }
+  return false;
+}
+
+const MENU_KEYS: Record<string, MenuIntent> = {
+  ArrowUp: { kind: 'move', dir: 'up', source: 'key' },
+  ArrowDown: { kind: 'move', dir: 'down', source: 'key' },
+  ArrowLeft: { kind: 'move', dir: 'left', source: 'key' },
+  ArrowRight: { kind: 'move', dir: 'right', source: 'key' },
+  KeyW: { kind: 'move', dir: 'up', source: 'key' },
+  KeyS: { kind: 'move', dir: 'down', source: 'key' },
+  KeyA: { kind: 'move', dir: 'left', source: 'key' },
+  KeyD: { kind: 'move', dir: 'right', source: 'key' },
+  Escape: { kind: 'back' },
+  Backspace: { kind: 'back' },
+  KeyQ: { kind: 'tabPrev' },
+  PageUp: { kind: 'tabPrev' },
+  KeyE: { kind: 'tabNext' },
+  PageDown: { kind: 'tabNext' },
+};
+
 const THROTTLE = ['ArrowUp', 'KeyW'];
 const BRAKE = ['ArrowDown', 'KeyS'];
 const LEFT = ['ArrowLeft', 'KeyA'];
@@ -38,12 +85,24 @@ export class InputManager {
   private padPrev: boolean[] = [];
   sensitivity = 1;
   tiltEnabled = false;
+  /** Menus are showing: arrow keys, Esc and the pad drive `pollMenu()` instead of the bike. */
+  menuMode = false;
+  /** Last device used in the menus ("keyboard" / "gamepad" show focus rings and button hints). */
+  lastDevice: 'keyboard' | 'gamepad' | 'pointer' = 'pointer';
+  private menuQueue: MenuIntent[] = [];
+  private padMenuPrev: boolean[] = [];
+  private stickDir: MenuDir | null = null;
+  private stickTimer = 0;
   /** Scripted input for automated tests (overrides everything when set). */
   override: Partial<FrameInput> | null = null;
   private disposers: (() => void)[] = [];
 
   constructor(target: Window = window) {
     const down = (e: KeyboardEvent) => {
+      if (this.menuMode) {
+        this.menuKey(e);
+        return;
+      }
       if (e.repeat) return;
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
       this.keys.add(e.code);
@@ -68,6 +127,68 @@ export class InputManager {
     };
     target.addEventListener('deviceorientation', orient);
     this.disposers.push(() => target.removeEventListener('deviceorientation', orient));
+  }
+
+  private menuKey(e: KeyboardEvent): void {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    this.lastDevice = 'keyboard';
+    const intent = MENU_KEYS[e.code];
+    if (!intent || ownsKeys(e.target, e.code)) return;
+    // Letters only navigate when no text field has focus (ownsKeys covers inputs); typing a search is unaffected.
+    if (e.code === 'Backspace' && e.target instanceof HTMLInputElement) return;
+    e.preventDefault();
+    this.menuQueue.push(intent);
+  }
+
+  /** Drain navigation intents from the keyboard and poll the gamepad (call once per frame while in menus). */
+  pollMenu(dt: number): MenuIntent[] {
+    const out = this.menuQueue;
+    this.menuQueue = [];
+    const pads = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const p of pads) {
+      if (!p || !p.connected) continue;
+      const b = (i: number) => p.buttons[i]?.pressed ?? false;
+      const edge = (i: number) => b(i) && !(this.padMenuPrev[i] ?? false);
+      let used = false;
+      const dpad: [number, MenuDir][] = [[12, 'up'], [13, 'down'], [14, 'left'], [15, 'right']];
+      for (const [i, dir] of dpad) {
+        if (edge(i)) {
+          out.push({ kind: 'move', dir, source: 'pad' });
+          used = true;
+        }
+      }
+      // Left stick with auto-repeat (long first delay, then quick steps).
+      const ax = p.axes[0] ?? 0;
+      const ay = p.axes[1] ?? 0;
+      let sd: MenuDir | null = null;
+      if (Math.max(Math.abs(ax), Math.abs(ay)) > 0.6) sd = Math.abs(ax) > Math.abs(ay) ? (ax > 0 ? 'right' : 'left') : ay > 0 ? 'down' : 'up';
+      if (sd !== this.stickDir) {
+        this.stickDir = sd;
+        this.stickTimer = 0.38;
+        if (sd) {
+          out.push({ kind: 'move', dir: sd, source: 'pad' });
+          used = true;
+        }
+      } else if (sd) {
+        this.stickTimer -= dt;
+        if (this.stickTimer <= 0) {
+          this.stickTimer = 0.11;
+          out.push({ kind: 'move', dir: sd, source: 'pad' });
+          used = true;
+        }
+      }
+      if (edge(0)) out.push({ kind: 'confirm' }), (used = true);
+      if (edge(1)) out.push({ kind: 'back' }), (used = true);
+      if (edge(2)) out.push({ kind: 'alt' }), (used = true);
+      if (edge(3)) out.push({ kind: 'alt2' }), (used = true);
+      if (edge(4)) out.push({ kind: 'tabPrev' }), (used = true);
+      if (edge(5)) out.push({ kind: 'tabNext' }), (used = true);
+      if (edge(9)) out.push({ kind: 'start' }), (used = true);
+      if (used) this.lastDevice = 'gamepad';
+      this.padMenuPrev = p.buttons.map((x) => x.pressed);
+      break;
+    }
+    return out;
   }
 
   /** Request iOS motion permission (must be called from a user gesture). */

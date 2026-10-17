@@ -2,6 +2,7 @@ import { BIKE_BY_ID, STARTER_BIKE_ID } from '../data/bikes';
 import { MISSION_BY_ID } from '../data/career';
 import { MAP_BY_ID, defaultRunConfig, type MapId, type RunConfig, type TimeOfDay, type Weather } from '../data/maps';
 import { MODE_BY_ID, type ModeId } from '../data/modes';
+import { defaultGear, sanitizeGear, type RiderGear } from '../data/riderGear';
 import { PRESET_KEY, SETTINGS, type QualityPreset, type SettingValue } from '../settings';
 import { MAX_UPGRADE, type Upgrades } from '../physics/bike';
 import { clamp, isFiniteNumber } from '../core/math';
@@ -15,7 +16,7 @@ import { isBikeUnlocked, levelForXp } from '../game/progression';
 import { emptyStatsSave, sanitizeStatsSave, type StatsSave } from '../game/stats';
 
 export const SAVE_KEY = 'the-race.save';
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export type Quality = QualityPreset;
 export type SpeedUnit = 'kmh' | 'mph';
@@ -47,6 +48,9 @@ export interface SaveData {
   stats: StatsSave;
   leaderboards: Leaderboards;
   daily: DailyState;
+  // ── v5: rider gear ──
+  /** Helmet, leathers and gloves chosen on the rider screen (sanitised, see data/riderGear.ts). */
+  rider: RiderGear;
 }
 
 export function defaultSettings(preset: QualityPreset = 'high'): Settings {
@@ -77,6 +81,7 @@ export function defaultSave(): SaveData {
     stats: emptyStatsSave(),
     leaderboards: {},
     daily: emptyDaily(),
+    rider: defaultGear(),
   };
 }
 
@@ -223,6 +228,10 @@ export function migrate(raw: Record<string, unknown>): Record<string, unknown> {
     }
     if (!isFiniteNumber(out.xp)) out.xp = Math.floor(dist * 0.1 + near * 10);
   }
+  if (v < 5) {
+    // v5 adds the rider gear; older saves keep the bike-livery look until the player customises it.
+    if (!isObj(out.rider)) out.rider = defaultGear();
+  }
   out.version = SAVE_VERSION;
   return out;
 }
@@ -276,6 +285,7 @@ export function sanitizeSave(input: unknown): SaveData {
     stats: sanitizeStatsSave(raw.stats),
     leaderboards: sanitizeLeaderboards(raw.leaderboards),
     daily: sanitizeDaily(raw.daily),
+    rider: sanitizeGear(raw.rider),
   };
 }
 
@@ -433,6 +443,12 @@ export class SaveManager {
 
   livery(bikeId: string): number {
     return this.data.liveryChoice[bikeId] ?? 0;
+  }
+
+  /** Commit the rider's gear (validated; unknown values fall back to the defaults). */
+  setGear(gear: RiderGear): void {
+    this.data.rider = sanitizeGear(gear);
+    this.save();
   }
 
   upgradesFor(bikeId: string): Upgrades {

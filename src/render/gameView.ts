@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { EnvDef } from '../data/environments';
+import type { RiderGear } from '../data/riderGear';
 import type { SettingsReader } from '../settings';
 import type { CameraMode } from './camera';
 import type { AudioCar } from '../audio/gameAudio';
@@ -111,6 +112,7 @@ export class GameView {
     readonly env: EnvDef,
     liveryIndex: number,
     private settings: SettingsReader,
+    gear: RiderGear | null = null,
   ) {
     const scene = this.scene;
     const q = renderer.profile;
@@ -129,7 +131,7 @@ export class GameView {
 
     this.bike = new BikeModel(session.cfg.bike, liveryIndex, this.mats, { headlightSpot: env.headlights, detail: bikeDetailFrom(settings) });
     scene.add(this.bike.root);
-    this.rider = new RiderModel(this.mats, this.bike.livery, session.cfg.bike.style);
+    this.rider = new RiderModel(this.mats, this.bike.livery, session.cfg.bike.style, gear);
     this.bike.riderMount.add(this.rider.root);
     this.mirrors = new MirrorRig(this.bike);
     this.visor = new VisorFx(renderer.canvas.parentElement ?? document.body, renderer.canvas);

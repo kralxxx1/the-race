@@ -25,9 +25,9 @@ function v3(extra: Record<string, unknown> = {}): Record<string, unknown> {
 }
 
 describe('save version 4', () => {
-  it('is version 4', () => {
-    expect(SAVE_VERSION).toBe(4);
-    expect(defaultSave().version).toBe(4);
+  it('is the current version (5)', () => {
+    expect(SAVE_VERSION).toBe(5);
+    expect(defaultSave().version).toBe(5);
   });
 
   it('a default save has empty progression', () => {
@@ -46,7 +46,7 @@ describe('save version 4', () => {
 describe('migration v3 -> v4', () => {
   it('keeps every v3 field', () => {
     const s = sanitizeSave(v3());
-    expect(s.version).toBe(4);
+    expect(s.version).toBe(5);
     expect(s.cash).toBe(12_345);
     expect(s.ownedBikes).toEqual(['yamaha-r3', 'honda-cbr650r']);
     expect(s.selectedBike).toBe('honda-cbr650r');
@@ -81,7 +81,7 @@ describe('migration v3 -> v4', () => {
 
   it('a v3 save with nothing but a version number migrates to a valid save', () => {
     const s = sanitizeSave({ version: 3 });
-    expect(s.version).toBe(4);
+    expect(s.version).toBe(5);
     expect(s.ownedBikes).toContain(STARTER_BIKE_ID);
     expect(s.xp).toBe(0);
   });
@@ -95,7 +95,7 @@ describe('migration v3 -> v4', () => {
   it('older saves keep migrating through the chain (v1 -> v4 and v2 -> v4)', () => {
     const v1 = { version: 1, cash: 9000, bike: 'yamaha-r3', bikes: ['yamaha-r3', 'honda-cbr650r'], bestScore: 5000, bestDistance: 3000, totalDistance: 20_000, totalNearMisses: 15, gamesPlayed: 4, topSpeedEver: 180 };
     const a = sanitizeSave(v1);
-    expect(a.version).toBe(4);
+    expect(a.version).toBe(5);
     expect(a.ownedBikes).toEqual(['yamaha-r3', 'honda-cbr650r']);
     expect(a.highScores.endless).toBe(5000);
     expect(a.cash).toBe(9000);
@@ -116,7 +116,7 @@ describe('migration v3 -> v4', () => {
       settings: { quality: 'high', units: 'mph', masterVolume: 0.4, autoShift: false },
     };
     const b = sanitizeSave(v2);
-    expect(b.version).toBe(4);
+    expect(b.version).toBe(5);
     expect(b.lastRun).toMatchObject({ mode: 'timetrial', map: 'desert', time: 'sunset' });
     expect(b.settings['hud.units']).toBe('mph');
     expect(b.settings['play.autoShift']).toBe('manual');
@@ -145,11 +145,11 @@ describe('migration v3 -> v4', () => {
     store.setItem(SAVE_KEY, JSON.stringify(v3()));
     const m = new SaveManager(store);
     expect(m.isNew).toBe(false);
-    expect(m.data.version).toBe(4);
+    expect(m.data.version).toBe(5);
     expect(m.data.cash).toBe(12_345);
     m.save();
     const raw = JSON.parse(store.getItem(SAVE_KEY)!);
-    expect(raw.version).toBe(4);
+    expect(raw.version).toBe(5);
     expect(raw.stats.lifetime.runs).toBe(61);
     // Re-loading the upgraded save gives identical data.
     expect(new SaveManager(store).data).toEqual(m.data);
