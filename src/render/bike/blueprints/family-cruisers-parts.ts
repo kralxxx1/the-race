@@ -194,3 +194,35 @@ export function radiatorBlock(ctx: KitContext, o: { cx: number; cy: number; cz: 
   for (const sx of [-1, 1]) ctx.add('chassis', roundBox(0.03, o.h + 0.02, depth + 0.012, 0.008, 2), F.texturedBlack, mul(m, T(sx * (o.w / 2 + 0.012), 0, 0)));
   for (const sy of [-1, 1]) ctx.add('chassis', roundBox(o.w + 0.03, 0.016, depth + 0.006, 0.005, 1), F.texturedBlack, mul(m, T(0, sy * (o.h / 2 + 0.007), 0)));
 }
+
+// ───────────────────────────── rear frame ─────────────────────────────
+
+export interface RearLoopOpts {
+  /** Half width of the loop at the pivot and at the seat. */
+  w: number;
+  /** Seat support: the tube runs along z ∈ [front, back] at height y. */
+  front: number;
+  back: number;
+  y: number;
+  /** Tube radius. */
+  r?: number;
+  f: Finish;
+  /** Fender mounting stays down to the fender at the given wheel radius (0 = none). */
+  fenderR?: number;
+}
+
+/** Visible rear frame rails: pivot plate → seat rail → down to the rear axle, plus a cross tube under the seat. */
+export function rearFrameLoop(ctx: KitContext, o: RearLoopOpts): void {
+  const pv = ctx.hp.pivot;
+  const r = o.r ?? 0.016;
+  for (const s of [-1, 1]) {
+    const up: P3[] = [[s * (o.w - 0.01), pv[1] - 0.02, pv[2] - 0.02], [s * o.w, pv[1] + 0.1, pv[2] + 0.05], [s * o.w, o.y - 0.03, o.front + 0.08], [s * o.w, o.y, o.front + 0.28], [s * (o.w - 0.01), o.y + 0.005, o.back - 0.06]];
+    tubeAlong(ctx, 'chassis', up, r, o.f);
+    // Down-tube to the axle area (fender strut line)
+    const down: P3[] = [[s * (o.w - 0.01), o.y + 0.004, o.back - 0.06], [s * (o.w + 0.03), o.y - 0.08, o.back + 0.02], [s * (o.w + 0.05), ctx.hp.Rr + 0.12, 0.08]];
+    tubeAlong(ctx, 'chassis', down, r * 0.8, o.f);
+  }
+  // Cross tube + seat pan
+  tubeAlong(ctx, 'chassis', [[-o.w, o.y - 0.01, o.front + 0.26], [0, o.y - 0.012, o.front + 0.25], [o.w, o.y - 0.01, o.front + 0.26]], r * 0.8, o.f);
+  tubeAlong(ctx, 'chassis', [[-o.w + 0.01, o.y, o.back - 0.06], [0, o.y + 0.003, o.back - 0.065], [o.w - 0.01, o.y, o.back - 0.06]], r * 0.8, o.f);
+}

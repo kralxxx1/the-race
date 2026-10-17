@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RZ, T, mul, type KitContext } from '../context';
-import { MeshData, alongY, bolt, extrude, lathe, rod, roundBox, smooth2, sweep, circle, catmull, type P2, type P3 } from '../mesh';
+import { alongY, bolt, extrude, lathe, rod, roundBox, smooth2, sweep, circle, catmull, type P2, type P3 } from '../mesh';
 import { F, hard, Micro, vary, type Finish } from '../sink';
 
 /**
@@ -144,14 +144,10 @@ export function buildVTwin(ctx: KitContext, o: VTwinOpts): EnginePort[] {
       const a0 = c.clone().addScaledVector(d, 0.065).add(V(o.finHalf * 0.55 + off * 0.2, 0, 0));
       const a1 = base.clone().addScaledVector(d, o.barrelLen + 0.06).add(V(o.finHalf * 0.55 + off * 0.2, 0, 0));
       ctx.add('chassis', rod(P(a0), P(a1), 0.0075, 0.0075, ctx.seg(12, 6)), o.bright);
-      void off;
     }
-    // Exhaust port: flange on the head front (front cylinder) or rear (rear cylinder).
+    // Exhaust port on the head face: front bank leaves forward/down, rear bank rearwards/down.
     const perp = V(0, Math.cos(phi), Math.sin(phi));
-    const out = front ? perp.clone().negate() : perp.clone();
-    // Perp for the front bank points rearwards/up; the front exhaust leaves forward/down → -perp; for the rear bank perp points rearwards/up → exhaust goes rear/down → (0,-cos,.. ) handled below.
-    const exDir = front ? V(0, -Math.cos(phi) * -1, -Math.sin(phi)).normalize() : V(0, Math.cos(phi) * -1, Math.sin(phi)).normalize();
-    void out;
+    const exDir = front ? perp.clone().negate() : perp.clone();
     const exPos = top.clone().addScaledVector(d, 0.045).addScaledVector(exDir, o.finHalf * 0.82);
     ports.push({ pos: P(exPos), dir: P(exDir), cyl: front ? 0 : 1 });
     ctx.add('chassis', lathe([[0.018, 0], [0.035, 0], [0.035, 0.012], [0.018, 0.012]], { segs: ctx.seg(20, 8), axis: 'y', sharp: true }), F.chrome, alongY(P(exPos.clone().addScaledVector(exDir, -0.004)), P(exPos.clone().addScaledVector(exDir, 0.012))));
@@ -209,12 +205,6 @@ export function buildVTwin(ctx: KitContext, o: VTwinOpts): EnginePort[] {
   ctx.add('chassis', extrude(prim2, 0.018, { plane: 'zy', bevel: 0.007, center: -0.135 - 0.05 - 0.007, curveSegs: 1 }), vary(o.coverF, { rough: 0.12 }));
   ctx.add('chassis', lathe([[0, 0], [0.04, 0], [0.042, 0.008], [0.04, 0.014], [0, 0.014]], { segs: ctx.seg(28, 10), axis: 'x', sharp: [1, 3] }), vary(o.black, { rough: 0.3 }), mul(T(-0.135 - 0.062, c.y - 0.005, c.z + 0.18 * ps), RZ(Math.PI)));
   if (ctx.micro) {
-    const n = 14;
-    for (let i = 0; i < n; i++) {
-      const t = (i + 0.5) / n;
-      const q = prim[Math.floor(t * (prim.length - 1))];
-      void q;
-    }
     for (let i = 0; i < 10; i++) {
       const a = (i / 10) * Math.PI * 2;
       ctx.add('chassis', bolt(0.0042, 0.005, true), F.steel, mul(T(-0.135 - 0.068, c.y - 0.005 + Math.cos(a) * 0.075 * ps, c.z + 0.17 * ps + Math.sin(a) * 0.12 * ps), RZ(Math.PI / 2)));
@@ -237,9 +227,4 @@ export function buildVTwin(ctx: KitContext, o: VTwinOpts): EnginePort[] {
   // Shift shaft stub on the left rear of the case
   ctx.add('chassis', rod([-0.12, c.y - 0.03, c.z + 0.28], [-0.2, c.y - 0.03, c.z + 0.28], 0.007, 0.007, 10), F.steel);
   return ports;
-}
-
-/** Round gauge / lamp style bezel helper used by blueprint code for console details. */
-export function bezelRing(r: number, w: number, segs: number): MeshData {
-  return lathe([[r - w, 0], [r, 0.002], [r + 0.001, 0.008], [r - w * 0.5, 0.012]], { segs, axis: 'z' });
 }

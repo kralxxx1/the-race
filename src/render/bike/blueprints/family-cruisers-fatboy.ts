@@ -16,7 +16,7 @@ import { bodyQ } from '../kit/body';
 import { F, hard, vary } from '../sink';
 import type { BikeBlueprint } from '../types';
 import { floorBoards } from './family-cruisers-controls';
-import { bead, capMeshOf, cruiserTank, fenderArc, roundTailLamp, sidePlate, tubeAlong } from './family-cruisers-parts';
+import { bead, capMeshOf, cruiserTank, fenderArc, rearFrameLoop, roundTailLamp, tubeAlong } from './family-cruisers-parts';
 
 /**
  * Harley-Davidson Fat Boy 114 (Softail, Milwaukee-Eight 114).
@@ -140,8 +140,10 @@ function body(ctx: KitContext): void {
   sideStand(ctx);
 
   // ── Softail details: triangulated swingarm gussets, oil tank / battery side covers, belt guard ──
-  sidePlate(ctx, [[-0.68, 0.64], [-0.4, 0.64], [-0.34, 0.54], [-0.4, 0.42], [-0.6, 0.38], [-0.7, 0.46]], 0.15, 0.02, F.glossBlack);
-  sidePlate(ctx, [[-0.66, 0.34], [-0.38, 0.4], [-0.3, 0.3], [-0.5, 0.22]], 0.15, 0.016, F.black);
+  rearFrameLoop(ctx, { w: 0.115, front: -0.9, back: -0.26, y: 0.6, r: 0.017, f: hard('#15161a', 0.35, 0.4, 0.8) });
+  // Battery box (left) and oil tank (right) tucked under the seat.
+  ctx.add('chassis', roundBox(0.1, 0.17, 0.3, 0.03, 2), F.glossBlack, T(-0.13, 0.52, -0.5));
+  ctx.add('chassis', roundBox(0.1, 0.2, 0.28, 0.03, 2), F.glossBlack, T(0.13, 0.5, -0.5));
 }
 
 function rearBrake(ctx: KitContext): void {
@@ -195,7 +197,7 @@ export function fatBoyBlueprint(spec: BikeSpec): BikeBlueprint {
     frontBrake: { discs: 2, discDia: 0.292, disc: 'fixed', carrierColor: '#cfd2d6', caliper: 'axial2', caliperColor: black, caliperAngleDeg: 78 },
     rearBrake: { discs: 0, discDia: 0.292, disc: 'fixed', carrierColor: black, caliper: 'axial2', caliperColor: black, caliperAngleDeg: 205 },
     frame: { type: 'cradle', color: black, metal: 0.3, rough: 0.4, subframe: 'integrated', subframeColor: black, width: 0.34 },
-    swingarm: { type: 'tubular', length: 0.64, angleDeg: 4, color: black, metal: 0.3, rough: 0.4 },
+    swingarm: { type: 'box', length: 0.64, angleDeg: 4, color: black, metal: 0.3, rough: 0.4 },
     shock: { layout: 'none', springColor: black, bodyColor: black, reservoir: false },
     drive: { type: 'belt', side: 'left', frontTeeth: 32, rearTeeth: 70, sprocketColor: '#c9ccd2' },
     engine: {

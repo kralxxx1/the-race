@@ -7,10 +7,12 @@ import { plateHanger } from '../kit/rear';
 import { curve, outlineLoft, SECTIONS, stationsBetween, type OutlineBody } from '../kit/shape';
 import { ALL_VIEWS, type LiveryCanvas, type LiveryEnv, type Pen } from '../livery';
 import { roundBox, type P3 } from '../mesh';
-import { F, tint, vary } from '../sink';
+import { F, hard, tint, vary } from '../sink';
 import type { BikeBlueprint } from '../types';
 import { footPegs, pillionPegs, sideStand } from './family-cruisers-controls';
-import { bead, capMeshOf, fenderArc, roundTailLamp, sidePlate, tubeAlong } from './family-cruisers-parts';
+import { bead, capMeshOf, fenderArc, radiatorBlock, roundTailLamp, sidePlate, tubeAlong } from './family-cruisers-parts';
+import { buildParallelTwin } from '../kit/cruisers-twin';
+import type { EnginePort } from '../kit/cruisers-engine';
 
 /**
  * Honda Rebel 500 (2024): the small bobber.
@@ -87,8 +89,12 @@ function body(ctx: KitContext): void {
     indicatorPod(ctx, 'steer', [s * 0.09, hl[1] - 0.035, hl[2] + 0.07], [s * 0.15, hl[1] - 0.04, hl[2] + 0.06], 0.014);
   }
 
-  // ── Exhaust: two chrome headers sweep down and back into one matte-black megaphone on the right ──
-  exhaust(ctx);
+  // ── Parallel-twin engine, radiator and the exhaust: two chrome headers sweep down and back into one matte-black megaphone ──
+  const ports = buildParallelTwin(ctx, { crank: ctx.bp.engine.crank, tiltDeg: ctx.bp.engine.tiltDeg, pitch: 0.082, black: hard('#1b1c1f', 0.4, 0.5, 0.4), cover: hard('#26282c', 0.55, 0.38, 0.6), cam: hard('#202226', 0.5, 0.4, 0.6), trim: vary(F.brushedAlu, { rough: 0.3 }), camText: 'HONDA' });
+  radiatorBlock(ctx, { cx: 0, cy: 0.5, cz: -1.07, w: 0.2, h: 0.22, tiltDeg: 12 });
+  tubeAlong(ctx, 'chassis', [[0.07, 0.62, -1.06], [0.09, 0.66, -0.98], [0.05, 0.66, -0.9]], 0.012, F.hose);
+  tubeAlong(ctx, 'chassis', [[-0.07, 0.4, -1.06], [-0.09, 0.36, -0.98], [-0.06, 0.34, -0.9]], 0.012, F.hose);
+  exhaust(ctx, ports);
 
   // ── Foot controls: rubber pegs on stamped black hangers, side stand ──
   footPegs(ctx, { at: ctx.bp.rider.peg, f: F.satinBlack, pivot: hp.pivot });
@@ -106,24 +112,8 @@ function buildTankAndSeat(ctx: KitContext): void {
   seatBody(ctx);
 }
 
-/** Exhaust ports of the inline-twin block (mirrors the generic engine layout so headers meet the head). */
-function ports(ctx: KitContext): { pos: P3; dir: P3 }[] {
-  const e = ctx.bp.engine;
-  const k = Math.cbrt(e.cc / 1000);
-  const t = (e.tiltDeg * Math.PI) / 180;
-  const c = e.crank;
-  const cyl: P3 = [0, Math.cos(t), -Math.sin(t)];
-  const fwd: P3 = [0, -Math.sin(t), -Math.cos(t)];
-  const pitch = 0.095 * k + 0.006;
-  const d = 0.33 * k, f = 0.1 * k;
-  const y = c[1] + cyl[1] * d + fwd[1] * f;
-  const z = c[2] + cyl[2] * d + fwd[2] * f;
-  return [-1, 1].map((s) => ({ pos: [s * pitch * 0.5, y, z] as P3, dir: [0, -0.35, -0.94] as P3 }));
-}
-
-function exhaust(ctx: KitContext): void {
+function exhaust(ctx: KitContext, ps: EnginePort[]): void {
   const hdr = F.chrome;
-  const ps = ports(ctx);
   const [pl, pr] = ps;
   const r = 0.0185;
   const right = pipe(ctx, [pr.pos, [pr.pos[0] + 0.004, pr.pos[1] - 0.05, pr.pos[2] - 0.07], [0.06, 0.36, -1.0], [0.125, 0.255, -0.94], [0.175, 0.222, -0.78], [0.195, 0.222, -0.62]], r, hdr);
@@ -234,7 +224,7 @@ export function rebel500Blueprint(spec: BikeSpec): BikeBlueprint {
     body,
     livery,
     groundClearance: 0.135,
-    features: [],
+    features: ['skip:engine'],
     zones: { splitY: 0.58, decal: [-0.9, 0.745] },
   };
 }

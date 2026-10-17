@@ -11,7 +11,7 @@ import { roundBox, type P3 } from '../mesh';
 import { F, hard, vary } from '../sink';
 import type { BikeBlueprint } from '../types';
 import { floorBoards, sideStand } from './family-cruisers-controls';
-import { bead, capMeshOf, cruiserTank, fenderArc, roundTailLamp, sidePlate, tubeAlong } from './family-cruisers-parts';
+import { bead, capMeshOf, cruiserTank, fenderArc, rearFrameLoop, roundTailLamp, tubeAlong } from './family-cruisers-parts';
 
 /**
  * Indian Chief Dark Horse (2022 generation, Thunderstroke 116).
@@ -124,7 +124,9 @@ function body(ctx: KitContext): void {
 
   floorBoards(ctx, [0.3, 0.205, -0.99], { f: hard('#16171a', 0.5, 0.35, 0.8), len: 0.28, wid: 0.115 });
   sideStand(ctx);
-  sidePlate(ctx, [[-0.66, 0.62], [-0.4, 0.62], [-0.34, 0.52], [-0.4, 0.42], [-0.58, 0.4], [-0.68, 0.46]], 0.15, 0.02, blackGloss);
+  rearFrameLoop(ctx, { w: 0.112, front: -0.88, back: -0.26, y: 0.585, r: 0.017, f: hard('#14151a', 0.35, 0.4, 0.8) });
+  ctx.add('chassis', roundBox(0.1, 0.16, 0.3, 0.03, 2), blackGloss, T(-0.13, 0.5, -0.5));
+  ctx.add('chassis', roundBox(0.1, 0.19, 0.26, 0.03, 2), blackGloss, T(0.13, 0.49, -0.5));
 }
 
 // ───────────────────────────── livery ─────────────────────────────
@@ -135,11 +137,11 @@ function lettering(p: Pen, color: string): void {
   }
 }
 
-function livery(c: LiveryCanvas, lv: Livery, env: LiveryEnv): void {
-  const red = env.index === 1;
+function livery(c: LiveryCanvas, lv: Livery, _env: LiveryEnv): void {
+  // Black Smoke / Stealth Gray: both are smoky satin finishes with a chrome-lettered tank script.
   c.views(ALL_VIEWS, (p) => {
-    p.fill(lv.primary, red ? 'metallic' : 'matte');
-    lettering(p, red ? '#e8d6a0' : '#c7ccd2');
+    p.fill(lv.primary, 'satin');
+    lettering(p, '#cfd3d8');
   });
 }
 
@@ -161,7 +163,7 @@ export function indianChiefBlueprint(spec: BikeSpec): BikeBlueprint {
     frontBrake: { discs: 1, discDia: 0.298, disc: 'floating', carrierColor: '#2a2b30', caliper: 'axial2', caliperColor: black, caliperText: 'INDIAN', caliperTextColor: '#c9ccd2', caliperAngleDeg: 78 },
     rearBrake: { discs: 1, discDia: 0.298, disc: 'fixed', carrierColor: '#2a2b30', caliper: 'axial1', caliperColor: black, caliperAngleDeg: 205 },
     frame: { type: 'cradle', color: black, metal: 0.3, rough: 0.4, subframe: 'integrated', subframeColor: black, width: 0.33 },
-    swingarm: { type: 'tubular', length: 0.62, angleDeg: 5, color: black, metal: 0.3, rough: 0.4 },
+    swingarm: { type: 'box', length: 0.62, angleDeg: 5, color: black, metal: 0.3, rough: 0.4 },
     shock: { layout: 'none', springColor: black, bodyColor: black, reservoir: false },
     drive: { type: 'belt', side: 'left', frontTeeth: 32, rearTeeth: 68, sprocketColor: '#2a2b30' },
     engine: {

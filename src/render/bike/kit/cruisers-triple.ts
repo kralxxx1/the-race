@@ -63,7 +63,7 @@ export function buildRocketTriple(ctx: KitContext, o: TripleOpts): EnginePort[] 
   if (ctx.micro && o.camText) {
     const r = ctx.label(o.camText, { color: '#d6d8dc', weight: '900', italic: true }, 64);
     const p = c.clone().addScaledVector(axis, 0.515);
-    ctx.decal('chassis', r, 0.04, [p.x, p.y, p.z], [axis.x, axis.y, axis.z], [0, 0, -1]);
+    ctx.decal('chassis', r, 0.04, [p.x, p.y, p.z], [axis.x, axis.y, axis.z], [-perp.x, -perp.y, 0]);
   }
   // Raised rim on the cam cover
   ctx.add('chassis', roundBox(0.205, 0.008, L + 0.004, 0.05, 2), o.trim, blockM(0.455));

@@ -31,7 +31,10 @@ export function footPegs(ctx: KitContext, o: FootPegOpts): void {
   for (const s of [-1, 1]) {
     const P: P3 = [s * Math.abs(o.at[0]), o.at[1], o.at[2]];
     const hx = s * (Math.abs(o.at[0]) - 0.045);
-    const outline = smooth2([[P[2] + 0.035, P[1] + 0.03], [o.pivot[2] - 0.03, o.pivot[1] + 0.02], [o.pivot[2] + 0.07, o.pivot[1] - 0.03], [P[2] + 0.06, P[1] - 0.05], [P[2] - 0.02, P[1] - 0.035]], ctx.micro ? 4 : 2, true);
+    // Short stamped bracket from the peg towards the swingarm pivot (not all the way).
+    const az = P[2] * 0.6 + o.pivot[2] * 0.4;
+    const ay = P[1] * 0.5 + o.pivot[1] * 0.5;
+    const outline = smooth2([[P[2] + 0.035, P[1] + 0.03], [az - 0.02, ay + 0.03], [az + 0.06, ay - 0.0], [P[2] + 0.06, P[1] - 0.05], [P[2] - 0.02, P[1] - 0.035]], ctx.micro ? 4 : 2, true);
     ctx.add('chassis', extrude(outline, 0.008, { plane: 'zy', bevel: 0.002, center: hx, curveSegs: 1 }), o.f);
     // Peg: steel pin + rubber sleeve
     ctx.add('chassis', lathe([[0, 0], [r * 0.5, 0], [r * 0.5, len], [0, len]], { segs: 8, axis: 'y', sharp: true }), F.steel, mul(T(hx, P[1], P[2]), rotZ(s)));
