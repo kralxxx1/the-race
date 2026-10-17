@@ -11,6 +11,7 @@ import { ALL_VIEWS, type LiveryCanvas, type LiveryEnv, type Pen } from '../liver
 import { extrude, lathe, rod, roundBox, smooth2, type P2, type P3 } from '../mesh';
 import { F, Micro, hard, vary } from '../sink';
 import type { BikeBlueprint } from '../types';
+import { footPegs, sideStand } from './family-cruisers-controls';
 
 /**
  * LiveWire One (2023): the electric roadster.
@@ -160,6 +161,8 @@ function body(ctx: KitContext): void {
   frameStructure(ctx);
   frontEnd(ctx);
   seatAndTail(ctx);
+  footPegs(ctx, { at: ctx.bp.rider.peg, f: castTint('#2b2d31', 0.8, 0.42), pivot: ctx.hp.pivot, peg: F.rubber });
+  sideStand(ctx);
 }
 
 // ───────────────────────────── livery ─────────────────────────────
@@ -229,7 +232,7 @@ export function liveWireOneBlueprint(spec: BikeSpec): BikeBlueprint {
     lights: { head: 'round', tail: 'strip', rearIndicators: 'integrated' },
     seat: { height: 0.78, front: -0.66, back: 0.1, pillion: 'seat', color: '#151515' },
     rider: { hip: [0, 0.875, -0.42], peg: [0.26, 0.36, -0.2], torsoPitch: 0.4 },
-    footrests: 'peg',
+    footrests: 'scooter',
     plate: { mount: 'hanger', pos: [0, 0.62, 0.48], tiltDeg: -18 },
     body,
     livery,
