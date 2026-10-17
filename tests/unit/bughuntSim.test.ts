@@ -45,6 +45,37 @@ describe('traffic: cars joining behind a stopped rider', () => {
   }, 60000);
 });
 
+describe('traffic: spawns respect the closing speed', () => {
+  // The spawner only kept 28 m to the neighbours in the lane; a police car (128+ km/h) appearing 30 m behind a
+  // 55 km/h truck could not stop in time and drove through it.
+  it.each([1, 2, 3, 4, 5, 6, 7, 8])('seed %i: a fast spawn never ends up inside a slow vehicle', (seed) => {
+    const cfg = makeLaneConfig('oneway');
+    const mix: Record<string, number> = {};
+    for (const k of ['sedan', 'hatch', 'suv', 'pickup', 'van', 'minibus', 'truck', 'semi', 'tanker', 'bus', 'coach', 'taxi', 'ambulance']) mix[k] = 0;
+    mix.police = 100;
+    const sys = new TrafficSystem(cfg, { seed, baseDensity: 0, densityGrowth: 0, maxDensity: 0, aggression: 0, enabled: true, zones: false, kindMix: mix });
+    sys.reset(900);
+    const lane = 3;
+    const truck = (sys as unknown as Maker).makeCar('truck', lane, 1000, laneCenter(cfg, lane), 1, 15);
+    truck.nextDecision = 1e9;
+    sys.cars.push(truck);
+    const spawn = (sys as unknown as { trySpawn(s: number, p: PlayerProbe, initial: boolean, lane?: number): TrafficCar | null }).trySpawn.bind(sys);
+    const player: PlayerProbe = { s: 900, d: laneCenter(cfg, 0), v: 30 };
+    let overlaps = 0;
+    for (let i = 0; i < 40; i++) {
+      // Try to drop a police car 20-60 m behind the truck.
+      spawn(1000 - 20 - ((i * 7) % 41), player, false, lane);
+    }
+    for (const c of sys.cars) c.nextDecision = 1e9;
+    for (let i = 0; i < 60 * 25; i++) {
+      truck.v = 15; // the truck keeps its speed
+      sys.update(1 / 60, player, 900);
+      if (i % 6 === 0) for (let a = 0; a < sys.cars.length; a++) for (let b = a + 1; b < sys.cars.length; b++) if (overlap(sys.cars[a], sys.cars[b])) overlaps++;
+    }
+    expect(overlaps).toBe(0);
+  });
+});
+
 describe('time trial pacing', () => {
   // The first checkpoint used to need 2.5 km in 65 s from a standstill (138 km/h on average) and the later ones
   // 2.5 km in 38 s (237 km/h): the starter bike never reached the first one and nobody reached the third.
