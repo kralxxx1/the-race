@@ -454,7 +454,7 @@ export class Showroom {
       case 'engine':
         return { ...base, angle: -0.8, pitch: 0.06, dist: 2.3 * k, ty: 0.46, local: 1 };
       case 'rider':
-        return { ...base, angle: 0.7, pitch: 0.08, dist: 3.6 * k, ty: 1.02, local: 1 };
+        return { ...base, angle: 0.7, pitch: 0.08, dist: 3.6 * k * (this.portrait ? 1.18 : 1), ty: 1.02, local: 1 };
       case 'helmet': {
         const e = f?.eye;
         return { ...base, angle: Math.PI * 0.82, pitch: 0.04, dist: 1.5 * k, tx: e?.x ?? 0, ty: (e?.y ?? 1.25) + 0.02, tz: (e?.z ?? 0) + L / 2 + 0.08, local: 1 };

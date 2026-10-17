@@ -46,6 +46,8 @@
   .swatch-grid { grid-template-columns: repeat(8, 1fr); }
   .rider-foot { padding-left: calc(10px + var(--safe-l)); padding-right: calc(10px + var(--safe-r)); }
   .rider-foot .btn.primary { min-width: 0; flex: 1; }
+  .rider-foot .lbl { display: none; }
+  .rider-foot .btn:not(.primary) { padding: 0.6rem 0.9rem; }
 }
 @media (max-width: 900px) and (orientation: landscape) {
   .rider-body { flex-direction: row; }

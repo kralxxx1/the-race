@@ -99,6 +99,9 @@
   .preset small { font-size: 0.7rem; }
   .keys-grid { grid-template-columns: 1fr; }
   .set-row { flex-wrap: wrap; gap: 0.5rem; }
+  .set-row.row-toggle { flex-wrap: nowrap; }
+  .set-row.row-toggle .set-label { flex: 1 1 auto; }
+  .set-row.row-toggle .set-ctl { flex: 0 0 auto; }
   .set-label { flex-basis: 100%; }
   .set-ctl { flex-basis: 100%; justify-content: space-between; }
   .set-ctl .seg { justify-content: flex-start; }

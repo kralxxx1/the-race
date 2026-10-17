@@ -97,6 +97,9 @@ test.describe('The Race — production build', () => {
     await page.getByTestId('bike-ducati-panigale-v4s').click();
     await expect(page.getByTestId('garage-model')).toHaveText('Panigale V4 S');
     await page.getByTestId('btn-buy').click();
+    // Purchases ask for confirmation first.
+    await expect(page.getByTestId('buy-summary')).toBeVisible();
+    await page.getByTestId('buy-confirm').click();
     // Buying can unlock achievements whose rewards top the balance up.
     const cashAfterBuy = (await api(page, 'save')).cash;
     expect(cashAfterBuy).toBeGreaterThanOrEqual(69000);

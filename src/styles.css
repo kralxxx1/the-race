@@ -211,6 +211,13 @@ button.chip:hover { background: rgba(255, 255, 255, 0.12); border-color: var(--l
 .head .title .ico { color: var(--accent); }
 .head .title small { font-size: 0.7rem; font-style: normal; color: var(--muted); letter-spacing: 0.14em; font-weight: 700; }
 .head .right { display: flex; align-items: center; gap: 0.6rem; }
+@media (max-width: 600px) {
+  .head .title small { display: none; }
+  .head { gap: 0.5rem; }
+  .head .title { min-width: 0; font-size: 1rem; letter-spacing: 0.04em; }
+  .head .right { flex: 0 0 auto; }
+  .head .cash { font-size: 0.86rem; padding: 0.3rem 0.6rem; }
+}
 .body { flex: 1; min-height: 0; display: flex; position: relative; }
 .scroll { overflow-y: auto; overflow-x: hidden; min-height: 0; touch-action: pan-y; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
 .scroll::-webkit-scrollbar { width: 8px; height: 8px; }

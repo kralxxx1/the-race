@@ -185,8 +185,8 @@ export class RiderScreen {
         h('div', { class: 'rider-mid pass' }),
       ),
       h('div', { class: 'foot rider-foot' },
-        btn('Rastgele', () => this.randomise(), 'ghost', 'gear-random', 'dice'),
-        btn('Varsayılan', () => {
+        btn([h('span', { class: 'lbl' }, 'Rastgele')], () => this.randomise(), 'ghost', 'gear-random', 'dice'),
+        btn([h('span', { class: 'lbl' }, 'Varsayılan')], () => {
           this.draft = { ...defaultGear(), name: g.name };
           this.preview();
           this.redo();

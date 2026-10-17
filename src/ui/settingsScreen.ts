@@ -199,6 +199,7 @@ export class SettingsScreen {
       ),
     );
     this.renderList();
+    requestAnimationFrame(() => tabs.querySelector('.sel')?.scrollIntoView({ inline: 'center', block: 'nearest' }));
   }
 
   /** Re-render only the settings list (search typing must not rebuild the search box). */
@@ -258,7 +259,7 @@ export class SettingsScreen {
   // ───────────────────────────── rows and controls ─────────────────────────────
   private row(d: SettingDef, showPath: boolean): HTMLElement {
     const changed = this.changed(d);
-    return h('div', { class: `set-row ${changed ? 'changed' : ''}`, 'data-setting': d.key },
+    return h('div', { class: `set-row row-${d.type} ${changed ? 'changed' : ''}`, 'data-setting': d.key },
       h('div', { class: 'set-label' },
         h('span', { class: 'set-name' }, d.label),
         showPath ? h('small', { class: 'set-path' }, d.group) : null,

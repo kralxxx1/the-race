@@ -195,6 +195,11 @@ export class GarageScreen {
       header(this.ctx, { title: 'GARAJ', icon: 'garage', sub: `${save.data.ownedBikes.length} / ${BIKES.length}`, backTestid: 'btn-back', right: [this.cashSlot] }),
       h('div', { class: 'body garage-body' },
         h('aside', { class: 'garage-list glass' },
+          h('button', { class: 'chip garage-filter-toggle', type: 'button', 'aria-expanded': 'false', 'data-testid': 'garage-filter-toggle', 'data-nid': 'garage-filter-toggle', onclick: (e: Event) => {
+            const list = (e.currentTarget as HTMLElement).closest('.garage-list');
+            const open = list?.classList.toggle('tools-open') ?? false;
+            (e.currentTarget as HTMLElement).setAttribute('aria-expanded', String(open));
+          } }, icon('filter', 14), 'Filtre ve sıralama'),
           h('div', { class: 'garage-tools' },
             h('div', { class: 'field-wrap' }, icon('search', 16), search),
             h('div', { class: 'garage-row2' }, brandSel, h('div', { class: 'sort-box' }, sortSel, dirBtn)),
@@ -400,7 +405,7 @@ export class GarageScreen {
       if (!afford) action.title = `${fmtMoney(b.price - d.cash)} eksik`;
     }
 
-    const rev = h('button', { class: 'btn ghost', type: 'button', 'data-testid': 'btn-rev', 'data-nid': 'rev', 'data-silent': '' }, icon('volume', 18), 'MOTORU DİNLE', h('small', {}, 'basılı tut'));
+    const rev = h('button', { class: 'btn ghost', type: 'button', 'data-testid': 'btn-rev', 'data-nid': 'rev', 'data-silent': '' }, icon('volume', 18), h('span', { class: 'lbl' }, 'MOTORU DİNLE'), h('small', {}, 'basılı tut'));
     const revOn = (e: Event) => {
       e.preventDefault();
       a.rev(true);
@@ -462,7 +467,7 @@ export class GarageScreen {
     el.replaceChildren(
       scroller,
       h('div', { class: 'gd-actions' },
-        h('div', { class: 'gd-actions-row' }, rev, btn('KARŞILAŞTIR', () => this.openCompare(), 'ghost', 'btn-compare', 'compare')),
+        h('div', { class: 'gd-actions-row' }, rev, btn([h('span', { class: 'lbl' }, 'KARŞILAŞTIR')], () => this.openCompare(), 'ghost', 'btn-compare', 'compare')),
         action,
       ),
     );

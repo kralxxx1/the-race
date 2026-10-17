@@ -9,6 +9,7 @@
 .sort-box .select { width: 9.5rem; }
 .sort-box .btn.flip .ico { transform: scaleY(-1); }
 .garage-row3 { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.garage-filter-toggle { display: none; }
 .garage-count { font-size: 0.74rem; color: var(--muted); font-weight: 700; letter-spacing: 0.04em; }
 .chip-row.styles { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; padding-bottom: 2px; }
 .chip-row.styles::-webkit-scrollbar { display: none; }
@@ -104,8 +105,10 @@
 
 @media (max-width: 900px) {
   .garage-body { flex-direction: column; padding-left: calc(10px + var(--safe-l)); padding-right: calc(10px + var(--safe-r)); gap: 0.5rem; }
-  .garage-list { flex: 0 0 auto; padding: 0.5rem; gap: 0.4rem; }
-  .garage-tools { gap: 0.4rem; }
+  .garage-list { flex: 0 0 auto; width: auto; padding: 0.5rem; gap: 0.4rem; }
+  .garage-filter-toggle { display: inline-flex; align-self: flex-start; }
+  .garage-tools { display: none; gap: 0.4rem; }
+  .garage-list.tools-open .garage-tools { display: flex; }
   .garage-row3 { display: none; }
   .garage-cards { flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 0 0 4px; margin: 0; touch-action: pan-x; }
   .bike-card { grid-template-columns: 1fr; width: 9.2rem; padding: 0.35rem; gap: 0.3rem; flex: 0 0 auto; }
@@ -115,16 +118,17 @@
   .bike-card:hover { transform: none; }
   .garage-mid { flex: 1; min-height: 3rem; }
   .viewbar { border-radius: 1rem; padding: 0.3rem 0.4rem; gap: 0.3rem; }
-  .viewbar .chip span { display: none; }
+  .viewbar .chip span:not(.ico-wrap) { display: none; }
   .viewbar .chip { padding: 0.4rem 0.55rem; }
   .viewbar .looks { display: none; }
-  .garage-detail { flex: 0 0 auto; width: auto; max-height: 46vh; }
+  .garage-detail { flex: 0 0 auto; width: auto; max-height: 42vh; }
   .gd-scroll { padding: 0.8rem 0.9rem 0.5rem; }
   .bike-model { font-size: 1.4rem; }
   .spec-grid { grid-template-columns: 1fr; }
   .gd-actions { padding: 0.5rem 0.9rem 0.6rem; flex-direction: row; align-items: stretch; }
-  .gd-actions-row { flex: 0 0 auto; }
-  .gd-actions-row .btn small { display: none; }
+  .gd-actions-row { flex: 0 0 auto; display: flex; gap: 0.4rem; }
+  .gd-actions-row .btn small, .gd-actions-row .lbl { display: none; }
+  .gd-actions-row .btn { padding: 0.6rem 0.8rem; }
   .gd-actions .btn.primary, .gd-actions .tag { flex: 1; }
   .cmp-row { grid-template-columns: 1fr 4.6rem 1fr; }
   .bc-thumb.big { width: 5rem; height: 3.2rem; }

@@ -28,7 +28,7 @@ function stageFor(name: string, portrait: boolean): { mode: 'menu' | 'garage' | 
     case 'menu':
       return portrait ? { mode: 'menu', x: 0, y: -0.15 } : { mode: 'menu', x: 0.2, y: -0.07 };
     case 'garage':
-      return portrait ? { mode: 'garage', x: 0, y: -0.22 } : { mode: 'garage', x: 0.02, y: -0.02 };
+      return portrait ? { mode: 'garage', x: 0, y: -0.1 } : { mode: 'garage', x: 0.02, y: -0.02 };
     case 'rider':
       return portrait ? { mode: 'rider', x: 0, y: -0.22 } : { mode: 'rider', x: 0.2, y: 0 };
     case 'settings':
