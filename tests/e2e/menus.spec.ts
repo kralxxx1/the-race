@@ -20,6 +20,8 @@ test.describe('Menus: navigation, garage, rider and settings', () => {
   });
 
   test('garage: search, filters, compare, view presets and the purchase dialog', async ({ page }) => {
+    // Desktop layout: below 900 px the viewer presets give way to the spec panel.
+    await page.setViewportSize({ width: 1280, height: 720 });
     const errors = trackErrors(page);
     // Thumbnails are rendered with software WebGL here (seconds each): this test covers the list logic.
     await seedSave(page, { cash: 90000, xp: 200000, settings: { 'gfx.preset': 'low', 'cam.shake': false, 'ui.confirmQuit': false, 'ui.thumbnails': false } });
@@ -28,6 +30,9 @@ test.describe('Menus: navigation, garage, rider and settings', () => {
     await expect(page.getByTestId('garage-count')).toContainText('motosiklet');
     const all = await page.locator('.bike-card').count();
     expect(all).toBeGreaterThan(40);
+    // On small screens search and filters sit behind a toggle.
+    const toggle = page.getByTestId('garage-filter-toggle');
+    if (await toggle.isVisible()) await toggle.click();
     // Search narrows the list; the style filter narrows it further.
     await page.getByTestId('garage-search').fill('ducati');
     await expect.poll(() => page.locator('.bike-card').count()).toBeLessThan(all);

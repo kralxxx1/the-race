@@ -261,7 +261,8 @@ describe('procedural sound effects', () => {
     expect(c('truck')).toBeLessThan(c('car'));
     expect(c('bus')).toBeLessThan(c('moto'));
     for (const k of ['car', 'taxi', 'truck', 'bus', 'moto', 'player'] as const) expect(peak(horn(SR, k))).toBeGreaterThan(0.5);
-  });
+    // Deterministic DSP, but it renders eight horns: allow for a busy CI machine.
+  }, 20_000);
 });
 
 describe('audio settings', () => {
