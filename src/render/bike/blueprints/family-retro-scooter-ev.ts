@@ -1,5 +1,6 @@
 import type { BikeSpec } from '../../../data/bikes';
 import type { BikeBlueprint } from '../types';
+import { tmaxBlueprint } from './family-retro-scooter-ev-tmax';
 import { vespaGtsBlueprint } from './family-retro-scooter-ev-vespa';
 
 /**
@@ -9,4 +10,5 @@ import { vespaGtsBlueprint } from './family-retro-scooter-ev-vespa';
  */
 export const BLUEPRINTS: Record<string, (spec: BikeSpec) => BikeBlueprint> = {
   'vespa-gts-300': vespaGtsBlueprint,
+  'yamaha-tmax': tmaxBlueprint,
 };

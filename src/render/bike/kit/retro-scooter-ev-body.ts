@@ -236,3 +236,27 @@ export function pipeAlong(ctx: KitContext, group: GroupName, pts: readonly P3[],
 export function castTint(hex: string, metal = 0.7, rough = 0.45): Finish {
   return hard(hex, metal, rough, 0.2, Micro.cast);
 }
+
+/** Thin arched sheet section (windscreens, visors): convex towards +y, closed polygon of 2n points. */
+export function archProfile(hw: number, sag: number, thick: number, n = 14): P2[] {
+  const top: P2[] = [];
+  for (let i = 0; i <= n; i++) {
+    const u = -1 + (2 * i) / n;
+    top.push([u * hw, sag * (1 - u * u)]);
+  }
+  const out: P2[] = top.slice();
+  for (let i = n; i >= 0; i--) {
+    const u = -1 + (2 * i) / n;
+    // Thin sheet: the back face follows the front, pulled back by `thick`.
+    out.push([u * hw * 0.998, sag * (1 - u * u) - thick]);
+  }
+  // Counter-clockwise ordering (x increasing along the front face, then back along the rear) ⇒ reverse for CCW.
+  return out.reverse();
+}
+
+/** Matrix placing a part whose local +Z is the outward direction `n` at `p` (lamps, badges on surfaces). */
+export function onSurface(p: P3, n: P3, roll = 0): THREE.Matrix4 {
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(...n).normalize());
+  if (roll) q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), roll));
+  return new THREE.Matrix4().compose(new THREE.Vector3(...p), q, new THREE.Vector3(1, 1, 1));
+}
