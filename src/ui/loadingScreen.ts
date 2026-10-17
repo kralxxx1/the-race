@@ -25,7 +25,7 @@ export class LoadingScreen {
   private pct: HTMLElement | null = null;
   private bar: HTMLElement | null = null;
 
-  constructor(private ctx: UiCtx) {}
+  constructor(_ctx: UiCtx) {}
 
   render(host: HTMLElement, info?: LoadingInfo): void {
     const map = info ? MAP_BY_ID.get(info.map) : undefined;

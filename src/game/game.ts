@@ -16,11 +16,14 @@ import { Renderer } from '../render/renderer';
 import { Showroom } from '../render/showroom';
 import { SETTINGS, SettingsReader, type QualityPreset } from '../settings';
 import { SaveManager } from '../storage/save';
-import { starString } from '../ui/careerScreen';
+import { starString } from '../ui/widgets';
 import { pavedHalfWidth } from '../world/road';
 import { Hud } from '../ui/hud';
-import { Screens } from '../ui/screens';
-import type { ProgressTab } from '../ui/progressScreens';
+import { Screens, type LoadingInfo } from '../ui/screens';
+import type { ProgressTab, UiActions } from '../ui/ctx';
+import { applyUiSettings } from '../ui/uiApply';
+import { BikeThumbs } from '../render/bikeThumbs';
+import type { RiderGear } from '../data/riderGear';
 import { liveAchContext, reachedAchievements } from './achievements';
 import { applyTrafficSettings, autoThrottleActive } from './gameplaySettings';
 import { failReasonText, missionHud } from './missions';
@@ -29,7 +32,7 @@ import { levelForXp, xpForRun } from './progression';
 import type { RunStats } from './scoring';
 import { GameSession, type FinishReason, type SessionEvent } from './session';
 
-export type GameState = 'boot' | 'menu' | 'garage' | 'modes' | 'career' | 'progress' | 'settings' | 'loading' | 'playing' | 'paused' | 'gameover';
+export type GameState = 'boot' | 'menu' | 'garage' | 'rider' | 'modes' | 'career' | 'progress' | 'settings' | 'loading' | 'playing' | 'paused' | 'gameover';
 
 /** Seconds a clean finish (mission complete, time up) stays on screen before the result card. */
 const RESULT_DELAY = 1.6;
@@ -43,6 +46,7 @@ export class Game {
   private screens: Screens;
   private hud: Hud | null = null;
   private showroom: Showroom;
+  private thumbs: BikeThumbs | null = null;
   private uiSounds = new UiSounds(audio);
   private gameAudio = new GameAudio(audio);
   state: GameState = 'boot';
@@ -106,6 +110,11 @@ export class Game {
     this.showroom = new Showroom(this.renderer);
     this.screens = new Screens(container, this.save, this.actions());
     this.showroom.attachPointer(canvas);
+    applyUiSettings(s);
+    this.applyShowroomSettings();
+    window.addEventListener('pointerdown', () => {
+      this.input.lastDevice = 'pointer';
+    }, true);
 
     const unlock = () => audio.unlock();
     window.addEventListener('pointerdown', unlock);
@@ -143,14 +152,17 @@ export class Game {
     requestAnimationFrame(loop);
   }
 
-  private actions() {
+  private actions(): UiActions {
+    const sounds = () => this.settings.bool('ui.menuSounds');
     return {
+      openMenu: () => this.toMenu(),
       openModes: () => this.toModes(),
       openCareer: () => this.toCareer(),
       openProgress: (tab?: ProgressTab) => this.toProgress(tab),
       startMission: (id: string) => void this.startMission(id),
       claimDaily: () => this.claimDaily(),
       openGarage: () => this.toGarage(),
+      openRider: () => this.toRider(),
       openSettings: () => this.toSettings(),
       back: () => this.back(),
       start: (cfg: RunConfig) => void this.startRun(cfg),
@@ -164,11 +176,14 @@ export class Game {
         const ok = this.save.buy(id);
         if (ok) {
           this.uiSounds.coin();
-          this.screens.toast(`${BIKE_BY_ID.get(id)?.model} garajında!`);
+          this.screens.toast(`${BIKE_BY_ID.get(id)?.model} garajında!`, 'good');
         } else this.uiSounds.error();
         return ok;
       },
-      setLivery: (id: string, idx: number) => this.save.setLivery(id, idx),
+      setLivery: (id: string, idx: number) => {
+        this.save.setLivery(id, idx);
+        this.thumbs?.invalidate(id);
+      },
       upgrade: (id: string, kind: keyof Upgrades) => {
         const ok = this.save.upgrade(id, kind);
         if (ok) this.uiSounds.coin();
@@ -181,19 +196,63 @@ export class Game {
         this.save.reset();
         this.screens.toast('İlerleme sıfırlandı');
         this.previewBike(this.save.data.selectedBike, 0);
+        this.thumbs = null;
+        this.screens.refresh();
       },
       resume: () => this.resume(),
       restart: () => void this.startRun(this.run),
       quitToMenu: () => this.quitToMenu(),
       enableTilt: () => this.input.enableTilt(),
-      click: () => this.uiSounds.click(),
+      click: () => {
+        if (sounds()) this.uiSounds.click();
+      },
+      hover: () => {
+        if (sounds()) this.uiSounds.hover();
+      },
+      setGear: (gear: RiderGear) => {
+        this.save.setGear(gear);
+        this.showroom.setGear(this.save.data.rider);
+      },
+      previewGear: (gear: RiderGear | null) => this.showroom.setGear(gear ?? this.save.data.rider),
+      thumb: (bikeId: string, livery: number) => this.thumb(bikeId, livery),
+      showroom: this.showroom,
+      gpuInfo: () => this.gpuInfo(),
     };
+  }
+
+  /** Offscreen bike renders for the garage cards (off on the 'Düşük' preset when set to automatic). */
+  private thumb(bikeId: string, livery: number): Promise<string | null> {
+    const mode = this.settings.str('ui.thumbnails');
+    const on = mode === 'on' || (mode === 'auto' && this.settings.str('gfx.preset') !== 'low');
+    const spec = BIKE_BY_ID.get(bikeId);
+    if (!on || !spec) return Promise.resolve(null);
+    this.thumbs ??= new BikeThumbs(this.renderer, this.showroom.scene.environment);
+    return this.thumbs.request(spec, livery);
+  }
+
+  private gpuInfo(): string {
+    const gl = this.renderer.renderer.getContext();
+    let name = 'Bilinmeyen GPU';
+    try {
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      const raw = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER));
+      name = raw.replace(/^ANGLE \((.*)\)$/, '$1');
+    } catch {
+      /* context lost or blocked */
+    }
+    return `${name} · ${gl instanceof WebGL2RenderingContext ? 'WebGL 2' : 'WebGL'} · ${Math.round(this.renderer.resolutionScale * 100)}% çözünürlük`;
+  }
+
+  /** Showroom behaviour that comes from interface settings. */
+  private applyShowroomSettings(): void {
+    const st = this.settings;
+    this.showroom.setSpin(st.str('ui.showroomMotion') as 'off' | 'slow' | 'normal');
+    this.showroom.setLook(st.str('ui.showroomLight') as 'studio' | 'warm' | 'cool' | 'neon');
   }
 
   // ───────────────────────────── navigation ─────────────────────────────
   private toMenu(): void {
     this.state = 'menu';
-    this.showroom.framing = 0.35;
     const sel = this.save.data.selectedBike;
     this.previewBike(sel, this.save.livery(sel));
     this.screens.menu();
@@ -201,20 +260,17 @@ export class Game {
 
   private toModes(): void {
     this.state = 'modes';
-    this.showroom.framing = 0;
     this.screens.modes();
   }
 
   private toCareer(): void {
     if (this.session) this.endRun(); // coming from a mission result card
     this.state = 'career';
-    this.showroom.framing = 0;
     this.screens.career(true);
   }
 
   private toProgress(tab?: ProgressTab): void {
     this.state = 'progress';
-    this.showroom.framing = 0;
     this.screens.progress(tab);
   }
 
@@ -232,10 +288,15 @@ export class Game {
     return true;
   }
 
+  private toRider(): void {
+    if (this.session) this.endRun();
+    this.state = 'rider';
+    this.screens.rider();
+  }
+
   private toGarage(): void {
     if (this.session) this.endRun();
     this.state = 'garage';
-    this.showroom.framing = 0;
     this.screens.openGarageAt(this.save.data.selectedBike);
     this.screens.garage();
   }
@@ -298,6 +359,8 @@ export class Game {
     this.showFps = s.bool('hud.showFps');
     this.input.tiltEnabled = s.bool('ctrl.tilt') && this.input.tiltEnabled;
     this.renderer.applySettings();
+    applyUiSettings(s);
+    this.applyShowroomSettings();
     const changed = Object.keys(after).filter((k) => after[k] !== before[k]);
     if (this.session && changed.some((k) => SETTINGS.get(k)?.restart)) {
       this.screens.toast('Bazı ayarlar bir sonraki sürüşte uygulanır');
@@ -332,12 +395,19 @@ export class Game {
     this.save.data.lastRun = { ...this.run };
     this.save.save();
     this.state = 'loading';
-    this.screens.loading('Yol hazırlanıyor…', 0.2);
-    await nextFrame();
-    await nextFrame();
     const d = this.save.data;
     const bikeId = d.selectedBike;
     const spec = getBike(bikeId);
+    const info: LoadingInfo = {
+      map: this.run.map,
+      time: this.run.time,
+      weather: this.run.weather,
+      bikeName: `${spec.brand} ${spec.model}`,
+      modeName: mission ? `Kariyer · Görev ${mission.number}` : (MODE_BY_ID.get(this.run.mode)?.name ?? ''),
+    };
+    this.screens.loading('Yol hazırlanıyor…', 0.05, info);
+    await nextFrame();
+    await nextFrame();
     const env = resolveEnvironment(this.run.map, this.run.time, this.run.weather);
     this.runSeed = (this.runSeed * 1103515245 + 12345 + Date.now()) % 2147483647 || 7;
     const st = this.settings;
@@ -353,15 +423,17 @@ export class Game {
       assists: { autoThrottle: autoThrottleActive(st.str('play.autoThrottle'), isTouchDevice()), wheelie: st.bool('play.wheelieAssist') },
     });
     // CC0 PBR textures and HDRI skies for this environment (falls back to procedural ones offline).
-    await preloadWorld(env, this.renderer.profile, (p) => this.screens.loading('Dokular ve gökyüzü yükleniyor…', 0.2 + p * 0.4));
-    this.screens.loading('Trafik ve manzara oluşturuluyor…', 0.6);
+    this.screens.loading('Sürüş oturumu kuruluyor…', 0.15, info);
+    await preloadWorld(env, this.renderer.profile, (p) => this.screens.loading('Dokular ve gökyüzü yükleniyor…', 0.2 + p * 0.4, info));
+    this.screens.loading('Trafik ve manzara oluşturuluyor…', 0.65, info);
     await nextFrame();
-    const view = new GameView(this.renderer, session, env, this.save.livery(bikeId), this.settings);
+    const view = new GameView(this.renderer, session, env, this.save.livery(bikeId), this.settings, this.save.data.rider);
     view.lightningCb = (delay) => this.gameAudio.thunder(delay);
     // Secondary impacts of the crash simulation (rider bouncing, bike sliding into the rail, car crumple).
     view.crashImpactCb = (strength, kind) => this.gameAudio.crash(0.25 + strength * 0.55, kind === 'car' ? 'traffic' : kind === 'barrier' ? 'barrier' : 'fall');
     this.session = session;
     this.view = view;
+    this.screens.loading('Gösterge ve ses hazırlanıyor…', 0.85, info);
     this.hud = new Hud(this.container, this.input, {
       camera: () => this.hud?.popup('Birinci şahıs kamera', '', 'info'),
       pause: () => this.pause(),
@@ -386,6 +458,7 @@ export class Game {
     audio.unlock();
     this.gameAudio.begin(spec, env, true);
     // Warm up shaders and GPU buffers so the first frames do not stutter.
+    this.screens.loading('Gölgelendiriciler ısıtılıyor…', 0.95, info);
     try {
       view.traffic.prewarm(this.renderer.renderer, view.cam.camera, view.scene);
       this.renderer.warmup(view.scene, view.cam.camera);
@@ -425,9 +498,22 @@ export class Game {
   }
 
   private showPause(): void {
-    const m = this.session?.mission;
+    const sess = this.session;
+    if (!sess) return;
+    const m = sess.mission;
     const v = m ? missionHud(m) : null;
-    this.screens.pause(v ? { title: v.title, objective: v.objective, value: v.value } : undefined);
+    const st = sess.score.stats();
+    const mph = this.settings.str('hud.units') === 'mph';
+    const k = mph ? 0.621371 : 1;
+    this.screens.pause({
+      map: this.run.map,
+      time: this.run.time,
+      weather: this.run.weather,
+      modeName: m ? `Kariyer · Görev ${m.def.number}` : (MODE_BY_ID.get(this.run.mode)?.name ?? ''),
+      bikeName: `${sess.cfg.bike.brand} ${sess.cfg.bike.model}`,
+      stats: { score: st.score, distance: st.distance, time: st.time, nearMisses: st.nearMisses, topSpeed: st.topSpeed * k, maxCombo: st.maxCombo, unit: mph ? 'mph' : 'km/s' },
+      mission: v ? { title: v.title, objective: v.objective, value: v.value, progress: v.progress, secondary: v.secondary ?? undefined } : undefined,
+    });
   }
 
   private resume(): void {
@@ -606,6 +692,13 @@ export class Game {
       this.fps = this.fpsFrames / this.fpsAcc;
       this.fpsAcc = 0;
       this.fpsFrames = 0;
+    }
+    // Menus: arrow keys / pad drive the focus; riding input is ignored while a panel is open.
+    const menuOn = this.screens.screen !== '' && this.screens.screen !== 'loading';
+    this.input.menuMode = menuOn;
+    if (menuOn) {
+      for (const intent of this.input.pollMenu(dt)) this.screens.handleIntent(intent);
+      this.screens.setDevice(this.input.lastDevice);
     }
     const input = this.input.update(dt);
     if (input.mute) {

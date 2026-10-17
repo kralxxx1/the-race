@@ -10,7 +10,7 @@ import { btn, type UiCtx } from './ctx';
 import { fmtDistance, fmtInt, fmtMoney, h } from './dom';
 import { icon } from './icons';
 import { mapArt } from './mapArt';
-import { bar, countUp, levelBar, reducedMotion, starsEl } from './widgets';
+import { countUp, levelBar, reducedMotion, starsEl } from './widgets';
 import './results.css';
 
 /** Animate the level bar from `before` to `after` XP, rolling through level-ups. */
