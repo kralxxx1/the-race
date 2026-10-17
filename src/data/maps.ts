@@ -248,9 +248,34 @@ export function resolveEnvironment(mapId: MapId, time: TimeOfDay, weather: Weath
       env.wet = true;
       env.grip = 0.78;
       env.sky = { ...env.sky, clouds: 0.9, sunIntensity: env.sky.sunIntensity * 0.55 };
-      env.fog = { ...env.fog, color: '#d9e2ea', near: 40, far: 520 };
+      env.fog = { ...env.fog, color: snowFog(time, light.fog.color), near: 40, far: 520 };
       env.headlights = true;
       break;
   }
   return env;
+}
+
+/** Falling snow turns the fog pale grey by day; at dusk it keeps part of the sky's colour and at night it stays dark. */
+function snowFog(time: TimeOfDay, timeFog: string): string {
+  const pale = '#d9e2ea';
+  switch (time) {
+    case 'night':
+      return '#232d3d';
+    case 'day':
+      return pale;
+    default:
+      return mixHex(pale, timeFog, 0.45);
+  }
+}
+
+function mixHex(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16);
+  const pb = parseInt(b.slice(1), 16);
+  let out = 0;
+  for (const shift of [16, 8, 0]) {
+    const ca = (pa >> shift) & 255;
+    const cb = (pb >> shift) & 255;
+    out |= Math.round(ca + (cb - ca) * t) << shift;
+  }
+  return `#${out.toString(16).padStart(6, '0')}`;
 }

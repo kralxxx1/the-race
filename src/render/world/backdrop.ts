@@ -149,10 +149,21 @@ function skylineTexture(spec: RangeSpec, fogColor: THREE.Color): THREE.Texture {
   return t;
 }
 
+/**
+ * Minimum haze for an unlit range: the ranges are painted with day colours into an unlit material, so under a dark fog
+ * (night) the snow caps and pale rock stayed pure white and glowed against the dark sky. Below a fog luminance of ~0.02
+ * the range is pushed almost entirely into the fog colour; from ~0.25 up (dawn, day, dusk) nothing changes.
+ */
+export function nightHaze(fogColor: THREE.Color): number {
+  const y = 0.2126 * fogColor.r + 0.7152 * fogColor.g + 0.0722 * fogColor.b;
+  return 0.95 * (1 - smoothstep(0.02, 0.25, y));
+}
+
 /** Paint one range into a canvas texture (RGBA, transparent above the skyline). */
 export function rangeTexture(spec: RangeSpec, fogColor: THREE.Color): THREE.Texture | null {
   if (typeof document === 'undefined') return null;
   if (spec.skyline) return skylineTexture(spec, fogColor);
+  const dark = nightHaze(fogColor);
   const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
@@ -206,7 +217,7 @@ export function rangeTexture(spec: RangeSpec, fogColor: THREE.Color): THREE.Text
         b += (sv * 1.0 - b) * sn;
       }
       // Aerial perspective: blend to the fog colour (more towards the base and for far ranges).
-      const hz = Math.min(1, spec.haze + (1 - alt) * 0.12);
+      const hz = Math.min(1, Math.max(dark, spec.haze + (1 - alt) * 0.12));
       r += (fog[0] - r) * hz;
       gg += (fog[1] - gg) * hz;
       b += (fog[2] - b) * hz;

@@ -327,7 +327,16 @@ function roadShader(shader: { vertexShader: string; fragmentShader: string }): v
     .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roadRough;')
     .replace('#include <normal_fragment_maps>', 'vec3 mapN = roadN; normal = normalize( tbn * mapN );')
     .replace('#include <lights_physical_fragment>', physical)
-    .replace('#include <aomap_fragment>', 'reflectedLight.indirectDiffuse *= roadAo; reflectedLight.indirectSpecular *= mix(1.0, roadAo, 0.6);');
+    .replace(
+      '#include <aomap_fragment>',
+      // The wet clearcoat is a near mirror, so the moon/sun/headlight glint on it is a sub-pixel spike thousands of times brighter
+      // than the road; bloom then turned it into a glowing ball beside the bike on every rainy or snowy night. Cap it at 0.6.
+      `reflectedLight.indirectDiffuse *= roadAo; reflectedLight.indirectSpecular *= mix(1.0, roadAo, 0.6);
+      reflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(0.6));
+      #ifdef USE_CLEARCOAT
+      clearcoatSpecularDirect = min(clearcoatSpecularDirect, vec3(0.6));
+      #endif`,
+    );
 }
 
 // ───────────────────────────── terrain ─────────────────────────────
