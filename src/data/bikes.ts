@@ -828,7 +828,7 @@ export const BIKES: BikeSpec[] = [
     id: 'vespa-gts-300', brand: 'Vespa', model: 'GTS 300 HPE', year: 2024, style: 'scooter',
     engine: { layout: 'SINGLE', cc: 278, hp: 23.8, hpRpm: 8250, torque: 26, torqueRpm: 5250, idle: 1700, redline: 9000 },
     transmission: 'cvt', gears: 1, weight: 160, topSpeed: 128, price: 7000,
-    liveries: [livery('Verde Amabile', '#7fb7a4', '#e9e3d1', '#c0c4c9', { pattern: 'solid', seat: '#5a3b26', suit: ['#d9c9a8', '#5a3b26'] }), livery('Rosso Passione', '#b0121a', '#e9e3d1', '#c0c4c9', { pattern: 'solid', seat: '#2a1d14' })],
+    liveries: [livery('Verde Relax', '#6fa793', '#e9e3d1', '#c0c4c9', { pattern: 'solid', wheel: '#c4c8cd', frame: '#6fa793', seat: '#5a3b26', suit: ['#d9c9a8', '#5a3b26'] }), livery('Rosso Dragon', '#a3151f', '#e9e3d1', '#c0c4c9', { pattern: 'solid', wheel: '#c4c8cd', frame: '#a3151f', seat: '#1f1a17' })],
     voice: { resonance: 190, brightness: 0.4, loudness: -3 },
     description: 'İtalyan ikonu: çelik monokok gövde, CVT ve şehir şıklığı.',
   }),
