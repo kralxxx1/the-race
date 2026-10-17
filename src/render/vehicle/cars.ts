@@ -178,7 +178,7 @@ export function buildCar(b: Build, s: CarSpec, extras?: (c: CarCtx) => void): vo
   const zRr = Z(s.roofR);
   const mid = Math.PI / 2;
   const roofTh0 = mid - s.roofHalf;
-  b.P(loftPatch(cabin, zRf - 0.02, zRr + 0.02, roofTh0, mid + s.roofHalf, b.seg(10, 3), b.seg(16, 4), 0.004));
+  b.P(loftPatch(cabin, Math.max(cabin.zMin, zRf - 0.02), Math.min(cabin.zMax, zRr + 0.02), roofTh0, mid + s.roofHalf, b.seg(10, 3), b.seg(16, 4), 0.004));
   const belt = s.belt;
   // Point on the +x flank of a loft at height y, pushed out of the surface by `lift`.
   const flank = (loft: Loft, z: number, y: number, lift = 0.012): THREE.Vector3 => new THREE.Vector3((loft.sideX(z, y) ?? W * 0.4) + lift, y, z);

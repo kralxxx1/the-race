@@ -53,6 +53,10 @@ export function addCar(sess: GameSession, spec: CarSpec): TrafficCar {
     honkCooldown: 0,
     odometer: 0,
     seed: 1,
+    flash: 0,
+    beacon: false,
+    drl: false,
+    parked: false,
   };
   sess.traffic.cars.push(car);
   return car;

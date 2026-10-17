@@ -1,6 +1,6 @@
 /**
  * Traffic vehicle catalogue: the kinds that appear on Turkish roads, their real-world sizes and how
- * likely each is to be met on a given map. Models live in render/vehicleModels, behaviour in world/traffic.
+ * likely each is to be met on a given map. Models live in render/vehicle, behaviour in world/traffic.
  */
 export type VehicleKind =
   | 'sedan'
