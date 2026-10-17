@@ -196,7 +196,6 @@ export class Game {
         this.save.reset();
         this.screens.toast('İlerleme sıfırlandı');
         this.previewBike(this.save.data.selectedBike, 0);
-        this.thumbs = null;
         this.screens.refresh();
       },
       resume: () => this.resume(),

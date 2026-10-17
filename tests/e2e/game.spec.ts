@@ -171,6 +171,8 @@ test.describe('The Race — production build', () => {
       await page.getByTestId('pause-btn').click();
       await waitState(page, 'paused');
       await page.getByTestId('btn-quit').click();
+      // Leaving a ride asks for confirmation (setting "Çıkışta onay iste" is on by default).
+      await page.getByTestId('quit-confirm').click();
       await waitState(page, 'menu');
       // Quitting still records the ride (distance/cash are not lost).
       expect((await api(page, 'save')).gamesPlayed).toBe(1);

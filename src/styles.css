@@ -259,6 +259,10 @@ button.chip:hover { background: rgba(255, 255, 255, 0.12); border-color: var(--l
 .nav-hints { position: absolute; left: 50%; bottom: calc(8px + var(--safe-b)); transform: translateX(-50%); display: none; gap: 1rem; align-items: center; padding: 0.35rem 0.9rem; border-radius: 999px; background: rgba(0, 0, 0, 0.55); border: 1px solid var(--line); font-size: 0.72rem; color: var(--text-2); pointer-events: none; z-index: 20; white-space: nowrap; }
 .nav-hints span { display: inline-flex; align-items: center; gap: 0.35rem; }
 .nav-keys .nav-hints { display: flex; }
+.nav-hints .pad { display: none; }
+.dev-pad .nav-hints .pad { display: inline-flex; }
+.dev-pad .nav-hints .kb { display: none; }
+@media (max-width: 760px) { .nav-hints { display: none !important; } }
 .no-nav-hints .nav-hints { display: none !important; }
 
 /* ───────────── focus (keyboard / gamepad) ───────────── */

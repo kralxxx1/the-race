@@ -97,6 +97,8 @@ export class SettingsScreen {
   private list: HTMLElement | null = null;
   private inGame = false;
   private previewEl: HTMLElement | null = null;
+  private queued: Record<string, unknown> = {};
+  private raf = 0;
 
   constructor(private ctx: UiCtx) {}
 
@@ -135,8 +137,32 @@ export class SettingsScreen {
   }
 
   private apply(patch: Record<string, unknown>): void {
+    this.flush();
     this.ctx.a.applySettings(patch);
     this.updatePreview();
+  }
+
+  /** Slider drags fire many `input` events: coalesce them to one settings change per frame. */
+  private applyLater(key: string, value: number): void {
+    this.queued[key] = value;
+    if (this.raf) return;
+    this.raf = requestAnimationFrame(() => {
+      this.raf = 0;
+      this.flush();
+      this.updatePreview();
+    });
+  }
+
+  private flush(): void {
+    if (this.raf) {
+      cancelAnimationFrame(this.raf);
+      this.raf = 0;
+    }
+    const keys = Object.keys(this.queued);
+    if (!keys.length) return;
+    const patch = this.queued;
+    this.queued = {};
+    this.ctx.a.applySettings(patch);
   }
 
   // ───────────────────────────── layout ─────────────────────────────
@@ -320,10 +346,14 @@ export class SettingsScreen {
     input.addEventListener('input', () => {
       fill();
       out.textContent = fmt(Number(input.value));
-      this.apply({ [d.key]: Number(input.value) });
+      this.applyLater(d.key, Number(input.value));
     });
     // Moving a slider can flip the preset to "Özel" and mark rows as changed: refresh once the drag ends.
-    input.addEventListener('change', () => this.redo());
+    input.addEventListener('change', () => {
+      this.flush();
+      this.updatePreview();
+      this.redo();
+    });
     return h('div', { class: 'slider' }, input, out);
   }
 
