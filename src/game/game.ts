@@ -928,13 +928,27 @@ export class Game {
       nearestCar: () => {
         const s = game.session;
         if (!s) return null;
-        let best: { ds: number; dd: number; kind: string; dir: number } | null = null;
+        let best: { ds: number; dd: number; kind: string; dir: number; color: string } | null = null;
         for (const c of s.traffic.cars) {
           const ds = c.s - s.bike.s;
           if (ds < 0) continue;
-          if (!best || ds < best.ds) best = { ds, dd: c.d - s.bike.d, kind: c.kind, dir: c.dir };
+          if (!best || ds < best.ds) best = { ds, dd: c.d - s.bike.d, kind: c.kind, dir: c.dir, color: c.color };
         }
         return best;
+      },
+      /** Vehicles within `range` metres ahead of the rider, nearest first (road-space deltas, speed, colour). */
+      trafficAhead: (range = 150) => {
+        const s = game.session;
+        if (!s) return [];
+        return s.traffic.cars
+          .filter((c) => c.s - s.bike.s >= 0 && c.s - s.bike.s < range)
+          .map((c) => ({ ds: c.s - s.bike.s, dd: c.d - s.bike.d, kind: c.kind, dir: c.dir, color: c.color, v: c.v, lane: c.lane }))
+          .sort((a, b) => a.ds - b.ds);
+      },
+      /** Active slowdown zones (police stop / roadworks) with their distance ahead of the rider. */
+      trafficZones: () => {
+        const s = game.session;
+        return s ? s.traffic.zones.map((z) => ({ kind: z.kind, ds: z.blocker.s - s.bike.s, lane: z.lane, cones: z.cones.length })) : [];
       },
       crash: () => game.session?.bike.crash('traffic'),
       pause: () => game.pause(),

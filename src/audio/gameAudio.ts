@@ -71,6 +71,10 @@ const VOICE_OF_KIND: Record<VehicleKind, VehicleEngineType> = {
   truck: 'diesel',
   semi: 'diesel',
   bus: 'bus',
+  minibus: 'van',
+  tanker: 'diesel',
+  coach: 'bus',
+  ambulance: 'van',
 };
 
 const HORN_OF_KIND: Record<VehicleKind, HornKind> = {
@@ -84,6 +88,10 @@ const HORN_OF_KIND: Record<VehicleKind, HornKind> = {
   truck: 'truck',
   semi: 'truck',
   bus: 'bus',
+  minibus: 'car',
+  tanker: 'truck',
+  coach: 'bus',
+  ambulance: 'car',
 };
 
 /** Map name embedded in a resolved environment id (`map:time:weather`), if any. */

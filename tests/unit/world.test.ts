@@ -115,7 +115,8 @@ describe('TrafficSystem', () => {
       if (i % 10 === 0) {
         for (const c of t.cars) {
           if (!(Number.isFinite(c.s) && Number.isFinite(c.d) && Number.isFinite(c.v))) throw new Error('NaN car');
-          if (cfg.dirs[c.lane] !== c.dir) throw new Error('car in wrong-direction lane');
+          // A vehicle parked on the shoulder (police stop) has lane -1 and belongs to no lane.
+          if (!c.parked && cfg.dirs[c.lane] !== c.dir) throw new Error('car in wrong-direction lane');
         }
       }
     }
