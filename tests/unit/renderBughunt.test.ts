@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { getBike } from '../../src/data/bikes';
+import { BikeModel } from '../../src/render/bikeModel';
+import { Materials } from '../../src/render/materials';
+import { SkySystem } from '../../src/render/sky';
 import { MAPS, resolveEnvironment, type TimeOfDay, type Weather } from '../../src/data/maps';
 import { nightHaze } from '../../src/render/world/backdrop';
 
@@ -34,5 +38,26 @@ describe('backdrop at night', () => {
         expect(haze(map, time, map.weathers[0]), `${map.id} ${time}`).toBeLessThan(0.2);
       }
     }
+  });
+});
+
+describe('per-run GPU resources are released', () => {
+  it('the sun light (and its shadow map) is disposed with the sky', () => {
+    const sky = new SkySystem(resolveEnvironment('highway', 'day', 'clear'));
+    const spy = vi.spyOn(sky.sun, 'dispose');
+    sky.dispose();
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('the headlight spot (and its shadow map) is disposed with the bike', () => {
+    const bike = new BikeModel(getBike('yamaha-r3'), 0, new Materials(), { headlightSpot: true, detail: 'low' });
+    let spot: THREE.SpotLight | null = null;
+    bike.root.traverse((o) => {
+      if ((o as THREE.SpotLight).isSpotLight) spot = o as THREE.SpotLight;
+    });
+    expect(spot).not.toBeNull();
+    const spy = vi.spyOn(spot as unknown as THREE.SpotLight, 'dispose');
+    bike.dispose();
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

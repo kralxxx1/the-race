@@ -402,6 +402,8 @@ export class BikeModel {
     this.headLight.dispose();
     this.drl.dispose();
     this.indicatorLight.dispose();
+    // With headlight shadows on, the spot owns a 1024² depth map.
+    this.headSpot?.dispose();
   }
 }
 

@@ -398,6 +398,8 @@ export class SkySystem {
   dispose(): void {
     this.envTarget?.dispose();
     this.envTarget = null;
+    // The sun's shadow map is a GPU depth texture that only Light.dispose() releases (one per run leaked before).
+    this.sun.dispose();
     this.mesh.geometry.dispose();
     this.material.dispose();
   }

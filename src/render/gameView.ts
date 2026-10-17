@@ -677,6 +677,8 @@ export class GameView {
     this.probe?.dispose();
     this.shadows.dispose();
     this.world.dispose();
+    // The traffic view owns textures (headlight pool, plates) that the material sweep below cannot free.
+    this.traffic.dispose();
     this.bike.dispose();
     this.sky.dispose();
     for (const g of geos) g.dispose();
