@@ -322,6 +322,13 @@ export class Game {
       this.screens.toast('Bazı ayarlar bir sonraki sürüşte uygulanır');
     }
     if (this.session && changed.includes('play.autoShift')) this.session.bike.autoShift = s.str('play.autoShift') === 'auto';
+    // Rider aids and the kilometre toasts are read once per ride: changing them from the pause menu applies at once.
+    const aids = this.session?.cfg.assists;
+    if (aids) {
+      aids.autoThrottle = autoThrottleActive(s.str('play.autoThrottle'), isTouchDevice());
+      aids.wheelie = s.bool('play.wheelieAssist');
+    }
+    if (this.hud) this.hud.kmMarkers = s.bool('hud.kmMarkers');
   }
 
   // ───────────────────────────── runs ─────────────────────────────
