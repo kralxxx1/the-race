@@ -274,7 +274,7 @@ export class TrafficSystem {
     return car;
   }
 
-  private trySpawn(s: number, player: PlayerProbe, initial: boolean, lane?: number): TrafficCar | null {
+  private trySpawn(s: number, player: PlayerProbe, initial: boolean, lane?: number, minSpeed = 0): TrafficCar | null {
     const cfg = this.cfg;
     const rng = this.rng;
     const ln = lane ?? rng.int(0, cfg.lanes - 1);
@@ -305,6 +305,16 @@ export class TrafficSystem {
     const car = this.makeCar(kind, ln, s, dc, dir, v0);
     // Spawned inside a slowdown's approach: start at the speed the zone allows (it is beyond the fog anyway).
     car.v = Math.min(car.v, this.zoneCeiling(car));
+    if (minSpeed > 0) {
+      // A car coming up from behind a slow rider appears already at speed: it must be able to stop for whatever
+      // is ahead of it (a queue after a crash, a roadworks jam), because it cannot start from a standstill.
+      car.v = Math.max(car.v, minSpeed);
+      const lead = this.leaderOf(car, ln, player);
+      if (lead) {
+        const closing = Math.max(0, car.v - lead.v);
+        if (lead.gap < (closing * closing) / (2 * 4) + 25) return null;
+      }
+    }
     // Emergency vehicles occasionally run with their beacons on.
     if (kind === 'ambulance') car.beacon = rng.chance(0.7);
     if (kind === 'police') car.beacon = rng.chance(0.3);
@@ -534,8 +544,7 @@ export class TrafficSystem {
       if (player.v < 16 && this.cars.length < target + 2 && rng.chance(dt * 0.25)) {
         const fast = [...Array(cfg.lanes).keys()].filter((l) => cfg.dirs[l] === 1 && this.laneRank(l) >= 1);
         if (fast.length) {
-          const c = this.trySpawn(player.s - 150, player, false, rng.pick(fast));
-          if (c) c.v = Math.max(c.v, player.v + 8);
+          this.trySpawn(player.s - 150, player, false, rng.pick(fast), player.v + 8);
         }
       }
       // Now and then a police stop or roadworks appears far ahead.
