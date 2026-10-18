@@ -5,7 +5,7 @@ import { pavedHalfWidth, type LaneConfig, type RoadPath } from '../world/road';
 import type { GlowPoints } from './effects';
 import type { Materials } from './materials';
 import type { QualityProfile } from './quality';
-import { collectMaterialTextures } from './residency';
+import { collectSourceTextures } from './residency';
 import { createSurfaces, type WorldSurfaces } from './surfaces';
 import { ROAD_TEX_LENGTH } from './textures';
 import { Backdrop } from './world/backdrop';
@@ -236,7 +236,7 @@ export class WorldView implements SceneryHost {
   }
 
   private newChunk(): Chunk {
-    const c = new Chunk(this.roadMat, this.terrainMat, this.railMat, this.lanes.layout === 'oneway' ? this.barrierMat : this.railMat, this.postGeo, this.postMat);
+    const c = new Chunk(this.roadMat, this.terrainMat, this.railMat, this.leftEdgeMat(), this.postGeo, this.postMat);
     this.scenery.attach(c.scn);
     this.chunks.push(c);
     this.group.add(c.group);
@@ -463,15 +463,17 @@ export class WorldView implements SceneryHost {
   }
 
   /**
-   * Textures any world material can sample this run (surfaces, every scenery prop and static,
-   * including pieces no chunk has built yet), so the loading screen can upload them up front.
+   * Textures any world material can sample this run (the surfaces chunks draw, every scenery prop and
+   * static, including pieces no chunk has built yet), so the loading screen can upload them up front.
    */
   textures(out: Set<THREE.Texture>): void {
-    const mats = new Set<THREE.Material>([this.roadMat, this.terrainMat, this.railMat, this.barrierMat, this.postMat]);
-    if (this.surfaces.building) mats.add(this.surfaces.building);
-    this.scenery.materials(mats);
-    this.worldMats.materials(mats);
-    for (const m of mats) collectMaterialTextures(m, out);
+    // Only materials a chunk draws: an unused photo set would otherwise sit in VRAM for the whole run.
+    collectSourceTextures([this.scenery, this.worldMats], [this.roadMat, this.terrainMat, this.railMat, this.leftEdgeMat(), this.postMat], out);
+  }
+
+  /** Left road edge: concrete median barrier on one-way roads, a second guardrail on two-way roads. */
+  private leftEdgeMat(): THREE.MeshStandardMaterial {
+    return this.lanes.layout === 'oneway' ? this.barrierMat : this.railMat;
   }
 
   /** Debug/test: instance counts per prop key over the active chunks, plus draw-visible meshes. */

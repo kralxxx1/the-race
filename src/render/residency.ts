@@ -28,6 +28,18 @@ export function collectObjectTextures(root: THREE.Object3D, out: Set<THREE.Textu
   });
 }
 
+/** Anything that can list the materials it may draw (scenery, world materials). */
+export interface MaterialSource {
+  materials(out: Set<THREE.Material>): void;
+}
+
+/** Textures of `materials` plus every material the `sources` may draw, including scenery pieces not built yet. */
+export function collectSourceTextures(sources: readonly MaterialSource[], materials: readonly THREE.Material[], out: Set<THREE.Texture>): void {
+  const mats = new Set<THREE.Material>(materials);
+  for (const src of sources) src.materials(mats);
+  for (const m of mats) collectMaterialTextures(m, out);
+}
+
 /**
  * Whether a texture has image data that can be uploaded now. Render-target textures are allocated by
  * their target, a version of 0 means no data was ever set and an image still decoding would only log
