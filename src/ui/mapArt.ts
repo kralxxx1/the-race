@@ -1,4 +1,4 @@
-import type { MapId, TimeOfDay, Weather } from '../data/maps';
+import { MAP_BY_ID, type MapId, type TimeOfDay, type Weather } from '../data/maps';
 
 /**
  * Procedural vector illustrations of the eight maps (320×180), tinted by time of day and
@@ -213,6 +213,12 @@ export function mapArtSvg(map: MapId, time: TimeOfDay, weather: Weather): string
         s += road(3, '#34373d', '#e8d9a0', '#4b4f56');
         s += `<path d="M118,${HORIZON - 4} A42,42 0 0 1 202,${HORIZON - 4} L202,${H} L118,${H} Z" fill="none"/>`;
         return s;
+      }
+      default: {
+        // Generic landscape tinted with the map's accent colour until the map has its own art.
+        const accent = MAP_BY_ID.get(map)?.color ?? '#7a8a6a';
+        const s = peaks(HORIZON - 1, 5, 12, 30, map.length * 13, '#7d8a99') + hills(HORIZON - 3, 6, 0.04, 1, accent) + hills(HORIZON + 4, 5, 0.05, 2, '#6f7f5a');
+        return s + road(2, '#3a3d44', '#e4e4e4', '#6f7f5a');
       }
     }
   })();

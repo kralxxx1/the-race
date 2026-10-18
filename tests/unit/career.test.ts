@@ -18,6 +18,7 @@ import {
   requiredTopSpeed,
   scorePerMetre,
   scoreRequiredAvgKmh,
+  CAREER_MAPS,
 } from '../../src/data/career';
 import { MAPS } from '../../src/data/maps';
 import { BIKE_UNLOCK_LEVEL, CAREER_BIKE_REWARDS } from '../../src/data/progression';
@@ -27,8 +28,8 @@ import { STARTING_CASH } from '../../src/storage/save';
 describe('career data', () => {
   it('has 80 missions: 10 on each of the 8 maps, in map order', () => {
     expect(MISSIONS).toHaveLength(80);
-    expect(MAPS).toHaveLength(8);
-    MAPS.forEach((m, mi) => {
+    expect(CAREER_MAPS).toHaveLength(8);
+    CAREER_MAPS.forEach((m, mi) => {
       const list = missionsForMap(m.id);
       expect(list, m.id).toHaveLength(10);
       list.forEach((d, i) => {
@@ -69,7 +70,7 @@ describe('career data', () => {
     for (const t of ['dawn', 'day', 'sunset', 'night'] as const) expect(MISSIONS.some((d) => d.time === t), t).toBe(true);
     expect(MISSIONS.filter((d) => d.layout === 'twoway').length).toBeGreaterThanOrEqual(10);
     // No objective type dominates a single map: each map offers variety.
-    for (const m of MAPS) expect(new Set(missionsForMap(m.id).map((d) => d.objective.type)).size, m.id).toBeGreaterThanOrEqual(7);
+    for (const m of CAREER_MAPS) expect(new Set(missionsForMap(m.id).map((d) => d.objective.type)).size, m.id).toBeGreaterThanOrEqual(7);
   });
 
   it('opposite-lane objectives are only offered on two-way roads', () => {
@@ -126,7 +127,7 @@ describe('career data', () => {
   });
 
   it('difficulty ramps up from map to map', () => {
-    const avg = (f: (d: (typeof MISSIONS)[number]) => number) => MAPS.map((m) => missionsForMap(m.id).reduce((a, d) => a + f(d), 0) / 10);
+    const avg = (f: (d: (typeof MISSIONS)[number]) => number) => CAREER_MAPS.map((m) => missionsForMap(m.id).reduce((a, d) => a + f(d), 0) / 10);
     const cash = avg((d) => d.rewards.cash);
     const xp = avg((d) => d.rewards.xp);
     for (let i = 1; i < 8; i++) {
@@ -138,7 +139,7 @@ describe('career data', () => {
     const aggr = avg((d) => d.traffic.aggression);
     expect(aggr[7]).toBeGreaterThan(aggr[0]);
     // The finale of each map pays more than its opener.
-    for (const m of MAPS) {
+    for (const m of CAREER_MAPS) {
       const l = missionsForMap(m.id);
       expect(l[9].rewards.cash).toBeGreaterThan(l[0].rewards.cash);
     }
@@ -148,7 +149,7 @@ describe('career data', () => {
     expect(CAREER_BIKE_REWARDS).toHaveLength(8);
     expect(new Set(CAREER_BIKE_REWARDS).size).toBe(8);
     for (const id of CAREER_BIKE_REWARDS) expect(BIKE_BY_ID.has(id), id).toBe(true);
-    MAPS.forEach((m, i) => {
+    CAREER_MAPS.forEach((m, i) => {
       const l = missionsForMap(m.id);
       expect(l[9].rewards.unlockBike, m.id).toBe(CAREER_BIKE_REWARDS[i]);
       for (const d of l.slice(0, 9)) expect(d.rewards.unlockBike, d.id).toBeUndefined();

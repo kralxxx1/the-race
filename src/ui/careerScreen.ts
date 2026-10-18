@@ -1,5 +1,5 @@
 import { BIKE_BY_ID } from '../data/bikes';
-import { MISSION_BY_ID, TRAFFIC_LEVELS, missionsForMap, type MissionDef } from '../data/career';
+import { CAREER_MAPS, MISSION_BY_ID, TRAFFIC_LEVELS, missionsForMap, type MissionDef } from '../data/career';
 import { MAPS, MAP_BY_ID, TIME_LABELS, WEATHER_LABELS, type MapId, type TimeOfDay, type Weather } from '../data/maps';
 import { MAX_STARS, currentMission, isCareerMapUnlocked, isMissionUnlocked, missionRecord, totalStars } from '../game/careerProgress';
 import { formatMetric, metricLabel, objectiveText, secondaryText, starRuleText } from '../game/missions';
@@ -87,7 +87,7 @@ export class CareerScreen {
     const mapOpen = isCareerMapUnlocked(career, map.id);
 
     const tabs = h('div', { class: 'career-tabs', 'data-tabs': '', role: 'tablist', 'aria-label': 'Haritalar' },
-      MAPS.map((m) => {
+      CAREER_MAPS.map((m) => {
         const open = isCareerMapUnlocked(career, m.id);
         const st = totalStars(career, m.id);
         return h('button', { class: `ctab ${m.id === this.mapSel ? 'sel' : ''} ${open ? '' : 'locked'}`, type: 'button', role: 'tab', 'aria-selected': m.id === this.mapSel ? 'true' : 'false', 'data-testid': `career-map-${m.id}`, 'data-nid': `cmap-${m.id}`, onclick: () => {

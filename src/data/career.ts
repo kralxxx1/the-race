@@ -1,5 +1,5 @@
 import type { RoadLayout } from '../world/road';
-import { MAPS, type MapId, type TimeOfDay, type Weather } from './maps';
+import { MAPS, type MapDef, type MapId, type TimeOfDay, type Weather } from './maps';
 import { CAREER_MODE, type ModeDef } from './modes';
 import { CAREER_BIKE_REWARDS } from './progression';
 
@@ -214,7 +214,8 @@ const pts = (points: number): Objective => ({ type: 'score', points });
 const live = (seconds: number, minKmh: number): Objective => ({ type: 'survive', seconds, minKmh });
 const combo = (n: number): Objective => ({ type: 'combo', combo: n });
 
-const CAREER_SPECS: Record<MapId, Spec[]> = {
+/** Hand-written mission tables; maps without one are not part of the career (yet). */
+const CAREER_SPECS: Partial<Record<MapId, Spec[]>> = {
   suburb: [
     { title: 'İlk Sürüş', brief: 'Banliyöde ilk turun. Motoru tanı, trafiğe alış ve 1,5 km yol kat et.', time: 'day', weather: 'clear', traffic: 'light', aggr: 0.25, obj: dist(1500), stars: ['avgSpeed', 95, 130] },
     { title: 'Mahalle Sollaması', brief: 'Pazar sabahı keyifle giden komşuları geride bırak: 10 aracı solla.', time: 'day', weather: 'cloudy', traffic: 'light', aggr: 0.25, obj: ovt(10), stars: ['time', 85, 60] },
@@ -330,10 +331,13 @@ const HINTS: Record<ObjectiveType, string> = {
 const round50 = (x: number) => Math.max(50, Math.round(x / 50) * 50);
 const round10 = (x: number) => Math.round(x / 10) * 10;
 
+/** Maps that have a career chapter, in career order. */
+export const CAREER_MAPS: readonly MapDef[] = MAPS.filter((m) => (CAREER_SPECS[m.id]?.length ?? 0) > 0);
+
 function buildMissions(): MissionDef[] {
   const out: MissionDef[] = [];
-  MAPS.forEach((map, m) => {
-    const specs = CAREER_SPECS[map.id];
+  CAREER_MAPS.forEach((map, m) => {
+    const specs = CAREER_SPECS[map.id] ?? [];
     specs.forEach((sp, i) => {
       const final = i === specs.length - 1;
       const limit = sp.limit ?? {};

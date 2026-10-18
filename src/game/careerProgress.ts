@@ -1,5 +1,5 @@
-import { MISSIONS, MISSION_BY_ID, type MissionDef } from '../data/career';
-import { MAPS, type MapId } from '../data/maps';
+import { CAREER_MAPS, MISSIONS, MISSION_BY_ID, type MissionDef } from '../data/career';
+import type { MapId } from '../data/maps';
 import { isFiniteNumber } from '../core/math';
 
 /** Saved state of the career. */
@@ -103,5 +103,5 @@ export function sanitizeCareer(raw: unknown): CareerSave {
 
 /** Ordered list of maps with their career completion, for menus. */
 export function careerMapSummary(c: CareerSave): { map: MapId; unlocked: boolean; completed: number; stars: number }[] {
-  return MAPS.map((m) => ({ map: m.id, unlocked: isCareerMapUnlocked(c, m.id), completed: completedCount(c, m.id), stars: totalStars(c, m.id) }));
+  return CAREER_MAPS.map((m) => ({ map: m.id, unlocked: isCareerMapUnlocked(c, m.id), completed: completedCount(c, m.id), stars: totalStars(c, m.id) }));
 }
