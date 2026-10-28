@@ -119,13 +119,23 @@ elseif what == "device" then
 	local folder = roblox.Instance.new("Folder")
 	folder.Parent = Engine.workspace
 	local dev = if kind == "laptop" then DeviceGen.laptop(rng) else DeviceGen.desktop(rng, process.args[4] or "high")
-	if process.args[5] == "open" then
-		local Technician = require("../tests/lib/Technician")
-		local tech = Technician.new(Rules, Engine.mod("ReplicatedStorage.Shared.Data.Parts"), Engine.mod("ReplicatedStorage.Shared.Data.Tools"), dev, rng)
-		if kind == "laptop" then
-			tech:ensure("remove", "bottom_cover")
+	-- extra args: steps like "remove:side_panel" "remove:gpu" "flip" "lid"; "open" = the usual cover
+	local Technician = require("../tests/lib/Technician")
+	local tech = Technician.new(Rules, Engine.mod("ReplicatedStorage.Shared.Data.Parts"), Engine.mod("ReplicatedStorage.Shared.Data.Tools"), dev, rng)
+	for i = 5, #process.args do
+		local a = process.args[i]
+		if a == "open" then
+			tech:ensure("remove", if kind == "laptop" then "bottom_cover" else "side_panel")
 		else
-			tech:ensure("remove", "side_panel")
+			local action, target = string.match(a, "^(%w+):?([%w_]*)$")
+			if action == "flip" or action == "lid" then
+				local r = Rules.apply(dev, action, nil, {}, { tool = "hand", lang = "tr" })
+				if not r.ok then
+					print("step failed:", a, r.msg)
+				end
+			elseif action and target ~= "" then
+				tech:ensure(action, target)
+			end
 		end
 	end
 	local model = PCModel.build(folder, Rules.view(dev), roblox.CFrame.new(0, 0, 0))

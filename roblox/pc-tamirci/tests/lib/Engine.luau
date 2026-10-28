@@ -275,6 +275,14 @@ valueProp("BasePart", "AssemblyRootPart", function(part)
 	return part
 end)
 
+-- DataModel
+roblox.implementMethod("DataModel", "BindToClose", function(game, fn)
+	bag(game).onClose = fn
+end)
+valueProp("DataModel", "JobId", "lune-test-job")
+valueProp("DataModel", "PlaceId", 0)
+valueProp("DataModel", "PlaceVersion", 1)
+
 -- Humanoid
 roblox.implementMethod("Humanoid", "MoveTo", function(hum, pos, part)
 	local b = bag(hum)
@@ -1063,6 +1071,7 @@ function Engine.addPlayer(name: string)
 	nextUserId += 1
 	local p = Instance.new("Player")
 	p.Name = name
+	p.DisplayName = name
 	p.UserId = nextUserId
 	local gui = Instance.new("PlayerGui")
 	gui.Parent = p
@@ -1071,6 +1080,7 @@ function Engine.addPlayer(name: string)
 	local backpack = Instance.new("Backpack")
 	backpack.Parent = p
 	p.Parent = Engine.game:GetService("Players")
+	Engine.game:GetService("Players").PlayerAdded:Fire(p)
 	return p
 end
 

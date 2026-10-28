@@ -63,6 +63,5 @@ for _, name in specs do
 end
 
 print(string.format("\n%d passed, %d failed", T.passed, T.failed))
-if T.failed > 0 then
-	process.exit(1)
-end
+-- exit explicitly: service loops started by the server specs never finish on their own
+process.exit(if T.failed > 0 then 1 else 0)
