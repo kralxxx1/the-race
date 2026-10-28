@@ -183,6 +183,19 @@ elseif what == "street" then
 	local cars, peds = Traffic.counts()
 	print(string.format("traffic: %d cars, %d pedestrians", cars, peds))
 	outName = "street"
+elseif what == "sky" then
+	Engine.localPlayer = Engine.addPlayer("Viewer")
+	Engine.context = "client"
+	local Sky = Engine.require(Engine.find("StarterPlayer.StarterPlayerScripts.Client.Controllers.Sky"), "client")
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	Sky._folder(folder)
+	local plane = Sky._buildPlane()
+	plane:PivotTo(roblox.CFrame.lookAt(roblox.Vector3.new(0, 10, 0), roblox.Vector3.new(1, 10, -1)))
+	local balloon = Sky._buildBalloon({ roblox.Color3.fromRGB(230, 60, 60), roblox.Color3.fromRGB(250, 210, 60) })
+	balloon:PivotTo(roblox.CFrame.new(60, 30, 0))
+	result.parts = dumpParts(folder)
+	outName = "sky"
 elseif what == "vehicles" then
 	local Vehicles = Engine.mod("ReplicatedStorage.Shared.Data.Vehicles")
 	local VehicleModels = Engine.mod("ReplicatedStorage.Shared.Models.VehicleModels")

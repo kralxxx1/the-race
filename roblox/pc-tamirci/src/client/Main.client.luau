@@ -31,6 +31,7 @@ local VehicleController = require(Controllers.VehicleController)
 local Ambience = require(Controllers.Ambience)
 local Tutorial = require(Controllers.Tutorial)
 local Traffic = require(Controllers.Traffic)
+local Sky = require(Controllers.Sky)
 
 S.detect()
 State.init()
@@ -148,6 +149,7 @@ MapController.init()
 VehicleController.init()
 Ambience.init()
 Traffic.init()
+Sky.init()
 Tutorial.init()
 if State.data then
 	local settings = State.data.settings or {}

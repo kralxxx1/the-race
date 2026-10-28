@@ -480,9 +480,15 @@ local function pasteGame(target: string)
 	ui.pasteZone.Size = UDim2.fromScale(hi - lo, 1)
 	local t0 = os.clock()
 	local amount = 0
+	local syringe = toolModel
+	local base = syringe and syringe:GetPivot()
 	holding = { t0 = t0, dur = 2.4, done = false, cancelled = false, paste = true }
 	while holding and not holding.cancelled do
 		amount = math.clamp((os.clock() - t0) / 2.4, 0, 1)
+		if syringe and base and syringe.Parent then
+			-- the plunger goes in as the paste comes out
+			syringe:PivotTo(base * CFrame.new(0, -0.12 * amount, 0))
+		end
 		ui.pasteFill.Size = UDim2.fromScale(amount, 1)
 		ui.pasteText.Text = S.t("paste_amount", { n = math.floor(amount * 100) })
 		if amount >= 1 then
@@ -541,6 +547,118 @@ local function openPartPicker(id: string)
 	end
 end
 
+-- How each kind of work looks: the tool moves the way it's used and the work shows.
+local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
+local FX = {
+	unscrew = { spin = 16, lift = 0.22 },
+	screw = { spin = -16, lift = -0.18 },
+	blow_dust = { shake = 0.03, particles = "dust" },
+	brush = { sweep = 0.16, particles = "fluff" },
+	desolder = { shake = 0.008, particles = "smoke" },
+	solder = { shake = 0.008, particles = "smoke" },
+	clean_paste = { circle = 0.08 },
+	clean_liquid = { circle = 0.12 },
+	pry = { lever = 0.22 },
+	peel = { lever = 0.18 },
+	straighten_pins = { shake = 0.006 },
+}
+
+local function emitter(kind: string, pos: Vector3, normal: Vector3): BasePart
+	local p = Instance.new("Part")
+	p.Name = "BenchFx"
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Transparency = 1
+	p.Size = Vector3.new(0.2, 0.2, 0.2)
+	p.CFrame = CFrame.lookAt(pos, pos + normal)
+	local pe = Instance.new("ParticleEmitter")
+	pe.Texture = SMOKE
+	pe.EmissionDirection = Enum.NormalId.Front
+	pe.LightInfluence = 1
+	if kind == "dust" then
+		-- a grey cloud blown out of the heatsink
+		pe.Color = ColorSequence.new(Color3.fromRGB(150, 145, 135))
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.15), NumberSequenceKeypoint.new(1, 1.1) })
+		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 1) })
+		pe.Lifetime = NumberRange.new(0.5, 1.1)
+		pe.Rate = 70
+		pe.Speed = NumberRange.new(3, 7)
+		pe.SpreadAngle = Vector2.new(55, 55)
+		pe.Drag = 3
+	elseif kind == "fluff" then
+		pe.Color = ColorSequence.new(Color3.fromRGB(170, 165, 155))
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(1, 0.3) })
+		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 1) })
+		pe.Lifetime = NumberRange.new(0.4, 0.8)
+		pe.Rate = 25
+		pe.Speed = NumberRange.new(0.5, 1.5)
+		pe.SpreadAngle = Vector2.new(80, 80)
+		pe.Acceleration = Vector3.new(0, -2, 0)
+	else
+		-- solder smoke curling up
+		pe.Color = ColorSequence.new(Color3.fromRGB(235, 235, 240))
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(1, 0.5) })
+		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1) })
+		pe.Lifetime = NumberRange.new(1.2, 2)
+		pe.Rate = 16
+		pe.Speed = NumberRange.new(0.4, 1)
+		pe.Acceleration = Vector3.new(0, 2.2, 0)
+		pe.RotSpeed = NumberRange.new(-40, 40)
+	end
+	pe.Parent = p
+	p.Parent = Workspace
+	return p
+end
+
+-- Starts the tool's working motion (and particles); returns the function that ends it.
+local function startFx(action: string, pos: Vector3?, normal: Vector3?): () -> ()
+	local def = FX[action]
+	local model = toolModel
+	if not def or not model then
+		return function() end
+	end
+	local base = model:GetPivot()
+	local t0 = os.clock()
+	local fxPart = if def.particles and pos then emitter(def.particles, pos, normal or Vector3.yAxis) else nil
+	local conn = RunService.RenderStepped:Connect(function()
+		if not model.Parent then
+			return
+		end
+		local t = os.clock() - t0
+		local cf = base
+		if def.spin then
+			cf *= CFrame.new(0, (def.lift or 0) * math.min(1, t / 1.2), 0) * CFrame.Angles(0, t * def.spin, 0)
+		elseif def.sweep then
+			cf *= CFrame.new(math.sin(t * 14) * def.sweep, 0, 0) * CFrame.Angles(0, 0, math.sin(t * 14) * 0.25)
+		elseif def.circle then
+			cf *= CFrame.new(math.cos(t * 9) * def.circle, 0, math.sin(t * 9) * def.circle)
+		elseif def.lever then
+			cf *= CFrame.Angles(math.sin(t * 7) * def.lever, 0, 0)
+		elseif def.shake then
+			local a = def.shake
+			cf *= CFrame.new(math.noise(t * 20, 1.3) * a, math.noise(t * 20, 2.7) * a, math.noise(t * 20, 4.1) * a)
+		end
+		model:PivotTo(cf)
+	end)
+	return function()
+		conn:Disconnect()
+		if model.Parent then
+			model:PivotTo(base)
+		end
+		if fxPart then
+			local pe = fxPart:FindFirstChildWhichIsA("ParticleEmitter")
+			if pe then
+				pe.Enabled = false
+			end
+			task.delay(2.2, function()
+				fxPart:Destroy()
+			end)
+		end
+	end
+end
+
 -- Runs a resolved action (with its hold time or mini-game).
 local function perform(id: string, c, tid: string)
 	if not c or busy then
@@ -555,27 +673,29 @@ local function perform(id: string, c, tid: string)
 		return
 	end
 	local hold = (TIMED[c.action] or 0) / toolSpeed(tid)
+	local stopFx = startFx(c.action, hover and hover.pos, hover and hover.normal)
 	if hold > 0 then
 		local label = S.t("act_" .. c.action) .. " • " .. nodeLabel(view(), id)
 		if not holdFor(hold, label) then
+			stopFx()
 			return
 		end
 	end
-	-- the tool dips onto the part while the server works
-	if toolModel and hover then
+	-- everything else: the tool dips onto the part while the server works
+	if not FX[c.action] and toolModel and hover then
 		local base = toolModel:GetPivot()
 		task.spawn(function()
 			for i = 1, 8 do
 				if not toolModel then
 					break
 				end
-				local spin = if c.action == "unscrew" or c.action == "screw" then CFrame.Angles(0, i * 0.8, 0) else CFrame.new()
-				toolModel:PivotTo(base * CFrame.new(0, -0.05 * math.sin(i / 8 * math.pi), 0) * spin)
+				toolModel:PivotTo(base * CFrame.new(0, -0.05 * math.sin(i / 8 * math.pi), 0))
 				task.wait(0.03)
 			end
 		end)
 	end
 	send(c.action, id, c.args, tid)
+	stopFx()
 end
 
 local function nodeMenu(id: string)
@@ -658,13 +778,16 @@ end
 
 local function updateHover(at: Vector2?)
 	local v = view()
-	if not v or busy or holding or Kit.currentWindow() then
+	if not v or Kit.currentWindow() then
 		setAdornee(nil)
 		setHint(nil)
 		if toolModel then
 			toolModel:PivotTo(CFrame.new(0, -500, 0))
 		end
 		return
+	end
+	if busy or holding then
+		return -- the tool stays where the work is happening
 	end
 	local id, pos, normal = pick(at)
 	if not id then

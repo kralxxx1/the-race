@@ -170,6 +170,8 @@ local Config = {
 	PasteIdealRange = { 0.42, 0.62 }, -- macun miktarı (0-1) için ideal aralık
 	EsdDamageChance = 0.12, -- bileklik takılı değilken hassas parçaya dokunma başına
 	HoldActionSeconds = {
+		unscrew = 0.5,
+		screw = 0.45,
 		clean_paste = 1.6,
 		apply_paste = 0, -- basılı tutma süresi oyuncuya bağlı
 		blow_dust = 0.9,
@@ -21448,9 +21450,15 @@ local function pasteGame(target: string)
 	ui.pasteZone.Size = UDim2.fromScale(hi - lo, 1)
 	local t0 = os.clock()
 	local amount = 0
+	local syringe = toolModel
+	local base = syringe and syringe:GetPivot()
 	holding = { t0 = t0, dur = 2.4, done = false, cancelled = false, paste = true }
 	while holding and not holding.cancelled do
 		amount = math.clamp((os.clock() - t0) / 2.4, 0, 1)
+		if syringe and base and syringe.Parent then
+			-- the plunger goes in as the paste comes out
+			syringe:PivotTo(base * CFrame.new(0, -0.12 * amount, 0))
+		end
 		ui.pasteFill.Size = UDim2.fromScale(amount, 1)
 		ui.pasteText.Text = S.t("paste_amount", { n = math.floor(amount * 100) })
 		if amount >= 1 then
@@ -21509,6 +21517,118 @@ local function openPartPicker(id: string)
 	end
 end
 
+-- How each kind of work looks: the tool moves the way it's used and the work shows.
+local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
+local FX = {
+	unscrew = { spin = 16, lift = 0.22 },
+	screw = { spin = -16, lift = -0.18 },
+	blow_dust = { shake = 0.03, particles = "dust" },
+	brush = { sweep = 0.16, particles = "fluff" },
+	desolder = { shake = 0.008, particles = "smoke" },
+	solder = { shake = 0.008, particles = "smoke" },
+	clean_paste = { circle = 0.08 },
+	clean_liquid = { circle = 0.12 },
+	pry = { lever = 0.22 },
+	peel = { lever = 0.18 },
+	straighten_pins = { shake = 0.006 },
+}
+
+local function emitter(kind: string, pos: Vector3, normal: Vector3): BasePart
+	local p = Instance.new("Part")
+	p.Name = "BenchFx"
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Transparency = 1
+	p.Size = Vector3.new(0.2, 0.2, 0.2)
+	p.CFrame = CFrame.lookAt(pos, pos + normal)
+	local pe = Instance.new("ParticleEmitter")
+	pe.Texture = SMOKE
+	pe.EmissionDirection = Enum.NormalId.Front
+	pe.LightInfluence = 1
+	if kind == "dust" then
+		-- a grey cloud blown out of the heatsink
+		pe.Color = ColorSequence.new(Color3.fromRGB(150, 145, 135))
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.15), NumberSequenceKeypoint.new(1, 1.1) })
+		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 1) })
+		pe.Lifetime = NumberRange.new(0.5, 1.1)
+		pe.Rate = 70
+		pe.Speed = NumberRange.new(3, 7)
+		pe.SpreadAngle = Vector2.new(55, 55)
+		pe.Drag = 3
+	elseif kind == "fluff" then
+		pe.Color = ColorSequence.new(Color3.fromRGB(170, 165, 155))
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(1, 0.3) })
+		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 1) })
+		pe.Lifetime = NumberRange.new(0.4, 0.8)
+		pe.Rate = 25
+		pe.Speed = NumberRange.new(0.5, 1.5)
+		pe.SpreadAngle = Vector2.new(80, 80)
+		pe.Acceleration = Vector3.new(0, -2, 0)
+	else
+		-- solder smoke curling up
+		pe.Color = ColorSequence.new(Color3.fromRGB(235, 235, 240))
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(1, 0.5) })
+		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1) })
+		pe.Lifetime = NumberRange.new(1.2, 2)
+		pe.Rate = 16
+		pe.Speed = NumberRange.new(0.4, 1)
+		pe.Acceleration = Vector3.new(0, 2.2, 0)
+		pe.RotSpeed = NumberRange.new(-40, 40)
+	end
+	pe.Parent = p
+	p.Parent = Workspace
+	return p
+end
+
+-- Starts the tool's working motion (and particles); returns the function that ends it.
+local function startFx(action: string, pos: Vector3?, normal: Vector3?): () -> ()
+	local def = FX[action]
+	local model = toolModel
+	if not def or not model then
+		return function() end
+	end
+	local base = model:GetPivot()
+	local t0 = os.clock()
+	local fxPart = if def.particles and pos then emitter(def.particles, pos, normal or Vector3.yAxis) else nil
+	local conn = RunService.RenderStepped:Connect(function()
+		if not model.Parent then
+			return
+		end
+		local t = os.clock() - t0
+		local cf = base
+		if def.spin then
+			cf *= CFrame.new(0, (def.lift or 0) * math.min(1, t / 1.2), 0) * CFrame.Angles(0, t * def.spin, 0)
+		elseif def.sweep then
+			cf *= CFrame.new(math.sin(t * 14) * def.sweep, 0, 0) * CFrame.Angles(0, 0, math.sin(t * 14) * 0.25)
+		elseif def.circle then
+			cf *= CFrame.new(math.cos(t * 9) * def.circle, 0, math.sin(t * 9) * def.circle)
+		elseif def.lever then
+			cf *= CFrame.Angles(math.sin(t * 7) * def.lever, 0, 0)
+		elseif def.shake then
+			local a = def.shake
+			cf *= CFrame.new(math.noise(t * 20, 1.3) * a, math.noise(t * 20, 2.7) * a, math.noise(t * 20, 4.1) * a)
+		end
+		model:PivotTo(cf)
+	end)
+	return function()
+		conn:Disconnect()
+		if model.Parent then
+			model:PivotTo(base)
+		end
+		if fxPart then
+			local pe = fxPart:FindFirstChildWhichIsA("ParticleEmitter")
+			if pe then
+				pe.Enabled = false
+			end
+			task.delay(2.2, function()
+				fxPart:Destroy()
+			end)
+		end
+	end
+end
+
 -- Runs a resolved action (with its hold time or mini-game).
 local function perform(id: string, c, tid: string)
 	if not c or busy then
@@ -21523,27 +21643,29 @@ local function perform(id: string, c, tid: string)
 		return
 	end
 	local hold = (TIMED[c.action] or 0) / toolSpeed(tid)
+	local stopFx = startFx(c.action, hover and hover.pos, hover and hover.normal)
 	if hold > 0 then
 		local label = S.t("act_" .. c.action) .. " • " .. nodeLabel(view(), id)
 		if not holdFor(hold, label) then
+			stopFx()
 			return
 		end
 	end
-	-- the tool dips onto the part while the server works
-	if toolModel and hover then
+	-- everything else: the tool dips onto the part while the server works
+	if not FX[c.action] and toolModel and hover then
 		local base = toolModel:GetPivot()
 		task.spawn(function()
 			for i = 1, 8 do
 				if not toolModel then
 					break
 				end
-				local spin = if c.action == "unscrew" or c.action == "screw" then CFrame.Angles(0, i * 0.8, 0) else CFrame.new()
-				toolModel:PivotTo(base * CFrame.new(0, -0.05 * math.sin(i / 8 * math.pi), 0) * spin)
+				toolModel:PivotTo(base * CFrame.new(0, -0.05 * math.sin(i / 8 * math.pi), 0))
 				task.wait(0.03)
 			end
 		end)
 	end
 	send(c.action, id, c.args, tid)
+	stopFx()
 end
 
 local function nodeMenu(id: string)
@@ -21626,13 +21748,16 @@ end
 
 local function updateHover(at: Vector2?)
 	local v = view()
-	if not v or busy or holding or Kit.currentWindow() then
+	if not v or Kit.currentWindow() then
 		setAdornee(nil)
 		setHint(nil)
 		if toolModel then
 			toolModel:PivotTo(CFrame.new(0, -500, 0))
 		end
 		return
+	end
+	if busy or holding then
+		return -- the tool stays where the work is happening
 	end
 	local id, pos, normal = pick(at)
 	if not id then
@@ -23275,6 +23400,282 @@ return MapController
           </Item>
           <Item class="ModuleScript" referent="83">
             <Properties>
+              <string name="Name">Sky</string>
+              <string name="Source"><![CDATA[-- Sky: flocks of birds (gulls by the sea, pigeons over town) wheeling around the player, an
+-- airliner crossing high above now and then, and hot-air balloons drifting over the city.
+-- Everything is local to each client and made of a handful of parts.
+
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local CityLayout = require(Shared.World.CityLayout)
+
+local Sky = {}
+
+local rng = Random.new()
+local folder: Folder
+
+local FLOCKS = 4
+local BIRDS_PER_FLOCK = 7
+
+local function part(size: Vector3, color: Color3, material: Enum.Material?, shape: Enum.PartType?): Part
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	p.Size = size
+	p.Color = color
+	p.Material = material or Enum.Material.SmoothPlastic
+	if shape then
+		p.Shape = shape
+	end
+	p.Parent = folder
+	return p
+end
+
+local function camPos(): Vector3
+	local cam = Workspace.CurrentCamera
+	return if cam then cam.CFrame.Position else Vector3.zero
+end
+
+----------------------------------------------------------------------------------------------------
+-- Birds
+----------------------------------------------------------------------------------------------------
+local flocks = {}
+
+local function placeFlock(f)
+	local c = camPos()
+	local center = Vector3.new(c.X + rng:NextNumber(-260, 260), 0, c.Z + rng:NextNumber(-260, 260))
+	local seaside = center.Z > CityLayout.BEACH_Z - 120
+	f.center = center
+	f.height = rng:NextNumber(42, 85)
+	f.radius = rng:NextNumber(25, 60)
+	f.speed = rng:NextNumber(0.25, 0.45) * (if rng:NextNumber() < 0.5 then 1 else -1)
+	local color = if seaside then Color3.fromRGB(244, 244, 240) else Color3.fromRGB(120, 124, 132)
+	for _, b in f.birds do
+		b.body.Color = color
+		b.wingL.Color = color
+		b.wingR.Color = color
+	end
+end
+
+local function makeFlock()
+	local f = { birds = {}, t = rng:NextNumber() * 10 }
+	for i = 1, BIRDS_PER_FLOCK do
+		table.insert(f.birds, {
+			body = part(Vector3.new(0.45, 0.35, 1.1), Color3.new(1, 1, 1), nil, Enum.PartType.Ball),
+			wingL = part(Vector3.new(1.3, 0.06, 0.45), Color3.new(1, 1, 1)),
+			wingR = part(Vector3.new(1.3, 0.06, 0.45), Color3.new(1, 1, 1)),
+			offset = i / BIRDS_PER_FLOCK * math.pi * 2 * rng:NextNumber(0.85, 1.15),
+			lag = rng:NextNumber(-4, 4),
+			phase = rng:NextNumber() * 6,
+		})
+	end
+	placeFlock(f)
+	return f
+end
+
+local function stepFlock(f, dt: number, parts: { BasePart }, cfs: { CFrame })
+	f.t += dt
+	local c = camPos()
+	if (Vector3.new(f.center.X, 0, f.center.Z) - Vector3.new(c.X, 0, c.Z)).Magnitude > 520 then
+		placeFlock(f)
+	end
+	for _, b in f.birds do
+		local a = f.t * f.speed + b.offset
+		local r = f.radius + b.lag
+		local pos = f.center + Vector3.new(math.cos(a) * r, f.height + math.sin(f.t * 0.6 + b.phase) * 3, math.sin(a) * r)
+		local dir = Vector3.new(-math.sin(a), 0, math.cos(a)) * math.sign(f.speed)
+		local body = CFrame.lookAt(pos, pos + dir)
+		local flap = math.sin(f.t * 11 + b.phase) * 0.7
+		table.insert(parts, b.body)
+		table.insert(cfs, body)
+		table.insert(parts, b.wingL)
+		table.insert(cfs, body * CFrame.Angles(0, 0, flap) * CFrame.new(-0.7, 0, 0))
+		table.insert(parts, b.wingR)
+		table.insert(cfs, body * CFrame.Angles(0, 0, -flap) * CFrame.new(0.7, 0, 0))
+	end
+end
+
+----------------------------------------------------------------------------------------------------
+-- Airliner
+----------------------------------------------------------------------------------------------------
+local plane = nil :: Model?
+local flight = nil :: any
+local nextFlight = 25
+
+local function buildPlane(): Model
+	local m = Instance.new("Model")
+	m.Name = "Airliner"
+	local white = Color3.fromRGB(240, 242, 246)
+	-- built at the origin facing -Z; an invisible root keeps that frame for PivotTo
+	local root = part(Vector3.new(1, 1, 1), white)
+	root.Name = "Root"
+	root.Transparency = 1
+	root.CFrame = CFrame.new()
+	root.Parent = m
+	m.PrimaryPart = root
+	local function add(p: BasePart, cf: CFrame)
+		p.CFrame = cf
+		p.Parent = m
+	end
+	local f = CFrame.new()
+	-- cylinders lie along X: turned along the fuselage
+	add(part(Vector3.new(46, 4.4, 4.4), white, nil, Enum.PartType.Cylinder), f * CFrame.Angles(0, math.pi / 2, 0))
+	add(part(Vector3.new(4.4, 4.4, 4.4), white, nil, Enum.PartType.Ball), f * CFrame.new(0, 0, -23))
+	add(part(Vector3.new(36, 0.6, 7), white), f * CFrame.new(0, -1, -2))
+	add(part(Vector3.new(13, 0.5, 4), white), f * CFrame.new(0, 0.8, 21))
+	add(part(Vector3.new(0.6, 8, 6), Color3.fromRGB(200, 30, 40)), f * CFrame.new(0, 5, 21))
+	add(part(Vector3.new(4.5, 0.4, 44), Color3.fromRGB(30, 80, 170)), f * CFrame.new(0, -0.6, 0))
+	for s = -1, 1, 2 do
+		add(part(Vector3.new(6, 2.4, 2.4), Color3.fromRGB(190, 192, 198), nil, Enum.PartType.Cylinder), f * CFrame.new(s * 8, -2.4, -4) * CFrame.Angles(0, math.pi / 2, 0))
+		local light = part(Vector3.new(0.5, 0.5, 0.5), if s < 0 then Color3.fromRGB(255, 40, 40) else Color3.fromRGB(40, 255, 90), Enum.Material.Neon, Enum.PartType.Ball)
+		add(light, f * CFrame.new(s * 18, -1, -2))
+	end
+	-- contrails
+	for s = -1, 1, 2 do
+		local a0 = Instance.new("Attachment")
+		a0.Position = Vector3.new(s * 8, -2.4, -1)
+		a0.Parent = root
+		local a1 = Instance.new("Attachment")
+		a1.Position = Vector3.new(s * 8, -2.0, -1)
+		a1.Parent = root
+		local trail = Instance.new("Trail")
+		trail.Attachment0 = a0
+		trail.Attachment1 = a1
+		trail.Lifetime = 7
+		trail.Color = ColorSequence.new(Color3.new(1, 1, 1))
+		trail.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1) })
+		trail.WidthScale = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 5) })
+		trail.FaceCamera = true
+		trail.Parent = root
+	end
+	m.Parent = folder
+	return m
+end
+
+local function startFlight()
+	local c = camPos()
+	local heading = rng:NextNumber() * math.pi * 2
+	local dir = Vector3.new(math.cos(heading), 0, math.sin(heading))
+	local side = Vector3.new(-dir.Z, 0, dir.X) * rng:NextNumber(-500, 500)
+	local start = Vector3.new(c.X, 0, c.Z) - dir * 2600 + side + Vector3.new(0, rng:NextNumber(480, 620), 0)
+	flight = { pos = start, dir = dir, left = 5200 }
+	if not plane then
+		plane = buildPlane()
+	end
+end
+
+local function stepPlane(dt: number)
+	nextFlight -= dt
+	if not flight and nextFlight <= 0 then
+		startFlight()
+	end
+	if flight and plane then
+		local move = 150 * dt
+		flight.pos += flight.dir * move
+		flight.left -= move
+		plane:PivotTo(CFrame.lookAt(flight.pos, flight.pos + flight.dir))
+		if flight.left <= 0 then
+			flight = nil
+			nextFlight = rng:NextNumber(90, 200)
+			plane:PivotTo(CFrame.new(0, -2000, 0))
+		end
+	end
+end
+
+----------------------------------------------------------------------------------------------------
+-- Hot-air balloons
+----------------------------------------------------------------------------------------------------
+local balloons = {}
+
+local function buildBalloon(colors: { Color3 }): Model
+	local m = Instance.new("Model")
+	m.Name = "Balloon"
+	local env = part(Vector3.new(22, 26, 22), colors[1], Enum.Material.Fabric, Enum.PartType.Ball)
+	env.Parent = m
+	m.PrimaryPart = env
+	local band = part(Vector3.new(22.4, 6, 22.4), colors[2], Enum.Material.Fabric, Enum.PartType.Ball)
+	band.CFrame = CFrame.new(0, 2, 0)
+	band.Parent = m
+	local skirt = part(Vector3.new(8, 4, 8), colors[2], Enum.Material.Fabric, Enum.PartType.Ball)
+	skirt.CFrame = CFrame.new(0, -12, 0)
+	skirt.Parent = m
+	local basket = part(Vector3.new(4, 3, 4), Color3.fromRGB(150, 100, 60), Enum.Material.WoodPlanks)
+	basket.CFrame = CFrame.new(0, -19, 0)
+	basket.Parent = m
+	for sx = -1, 1, 2 do
+		for sz = -1, 1, 2 do
+			local rope = part(Vector3.new(0.15, 6, 0.15), Color3.fromRGB(60, 50, 40))
+			rope.CFrame = CFrame.new(sx * 1.8, -15.5, sz * 1.8)
+			rope.Parent = m
+		end
+	end
+	local flame = part(Vector3.new(1, 1.6, 1), Color3.fromRGB(255, 170, 60), Enum.Material.Neon, Enum.PartType.Ball)
+	flame.Name = "Flame"
+	flame.CFrame = CFrame.new(0, -15, 0)
+	flame.Parent = m
+	m.Parent = folder
+	return m
+end
+
+local function stepBalloons(t: number)
+	local night = Lighting.ClockTime >= 19.5 or Lighting.ClockTime < 6
+	for i, b in balloons do
+		local x = math.sin(t * 0.008 + i * 2.1) * 900
+		local z = math.cos(t * 0.006 + i * 1.3) * 700 - 200
+		local y = 230 + i * 30 + math.sin(t * 0.15 + i) * 8
+		b.model:PivotTo(CFrame.new(x, y, z) * CFrame.Angles(0, t * 0.02 + i, 0))
+		local flame = b.model:FindFirstChild("Flame") :: BasePart?
+		if flame then
+			-- the burner fires now and then
+			flame.Transparency = if (t + i * 3) % 9 < 1.2 then 0 else (if night then 0.5 else 0.9)
+		end
+	end
+end
+
+----------------------------------------------------------------------------------------------------
+function Sky.init()
+	folder = Instance.new("Folder")
+	folder.Name = "Sky"
+	folder.Parent = Workspace
+	for _ = 1, FLOCKS do
+		table.insert(flocks, makeFlock())
+	end
+	for _, colors in { { Color3.fromRGB(230, 60, 60), Color3.fromRGB(250, 210, 60) }, { Color3.fromRGB(60, 120, 220), Color3.fromRGB(240, 240, 240) } } do
+		table.insert(balloons, { model = buildBalloon(colors) })
+	end
+	local t = 0
+	RunService.RenderStepped:Connect(function(dt)
+		t += dt
+		local parts, cfs = {}, {}
+		for _, f in flocks do
+			stepFlock(f, dt, parts, cfs)
+		end
+		Workspace:BulkMoveTo(parts, cfs, Enum.BulkMoveMode.FireCFrameChanged)
+		stepPlane(dt)
+		stepBalloons(t)
+	end)
+end
+
+-- tools/dump.luau draws these to check their shapes
+Sky._buildPlane = buildPlane
+Sky._buildBalloon = buildBalloon
+function Sky._folder(f: Folder)
+	folder = f
+end
+
+return Sky
+]]></string>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="84">
+            <Properties>
               <string name="Name">Traffic</string>
               <string name="Source"><![CDATA[-- Traffic: life on the streets around you, simulated on each client (nothing to replicate).
 --   * cars and bikes drive in the right-hand lane, follow each other, stop at red lights
@@ -23772,7 +24173,7 @@ return Traffic
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="84">
+          <Item class="ModuleScript" referent="85">
             <Properties>
               <string name="Name">Tutorial</string>
               <string name="Source"><![CDATA[-- Tutorial: five short steps for new players, shown in a card at the top of the screen.
@@ -23865,7 +24266,7 @@ return Tutorial
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="85">
+          <Item class="ModuleScript" referent="86">
             <Properties>
               <string name="Name">VehicleController</string>
               <string name="Source"><![CDATA[-- VehicleController: driving your car or motorbike, and wheels turning on every vehicle in town.
@@ -24098,7 +24499,7 @@ return VehicleController
             </Properties>
           </Item>
         </Item>
-        <Item class="LocalScript" referent="86">
+        <Item class="LocalScript" referent="87">
           <Properties>
             <string name="Name">Main</string>
             <string name="Source"><![CDATA[-- PC Tamircisi Simülatörü — client entry point: language, HUD, windows and controllers.
@@ -24134,6 +24535,7 @@ local VehicleController = require(Controllers.VehicleController)
 local Ambience = require(Controllers.Ambience)
 local Tutorial = require(Controllers.Tutorial)
 local Traffic = require(Controllers.Traffic)
+local Sky = require(Controllers.Sky)
 
 S.detect()
 State.init()
@@ -24251,6 +24653,7 @@ MapController.init()
 VehicleController.init()
 Ambience.init()
 Traffic.init()
+Sky.init()
 Tutorial.init()
 if State.data then
 	local settings = State.data.settings or {}
@@ -24282,7 +24685,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="87">
+        <Item class="ModuleScript" referent="88">
           <Properties>
             <string name="Name">State</string>
             <string name="Source"><![CDATA[-- State: what the client knows about the player (the server's data snapshot, jobs, shop) with
@@ -24372,7 +24775,7 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="88">
+        <Item class="ModuleScript" referent="89">
           <Properties>
             <string name="Name">Strings</string>
             <string name="Source"><![CDATA[-- Strings: every piece of UI text in Turkish and English. S.t(key, vars) picks the player's
@@ -24876,11 +25279,11 @@ return S
 ]]></string>
           </Properties>
         </Item>
-        <Item class="Folder" referent="89">
+        <Item class="Folder" referent="90">
           <Properties>
             <string name="Name">UI</string>
           </Properties>
-          <Item class="ModuleScript" referent="90">
+          <Item class="ModuleScript" referent="91">
             <Properties>
               <string name="Name">App</string>
               <string name="Source"><![CDATA[-- App: things every window shares (the main ScreenGui) and the usual "did it work?" toast.
@@ -24932,7 +25335,7 @@ return App
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="91">
+          <Item class="ModuleScript" referent="92">
             <Properties>
               <string name="Name">ContractsPanel</string>
               <string name="Source"><![CDATA[-- ContractsPanel: bulk work offered by the internet café and the data centre.
@@ -24990,7 +25393,7 @@ return ContractsPanel
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="92">
+          <Item class="ModuleScript" referent="93">
             <Properties>
               <string name="Name">CustomerDialog</string>
               <string name="Source"><![CDATA[-- CustomerDialog: talking to a customer at the counter. Shows what they say, the device and the
@@ -25139,7 +25542,7 @@ return CustomerDialog
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="93">
+          <Item class="ModuleScript" referent="94">
             <Properties>
               <string name="Name">Garage</string>
               <string name="Source"><![CDATA[-- Garage: the dealerships (a turning 3D preview, stats, colours, buying) and your own vehicles
@@ -25394,7 +25797,7 @@ return Garage
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="94">
+          <Item class="ModuleScript" referent="95">
             <Properties>
               <string name="Name">Hud</string>
               <string name="Source"><![CDATA[-- Hud: money, level and XP, reputation, the clock, the quick buttons and toasts.
@@ -25610,7 +26013,7 @@ return Hud
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="95">
+          <Item class="ModuleScript" referent="96">
             <Properties>
               <string name="Name">Inventory</string>
               <string name="Source"><![CDATA[-- Inventory (B): parts on your shelves, consumables and the tools you own.
@@ -25738,7 +26141,7 @@ return Inventory
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="96">
+          <Item class="ModuleScript" referent="97">
             <Properties>
               <string name="Name">JobsPanel</string>
               <string name="Source"><![CDATA[-- JobsPanel (J): every job in your shop — queued, on a bench, waiting for pickup — with what the
@@ -25870,7 +26273,7 @@ return JobsPanel
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="97">
+          <Item class="ModuleScript" referent="98">
             <Properties>
               <string name="Name">Kit</string>
               <string name="Source"><![CDATA[-- Kit: small UI building blocks with the game's look (rounded dark panels, accent buttons,
@@ -26340,7 +26743,7 @@ return Kit
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="98">
+          <Item class="ModuleScript" referent="99">
             <Properties>
               <string name="Name">Phone</string>
               <string name="Source"><![CDATA[-- Phone (P): apps for everything you can do from anywhere — your shop, team, garage, jobs,
@@ -26546,7 +26949,7 @@ return Phone
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="99">
+          <Item class="ModuleScript" referent="100">
             <Properties>
               <string name="Name">QuestsPanel</string>
               <string name="Source"><![CDATA[-- QuestsPanel: today's three tasks with progress and rewards (city hall board and phone).
@@ -26622,7 +27025,7 @@ return QuestsPanel
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="100">
+          <Item class="ModuleScript" referent="101">
             <Properties>
               <string name="Name">ShopPanel</string>
               <string name="Source"><![CDATA[-- ShopPanel: your shop. Expand to the next level, buy furniture and equipment, change the look
@@ -26861,7 +27264,7 @@ return ShopPanel
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="101">
+          <Item class="ModuleScript" referent="102">
             <Properties>
               <string name="Name">StaffPanel</string>
               <string name="Source"><![CDATA[-- StaffPanel: the staff agency (candidates to hire) and your team (wages, dismissing).
@@ -27000,7 +27403,7 @@ return StaffPanel
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="102">
+          <Item class="ModuleScript" referent="103">
             <Properties>
               <string name="Name">Stores</string>
               <string name="Source"><![CDATA[-- Stores: the city's counters. One window per service:
@@ -27448,7 +27851,7 @@ return Stores
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="103">
+          <Item class="ModuleScript" referent="104">
             <Properties>
               <string name="Name">Theme</string>
               <string name="Source"><![CDATA[-- Theme: colours, fonts and sizes shared by every window.
@@ -27505,7 +27908,7 @@ return Theme
       </Item>
     </Item>
   </Item>
-  <Item class="Workspace" referent="104">
+  <Item class="Workspace" referent="105">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

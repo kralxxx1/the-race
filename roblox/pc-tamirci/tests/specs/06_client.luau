@@ -358,6 +358,8 @@ return function(T)
 		end
 		local folder = Engine.workspace:FindFirstChild("ClientTraffic")
 		T.ok(folder and #folder:GetChildren() > 20, "traffic models")
+		local sky = Engine.workspace:FindFirstChild("Sky")
+		T.ok(sky and #sky:GetChildren() > 40, "birds and balloons")
 		noErrors("traffic")
 	end)
 

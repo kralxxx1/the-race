@@ -102,12 +102,20 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
    kurumsal sözleşme ofisi. Personel Ajansı'ndan teknisyen, resepsiyonist, müdür, güvenlik görevlisi,
    temizlikçi tut — teknisyenler boş tezgâhta işleri kendileri bitirir, müdür eksik parçayı sipariş eder.
 6. **Toplu işler:** Pixel İnternet Kafe ve Bulut Veri Merkezi makine başı ödemeli sözleşmeler verir.
+   **Günlük görevler** (her gün 3 tane: cihaz teslim et, 5 yıldız al, parça al/sat, hırsız yakala…)
+   Belediye'deki Görev Panosu'nda ve telefonda; ödüller seviyeyle büyür. Belediye önündeki pano
+   sunucunun en iyi tamircilerini gösterir. Müdürün varsa sen oyunda yokken de dükkân kazanır
+   (en fazla 8 saat).
 7. **Kendi projelerin:** hurda kasaları onar ya da boş kasa alıp PC topla; 2. el pazarına sat ya da
    dükkân vitrinine koy (vitrindeki PC'yi gelen alıcılar daha pahalıya alır).
-8. **Olaylar:** gece artan hırsızlık (kamera/alarm uyarır, F ile yakala, ödül al), parayı vermeden
+8. **Şehir hayatı:** sağdan akan trafik (kırmızıda durur, yaya geçidini bekler), kaldırımlarda
+   yürüyen yayalar, martı ve güvercin sürüleri, gökyüzünden geçen uçaklar, sıcak hava balonları,
+   dönen dönme dolap ve rüzgâr türbinleri, deniz feneri, saat kulesi, gece yanan pencereler ve
+   sokak lambaları, yağmur.
+9. **Olaylar:** gece artan hırsızlık (kamera/alarm uyarır, F ile yakala, ödül al), parayı vermeden
    kaçan dolandırıcı, "kutusu yok faturası yok" çalıntı parça satan şüpheli tip (polis gelebilir!),
    yağmur, gün/gece döngüsü.
-9. **Ulaşım:** bisiklet, scooter, motorlar, Şahin/Doğan tadında klasikler, servis vanı, dolmuş,
+10. **Ulaşım:** bisiklet, scooter, motorlar, Şahin/Doğan tadında klasikler, servis vanı, dolmuş,
    pikap, SUV, elektrikli sedan, süper spor. Harita'dan taksi de çağırabilirsin.
 
 ---
