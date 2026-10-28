@@ -268,6 +268,14 @@ local T = {
 	t_thief_escaped = { "🦹 Hırsız kaçtı! {cash} {part}", "🦹 The thief escaped! {cash} {part}" },
 	t_camera_alert = { "📹 Kamera: dükkâna şüpheli biri girdi!", "📹 Camera: a suspicious person just walked in!" },
 	t_alarm = { "🚨 ALARM! Hırsız kasada! Yakala (F)!", "🚨 ALARM! Thief at the register! Catch them (F)!" },
+	t_contract_machine = { "🏢 Sözleşme: makine {n}/{m} teslim edildi (+{price})", "🏢 Contract: machine {n}/{m} delivered (+{price})" },
+	t_contract_machine_bad = { "🏢 Sözleşme: makine {n}/{m} çalışmıyor, ödeme yok!", "🏢 Contract: machine {n}/{m} doesn't work, no pay!" },
+	t_contract_done = { "🏢 Sözleşme tamam! Bonus: {bonus}", "🏢 Contract complete! Bonus: {bonus}" },
+	t_contract_partial = { "🏢 Sözleşme bitti: {n}/{m} makine sorunsuzdu, bonus yok.", "🏢 Contract over: {n}/{m} machines worked, no bonus." },
+	t_showcase_back = { "🖥️ {name} vitrinden alındı.", "🖥️ {name} taken off the showcase." },
+	t_showcase_none = { "🖥️ Vitrine koyacak bitmiş bir projen yok. Hurda kasa al ya da PC topla!", "🖥️ No finished project to display. Buy a junk PC or build one!" },
+	t_showcase_put = { "🖥️ {name} vitrinde! Satış fiyatı: {price}", "🖥️ {name} is on display! Price: {price}" },
+	t_showcase_sold = { "💰 Vitrindeki {name} satıldı: {price}", "💰 The {name} on display sold for {price}" },
 	reason_need_part = { "parça lazım:", "needs a part:" },
 	reason_need_tool = { "alet lazım:", "needs a tool:" },
 	reason_stuck = { "çözemedi", "couldn't solve it" },
@@ -296,6 +304,15 @@ local T = {
 	consumable = { "Sarf", "Consumable" },
 	sold_out = { "Tükendi", "Sold out" },
 
+	-- contracts
+	contracts_title = { "Toplu İşler", "Bulk Contracts" },
+	contract_count = { "{n} makine", "{n} machines" },
+	contract_pay = { "Makine başı {pay} • tamamı sorunsuzsa bonus {bonus}", "{pay} per machine • bonus {bonus} if all work" },
+	contract_accept = { "Sözleşmeyi Al", "Take Contract" },
+	contract_active = { "Devam eden sözleşme: {title} ({done}/{total})", "Contract in progress: {title} ({done}/{total})" },
+	contract_hint = { "Makineler iş listene eklenir; sen ya da teknisyenlerin tamir edin. Her makine bitince ödenir.", "The machines join your job list; you or your technicians fix them. Each one is paid when done." },
+	contract_taken = { "Sözleşme alındı: {n} makine iş listende!", "Contract taken: {n} machines are in your jobs!" },
+
 	-- inventory
 	inv_parts = { "Parçalar", "Parts" },
 	inv_stock = { "Sarf Malzemesi", "Consumables" },
@@ -312,6 +329,7 @@ local T = {
 	job_status_waiting = { "Sırada", "Queued" },
 	job_status_bench = { "Tezgâhta", "On bench" },
 	job_status_ready = { "Teslimat", "Pickup" },
+	job_status_showcase = { "Vitrinde", "On display" },
 	job_resale = { "Satış değeri: {price}", "Resale value: {price}" },
 	job_sold = { "Proje satıldı: {price}", "Project sold for {price}" },
 	job_count = { "{n} iş", "{n} jobs" },
@@ -391,6 +409,8 @@ local T = {
 	e_bench_busy = { "Tezgâh dolu.", "The bench is busy." },
 	e_not_found = { "Bulunamadı.", "Not found." },
 	e_bad = { "Geçersiz istek.", "Invalid request." },
+	e_contract_busy = { "Önce elindeki sözleşmeyi bitir.", "Finish your current contract first." },
+	e_contract_desk = { "Bunun için dükkânında Kurumsal Sözleşme Ofisi olmalı.", "You need the Corporate Contracts Desk in your shop." },
 	e_generic = { "Olmadı: {err}", "That didn't work: {err}" },
 }
 

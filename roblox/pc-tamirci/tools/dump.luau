@@ -1,6 +1,6 @@
 -- Builds models in the headless engine and dumps their parts to JSON for the three.js previewer.
 --   lune run tools/dump.luau world            -> tools/render/out/world.json
---   lune run tools/dump.luau shop <level>     -> a player shop at a level
+--   lune run tools/dump.luau shop <level> [showcase] -> a player shop at a level (with PCs on display)
 --   lune run tools/dump.luau device <kind>    -> a repair bench device (desktop/laptop)
 --   lune run tools/dump.luau vehicles         -> every vehicle in a row
 
@@ -106,7 +106,22 @@ elseif what == "shop" then
 	local folder = roblox.Instance.new("Folder")
 	folder.Parent = Engine.workspace
 	local front = roblox.CFrame.lookAt(roblox.Vector3.new(0, 0.75, 0), roblox.Vector3.new(0, 0.75, -1))
-	ShopBuilder.build(folder, front, { level = level, name = "Kral Bilgisayar", wall = "brick", floor = "parquet", accent = 1, items = { plants = true, tea = true, tv = true, neon = true, sofa = true, aquarium = level >= 4, arcade = level >= 5, rgb_lights = level >= 4, posters = true, coffee = true, camera = true, tool_wall = true, parts_shelves = true, showcase = level >= 4 }, plotWidth = 62, plotDepth = 84 })
+	local shopModel = ShopBuilder.build(folder, front, { level = level, name = "Kral Bilgisayar", wall = "brick", floor = "parquet", accent = 1, items = { plants = true, tea = true, tv = true, neon = true, sofa = true, aquarium = level >= 4, arcade = level >= 5, rgb_lights = level >= 4, posters = true, coffee = true, camera = true, tool_wall = true, parts_shelves = true, showcase = level >= 4 }, plotWidth = 62, plotDepth = 84 })
+	if process.args[3] == "showcase" then
+		-- the same placement ShowcaseService uses
+		local DeviceGen = Engine.mod("ReplicatedStorage.Shared.Repair.DeviceGen")
+		local PCModel = Engine.mod("ReplicatedStorage.Shared.Models.PCModel")
+		local Rules = Engine.mod("ReplicatedStorage.Shared.Repair.RepairRules")
+		local Mock = require("../tests/lib/Mock")
+		for _, pt in shopModel.Points:GetChildren() do
+			local slot = pt:GetAttribute("Showcase")
+			if slot then
+				local dev = DeviceGen.desktop(Mock.Random.new(slot * 7), "high")
+				local view = Rules.view(dev)
+				PCModel.build(shopModel, view, PCModel.displayCFrame(pt.CFrame, view), { animate = false })
+			end
+		end
+	end
 	result.parts = dumpParts(folder)
 	outName = "shop" .. level
 elseif what == "device" then

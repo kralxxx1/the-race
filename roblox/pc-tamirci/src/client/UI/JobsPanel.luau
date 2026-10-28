@@ -19,8 +19,8 @@ local JobsPanel = {}
 
 local win = nil
 
-local STATUS_ORDER = { bench = 1, waiting = 2, ready = 3 }
-local STATUS_COLOR = { bench = Theme.accent, waiting = Theme.accent2, ready = Theme.good }
+local STATUS_ORDER = { bench = 1, waiting = 2, ready = 3, showcase = 4 }
+local STATUS_COLOR = { bench = Theme.accent, waiting = Theme.accent2, ready = Theme.good, showcase = Color3.fromRGB(170, 110, 240) }
 
 local function blockedText(b): string
 	local detail = b.detail or ""
@@ -40,7 +40,7 @@ local function card(list: ScrollingFrame, job, order: number)
 	Kit.listLayout(inner, 3)
 	local icon = if job.device == "laptop" then "💻" else "🖥️"
 	Kit.label(inner, icon .. " <b>" .. (job.name or job.id) .. "</b>", { TextSize = 17, LayoutOrder = 1, Size = UDim2.new(1, 0, 0, 22) })
-	local who = if job.customer then "👤 " .. job.customer.name elseif job.own then "🛠️ " .. S.t("job_own") else ""
+	local who = if job.customer then "👤 " .. job.customer.name elseif job.client then "🏢 " .. S.pick(job.client) elseif job.own then "🛠️ " .. S.t("job_own") else ""
 	local money = if job.price and job.price > 0 then "   💵 " .. S.money(job.price) else ""
 	Kit.label(inner, who .. money, { TextColor3 = Theme.dim, TextSize = 14, LayoutOrder = 2 })
 	if job.complaint and #job.complaint > 0 then
@@ -71,7 +71,7 @@ local function card(list: ScrollingFrame, job, order: number)
 		text ..= " " .. job.bench
 	end
 	Kit.pill(right, text, STATUS_COLOR[status] or Theme.dim, { LayoutOrder = 1 })
-	if job.own and status ~= "bench" and job.resale then
+	if job.own and status ~= "bench" and status ~= "showcase" and job.resale then
 		Kit.button(right, S.t("job_sell", { price = S.money(job.resale) }), function()
 			local r = Net.request("jobs.sell", { job = job.id })
 			if r.ok then

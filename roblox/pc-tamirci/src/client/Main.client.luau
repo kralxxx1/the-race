@@ -22,6 +22,7 @@ local Garage = require(UI.Garage)
 local JobsPanel = require(UI.JobsPanel)
 local Inventory = require(UI.Inventory)
 local Phone = require(UI.Phone)
+local ContractsPanel = require(UI.ContractsPanel)
 local Controllers = Client.Controllers
 local BenchViews = require(Controllers.BenchViews)
 local BenchController = require(Controllers.BenchController)
@@ -61,9 +62,9 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Messages from the server
 ----------------------------------------------------------------------------------------------------
-local MONEY_VARS = { amount = true, fine = true, bounty = true, cash = true, price = true }
-local GOOD = { tech_done = true, caught_scammer = true, thief_caught = true, bounty = true, moved = true, manager_bought = true }
-local BAD = { police_fine = true, customer_left = true, scammer_escaped = true, thief_escaped = true, alarm = true, staff_quit = true, esd_zap = true, jobs_full = true }
+local MONEY_VARS = { amount = true, fine = true, bounty = true, cash = true, price = true, bonus = true }
+local GOOD = { tech_done = true, caught_scammer = true, thief_caught = true, bounty = true, moved = true, manager_bought = true, contract_machine = true, contract_done = true, showcase_put = true, showcase_sold = true }
+local BAD = { police_fine = true, customer_left = true, scammer_escaped = true, thief_escaped = true, alarm = true, staff_quit = true, esd_zap = true, jobs_full = true, contract_machine_bad = true }
 
 Net.on("toast", function(t)
 	if type(t) ~= "table" or type(t.key) ~= "string" then
@@ -134,6 +135,7 @@ CustomerDialog.init()
 Stores.init()
 StaffPanel.init()
 Garage.init()
+ContractsPanel.init()
 Phone.init({
 	map = MapController.open,
 	home = home,

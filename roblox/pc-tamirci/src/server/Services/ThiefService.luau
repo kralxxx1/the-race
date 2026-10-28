@@ -251,15 +251,22 @@ function ThiefService.start()
 		if not model then
 			return
 		end
+		-- the prompt goes away once every PromptTriggered listener has seen it
+		local function remove()
+			prompt.Enabled = false
+			task.defer(function()
+				prompt:Destroy()
+			end)
+		end
 		local t = thieves[model]
 		if t then
 			caught(t, player)
-			prompt:Destroy()
+			remove()
 			return
 		end
 		local cust = CustomerService.byModel(model)
 		if cust and CustomerService.caught(cust, player) then
-			prompt:Destroy()
+			remove()
 		end
 	end)
 	-- scammers who run off get the same prompt

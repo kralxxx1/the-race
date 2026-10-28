@@ -36,6 +36,7 @@ local benches: { [Player]: { [number]: { [string]: any } } } = {}
 local rng = Random.new()
 
 local MAX_JOBS = 12
+RepairService.MAX_JOBS = MAX_JOBS
 
 ----------------------------------------------------------------------------------------------------
 -- Jobs
@@ -78,6 +79,8 @@ function RepairService.summary(job)
 		lang = lang,
 		symptoms = symptoms,
 		blocked = job.blocked and { reason = job.blocked.reason, detail = job.blocked.detail, by = job.blocked.by } or nil,
+		client = job.contract and job.contract.name or nil, -- contract work: the company's name
+		showcase = job.showcase,
 		-- own projects: what the second-hand dealer would pay right now
 		resale = if job.own and job.status ~= "bench" then RepairService.resale(job) else nil,
 	}
@@ -617,7 +620,7 @@ function RepairService.start()
 			return { ok = false }
 		end
 		local job = jobList(player)[payload.job]
-		if not job or not job.own or job.status == "bench" then
+		if not job or not job.own or job.status == "bench" or job.status == "showcase" then
 			return { ok = false, err = "not_sellable" }
 		end
 		local price = RepairService.resale(job)

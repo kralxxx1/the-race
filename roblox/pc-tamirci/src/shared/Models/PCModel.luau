@@ -14,6 +14,7 @@
 local PCParts = require(script.Parent.PCParts)
 local DesktopLayout = require(script.Parent.DesktopLayout)
 local LaptopLayout = require(script.Parent.LaptopLayout)
+local Parts = require(script.Parent.Parent.Data.Parts)
 
 local PCModel = {}
 
@@ -426,6 +427,17 @@ end
 
 function Handle:busy(): boolean
 	return next(self.anims) ~= nil
+end
+
+-- Root frame for showing a device on a display stand (the stand's top surface frame): towers
+-- stand upright with their window facing +Z of the stand.
+function PCModel.displayCFrame(standCf: CFrame, view): CFrame
+	if view.kind ~= "desktop" then
+		return standCf * CFrame.new(0, 0.05, 0)
+	end
+	local dims = PCParts.caseDims(Parts.get(view.model))
+	-- lying, the case spans y 0..dims.Y (window up) and z ±dims.Z/2 (tower top at -Z)
+	return standCf * CFrame.new(0.5, dims.Z / 2 + 0.05, -dims.Y / 2) * CFrame.Angles(math.pi / 2, 0, 0)
 end
 
 PCModel.Handle = Handle
