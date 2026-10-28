@@ -755,7 +755,11 @@ end
 -- Minimap
 ----------------------------------------------------------------------------------------------------
 local function buildMini()
-	mini = Kit.panel(App.screen, { Name = "Minimap", Size = UDim2.fromOffset(MINI_SIZE, MINI_SIZE), Position = UDim2.new(0, 16, 1, -16), AnchorPoint = Vector2.new(0, 1), BackgroundColor3 = Color3.fromRGB(64, 140, 196), ClipsDescendants = true })
+	-- bottom-left with a mouse; on phones the thumbstick lives there, so top-right instead
+	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	local miniPos = if touch then UDim2.new(1, -16, 0, 60) else UDim2.new(0, 16, 1, -16)
+	local miniAnchor = if touch then Vector2.new(1, 0) else Vector2.new(0, 1)
+	mini = Kit.panel(App.screen, { Name = "Minimap", Size = UDim2.fromOffset(MINI_SIZE, MINI_SIZE), Position = miniPos, AnchorPoint = miniAnchor, BackgroundColor3 = Color3.fromRGB(64, 140, 196), ClipsDescendants = true })
 	Hud.register(mini)
 	Kit.outline(mini, Color3.new(1, 1, 1), 3, 0.2)
 	miniCanvas = Kit.frame(mini, { Name = "Canvas", Size = UDim2.fromOffset(W * MINI_SCALE, H * MINI_SCALE) })
@@ -773,7 +777,8 @@ local function buildMini()
 	open.Parent = mini
 	open.Activated:Connect(MapController.open)
 	-- GPS: where you're heading and how far, above the minimap
-	local g = Kit.panel(App.screen, { Name = "Gps", Size = UDim2.fromOffset(300, 34), Position = UDim2.new(0, 16, 1, -234), AnchorPoint = Vector2.new(0, 1), BackgroundTransparency = 0.1, Visible = false })
+	local gpsPos = if touch then UDim2.new(1, -16, 0, 60 + MINI_SIZE + 8) else UDim2.new(0, 16, 1, -24 - MINI_SIZE)
+	local g = Kit.panel(App.screen, { Name = "Gps", Size = UDim2.fromOffset(300, 34), Position = gpsPos, AnchorPoint = miniAnchor, BackgroundTransparency = 0.1, Visible = false })
 	Hud.register(g)
 	gpsLabel = Kit.label(g, "", { Size = UDim2.new(1, -44, 1, 0), Position = UDim2.fromOffset(10, 0), TextSize = 15, FontFace = Theme.bold, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd })
 	Kit.button(g, "✖", function()

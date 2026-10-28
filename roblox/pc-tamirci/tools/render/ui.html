@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>UI preview</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #6b8fa8; overflow: hidden; }
+  #stage { position: relative; width: 1280px; height: 720px; overflow: hidden;
+    background: linear-gradient(#87b5d8 0%, #b9d3e6 45%, #8a9a7c 46%, #6f7f62 100%); }
+  .n { position: absolute; box-sizing: border-box; }
+  .t { position: absolute; inset: 0; display: flex; overflow: hidden; font-family: "Segoe UI", "Noto Sans", Arial, sans-serif; line-height: 1.15; }
+  .vp { background: repeating-linear-gradient(45deg, #2a3140, #2a3140 10px, #323a4b 10px, #323a4b 20px) !important; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+// A small Roblox GUI layout engine: UDim2 sizes/positions, AnchorPoint, UIPadding, UIListLayout,
+// UIGridLayout, AutomaticSize (frames and text), ClipsDescendants/ScrollingFrame, UICorner,
+// UIStroke, ZIndex (sibling behaviour) and rich text (<b>, <font color>).
+const params = new URLSearchParams(location.search);
+const file = params.get('file') || 'ui_hud';
+const W = 1280, H = 720;
+const ctx = document.createElement('canvas').getContext('2d');
+
+function fontOf(n) {
+  const weight = /Heavy|ExtraBold|Black/.test(n.weight) ? 800 : /Bold|SemiBold/.test(n.weight) ? 700 : 500;
+  return { weight, size: n.textSize || 14 };
+}
+function plain(text) {
+  return (text || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+}
+// Lines of `text` wrapped at `width` px.
+function wrapLines(n, width) {
+  const f = fontOf(n);
+  ctx.font = `${f.weight} ${f.size}px "Segoe UI", "Noto Sans", Arial, sans-serif`;
+  const out = [];
+  for (const para of plain(n.text).split('\n')) {
+    if (!n.wrap || width <= 0) { out.push(para); continue; }
+    let line = '';
+    for (const word of para.split(' ')) {
+      const test = line ? line + ' ' + word : word;
+      if (ctx.measureText(test).width > width && line) { out.push(line); line = word; } else { line = test; }
+    }
+    out.push(line);
+  }
+  return out;
+}
+function textSize(n, width) {
+  const f = fontOf(n);
+  const lines = wrapLines(n, width);
+  ctx.font = `${f.weight} ${f.size}px "Segoe UI", "Noto Sans", Arial, sans-serif`;
+  let w = 0;
+  for (const l of lines) w = Math.max(w, ctx.measureText(l).width);
+  return { w: Math.ceil(w), h: Math.ceil(lines.length * f.size * 1.15) };
+}
+const isText = (n) => n.text !== undefined;
+// (an empty Luau table is encoded as {} rather than [])
+const kidsOf = (n) => Array.isArray(n.children) ? n.children : Object.values(n.children || {});
+const visibleKids = (n) => kidsOf(n).map((c, i) => ({ c, i })).filter(({ c }) => c.visible !== false);
+
+// Lays out `n` given its parent's content box size; returns { w, h } and stores child rects.
+function layout(n, pw, ph) {
+  let w = n.size ? n.size[0] * pw + n.size[1] : pw;
+  let h = n.size ? n.size[2] * ph + n.size[3] : ph;
+  const pad = n.pad || [0, 0, 0, 0];
+  const autoX = n.auto === 'X' || n.auto === 'XY';
+  const autoY = n.auto === 'Y' || n.auto === 'XY';
+  // first pass with the declared size
+  let content = arrange(n, w - pad[0] - pad[1], h - pad[2] - pad[3]);
+  if (autoX || autoY) {
+    let cw = content.w, ch = content.h;
+    if (isText(n)) {
+      const ts = textSize(n, autoX ? 100000 : w - pad[0] - pad[1]);
+      cw = Math.max(cw, ts.w); ch = Math.max(ch, ts.h);
+    }
+    if (autoX) w = Math.max(w, cw + pad[0] + pad[1]);
+    if (autoY) h = Math.max(h, ch + pad[2] + pad[3]);
+    content = arrange(n, w - pad[0] - pad[1], h - pad[2] - pad[3]);
+  }
+  n._w = w; n._h = h;
+  return { w, h };
+}
+
+// Positions the children inside the content box; returns the content extent.
+function arrange(n, cw, ch) {
+  const kids = visibleKids(n);
+  let extW = 0, extH = 0;
+  if (n.list) {
+    kids.sort((a, b) => (a.c.order - b.c.order) || (a.i - b.i));
+    const horiz = n.list.dir === 'Horizontal';
+    let cursor = 0, cross = 0;
+    for (const { c } of kids) {
+      const s = layout(c, cw, ch);
+      c._x = horiz ? cursor : 0; c._y = horiz ? 0 : cursor;
+      cursor += (horiz ? s.w : s.h) + n.list.pad;
+      cross = Math.max(cross, horiz ? s.h : s.w);
+    }
+    const total = Math.max(0, cursor - n.list.pad);
+    // alignment
+    for (const { c } of kids) {
+      if (horiz) {
+        if (n.list.ha === 'Right') c._x += cw - total; else if (n.list.ha === 'Center') c._x += (cw - total) / 2;
+        if (n.list.va === 'Center') c._y = (ch - c._h) / 2; else if (n.list.va === 'Bottom') c._y = ch - c._h;
+      } else {
+        if (n.list.ha === 'Center') c._x = (cw - c._w) / 2; else if (n.list.ha === 'Right') c._x = cw - c._w;
+        if (n.list.va === 'Center') c._y += (ch - total) / 2; else if (n.list.va === 'Bottom') c._y += ch - total;
+      }
+    }
+    extW = horiz ? total : cross; extH = horiz ? cross : total;
+  } else if (n.grid) {
+    kids.sort((a, b) => (a.c.order - b.c.order) || (a.i - b.i));
+    const cellW = n.grid.cell[0] * cw + n.grid.cell[1], cellH = n.grid.cell[2] * ch + n.grid.cell[3];
+    const gx = n.grid.pad[0] * cw + n.grid.pad[1], gy = n.grid.pad[2] * ch + n.grid.pad[3];
+    const perRow = Math.max(1, Math.floor((cw + gx) / (cellW + gx)));
+    kids.forEach(({ c }, k) => {
+      c.size = [0, cellW, 0, cellH];
+      layout(c, cw, ch);
+      c._x = (k % perRow) * (cellW + gx); c._y = Math.floor(k / perRow) * (cellH + gy);
+      extW = Math.max(extW, c._x + cellW); extH = Math.max(extH, c._y + cellH);
+    });
+  } else {
+    for (const { c } of kids) {
+      const s = layout(c, cw, ch);
+      c._x = c.pos[0] * cw + c.pos[1] - c.anchor[0] * s.w;
+      c._y = c.pos[2] * ch + c.pos[3] - c.anchor[1] * s.h;
+      extW = Math.max(extW, c._x + s.w); extH = Math.max(extH, c._y + s.h);
+    }
+  }
+  return { w: extW, h: extH };
+}
+
+function rgba(c, t) { return `rgba(${c[0]},${c[1]},${c[2]},${(1 - (t ?? 0)).toFixed(3)})`; }
+function rich(text) {
+  let s = (text || '').replace(/&(?!amp;|lt;|gt;|quot;)/g, '&amp;');
+  s = s.replace(/<font color="?(#?[0-9a-fA-F]{6}|rgb\([^)]*\))"?>/g, (m, col) => `<span style="color:${col}">`).replace(/<\/font>/g, '</span>');
+  return s.replace(/\n/g, '<br>');
+}
+
+function render(n, parentEl) {
+  if (n.visible === false) return;
+  const el = document.createElement('div');
+  el.className = 'n';
+  el.style.left = (n._x || 0) + 'px'; el.style.top = (n._y || 0) + 'px';
+  el.style.width = n._w + 'px'; el.style.height = n._h + 'px';
+  if (n.bg && n.bgt < 1) el.style.background = rgba(n.bg, n.bgt);
+  if (n.corner) el.style.borderRadius = (n.corner[0] * Math.min(n._w, n._h) + n.corner[1]) + 'px';
+  if (n.ustroke && n.ustroke.t < 1) el.style.boxShadow = `0 0 0 ${n.ustroke.th}px ${rgba(n.ustroke.color, n.ustroke.t)}`;
+  if (n.clip || n.scroll) el.style.overflow = 'hidden';
+  if (n.rot) el.style.transform = `rotate(${n.rot}deg)`;
+  if (n.viewport) el.classList.add('vp');
+  if (isText(n) && (n.text || n.placeholder)) {
+    const t = document.createElement('div');
+    t.className = 't';
+    const f = fontOf(n);
+    const pad = n.pad || [0, 0, 0, 0];
+    t.style.padding = `${pad[2]}px ${pad[1]}px ${pad[3]}px ${pad[0]}px`;
+    t.style.fontSize = (n.scaled ? Math.max(8, Math.min(n._h * 0.8, n._w / Math.max(1, plain(n.text).length) * 1.6)) : f.size) + 'px';
+    t.style.fontWeight = f.weight;
+    t.style.color = n.text ? rgba(n.textColor, n.textT) : 'rgba(150,157,174,1)';
+    t.style.whiteSpace = n.wrap ? 'normal' : 'nowrap';
+    t.style.justifyContent = n.xa === 'Left' ? 'flex-start' : n.xa === 'Right' ? 'flex-end' : 'center';
+    t.style.textAlign = n.xa === 'Left' ? 'left' : n.xa === 'Right' ? 'right' : 'center';
+    t.style.alignItems = n.ya === 'Top' ? 'flex-start' : n.ya === 'Bottom' ? 'flex-end' : 'center';
+    if (n.stroke !== undefined && n.stroke < 1) t.style.textShadow = '0 0 2px rgba(0,0,0,0.8)';
+    const span = document.createElement('span');
+    span.innerHTML = rich(n.text || n.placeholder || '');
+    t.appendChild(span);
+    el.appendChild(t);
+  }
+  parentEl.appendChild(el);
+  const kids = visibleKids(n).sort((a, b) => (a.c.z - b.c.z) || (a.i - b.i));
+  const pad = n.pad || [0, 0, 0, 0];
+  const inner = document.createElement('div');
+  inner.className = 'n';
+  inner.style.left = pad[0] + 'px'; inner.style.top = pad[2] + 'px'; inner.style.right = pad[1] + 'px'; inner.style.bottom = pad[3] + 'px';
+  el.appendChild(inner);
+  for (const { c } of kids) render(c, inner);
+}
+
+fetch(`out/${file}.json`).then(r => r.json()).then(root => {
+  root._x = 0; root._y = 0; root._w = W; root._h = H;
+  arrange(root, W, H);
+  const stage = document.getElementById('stage');
+  for (const { c } of visibleKids(root).sort((a, b) => (a.c.z - b.c.z) || (a.i - b.i))) render(c, stage);
+  window.__ready = true;
+}).catch(e => { document.body.innerText = String(e); window.__ready = true; });
+</script>
+</body>
+</html>

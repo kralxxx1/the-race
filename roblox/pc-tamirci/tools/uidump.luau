@@ -1,0 +1,276 @@
+-- Runs the server and the real client in the headless engine, puts the UI into a scene and dumps
+-- the player's ScreenGui as JSON for tools/render/ui.html (a small Roblox GUI layout renderer).
+--   lune run tools/uidump.luau <scene>
+-- scenes: hud, phone, jobs, inventory, parts, used, tools, shop, staff, dealer, dialog, bench,
+--         map, contracts
+
+local fs = require("@lune/fs")
+local serde = require("@lune/serde")
+local process = require("@lune/process")
+local roblox = require("@lune/roblox")
+local task = require("@lune/task")
+
+local Engine = require("../tests/lib/Engine")
+
+local scene = process.args[1] or "hud"
+
+require("../tests/lib/Bootstrap").run("tools/uidump.luau")
+
+local function deepCopy(v)
+	if type(v) ~= "table" then
+		return v
+	end
+	local c = {}
+	for k, x in v do
+		c[k] = deepCopy(x)
+	end
+	return c
+end
+
+local function waitFor(fn, timeout: number?, what: string?)
+	local t0 = os.clock()
+	while os.clock() - t0 < (timeout or 5) do
+		local v = fn()
+		if v then
+			return v
+		end
+		task.wait(0.03)
+	end
+	error("timed out waiting for " .. (what or "condition"))
+end
+
+Engine.context = "server"
+local game = Engine.load("build/PCTamirci.rbxlx")
+local player
+local queue = {}
+Engine.onFireClient = function(re, p, channel, data)
+	if p ~= player then
+		return
+	end
+	local ev = re.OnClientEvent
+	if #ev._h == 0 then
+		table.insert(queue, { channel, deepCopy(data) })
+		return
+	end
+	ev:Fire(channel, deepCopy(data))
+end
+local started = false
+task.spawn(function()
+	Engine.runScript(game:GetService("ServerScriptService").Server.Main)
+	started = true
+end)
+waitFor(function()
+	return started
+end, 30, "server")
+local Services = game:GetService("ServerScriptService").Server.Services
+local DataService = Engine.require(Services.DataService)
+local PlotService = Engine.require(Services.PlotService)
+local CustomerService = Engine.require(Services.CustomerService)
+local MarketService = Engine.require(Services.MarketService)
+local pps = game:GetService("ProximityPromptService")
+local CS = game:GetService("CollectionService")
+
+player = Engine.addPlayer("Kaan")
+Engine.spawnCharacter(player)
+waitFor(function()
+	return DataService.get(player) and PlotService.shopOf(player)
+end, 8, "shop")
+local prof = DataService.get(player)
+prof.money = 48250
+prof.level = 7
+prof.xp = 400
+prof.rep = 72
+prof.tutorial = 2
+for _, id in { "precision_kit", "multimeter", "soldering_station", "usb_boot", "post_card", "thermal_camera", "spudger_kit", "brush", "tweezers" } do
+	prof.tools[id] = true
+end
+DataService.addPart(player, "gpu_rtx3060", 1, "new")
+DataService.addPart(player, "ram_ddr4_8_3200", 0.82, "used")
+DataService.addPart(player, "cpu_r5_5600x", 1, "new")
+
+Engine.localPlayer = player
+Engine.context = "client"
+local client = game:GetService("StarterPlayer").StarterPlayerScripts.Client
+local done = false
+task.spawn(function()
+	Engine.runScript(client.Main)
+	done = true
+end)
+local push = game:GetService("ReplicatedStorage").Remotes.Push
+waitFor(function()
+	return #push.OnClientEvent._h > 0
+end, 5, "client")
+for _, q in queue do
+	push.OnClientEvent:Fire(q[1], q[2])
+end
+DataService.touch(player)
+waitFor(function()
+	return done
+end, 20, "client main")
+local function cmod(path: string)
+	local inst = client
+	for name in string.gmatch(path, "[^%.]+") do
+		inst = inst:FindFirstChild(name)
+	end
+	return Engine.require(inst, "client")
+end
+local Hud = cmod("UI.Hud")
+
+local function service(name: string, poi: string?)
+	for _, a in CS:GetTagged("ServicePoint") do
+		if a:GetAttribute("Service") == name and (poi == nil or a:GetAttribute("Poi") == poi) then
+			player.Character:PivotTo(a.CFrame)
+			MarketService.open(player, name, a:GetAttribute("Poi"), a.Position)
+			return
+		end
+	end
+	error("no service " .. name)
+end
+
+local function customerJob()
+	CustomerService.ofShop(player).next = 0
+	local cust = waitFor(function()
+		local s = CustomerService.ofShop(player)
+		return s and s.counter and s.counter.prompt and s.counter
+	end, 10, "customer")
+	return cust
+end
+
+Hud.toast("🎉 Seviye atladın! Seviye 7", "good")
+Hud.toast("🏢 Sözleşme: makine 2/3 teslim edildi (+$75)", "info")
+if scene == "phone" then
+	cmod("UI.Phone").open()
+elseif scene == "jobs" then
+	local cust = customerJob()
+	pps.PromptTriggered:Fire(cust.prompt, player)
+	task.wait(0.3)
+	local Kit = cmod("UI.Kit")
+	Kit.closeWindow()
+	cmod("UI.JobsPanel").open()
+elseif scene == "inventory" then
+	cmod("UI.Inventory").open()
+elseif scene == "shop" then
+	cmod("UI.ShopPanel").open()
+elseif scene == "dialog" then
+	local cust = customerJob()
+	pps.PromptTriggered:Fire(cust.prompt, player)
+elseif scene == "bench" then
+	local cust = customerJob()
+	pps.PromptTriggered:Fire(cust.prompt, player)
+	task.wait(0.2)
+	local Kit = cmod("UI.Kit")
+	local w = Kit.currentWindow()
+	for _, d in w.root:GetDescendants() do
+		if d:IsA("TextButton") and (string.find(d.Text, "Kabul", 1, true) or string.find(d.Text, "Satın", 1, true)) then
+			d.Activated:Fire()
+			break
+		end
+	end
+	task.wait(0.2)
+	local bench = PlotService.shopOf(player).benches[1]
+	pps.PromptTriggered:Fire(bench.PromptAnchor:FindFirstChildOfClass("ProximityPrompt"), player)
+	task.wait(0.2)
+	local benchUi = player.PlayerGui.PCTamirci.Bench
+	for _, d in benchUi:GetDescendants() do
+		if d:IsA("TextButton") and string.find(d.Text, "Tezgâha Al", 1, true) then
+			d.Activated:Fire()
+			break
+		end
+	end
+	task.wait(0.2)
+	for _, d in benchUi:GetDescendants() do
+		if d:IsA("TextButton") and d.Name == "power" then
+			d.Activated:Fire()
+		end
+	end
+	task.wait(0.2)
+elseif scene == "map" then
+	cmod("Controllers.MapController").open()
+elseif scene == "contracts" then
+	service("contracts", "internet_cafe")
+elseif scene ~= "hud" then
+	service(if scene == "dealer" then "cars" elseif scene == "staff" then "staff" else scene)
+end
+task.wait(0.4)
+Engine.step(3, 1 / 30)
+
+----------------------------------------------------------------------------------------------------
+-- Serialize the ScreenGui
+----------------------------------------------------------------------------------------------------
+local function u2(v)
+	return { v.X.Scale, v.X.Offset, v.Y.Scale, v.Y.Offset }
+end
+local function c3(c)
+	return { math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5) }
+end
+local function prop(inst, name)
+	local ok, v = pcall(function()
+		return (inst :: any)[name]
+	end)
+	return if ok then v else nil
+end
+
+local function node(inst)
+	local n = { class = inst.ClassName, name = inst.Name, children = {} }
+	if inst:IsA("GuiObject") then
+		n.size = u2(inst.Size)
+		n.pos = u2(inst.Position)
+		n.anchor = { inst.AnchorPoint.X, inst.AnchorPoint.Y }
+		n.visible = inst.Visible
+		n.bg = c3(inst.BackgroundColor3)
+		n.bgt = inst.BackgroundTransparency
+		n.z = inst.ZIndex
+		n.order = inst.LayoutOrder
+		n.auto = inst.AutomaticSize.Name
+		n.clip = inst.ClipsDescendants
+		n.rot = inst.Rotation
+		if inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox") then
+			n.text = inst.Text
+			n.textSize = inst.TextSize
+			n.textColor = c3(inst.TextColor3)
+			n.textT = inst.TextTransparency
+			n.xa = inst.TextXAlignment.Name
+			n.ya = inst.TextYAlignment.Name
+			n.wrap = inst.TextWrapped
+			n.scaled = inst.TextScaled
+			n.weight = prop(inst, "FontFace") and inst.FontFace.Weight.Name or "Regular"
+			n.stroke = inst.TextStrokeTransparency
+			if inst:IsA("TextBox") then
+				n.placeholder = inst.PlaceholderText
+			end
+		end
+		if inst:IsA("ScrollingFrame") then
+			n.scroll = true
+		end
+		if inst:IsA("ViewportFrame") then
+			n.viewport = true
+		end
+	end
+	for _, c in inst:GetChildren() do
+		if c:IsA("UICorner") then
+			n.corner = { c.CornerRadius.Scale, c.CornerRadius.Offset }
+		elseif c:IsA("UIStroke") then
+			n.ustroke = { color = c3(c.Color), th = c.Thickness, t = c.Transparency }
+		elseif c:IsA("UIPadding") then
+			n.pad = { c.PaddingLeft.Offset, c.PaddingRight.Offset, c.PaddingTop.Offset, c.PaddingBottom.Offset }
+		elseif c:IsA("UIListLayout") then
+			n.list = { dir = c.FillDirection.Name, pad = c.Padding.Offset, ha = c.HorizontalAlignment.Name, va = c.VerticalAlignment.Name }
+		elseif c:IsA("UIGridLayout") then
+			n.grid = { cell = u2(c.CellSize), pad = u2(c.CellPadding) }
+		elseif c:IsA("UIScale") then
+			n.scale = c.Scale
+		elseif c:IsA("GuiObject") then
+			table.insert(n.children, node(c))
+		end
+	end
+	return n
+end
+
+local gui = player.PlayerGui:FindFirstChild("PCTamirci")
+local out = node(gui)
+out.ignoreInset = gui.IgnoreGuiInset
+fs.writeDir("tools/render/out")
+local path = "tools/render/out/ui_" .. scene .. ".json"
+fs.writeFile(path, serde.encode("json", out))
+print("wrote " .. path)
+process.exit(0)

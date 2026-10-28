@@ -11,6 +11,7 @@
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -728,11 +729,21 @@ local function findBench(n: number): Model?
 	return nil
 end
 
+-- The bench screen uses both sides: Roblox's chat window and player list step aside meanwhile.
+local function coreGui(on: boolean)
+	for _, t in { Enum.CoreGuiType.Chat, Enum.CoreGuiType.PlayerList } do
+		pcall(function()
+			StarterGui:SetCoreGuiEnabled(t, on)
+		end)
+	end
+end
+
 local function exit()
 	if not active then
 		return
 	end
 	active = nil
+	coreGui(true)
 	for _, c in conns do
 		c:Disconnect()
 	end
@@ -776,6 +787,7 @@ local function enter(data)
 	ui.root.Visible = true
 	ui.title.Text = S.t("bench_title", { n = data.bench })
 	hud.setVisible(false)
+	coreGui(false)
 	Kit.clear(ui.log)
 	buildToolbar()
 	jobCard()
@@ -962,8 +974,8 @@ function build()
 	ui.tools = Kit.frame(bottom, { BackgroundTransparency = 1, Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X })
 	Kit.listLayout(ui.tools, 6, true)
 
-	-- hint box (top centre under the bar)
-	ui.hint = Kit.panel(root, { Size = UDim2.fromOffset(520, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(0.5, 0, 0, 66), AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 0.1, Visible = false })
+	-- hint box: right above the tool bar, where the eyes are
+	ui.hint = Kit.panel(root, { Size = UDim2.fromOffset(560, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(0.5, 0, 1, -98), AnchorPoint = Vector2.new(0.5, 1), BackgroundTransparency = 0.1, Visible = false })
 	ui.hintStroke = ui.hint:FindFirstChildOfClass("UIStroke")
 	ui.hintStroke.Thickness = 2
 	Kit.padding(ui.hint, 8)

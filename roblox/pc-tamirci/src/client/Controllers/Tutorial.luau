@@ -46,7 +46,8 @@ local function advance(to: number)
 end
 
 function Tutorial.init()
-	card = Kit.panel(App.screen, { Name = "Tutorial", Size = UDim2.fromOffset(560, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(0.5, 0, 0, 72), AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 0.08, Visible = false })
+	-- lower middle: clear of the toasts (top), the speedometer and the bench hint (bottom)
+	card = Kit.panel(App.screen, { Name = "Tutorial", Size = UDim2.fromOffset(560, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(0.5, 0, 1, -190), AnchorPoint = Vector2.new(0.5, 1), BackgroundTransparency = 0.08, Visible = false })
 	Kit.outline(card, Theme.accent2, 2, 0)
 	Hud.register(card)
 	Kit.padding(card, 12)

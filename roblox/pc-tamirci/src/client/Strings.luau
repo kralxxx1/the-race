@@ -336,7 +336,7 @@ local T = {
 
 	-- staff (more)
 	staff_none = { "Henüz çalışanın yok.", "No staff yet." },
-	staff_needs_shop = { "Dükkân seviyesi {n} gerekli", "Needs shop level {n}" },
+	staff_needs_shop = { "🔒 Dükkân Sv. {n}", "🔒 Shop Lv. {n}" },
 	staff_hired = { "{name} işe başladı!", "{name} started working!" },
 	staff_fired = { "{name} işten ayrıldı.", "{name} left." },
 

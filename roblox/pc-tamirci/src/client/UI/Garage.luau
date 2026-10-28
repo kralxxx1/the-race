@@ -195,7 +195,7 @@ function Garage.dealer(payload)
 		render()
 	end
 	for i, def in list do
-		local row, r = Kit.row(left, iconOf(def), S.pick(def.name), S.money(def.price) .. "  •  " .. S.t("level") .. " " .. (def.level or 1), { LayoutOrder = i })
+		local row, r = Kit.row(left, iconOf(def), S.pick(def.name), S.money(def.price) .. "  •  " .. S.t("level") .. " " .. (def.level or 1), { LayoutOrder = i }, 34)
 		local d = State.data
 		if d and d.vehicles[def.id] then
 			Kit.pill(r, "✔", Theme.good)

@@ -44,8 +44,8 @@ function Hud.toast(text: string, kind: string?, seconds: number?)
 	shown += 1
 	local f = Kit.panel(toastHolder, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.panel, BackgroundTransparency = 0.05, LayoutOrder = -shown })
 	Kit.outline(f, color, 2, 0.1)
-	Kit.padding(f, 10)
-	Kit.label(f, text, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 17, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Center })
+	Kit.padding(f, 7)
+	Kit.label(f, text, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 15, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Center })
 	f.BackgroundTransparency = 1
 	Kit.tween(f, { BackgroundTransparency = 0.05 }, 0.2)
 	task.delay(seconds or 4.5, function()
@@ -62,14 +62,14 @@ function Hud.toast(text: string, kind: string?, seconds: number?)
 			f:Destroy()
 		end
 	end)
-	-- keep at most five
+	-- keep at most three
 	local items = {}
 	for _, c in toastHolder:GetChildren() do
 		if c:IsA("Frame") then
 			table.insert(items, c)
 		end
 	end
-	if #items > 5 then
+	if #items > 3 then
 		table.sort(items, function(a, b)
 			return a.LayoutOrder > b.LayoutOrder
 		end)
@@ -84,13 +84,14 @@ local function moneyPop(delta: number)
 	end
 	local pop = Kit.label(moneyLabel.Parent, (if delta > 0 then "+" else "") .. S.money(delta), {
 		Size = UDim2.fromOffset(160, 24),
-		Position = UDim2.new(0, 60, 0, 6),
+		Position = UDim2.new(0, 40, 0, 40),
 		TextColor3 = if delta > 0 then Theme.money else Theme.bad,
 		FontFace = Theme.heavy,
 		TextSize = 20,
+		TextStrokeTransparency = 0.4,
 		ZIndex = 5,
 	})
-	Kit.tween(pop, { Position = UDim2.new(0, 60, 0, -26), TextTransparency = 1 }, 1.4)
+	Kit.tween(pop, { Position = UDim2.new(0, 40, 0, 74), TextTransparency = 1, TextStrokeTransparency = 1 }, 1.4)
 	task.delay(1.5, function()
 		pop:Destroy()
 	end)
@@ -100,8 +101,8 @@ local function refresh(d, prev)
 	if not d then
 		return
 	end
-	moneyLabel.Text = S.money(d.money)
-	levelLabel.Text = S.t("level") .. " " .. d.level
+	moneyLabel.Text = "💰 " .. S.money(d.money)
+	levelLabel.Text = "⭐ " .. S.t("level") .. " " .. d.level
 	xpBar:set(d.xp / math.max(1, d.xpNext or 100), prev ~= nil)
 	local stars = math.floor(d.rep / 20 + 0.5)
 	repLabel.Text = S.stars(stars) .. "  " .. math.floor(d.rep)
@@ -112,18 +113,18 @@ end
 
 function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
 	gui = screen
-	-- top-left: money, level, reputation
-	local card = Kit.panel(gui, { Name = "Stats", Size = UDim2.fromOffset(270, 104), Position = UDim2.fromOffset(16, 16), BackgroundTransparency = 0.12 })
+	-- top centre, in the free middle of Roblox's top bar: money | level and XP | reputation
+	-- (the corners belong to Roblox's menu, chat and player list, and on phones to the
+	-- thumbstick and jump button)
+	local card = Kit.panel(gui, { Name = "Stats", Size = UDim2.fromOffset(470, 50), Position = UDim2.new(0.5, 0, 0, 5), AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 0.12 })
 	Hud.register(card)
-	Kit.padding(card, 10)
-	Kit.label(card, "💰", { Size = UDim2.fromOffset(30, 34), TextSize = 26 })
-	moneyLabel = Kit.label(card, S.money(0), { Name = "Money", Size = UDim2.new(1, -36, 0, 34), Position = UDim2.fromOffset(36, 0), TextSize = 28, FontFace = Theme.heavy, TextColor3 = Theme.money })
-	levelLabel = Kit.label(card, "", { Size = UDim2.new(0.5, 0, 0, 20), Position = UDim2.fromOffset(0, 40), TextSize = 15, FontFace = Theme.bold })
-	repLabel = Kit.label(card, "", { Size = UDim2.new(0.5, 0, 0, 20), Position = UDim2.new(0.5, 0, 0, 40), TextSize = 15, TextColor3 = Theme.warn, TextXAlignment = Enum.TextXAlignment.Right })
-	xpBar = Kit.progress(card, { Position = UDim2.fromOffset(0, 66), Size = UDim2.new(1, 0, 0, 10) }, Theme.accent)
+	moneyLabel = Kit.label(card, S.money(0), { Name = "Money", Size = UDim2.fromOffset(185, 50), Position = UDim2.fromOffset(14, 0), TextSize = 24, FontFace = Theme.heavy, TextColor3 = Theme.money, TextWrapped = false })
+	levelLabel = Kit.label(card, "", { Size = UDim2.fromOffset(150, 20), Position = UDim2.fromOffset(204, 6), TextSize = 15, FontFace = Theme.bold, TextWrapped = false })
+	xpBar = Kit.progress(card, { Position = UDim2.fromOffset(204, 31), Size = UDim2.fromOffset(150, 9) }, Theme.accent)
+	repLabel = Kit.label(card, "", { Size = UDim2.fromOffset(104, 50), Position = UDim2.fromOffset(358, 0), TextSize = 14, TextColor3 = Theme.warn, TextXAlignment = Enum.TextXAlignment.Center, TextWrapped = false })
 
-	-- top-right: clock and weather
-	local clock = Kit.panel(gui, { Name = "Clock", Size = UDim2.fromOffset(170, 40), Position = UDim2.new(1, -186, 0, 16), BackgroundTransparency = 0.12 })
+	-- top-right, in the top bar: clock and weather
+	local clock = Kit.panel(gui, { Name = "Clock", Size = UDim2.fromOffset(176, 40), Position = UDim2.new(1, -192, 0, 9), BackgroundTransparency = 0.12 })
 	Hud.register(clock)
 	clockLabel = Kit.label(clock, "", { Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 18, FontFace = Theme.bold })
 	task.spawn(function()
@@ -135,10 +136,10 @@ function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
 		end
 	end)
 
-	-- bottom-right: quick buttons (also the only way in on touch screens)
-	local bar = Kit.frame(gui, { Name = "Quick", BackgroundTransparency = 1, Size = UDim2.fromOffset(420, 64), Position = UDim2.new(1, -16, 1, -16), AnchorPoint = Vector2.new(1, 1) })
+	-- left edge, above the minimap: quick buttons (also the only way in on touch screens)
+	local bar = Kit.frame(gui, { Name = "Quick", BackgroundTransparency = 1, Size = UDim2.fromOffset(64, 5 * 68), Position = UDim2.fromOffset(14, 140) })
 	Hud.register(bar)
-	Kit.listLayout(bar, 8, true, Enum.HorizontalAlignment.Right)
+	Kit.listLayout(bar, 8)
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	local defs = {
 		{ id = "home", icon = "🏠", key = "H" },
@@ -156,8 +157,9 @@ function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
 		Hud.buttons[d.id] = b
 	end
 
-	-- toasts: top centre
-	toastHolder = Kit.frame(gui, { Name = "Toasts", BackgroundTransparency = 1, Size = UDim2.fromOffset(560, 400), Position = UDim2.new(0.5, 0, 0, 16), AnchorPoint = Vector2.new(0.5, 0) })
+	-- toasts: top centre, under the stats bar
+	-- (above windows and the map, so purchases and alarms are always seen)
+	toastHolder = Kit.frame(gui, { Name = "Toasts", BackgroundTransparency = 1, Size = UDim2.fromOffset(500, 300), Position = UDim2.new(0.5, 0, 0, 62), AnchorPoint = Vector2.new(0.5, 0), ZIndex = 50 })
 	Kit.listLayout(toastHolder, 6, false, Enum.HorizontalAlignment.Center)
 
 	State.changed:Connect(refresh)
@@ -172,7 +174,7 @@ end
 
 -- Big centred banner (level ups, big payouts).
 function Hud.banner(text: string)
-	local l = Kit.label(gui, text, { Size = UDim2.fromOffset(700, 70), Position = UDim2.new(0.5, 0, 0.32, 0), AnchorPoint = Vector2.new(0.5, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 46, FontFace = Theme.heavy, TextColor3 = Theme.warn, TextStrokeTransparency = 0.3 })
+	local l = Kit.label(gui, text, { Size = UDim2.fromOffset(700, 70), Position = UDim2.new(0.5, 0, 0.32, 0), AnchorPoint = Vector2.new(0.5, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 46, FontFace = Theme.heavy, TextColor3 = Theme.warn, TextStrokeTransparency = 0.3, ZIndex = 50 })
 	local sc = Instance.new("UIScale")
 	sc.Scale = 0.4
 	sc.Parent = l

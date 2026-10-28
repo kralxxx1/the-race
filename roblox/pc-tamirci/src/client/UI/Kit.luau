@@ -390,7 +390,7 @@ function Kit.window(gui: ScreenGui, title: string, size: Vector2?, onClose: (() 
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Theme.panel,
-		BackgroundTransparency = 0.04,
+		BackgroundTransparency = 0,
 	})
 	local header = Kit.frame(root, { Name = "Header", Size = UDim2.new(1, 0, 0, 48), BackgroundTransparency = 1 })
 	local titleLabel = Kit.label(header, title, { Name = "Title", Size = UDim2.new(1, -70, 1, 0), Position = UDim2.fromOffset(16, 0), FontFace = Theme.heavy, TextSize = 22, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd })
@@ -444,17 +444,19 @@ function Kit.currentWindow()
 	return current
 end
 
--- A card row: icon, title, subtitle, right side area. Returns the frame and its right container.
-function Kit.row(parent: Instance, icon: string, title: string, sub: string?, props: { [string]: any }?)
+-- A card row: icon, title, subtitle, right side area (rightWidth px, default 220). Returns the
+-- frame and its right container.
+function Kit.row(parent: Instance, icon: string, title: string, sub: string?, props: { [string]: any }?, rightWidth: number?)
+	local rw = rightWidth or 220
 	local f = Kit.panel(parent, { Size = UDim2.new(1, 0, 0, 58), BackgroundColor3 = Theme.card })
 	Kit.outline(f, Theme.line, 1, 0.6)
 	apply(f, props)
 	Kit.label(f, icon, { Size = UDim2.fromOffset(40, 40), Position = UDim2.fromOffset(10, 9), TextSize = 26, TextXAlignment = Enum.TextXAlignment.Center })
-	Kit.label(f, title, { Name = "Title", Size = UDim2.new(1, -240, 0, 22), Position = UDim2.fromOffset(58, 8), FontFace = Theme.bold, TextSize = 16, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd })
+	Kit.label(f, title, { Name = "Title", Size = UDim2.new(1, -(rw + 20 + 58), 0, 22), Position = UDim2.fromOffset(58, 8), FontFace = Theme.bold, TextSize = 16, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd })
 	if sub then
-		Kit.label(f, sub, { Name = "Sub", Size = UDim2.new(1, -240, 0, 20), Position = UDim2.fromOffset(58, 30), TextColor3 = Theme.dim, TextSize = 14, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd })
+		Kit.label(f, sub, { Name = "Sub", Size = UDim2.new(1, -(rw + 20 + 58), 0, 20), Position = UDim2.fromOffset(58, 30), TextColor3 = Theme.dim, TextSize = 14, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd })
 	end
-	local right = Kit.frame(f, { Name = "Right", BackgroundTransparency = 1, Size = UDim2.new(0, 220, 1, -16), Position = UDim2.new(1, -228, 0, 8) })
+	local right = Kit.frame(f, { Name = "Right", BackgroundTransparency = 1, Size = UDim2.new(0, rw, 1, -16), Position = UDim2.new(1, -(rw + 8), 0, 8) })
 	Kit.listLayout(right, 6, true, Enum.HorizontalAlignment.Right)
 	return f, right
 end
