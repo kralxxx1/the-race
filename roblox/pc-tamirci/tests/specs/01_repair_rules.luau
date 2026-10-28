@@ -94,7 +94,7 @@ return function(T)
 				T.ok(#r.issues == 0, tier .. " issues: " .. table.concat(r.issues, ","))
 			end
 		end
-		for i = 1, 60 do
+		for _ = 1, 60 do
 			local dev = DeviceGen.laptop(rng)
 			local ok, missing = Rules.assembled(dev)
 			T.ok(ok, "laptop not assembled: " .. (missing[1] and (missing[1].id .. "/" .. missing[1].why) or "?"))
@@ -401,7 +401,7 @@ return function(T)
 		local v = Rules.view(dev)
 		T.ok(v.hidden == nil and v.faults == nil, "hidden leaked")
 		local sawCap = false
-		for id, f in v.visible do
+		for _, f in v.visible do
 			if f == "bulged" then
 				sawCap = true
 			end

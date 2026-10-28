@@ -88,6 +88,18 @@ local Config = {
 	UsedSellRate = 0.42, -- 2. ele satarken yeni fiyatın oranı (durumla çarpılır)
 	DailyPriceSwing = 0.12,
 
+	-- Sesler: Creator Store'dan bulduğunuz ses kimliklerini "rbxassetid://123" biçiminde yazın.
+	-- Boş bırakılan ses çalınmaz. (Ortam sesleri döngü halinde çalar.)
+	Sounds = {
+		AmbienceDay = "", -- gündüz: kuş cıvıltısı, uzak şehir uğultusu
+		AmbienceNight = "", -- gece: cırcır böcekleri
+		Rain = "", -- yağmur
+		Sea = "", -- dalga sesi (sahilde)
+		Music = "", -- rahatlatıcı arka plan müziği
+		Click = "rbxasset://sounds/clickfast.wav",
+		Cash = "rbxasset://sounds/electronicpingshort.wav",
+	},
+
 	-- Hata ayıklama: Studio'da her şeyi açık başlat
 	StudioDebugMoney = false,
 }

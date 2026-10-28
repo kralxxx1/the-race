@@ -247,6 +247,27 @@ end
 function DataService.start()
 	Players.PlayerAdded:Connect(onJoin)
 	Players.PlayerRemoving:Connect(onLeave)
+	-- language, volumes and tutorial progress from the phone
+	Net.handle("settings.set", function(player, payload)
+		local p = profiles[player]
+		if not p or not Net.V.tbl(payload) then
+			return { ok = false }
+		end
+		if payload.lang == "tr" or payload.lang == "en" then
+			p.lang = payload.lang
+		end
+		if Net.V.num(payload.music, 0, 1) then
+			p.settings.music = payload.music
+		end
+		if Net.V.num(payload.sfx, 0, 1) then
+			p.settings.sfx = payload.sfx
+		end
+		if Net.V.int(payload.tutorial, 0, 99) then
+			p.tutorial = payload.tutorial
+		end
+		DataService.touch(player)
+		return { ok = true }
+	end)
 	for _, p in Players:GetPlayers() do
 		task.spawn(onJoin, p)
 	end

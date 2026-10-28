@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Net = require(Shared.Net)
+local Signal = require(Shared.Util.Signal)
 local Parts = require(Shared.Data.Parts)
 local Tools = require(Shared.Data.Tools)
 local Rules = require(Shared.Repair.RepairRules)
@@ -31,6 +32,7 @@ local Theme = require(Client.UI.Theme)
 local BenchViews = require(script.Parent.BenchViews)
 
 local BenchController = {}
+BenchController.acted = Signal.new() -- (action, result) after every successful bench action
 
 local player = Players.LocalPlayer
 
@@ -50,6 +52,8 @@ local dragMoved = 0
 local conns = {}
 
 local TIMED = Config.HoldActionSeconds
+
+local build -- builds the bench UI (defined below)
 
 ----------------------------------------------------------------------------------------------------
 -- helpers
@@ -238,6 +242,12 @@ local function log(text: string, color: Color3?)
 	end
 end
 
+local function setAdornee(target: Instance?)
+	if highlight.Adornee ~= target then
+		highlight.Adornee = target
+	end
+end
+
 local function setHint(text: string?, ok: boolean?)
 	if not ui.hint then
 		return
@@ -257,7 +267,7 @@ local function selectTool(id: string)
 	end
 	toolId = id
 	for tid, b in ui.toolButtons or {} do
-		b.BackgroundColor3 = if tid == id then Theme.accent else Theme.card
+		Kit.setColor(b, if tid == id then Theme.accent else Theme.card)
 	end
 	if toolModel then
 		toolModel:Destroy()
@@ -340,7 +350,7 @@ local function refreshDiag()
 		ui.unload.Visible = has
 	end
 	if ui.strap and v then
-		ui.strap.BackgroundColor3 = if v.strap then Theme.good else Theme.card
+		Kit.setColor(ui.strap, if v.strap then Theme.good else Theme.card)
 	end
 end
 
@@ -428,6 +438,7 @@ local function send(action: string, target: string?, args: { [string]: any }?, t
 	if r.ok then
 		showResult(r)
 		refreshDiag()
+		BenchController.acted:Fire(action, r)
 	else
 		local msg = if r.reason then Rules.message(r.reason, lang(), r.vars) else S.err(r.err)
 		setHint(msg, false)
@@ -644,7 +655,7 @@ end
 local function updateHover()
 	local v = view()
 	if not v or busy or holding or Kit.currentWindow() then
-		highlight.Adornee = nil
+		setAdornee(nil)
 		setHint(nil)
 		if toolModel then
 			toolModel:PivotTo(CFrame.new(0, -500, 0))
@@ -654,7 +665,7 @@ local function updateHover()
 	local id, pos, normal = pick()
 	if not id then
 		hover = nil
-		highlight.Adornee = nil
+		setAdornee(nil)
 		setHint(S.t("bench_hint_pick"), true)
 		if toolModel then
 			toolModel:PivotTo(CFrame.new(0, -500, 0))
@@ -665,7 +676,7 @@ local function updateHover()
 	hover = { id = id, c = c, ok = ok, pos = pos, normal = normal }
 	local h = handle()
 	local nodeModel = h and h.recs[id] and h.recs[id].model or (h and h.cables[id])
-	highlight.Adornee = nodeModel
+	setAdornee(nodeModel)
 	highlight.OutlineColor = if c and ok then Theme.good elseif c then Theme.bad else Theme.dim
 	local name = nodeLabel(v, id)
 	local pname = partName(v, id)
@@ -728,7 +739,7 @@ local function exit()
 	conns = {}
 	ui.root.Visible = false
 	ui.pickerFrame.Visible = false
-	highlight.Adornee = nil
+	setAdornee(nil)
 	if toolModel then
 		toolModel:Destroy()
 		toolModel = nil
@@ -752,6 +763,12 @@ local function enter(data)
 		return
 	end
 	exit()
+	-- the language was changed on the phone: rebuild the panels
+	if ui.lang ~= S.lang() then
+		ui.root:Destroy()
+		highlight:Destroy()
+		build()
+	end
 	active = { bench = data.bench, model = model, job = data.job }
 	if data.view then
 		BenchViews.apply(model, data.view, data.rev)
@@ -821,7 +838,8 @@ local function softwareMenu()
 	end
 end
 
-local function build()
+function build()
+	ui.lang = S.lang()
 	ui.diag = {}
 	local root = Kit.frame(gui, { Name = "Bench", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Visible = false })
 	ui.root = root
@@ -1081,5 +1099,14 @@ end
 -- tests: drive the bench without input
 BenchController._candidates = candidates
 BenchController._resolve = resolve
+BenchController._view = view
+function BenchController._act(id: string, tid: string)
+	local v = view()
+	local c, ok = resolve(v, id, tid)
+	if c and ok then
+		perform(id, c, tid)
+	end
+	return c, ok
+end
 
 return BenchController

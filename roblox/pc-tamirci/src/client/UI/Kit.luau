@@ -8,6 +8,7 @@ local Workspace = game:GetService("Workspace")
 local Theme = require(script.Parent.Theme)
 
 local Kit = {}
+Kit.clickSound = nil :: (() -> ())? -- set by the client entry point
 
 local player = Players.LocalPlayer
 
@@ -40,6 +41,18 @@ function Kit.stroke(parent: Instance, color: Color3?, thickness: number?, transp
 	s.Transparency = transparency or 0.3
 	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	s.Parent = parent
+	return s
+end
+
+-- Sets the (single) outline of a GUI object, creating it when missing.
+function Kit.outline(obj: Instance, color: Color3, thickness: number?, transparency: number?)
+	local s = obj:FindFirstChildOfClass("UIStroke")
+	if not s then
+		return Kit.stroke(obj, color, thickness, transparency)
+	end
+	s.Color = color
+	s.Thickness = thickness or 1
+	s.Transparency = transparency or 0.3
 	return s
 end
 
@@ -106,10 +119,15 @@ function Kit.panel(parent: Instance?, props: { [string]: any }?): Frame
 	return f
 end
 
+-- Rich text needs a lone "&" escaped ("Parts & Tools").
+function Kit.esc(text: string): string
+	return (string.gsub(text, "&(%s)", "&amp;%1"))
+end
+
 function Kit.label(parent: Instance?, text: string, props: { [string]: any }?): TextLabel
 	local l = Instance.new("TextLabel")
 	l.BackgroundTransparency = 1
-	l.Text = text
+	l.Text = Kit.esc(text)
 	l.TextColor3 = Theme.text
 	l.FontFace = Theme.font
 	l.TextSize = 16
@@ -149,27 +167,41 @@ function Kit.button(parent: Instance?, text: string, onClick: (() -> ())?, props
 	end
 	Kit.corner(b, Theme.radiusSmall)
 	apply(b, props)
-	local hover = base:Lerp(Color3.new(1, 1, 1), 0.12)
+	-- hover effects follow the current base colour (tabs and tool bars recolour their buttons)
+	b:SetAttribute("BaseColor", b.BackgroundColor3)
+	local function baseOf(): Color3
+		local c = b:GetAttribute("BaseColor")
+		return if typeof(c) == "Color3" then c else base
+	end
 	b.MouseEnter:Connect(function()
 		if b.Active then
-			Kit.tween(b, { BackgroundColor3 = hover }, 0.1)
+			Kit.tween(b, { BackgroundColor3 = baseOf():Lerp(Color3.new(1, 1, 1), 0.12) }, 0.1)
 		end
 	end)
 	b.MouseLeave:Connect(function()
-		Kit.tween(b, { BackgroundColor3 = base }, 0.12)
+		Kit.tween(b, { BackgroundColor3 = baseOf() }, 0.12)
 	end)
 	b.MouseButton1Down:Connect(function()
-		Kit.tween(b, { BackgroundColor3 = base:Lerp(Color3.new(0, 0, 0), 0.15) }, 0.06)
+		Kit.tween(b, { BackgroundColor3 = baseOf():Lerp(Color3.new(0, 0, 0), 0.15) }, 0.06)
 	end)
 	if onClick then
 		b.Activated:Connect(function()
 			if b.Active then
+				if Kit.clickSound then
+					Kit.clickSound()
+				end
 				onClick()
 			end
 		end)
 	end
 	b.Parent = parent
 	return b
+end
+
+-- Recolours a Kit button (keeps its hover effect in step).
+function Kit.setColor(b: GuiButton, color: Color3)
+	b:SetAttribute("BaseColor", color)
+	b.BackgroundColor3 = color
 end
 
 function Kit.setEnabled(b: GuiButton, on: boolean)
@@ -296,7 +328,7 @@ function Kit.tabs(parent: Instance, tabs: { { id: string, text: string } }, onSe
 	function api.select(id: string)
 		for tid, b in buttons do
 			local on = tid == id
-			b.BackgroundColor3 = if on then Theme.accent else Theme.card
+			Kit.setColor(b, if on then Theme.accent else Theme.card)
 			b.TextColor3 = if on then Color3.new(1, 1, 1) else Theme.dim
 		end
 		onSelect(id)
@@ -312,6 +344,32 @@ function Kit.tabs(parent: Instance, tabs: { { id: string, text: string } }, onSe
 	end
 	api.bar = bar
 	api.buttons = buttons
+	return api
+end
+
+-- Vertical tab list (store categories). Returns { frame, select(id), buttons }.
+function Kit.sidebar(parent: Instance, tabs: { { id: string, text: string } }, onSelect: (string) -> (), props: { [string]: any }?)
+	local bar = Kit.list(parent, { Size = UDim2.new(0, 190, 1, 0) }, 4)
+	apply(bar, props)
+	local buttons = {}
+	local api = { frame = bar, buttons = buttons }
+	function api.select(id: string)
+		for tid, b in buttons do
+			local on = tid == id
+			Kit.setColor(b, if on then Theme.accent else Theme.card)
+			b.TextColor3 = if on then Color3.new(1, 1, 1) else Theme.text
+		end
+		onSelect(id)
+	end
+	for i, t in tabs do
+		local b = Kit.button(bar, t.text, function()
+			api.select(t.id)
+		end, { Size = UDim2.new(1, 0, 0, 36), LayoutOrder = i, TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left })
+		local pad = Instance.new("UIPadding")
+		pad.PaddingLeft = UDim.new(0, 10)
+		pad.Parent = b
+		buttons[t.id] = b
+	end
 	return api
 end
 
@@ -389,7 +447,7 @@ end
 -- A card row: icon, title, subtitle, right side area. Returns the frame and its right container.
 function Kit.row(parent: Instance, icon: string, title: string, sub: string?, props: { [string]: any }?)
 	local f = Kit.panel(parent, { Size = UDim2.new(1, 0, 0, 58), BackgroundColor3 = Theme.card })
-	Kit.stroke(f, Theme.line, 1, 0.6)
+	Kit.outline(f, Theme.line, 1, 0.6)
 	apply(f, props)
 	Kit.label(f, icon, { Size = UDim2.fromOffset(40, 40), Position = UDim2.fromOffset(10, 9), TextSize = 26, TextXAlignment = Enum.TextXAlignment.Center })
 	Kit.label(f, title, { Name = "Title", Size = UDim2.new(1, -240, 0, 22), Position = UDim2.fromOffset(58, 8), FontFace = Theme.bold, TextSize = 16, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd })

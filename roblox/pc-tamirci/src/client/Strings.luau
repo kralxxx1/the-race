@@ -193,6 +193,7 @@ local T = {
 	shop_upgrade = { "Büyüt: {name} — {price}", "Expand: {name} — {price}" },
 	shop_max = { "Dükkânın en büyük seviyede!", "Your shop is at the top level!" },
 	shop_items = { "Eşyalar", "Items" },
+	shop_expand_tab = { "Büyüt", "Expand" },
 	shop_looks = { "Görünüm", "Looks" },
 	shop_rename = { "Dükkân Adı", "Shop Name" },
 	shop_benches = { "{n} tezgâh • {q} sıra • {s} koltuk • {st} personel", "{n} benches • {q} queue • {s} seats • {st} staff" },
@@ -272,6 +273,93 @@ local T = {
 	reason_stuck = { "çözemedi", "couldn't solve it" },
 	level_up = { "🎉 Seviye atladın! Seviye {n}", "🎉 Level up! Level {n}" },
 
+	-- customer dialog (more)
+	talk_taken = { "İş alındı: {device} • {price}", "Job taken: {device} • {price}" },
+	talk_more = { "Daha fazla iste:", "Ask for more:" },
+	talk_tools_ok = { "Gereken aletler sende var.", "You have every tool this needs." },
+	talk_retail = { "Mağaza fiyatı: {price}", "Store price: {price}" },
+	talk_deal = { "Anlaştınız: {price}", "Deal at {price}" },
+	talk_quote = { "“{text}”", "“{text}”" },
+	talk_bought = { "Satın aldın: {name}", "You bought: {name}" },
+
+	-- stores (more)
+	store_bazaar_hint = { "Eski nesil parçalar %28 daha ucuz ama bazıları kusurlu çıkabilir.", "Older-generation parts, 28% cheaper, but some turn out faulty." },
+	store_used_hint = { "İkinci el: ucuz ama gizli arıza riski var. Satarken bayi test eder.", "Second-hand: cheap, but parts may hide faults. The dealer tests what you sell." },
+	store_scrap_hint = { "Hurda kasaların içinden ne çıkacağı belli değil. Her parçayı hurda fiyatına satabilirsin.", "Nobody knows what's inside a junk PC. You can sell any part here for scrap." },
+	store_tools_hint = { "İyi alet, hızlı ve temiz iş demek.", "Good tools mean fast, clean work." },
+	store_police_text = { "Yakaladığın hırsızların ödülü anında ödenir.\n\nYakalanan hırsız: {caught}\nUğradığın soygun: {robbed}", "Bounties for thieves you catch are paid on the spot.\n\nThieves caught: {caught}\nRobberies suffered: {robbed}" },
+	store_realty_hint = { "Kiralık bir dükkânın tabelasına basarak oraya taşınabilirsin. Dükkânın her şeyiyle taşınır.", "Use the 'for rent' sign of a free shop to move there. Everything moves with you." },
+	store_sell_none = { "Satacak parçan yok.", "You have no parts to sell." },
+	board_you = { "(sen)", "(you)" },
+	stock_uses = { "{n} kullanım", "{n} uses" },
+	per_unit = { "adet", "each" },
+	consumable = { "Sarf", "Consumable" },
+	sold_out = { "Tükendi", "Sold out" },
+
+	-- inventory
+	inv_parts = { "Parçalar", "Parts" },
+	inv_stock = { "Sarf Malzemesi", "Consumables" },
+	inv_tools = { "Aletler", "Tools" },
+	origin_new = { "Sıfır", "New" },
+	origin_used = { "2. el", "Used" },
+	origin_bazaar = { "Çarşı", "Bazaar" },
+	origin_removed = { "Sökülen", "Salvaged" },
+	origin_shady = { "Kaçak", "Shady" },
+	origin_tray = { "Tepsi", "Tray" },
+	broken_known = { "Arızalı (test edildi)", "Faulty (tested)" },
+
+	-- jobs (more)
+	job_status_waiting = { "Sırada", "Queued" },
+	job_status_bench = { "Tezgâhta", "On bench" },
+	job_status_ready = { "Teslimat", "Pickup" },
+	job_resale = { "Satış değeri: {price}", "Resale value: {price}" },
+	job_sold = { "Proje satıldı: {price}", "Project sold for {price}" },
+	job_count = { "{n} iş", "{n} jobs" },
+
+	-- staff (more)
+	staff_none = { "Henüz çalışanın yok.", "No staff yet." },
+	staff_needs_shop = { "Dükkân seviyesi {n} gerekli", "Needs shop level {n}" },
+	staff_hired = { "{name} işe başladı!", "{name} started working!" },
+	staff_fired = { "{name} işten ayrıldı.", "{name} left." },
+
+	-- vehicles (more)
+	garage_title = { "Araçlarım", "My Vehicles" },
+	vehicle_seats = { "{n} kişilik", "{n} seats" },
+	vehicle_color = { "Renk seç", "Pick a colour" },
+	vehicle_called = { "Aracın yolun kenarında!", "Your ride is by the road!" },
+	drive_hint = { "W/S gaz-fren • A/D direksiyon • Boşluk: in", "W/S throttle • A/D steer • Space: get out" },
+
+	-- phone
+	phone_shop = { "Dükkân", "Shop" },
+	phone_staff = { "Ekibim", "My Team" },
+	phone_garage = { "Garaj", "Garage" },
+	phone_daily = { "Günlük Ödül", "Daily Reward" },
+	phone_stats = { "İstatistik", "Stats" },
+	phone_reviews = { "Yorumlar", "Reviews" },
+	phone_settings = { "Ayarlar", "Settings" },
+	phone_help = { "Nasıl Oynanır", "How to Play" },
+	reviews_none = { "Henüz yorum yok.", "No reviews yet." },
+	settings_lang = { "Dil / Language", "Language / Dil" },
+	settings_music = { "Müzik sesi", "Music volume" },
+	settings_sfx = { "Efekt sesi", "Effects volume" },
+	help_text = {
+		"<b>1.</b> Tezgâhın önündeki müşteriyle konuş (E), pazarlık et, işi al.\n<b>2.</b> Tezgâha otur, işi yükle. Aleti seç (1-0), parçanın üzerine gel: yeşil = yapılabilir, kırmızı = neden olmadığını yazar.\n<b>3.</b> Vidaları sök, kabloları çıkar, arızalı parçayı bul. Güç, stres, POST kartı ve USB araçlarıyla test et.\n<b>4.</b> Parça lazımsa Mega Parça Deposu, Çarşı Parçacısı veya 2. El Pazarı'ndan al. Taksi ya da kendi aracınla git (M: harita).\n<b>5.</b> Her şeyi geri tak, işi bitir; müşteri gelip öder. Para ile dükkânı büyüt, alet ve araç al, personel tut.\n<b>Dikkat:</b> Hırsız ve dolandırıcıları F ile yakala! Bileklik takmadan kartlara dokunma.",
+		"<b>1.</b> Talk to the customer at the counter (E), haggle, take the job.\n<b>2.</b> Sit at your bench and load the job. Pick a tool (1-0) and hover a part: green = possible, red tells you why not.\n<b>3.</b> Undo screws, unplug cables and find the faulty part. Test with power, stress test, POST card and USB tools.\n<b>4.</b> Need parts? Mega Parts Depot, the Bazaar stall or the Second-hand Market. Take a taxi or your own ride (M: map).\n<b>5.</b> Put everything back, finish the job and the customer pays. Expand your shop, buy tools and vehicles, hire staff.\n<b>Watch out:</b> catch thieves and scammers with F! Don't touch cards without your wrist strap.",
+	},
+
+	-- tutorial
+	tut_1 = { "👋 Hoş geldin usta! Dükkânına bir müşteri gelecek. Tezgâhın önünde onunla konuş (E).", "👋 Welcome! A customer will come to your shop. Talk to them at the counter (E)." },
+	tut_2 = { "🧰 Harika! Şimdi tezgâha otur (E) ve işi tezgâha al.", "🧰 Great! Now sit at your bench (E) and load the job." },
+	tut_3 = { "🔍 Önce Güç ile cihazı dene, sonra aleti seçip (1-0) parçaların üzerine gel. Sağ tık: tüm seçenekler.", "🔍 Try Power first, then pick a tool (1-0) and hover parts. Right click: every option." },
+	tut_4 = { "✅ Arızayı giderince her şeyi geri tak ve 'İşi Bitir'e bas.", "✅ Once it's fixed, put everything back and press 'Finish Job'." },
+	tut_5 = { "💰 Parayla alet, parça ve araç al; dükkânını büyüt. Harita için M'ye bas. İyi işler!", "💰 Spend on tools, parts and vehicles; grow your shop. Press M for the map. Good luck!" },
+	tut_skip = { "Geç", "Skip" },
+
+	-- misc
+	travel_home = { "Dükkâna ışınlanıyorsun...", "Heading back to your shop..." },
+	taxi_paid = { "🚕 Taksi: {fare}", "🚕 Taxi: {fare}" },
+	daily_ready = { "🎁 Günlük ödülün hazır! (Telefon)", "🎁 Your daily reward is ready! (Phone)" },
+
 	-- errors
 	e_money = { "Yeterli paran yok.", "Not enough money." },
 	e_storage = { "Depon dolu! Parça sat ya da raf al.", "Storage full! Sell parts or buy shelving." },
@@ -286,6 +374,23 @@ local T = {
 	e_too_fast = { "Yavaş ol!", "Slow down!" },
 	e_rate_limited = { "Çok hızlı tıklıyorsun.", "You're clicking too fast." },
 	e_network = { "Bağlantı sorunu, tekrar dene.", "Connection problem, try again." },
+	e_gone = { "Müşteri gitti.", "The customer left." },
+	e_not_sold_here = { "Bu parça burada satılmıyor.", "That part isn't sold here." },
+	e_jobs_full = { "İş listen dolu! Önce bazılarını bitir.", "Your job list is full! Finish some first." },
+	e_claimed = { "Bugünkü ödülü zaten aldın.", "You already claimed today's reward." },
+	e_already = { "Bu zaten var.", "Already done." },
+	e_internal = { "Sunucu hatası, tekrar dene.", "Server error, try again." },
+	e_not_owned = { "Bu araç sende yok.", "You don't own that vehicle." },
+	e_wait = { "Biraz bekle.", "Wait a moment." },
+	e_filter = { "Bu isim kullanılamaz.", "That name can't be used." },
+	e_max = { "En üst seviyedesin.", "Already at the top level." },
+	e_not_sellable = { "Bu iş satılamaz.", "That job can't be sold." },
+	e_no_job = { "Tezgâhta iş yok.", "There's no job on the bench." },
+	e_no_session = { "Önce tezgâha otur.", "Sit at a bench first." },
+	e_busy = { "Bu iş başka bir tezgâhta.", "That job is on another bench." },
+	e_bench_busy = { "Tezgâh dolu.", "The bench is busy." },
+	e_not_found = { "Bulunamadı.", "Not found." },
+	e_bad = { "Geçersiz istek.", "Invalid request." },
 	e_generic = { "Olmadı: {err}", "That didn't work: {err}" },
 }
 

@@ -12,6 +12,14 @@ local State = require(script.Parent.Parent.State)
 local Hud = {}
 Hud.buttons = {} :: { [string]: TextButton }
 
+-- Elements that hide together with the HUD (while working at a bench): the HUD's own panels
+-- plus anything other modules register (minimap, GPS, tutorial...).
+local hideable: { GuiObject } = {}
+
+function Hud.register(obj: GuiObject)
+	table.insert(hideable, obj)
+end
+
 local gui: ScreenGui
 local toastHolder: Frame
 local moneyLabel: TextLabel
@@ -35,7 +43,7 @@ function Hud.toast(text: string, kind: string?, seconds: number?)
 	local color = if kind == "good" then Theme.good elseif kind == "bad" then Theme.bad elseif kind == "warn" then Theme.accent2 else Theme.accent
 	shown += 1
 	local f = Kit.panel(toastHolder, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.panel, BackgroundTransparency = 0.05, LayoutOrder = -shown })
-	Kit.stroke(f, color, 2, 0.1)
+	Kit.outline(f, color, 2, 0.1)
 	Kit.padding(f, 10)
 	Kit.label(f, text, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 17, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Center })
 	f.BackgroundTransparency = 1
@@ -106,6 +114,7 @@ function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
 	gui = screen
 	-- top-left: money, level, reputation
 	local card = Kit.panel(gui, { Name = "Stats", Size = UDim2.fromOffset(270, 104), Position = UDim2.fromOffset(16, 16), BackgroundTransparency = 0.12 })
+	Hud.register(card)
 	Kit.padding(card, 10)
 	Kit.label(card, "💰", { Size = UDim2.fromOffset(30, 34), TextSize = 26 })
 	moneyLabel = Kit.label(card, S.money(0), { Name = "Money", Size = UDim2.new(1, -36, 0, 34), Position = UDim2.fromOffset(36, 0), TextSize = 28, FontFace = Theme.heavy, TextColor3 = Theme.money })
@@ -115,6 +124,7 @@ function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
 
 	-- top-right: clock and weather
 	local clock = Kit.panel(gui, { Name = "Clock", Size = UDim2.fromOffset(170, 40), Position = UDim2.new(1, -186, 0, 16), BackgroundTransparency = 0.12 })
+	Hud.register(clock)
 	clockLabel = Kit.label(clock, "", { Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 18, FontFace = Theme.bold })
 	task.spawn(function()
 		while gui.Parent do
@@ -127,6 +137,7 @@ function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
 
 	-- bottom-right: quick buttons (also the only way in on touch screens)
 	local bar = Kit.frame(gui, { Name = "Quick", BackgroundTransparency = 1, Size = UDim2.fromOffset(420, 64), Position = UDim2.new(1, -16, 1, -16), AnchorPoint = Vector2.new(1, 1) })
+	Hud.register(bar)
 	Kit.listLayout(bar, 8, true, Enum.HorizontalAlignment.Right)
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	local defs = {
@@ -173,11 +184,24 @@ function Hud.banner(text: string)
 	end)
 end
 
+local shown: { [GuiObject]: boolean } = {}
+
 function Hud.setVisible(on: boolean)
-	for _, c in gui:GetChildren() do
-		if c:IsA("GuiObject") and c.Name ~= "Toasts" then
-			c.Visible = on
+	for _, obj in hideable do
+		if obj.Parent then
+			if on then
+				-- restore what was showing (the GPS panel may have been hidden on purpose)
+				if shown[obj] ~= nil then
+					obj.Visible = shown[obj]
+				end
+			else
+				shown[obj] = obj.Visible
+				obj.Visible = false
+			end
 		end
+	end
+	if on then
+		table.clear(shown)
 	end
 end
 

@@ -940,7 +940,9 @@ function Engine.load(placePath: string)
 		t.Name = "Terrain"
 		t.Parent = Engine.workspace
 	end
+	-- server and client get their own module instances (like two machines would)
 	Engine.cache = {}
+	Engine.clientCache = {}
 	return game
 end
 
@@ -957,7 +959,38 @@ local function warnFn(...)
 end
 Engine.warnings = {}
 
-local function makeEnv(scriptInst)
+-- Game code's task library: errors in spawned/deferred/delayed functions are recorded in
+-- Mock.errors (Roblox would print them to the output) so specs can assert there were none.
+local function guarded(f)
+	if type(f) ~= "function" then
+		return f
+	end
+	return function(...)
+		local ok, err = xpcall(f, debug.traceback, ...)
+		if not ok then
+			Mock.errors = Mock.errors or {}
+			table.insert(Mock.errors, tostring(err))
+			print("[task error] " .. tostring(err))
+		end
+	end
+end
+local gameTask = {
+	spawn = function(f, ...)
+		return task.spawn(guarded(f), ...)
+	end,
+	defer = function(f, ...)
+		return task.defer(guarded(f), ...)
+	end,
+	delay = function(t, f, ...)
+		return task.delay(t, guarded(f), ...)
+	end,
+	wait = task.wait,
+	cancel = task.cancel,
+	synchronize = function() end,
+	desynchronize = function() end,
+}
+
+local function makeEnv(scriptInst, realm: string)
 	local env = {
 		script = scriptInst,
 		game = Engine.game,
@@ -990,7 +1023,7 @@ local function makeEnv(scriptInst)
 		RaycastParams = Mock.RaycastParams,
 		OverlapParams = Mock.OverlapParams,
 		DateTime = Mock.DateTime,
-		task = task,
+		task = gameTask,
 		tick = function()
 			return os.time() + (os.clock() % 1)
 		end,
@@ -998,8 +1031,8 @@ local function makeEnv(scriptInst)
 			return os.clock()
 		end,
 		wait = task.wait,
-		delay = task.delay,
-		spawn = task.spawn,
+		delay = gameTask.delay,
+		spawn = gameTask.spawn,
 		warn = warnFn,
 		print = function(...)
 			if Engine.verbose then
@@ -1010,16 +1043,20 @@ local function makeEnv(scriptInst)
 		shared = {},
 	}
 	env.require = function(target)
-		return Engine.require(target)
+		return Engine.require(target, realm)
 	end
 	return env
 end
 
-function Engine.require(ms)
+-- realm: "server" (default) or "client"; each realm has its own module cache, and RunService
+-- reports the realm while a module's top level runs (Net decides its side there).
+function Engine.require(ms, realm: string?)
 	if typeof(ms) ~= "Instance" or not ms:IsA("ModuleScript") then
 		error("require() expects a ModuleScript, got " .. typeof(ms))
 	end
-	local cached = Engine.cache[ms]
+	local r = realm or "server"
+	local cache = if r == "client" then Engine.clientCache else Engine.cache
+	local cached = cache[ms]
 	if cached then
 		if cached.loading then
 			error("cyclic require: " .. ms:GetFullName())
@@ -1027,11 +1064,14 @@ function Engine.require(ms)
 		return cached.value
 	end
 	local entry = { loading = true }
-	Engine.cache[ms] = entry
-	local fn = luau.load(ms.Source, { debugName = ms:GetFullName(), environment = makeEnv(ms), injectGlobals = true })
+	cache[ms] = entry
+	local fn = luau.load(ms.Source, { debugName = ms:GetFullName(), environment = makeEnv(ms, r), injectGlobals = true })
+	local prev = Engine.context
+	Engine.context = r
 	local ok, value = pcall(fn)
+	Engine.context = prev
 	if not ok then
-		Engine.cache[ms] = nil
+		cache[ms] = nil
 		error(string.format("error loading %s: %s", ms:GetFullName(), tostring(value)), 0)
 	end
 	entry.loading = false
@@ -1039,9 +1079,10 @@ function Engine.require(ms)
 	return value
 end
 
--- Runs a Script / LocalScript's source in its own thread.
+-- Runs a Script / LocalScript's source (LocalScripts in the client realm).
 function Engine.runScript(s)
-	local fn = luau.load(s.Source, { debugName = s:GetFullName(), environment = makeEnv(s), injectGlobals = true })
+	local realm = if s:IsA("LocalScript") then "client" else "server"
+	local fn = luau.load(s.Source, { debugName = s:GetFullName(), environment = makeEnv(s, realm), injectGlobals = true })
 	local ok, err = pcall(fn)
 	if not ok then
 		error(string.format("error running %s: %s", s:GetFullName(), tostring(err)), 0)
