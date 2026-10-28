@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PC Tamircisi Preview</title>
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#9cc8e8}canvas{display:block}</style>
+</head>
+<body>
+<script type="importmap">{ "imports": { "three": "/node_modules/three/build/three.module.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
+
+const q = new URLSearchParams(location.search);
+const file = q.get('file') || 'world';
+const W = +(q.get('w') || 1280), H = +(q.get('h') || 720);
+const night = q.get('night') === '1';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(1);
+renderer.shadowMap.enabled = q.get('shadows') !== '0';
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = night ? 0.7 : 1.05;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(night ? 0x0b1530 : 0x9cc8e8);
+scene.fog = new THREE.Fog(scene.background, 900, 3200);
+
+const hemi = new THREE.HemisphereLight(night ? 0x334466 : 0xdfefff, night ? 0x111111 : 0x6b6450, night ? 0.35 : 1.0);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(night ? 0x8899cc : 0xfff1d6, night ? 0.25 : 2.2);
+sun.position.set(-600, 900, 500);
+sun.castShadow = renderer.shadowMap.enabled;
+sun.shadow.mapSize.set(4096, 4096);
+const sc = sun.shadow.camera;
+sc.left = -1700; sc.right = 1700; sc.top = 1700; sc.bottom = -1700; sc.near = 10; sc.far = 3000;
+sun.shadow.bias = -0.0005;
+scene.add(sun);
+
+const data = await (await fetch(`out/${file}.json`)).json();
+
+// unit geometries in Roblox conventions
+const box = new THREE.BoxGeometry(1, 1, 1);
+const ball = new THREE.SphereGeometry(0.5, 20, 14);
+const cyl = new THREE.CylinderGeometry(0.5, 0.5, 1, 24);
+cyl.rotateZ(Math.PI / 2); // Roblox cylinders run along X
+// wedge: full height at +Z (back), slope down to the front (-Z)
+const wedge = new THREE.BufferGeometry();
+{
+  const v = [
+    // bottom
+    -0.5,-0.5,-0.5,  0.5,-0.5,-0.5,  0.5,-0.5,0.5,   -0.5,-0.5,-0.5,  0.5,-0.5,0.5,  -0.5,-0.5,0.5,
+    // back
+    -0.5,-0.5,0.5,  0.5,-0.5,0.5,  0.5,0.5,0.5,   -0.5,-0.5,0.5,  0.5,0.5,0.5,  -0.5,0.5,0.5,
+    // slope (front-top)
+    -0.5,-0.5,-0.5,  -0.5,0.5,0.5,  0.5,0.5,0.5,   -0.5,-0.5,-0.5,  0.5,0.5,0.5,  0.5,-0.5,-0.5,
+    // left
+    -0.5,-0.5,-0.5,  -0.5,-0.5,0.5,  -0.5,0.5,0.5,
+    // right
+    0.5,-0.5,-0.5,  0.5,0.5,0.5,  0.5,-0.5,0.5,
+  ];
+  wedge.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+  wedge.computeVertexNormals();
+}
+const geos = { box, ball, cyl, wedge, cwedge: box };
+
+const metal = new Set(['Metal', 'DiamondPlate', 'CorrodedMetal', 'Foil']);
+function matKey(p) {
+  if (p.m === 'Neon') return 'neon';
+  if (p.m === 'Glass' || p.t > 0.05) return 'glass';
+  if (metal.has(p.m)) return 'metal';
+  if (p.m === 'SmoothPlastic' || p.m === 'Marble') return 'smooth';
+  return 'matte';
+}
+const materials = {
+  neon: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: night ? 1.6 : 0.6, roughness: 0.6 }),
+  glass: new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, roughness: 0.08, metalness: 0.35, depthWrite: false }),
+  metal: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.42, metalness: 0.55 }),
+  smooth: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45, metalness: 0.05 }),
+  matte: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: 0.0 }),
+};
+if (night) {
+  // lit windows / lamps only glow at night in the game: show NightWindow-like neon brighter
+}
+
+const groups = new Map();
+const clip = q.get('clip') ? +q.get('clip') : Infinity; // cutaway: drop parts above this height
+for (const p of data.parts) {
+  if (!night && p.m === 'Neon' && p.t > 0.9) continue;
+  if (p.p[1] > clip) continue;
+  const key = p.s + '|' + matKey(p);
+  if (!groups.has(key)) groups.set(key, []);
+  groups.get(key).push(p);
+}
+const m4 = new THREE.Matrix4(), col = new THREE.Color();
+for (const [key, list] of groups) {
+  const [shape, mk] = key.split('|');
+  const mesh = new THREE.InstancedMesh(geos[shape] || box, materials[mk], list.length);
+  list.forEach((p, i) => {
+    const [x, y, z] = p.p, r = p.r, s = p.z;
+    m4.set(
+      r[0] * s[0], r[1] * s[1], r[2] * s[2], x,
+      r[3] * s[0], r[4] * s[1], r[5] * s[2], y,
+      r[6] * s[0], r[7] * s[1], r[8] * s[2], z,
+      0, 0, 0, 1);
+    mesh.setMatrixAt(i, m4);
+    col.set('#' + p.c);
+    if (mk === 'glass') col.lerp(new THREE.Color(0x9ec9e0), 0.25);
+    mesh.setColorAt(i, col);
+  });
+  mesh.castShadow = mk !== 'glass' && mk !== 'neon';
+  mesh.receiveShadow = true;
+  mesh.instanceMatrix.needsUpdate = true;
+  scene.add(mesh);
+}
+
+// approximate terrain
+if (data.terrain) {
+  const t = data.terrain, b = t.bounds;
+  const land = new THREE.Mesh(new THREE.PlaneGeometry(b.maxX - b.minX + 400, t.seaZ - b.minZ + 400), new THREE.MeshStandardMaterial({ color: 0x5f8c46, roughness: 1 }));
+  land.rotation.x = -Math.PI / 2;
+  land.position.set(0, -0.02, (t.seaZ + b.minZ - 400) / 2);
+  land.receiveShadow = true;
+  scene.add(land);
+  const sand = new THREE.Mesh(new THREE.PlaneGeometry(b.maxX - b.minX + 400, t.seaZ - t.beachZ + 40), new THREE.MeshStandardMaterial({ color: 0xe0cfa0, roughness: 1 }));
+  sand.rotation.x = -Math.PI / 2;
+  sand.position.set(0, 0.0, (t.seaZ + t.beachZ) / 2 + 10);
+  sand.receiveShadow = true;
+  scene.add(sand);
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(6000, 3000), new THREE.MeshStandardMaterial({ color: 0x1f6f8a, roughness: 0.15, metalness: 0.3 }));
+  sea.rotation.x = -Math.PI / 2;
+  sea.position.set(0, -1.5, t.seaZ + 1500 + 20);
+  scene.add(sea);
+  for (const h of t.hills) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(h[2], 48, 24), new THREE.MeshStandardMaterial({ color: 0x5c8a45, roughness: 1 }));
+    m.position.set(h[0], h[3], h[1]);
+    m.receiveShadow = true;
+    scene.add(m);
+  }
+  const lake = new THREE.Mesh(new THREE.CircleGeometry(t.lake[2], 48), new THREE.MeshStandardMaterial({ color: 0x2c7f9a, roughness: 0.1, metalness: 0.3 }));
+  lake.rotation.x = -Math.PI / 2;
+  lake.position.set(t.lake[0], 0.05, t.lake[1]);
+  scene.add(lake);
+}
+
+// cameras
+let camera;
+const view = q.get('view') || 'aerial';
+const presets = {
+  aerial: [[-900, 700, 1300], [0, 0, -100], 45],
+  aerial2: [[1100, 600, -1400], [0, 0, 0], 45],
+  plaza: [[-40, 90, -180], [-120, 10, -320], 55],
+  tech: [[60, 120, -160], [240, 10, -420], 55],
+  street: [[80, 9, -200], [230, 9, -200], 60],
+  seaside: [[200, 60, 960], [200, 10, 650], 55],
+  beach: [[-60, 25, 960], [400, 0, 840], 60],
+  harbor: [[-700, 140, 1060], [-950, 0, 700], 55],
+  park: [[160, 140, -560], [-80, 0, -840], 55],
+  lunapark: [[880, 120, 520], [700, 20, 220], 55],
+  suburb: [[-860, 90, -560], [-950, 0, -780], 55],
+  hills: [[0, 80, -1080], [0, 50, -1400], 60],
+  viewpoint: [[30, 70, -1300], [0, 0, -300], 65],
+  oldbazaar: [[-470, 70, -330], [-600, 10, -500], 55],
+  industrial: [[-900, 120, -100], [-1080, 0, -400], 55],
+  dealers: [[1100, 90, -200], [900, 0, -380], 55],
+  item: [[30, 25, 45], [0, 6, 0], 40],
+  itemTop: [[0, 60, 30], [0, 0, 0], 40],
+};
+if (view === 'top') {
+  const s = +(q.get('size') || 1600);
+  camera = new THREE.OrthographicCamera(-s * W / H, s * W / H, s, -s, 1, 5000);
+  camera.position.set(+(q.get('cx') || 0), 2000, +(q.get('cz') || -150));
+  camera.up.set(0, 0, -1);
+  camera.lookAt(+(q.get('cx') || 0), 0, +(q.get('cz') || -150));
+} else {
+  let p = presets[view] || presets.aerial;
+  if (q.get('cam')) p = [q.get('cam').split(',').map(Number), q.get('look').split(',').map(Number), +(q.get('fov') || 55)];
+  camera = new THREE.PerspectiveCamera(p[2], W / H, 0.5, 6000);
+  camera.position.set(...p[0]);
+  camera.lookAt(...p[1]);
+}
+renderer.render(scene, camera);
+window.__ready = true;
+</script>
+</body>
+</html>

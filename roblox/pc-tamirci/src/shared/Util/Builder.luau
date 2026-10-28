@@ -13,7 +13,7 @@ Builder.Fonts = {
 	Bold = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
 	Heavy = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.ExtraBold),
 	Mono = Font.new("rbxasset://fonts/families/RobotoMono.json", Enum.FontWeight.Medium),
-	Display = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Black),
+	Display = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy),
 	Serif = Font.new("rbxasset://fonts/families/Merriweather.json", Enum.FontWeight.Bold),
 	Hand = Font.new("rbxasset://fonts/families/PatrickHand.json", Enum.FontWeight.Regular),
 }

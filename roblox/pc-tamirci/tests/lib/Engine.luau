@@ -252,6 +252,19 @@ end)
 roblox.implementMethod("BasePart", "GetConnectedParts", function()
 	return {}
 end)
+-- Position/Orientation are derived from CFrame in the engine; Lune only stores CFrame
+roblox.implementProperty("BasePart", "Position", function(part)
+	return part.CFrame.Position
+end, function(part, v)
+	local cf = part.CFrame
+	part.CFrame = cf - cf.Position + v
+end)
+roblox.implementProperty("BasePart", "Orientation", function(part)
+	local x, y, z = part.CFrame:ToOrientation()
+	return roblox.Vector3.new(math.deg(x), math.deg(y), math.deg(z))
+end, function(part, v)
+	part.CFrame = roblox.CFrame.new(part.CFrame.Position) * roblox.CFrame.fromOrientation(math.rad(v.X), math.rad(v.Y), math.rad(v.Z))
+end)
 valueProp("BasePart", "AssemblyLinearVelocity", roblox.Vector3.new())
 valueProp("BasePart", "AssemblyAngularVelocity", roblox.Vector3.new())
 valueProp("BasePart", "AssemblyMass", function(part)

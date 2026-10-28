@@ -6,16 +6,12 @@ local fs = require("@lune/fs")
 
 local filter = process.args[1]
 
-local build = process.exec("rojo", { "build", "default.project.json", "-o", "build/PCTamirci.rbxlx" })
-if not build.ok then
-	print(build.stderr)
-	process.exit(1)
-end
+require("./lib/Bootstrap").run("tests/run.luau")
 
 local T = { passed = 0, failed = 0, failures = {} }
 
 function T.test(name: string, fn: () -> ())
-	if filter and not string.find(name, filter, 1, true) then
+	if filter and not T.specMatches and not string.find(name, filter, 1, true) then
 		return
 	end
 	local t0 = os.clock()
@@ -55,6 +51,7 @@ table.sort(specs)
 
 for _, name in specs do
 	print("● " .. name)
+	T.specMatches = filter ~= nil and string.find(name, filter, 1, true) ~= nil
 	-- every spec gets a fresh process-level engine state via its own load
 	local spec = require("./specs/" .. string.gsub(name, "%.luau$", ""))
 	local ok, err = pcall(spec, T)
