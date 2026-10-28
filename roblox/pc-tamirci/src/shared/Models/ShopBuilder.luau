@@ -137,17 +137,18 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 			screen:SetAttribute("BenchScreen", true)
 		end
 	end
-	-- magnifier lamp arm on the back left
-	B.cylY(m, cf * CFrame.new(-4.2, 3.9, 1.8), 1, 0.6, legs, M.Metal)
-	B.box(m, cf * CFrame.new(-4.2, 5.4, 1.4) * CFrame.Angles(math.rad(20), 0, 0), Vector3.new(0.2, 3, 0.2), legs, M.Metal, nc())
-	local lampHead = B.cyl(m, cf * CFrame.new(-4.2, 6.6, 0.8) * CFrame.Angles(0, 0, math.pi / 2) * CFrame.Angles(0, 0, 0), 0.3, 1.6, legs, M.Metal, nc())
+	-- magnifier lamp clamped to the back edge (clear of the parts area), arm leaning over the mat
+	B.box(m, cf * CFrame.new(-4.3, 3.6, 2.05), Vector3.new(0.5, 0.5, 0.45), legs, M.Metal)
+	local armLen = math.sqrt(1.15 ^ 2 + 2.7 ^ 2)
+	B.box(m, cf * CFrame.new(-4.3, 5.2, 1.48) * CFrame.Angles(-math.atan2(1.15, 2.7), 0, 0), Vector3.new(0.2, armLen, 0.2), legs, M.Metal, nc())
+	local lampHead = B.cyl(m, cf * CFrame.new(-4.2, 6.6, 0.8) * CFrame.Angles(0, 0, math.pi / 2), 0.3, 1.6, legs, M.Metal, nc())
 	lampHead.Name = "LampHead"
 	if items.bench_led then
 		local led = B.cylY(m, cf * CFrame.new(-4.2, 6.42, 0.8), 0.06, 1.4, Color3.fromRGB(255, 250, 240), M.Neon, nc())
 		B.spotLight(led, Enum.NormalId.Bottom, 10, 70, 1.4, Color3.fromRGB(255, 250, 240), false)
 	end
-	-- screw tray (magnetic bowl) and parts tray area markers
-	B.cylY(m, cf * CFrame.new(1.6, 3.5, 1.5), 0.2, 1.2, Color3.fromRGB(150, 150, 156), M.Metal, nc({ Name = "ScrewTray" }))
+	-- magnetic screw bowl, where PCModel drops the screws (device frame TRAY)
+	B.cylY(m, cf * CFrame.new(2.6, 3.5, -1.2), 0.2, 1.2, Color3.fromRGB(150, 150, 156), M.Metal, nc({ Name = "ScrewTray" }))
 	-- stool
 	local stool = cf * CFrame.new(0, 0, -3.6)
 	B.cylY(m, stool * CFrame.new(0, 1.2, 0), 2.4, 0.4, legs, M.Metal)

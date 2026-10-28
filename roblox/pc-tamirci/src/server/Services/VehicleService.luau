@@ -125,7 +125,12 @@ local function spawnFor(player: Player, id: string)
 	local hum = char:FindFirstChildOfClass("Humanoid")
 	if hum then
 		task.defer(function()
-			seat:Sit(hum)
+			-- the car may be gone again (parked or the player left) before this runs
+			pcall(function()
+				if seat.Parent and hum.Parent then
+					seat:Sit(hum)
+				end
+			end)
 		end)
 	end
 	return { ok = true }

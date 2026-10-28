@@ -77,6 +77,9 @@ function RepairService.summary(job)
 		tools = job.tools,
 		lang = lang,
 		symptoms = symptoms,
+		blocked = job.blocked and { reason = job.blocked.reason, detail = job.blocked.detail, by = job.blocked.by } or nil,
+		-- own projects: what the second-hand dealer would pay right now
+		resale = if job.own and job.status ~= "bench" then RepairService.resale(job) else nil,
 	}
 end
 
@@ -239,6 +242,9 @@ function RepairService.load(player: Player, i: number, jobId: string, worker: an
 	st.worker = worker
 	job.status = "bench"
 	job.bench = i
+	if worker == player then
+		job.blocked = nil -- the boss takes over
+	end
 	RepairService.publish(player, i)
 	RepairService.pushJobs(player)
 	return true

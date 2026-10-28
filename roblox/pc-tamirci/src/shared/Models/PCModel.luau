@@ -22,7 +22,7 @@ Handle.__index = Handle
 
 -- default spots on the bench, relative to the device root
 local TRAY = CFrame.new(-3.2, 0.14, 1.2)
-local OUT_REGION = { x0 = 1.45, x1 = 4.3, z0 = -2.05, z1 = 2.1 }
+local OUT_REGION = { x0 = 1.45, x1 = 4.3, z0 = -1.8, z1 = 2.1 } -- the lamp clamp sits behind z0
 local LEAN = CFrame.new(-0.4, 0, -2.1)
 
 local function hashOf(s: string): number

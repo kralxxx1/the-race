@@ -1,0 +1,184 @@
+-- Hud: money, level and XP, reputation, the clock, the quick buttons and toasts.
+
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+
+local Kit = require(script.Parent.Kit)
+local Theme = require(script.Parent.Theme)
+local S = require(script.Parent.Parent.Strings)
+local State = require(script.Parent.Parent.State)
+
+local Hud = {}
+Hud.buttons = {} :: { [string]: TextButton }
+
+local gui: ScreenGui
+local toastHolder: Frame
+local moneyLabel: TextLabel
+local levelLabel: TextLabel
+local xpBar
+local repLabel: TextLabel
+local clockLabel: TextLabel
+local shown = 0
+
+local function fmtClock(t: number): string
+	local h = math.floor(t)
+	local m = math.floor((t - h) * 60)
+	return string.format("%02d:%02d", h, m)
+end
+
+-- Short message in the top centre.
+function Hud.toast(text: string, kind: string?, seconds: number?)
+	if not toastHolder then
+		return
+	end
+	local color = if kind == "good" then Theme.good elseif kind == "bad" then Theme.bad elseif kind == "warn" then Theme.accent2 else Theme.accent
+	shown += 1
+	local f = Kit.panel(toastHolder, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.panel, BackgroundTransparency = 0.05, LayoutOrder = -shown })
+	Kit.stroke(f, color, 2, 0.1)
+	Kit.padding(f, 10)
+	Kit.label(f, text, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 17, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Center })
+	f.BackgroundTransparency = 1
+	Kit.tween(f, { BackgroundTransparency = 0.05 }, 0.2)
+	task.delay(seconds or 4.5, function()
+		if f.Parent then
+			for _, d in f:GetDescendants() do
+				if d:IsA("TextLabel") then
+					Kit.tween(d, { TextTransparency = 1 }, 0.4)
+				elseif d:IsA("UIStroke") then
+					Kit.tween(d, { Transparency = 1 }, 0.4)
+				end
+			end
+			Kit.tween(f, { BackgroundTransparency = 1 }, 0.4)
+			task.wait(0.45)
+			f:Destroy()
+		end
+	end)
+	-- keep at most five
+	local items = {}
+	for _, c in toastHolder:GetChildren() do
+		if c:IsA("Frame") then
+			table.insert(items, c)
+		end
+	end
+	if #items > 5 then
+		table.sort(items, function(a, b)
+			return a.LayoutOrder > b.LayoutOrder
+		end)
+		items[1]:Destroy()
+	end
+end
+
+-- "+$120" floating up from the money counter.
+local function moneyPop(delta: number)
+	if not moneyLabel or delta == 0 then
+		return
+	end
+	local pop = Kit.label(moneyLabel.Parent, (if delta > 0 then "+" else "") .. S.money(delta), {
+		Size = UDim2.fromOffset(160, 24),
+		Position = UDim2.new(0, 60, 0, 6),
+		TextColor3 = if delta > 0 then Theme.money else Theme.bad,
+		FontFace = Theme.heavy,
+		TextSize = 20,
+		ZIndex = 5,
+	})
+	Kit.tween(pop, { Position = UDim2.new(0, 60, 0, -26), TextTransparency = 1 }, 1.4)
+	task.delay(1.5, function()
+		pop:Destroy()
+	end)
+end
+
+local function refresh(d, prev)
+	if not d then
+		return
+	end
+	moneyLabel.Text = S.money(d.money)
+	levelLabel.Text = S.t("level") .. " " .. d.level
+	xpBar:set(d.xp / math.max(1, d.xpNext or 100), prev ~= nil)
+	local stars = math.floor(d.rep / 20 + 0.5)
+	repLabel.Text = S.stars(stars) .. "  " .. math.floor(d.rep)
+	if prev then
+		moneyPop(d.money - prev.money)
+	end
+end
+
+function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
+	gui = screen
+	-- top-left: money, level, reputation
+	local card = Kit.panel(gui, { Name = "Stats", Size = UDim2.fromOffset(270, 104), Position = UDim2.fromOffset(16, 16), BackgroundTransparency = 0.12 })
+	Kit.padding(card, 10)
+	Kit.label(card, "💰", { Size = UDim2.fromOffset(30, 34), TextSize = 26 })
+	moneyLabel = Kit.label(card, S.money(0), { Name = "Money", Size = UDim2.new(1, -36, 0, 34), Position = UDim2.fromOffset(36, 0), TextSize = 28, FontFace = Theme.heavy, TextColor3 = Theme.money })
+	levelLabel = Kit.label(card, "", { Size = UDim2.new(0.5, 0, 0, 20), Position = UDim2.fromOffset(0, 40), TextSize = 15, FontFace = Theme.bold })
+	repLabel = Kit.label(card, "", { Size = UDim2.new(0.5, 0, 0, 20), Position = UDim2.new(0.5, 0, 0, 40), TextSize = 15, TextColor3 = Theme.warn, TextXAlignment = Enum.TextXAlignment.Right })
+	xpBar = Kit.progress(card, { Position = UDim2.fromOffset(0, 66), Size = UDim2.new(1, 0, 0, 10) }, Theme.accent)
+
+	-- top-right: clock and weather
+	local clock = Kit.panel(gui, { Name = "Clock", Size = UDim2.fromOffset(170, 40), Position = UDim2.new(1, -186, 0, 16), BackgroundTransparency = 0.12 })
+	clockLabel = Kit.label(clock, "", { Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 18, FontFace = Theme.bold })
+	task.spawn(function()
+		while gui.Parent do
+			local t = Lighting.ClockTime
+			local icon = if Workspace:GetAttribute("Raining") then "🌧️" elseif t >= 19.5 or t < 6 then "🌙" else "☀️"
+			clockLabel.Text = string.format("%s %s • %s", icon, fmtClock(t), S.t("day", { d = Workspace:GetAttribute("Day") or 1 }))
+			task.wait(0.5)
+		end
+	end)
+
+	-- bottom-right: quick buttons (also the only way in on touch screens)
+	local bar = Kit.frame(gui, { Name = "Quick", BackgroundTransparency = 1, Size = UDim2.fromOffset(420, 64), Position = UDim2.new(1, -16, 1, -16), AnchorPoint = Vector2.new(1, 1) })
+	Kit.listLayout(bar, 8, true, Enum.HorizontalAlignment.Right)
+	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	local defs = {
+		{ id = "home", icon = "🏠", key = "H" },
+		{ id = "jobs", icon = "📋", key = "J" },
+		{ id = "inventory", icon = "🎒", key = "B" },
+		{ id = "phone", icon = "📱", key = "P" },
+		{ id = "map", icon = "🗺️", key = "M" },
+	}
+	for i, d in defs do
+		local b = Kit.button(bar, d.icon, actions[d.id], { Size = UDim2.fromOffset(60, 60), TextSize = 28, LayoutOrder = i, BackgroundTransparency = 0.1 })
+		b.Name = d.id
+		if not touch then
+			Kit.label(b, d.key, { Size = UDim2.fromOffset(18, 16), Position = UDim2.new(1, -20, 1, -18), TextSize = 12, TextColor3 = Theme.dim, FontFace = Theme.bold })
+		end
+		Hud.buttons[d.id] = b
+	end
+
+	-- toasts: top centre
+	toastHolder = Kit.frame(gui, { Name = "Toasts", BackgroundTransparency = 1, Size = UDim2.fromOffset(560, 400), Position = UDim2.new(0.5, 0, 0, 16), AnchorPoint = Vector2.new(0.5, 0) })
+	Kit.listLayout(toastHolder, 6, false, Enum.HorizontalAlignment.Center)
+
+	State.changed:Connect(refresh)
+	if State.data then
+		refresh(State.data, nil)
+	end
+	State.levelUp:Connect(function(level)
+		Hud.toast(S.t("level_up", { n = level }), "good", 5)
+		Hud.banner("⭐ " .. S.t("level") .. " " .. level .. " ⭐")
+	end)
+end
+
+-- Big centred banner (level ups, big payouts).
+function Hud.banner(text: string)
+	local l = Kit.label(gui, text, { Size = UDim2.fromOffset(700, 70), Position = UDim2.new(0.5, 0, 0.32, 0), AnchorPoint = Vector2.new(0.5, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 46, FontFace = Theme.heavy, TextColor3 = Theme.warn, TextStrokeTransparency = 0.3 })
+	local sc = Instance.new("UIScale")
+	sc.Scale = 0.4
+	sc.Parent = l
+	Kit.tween(sc, { Scale = 1 }, 0.35, Enum.EasingStyle.Back)
+	task.delay(2.4, function()
+		Kit.tween(l, { TextTransparency = 1, TextStrokeTransparency = 1 }, 0.5)
+		task.wait(0.6)
+		l:Destroy()
+	end)
+end
+
+function Hud.setVisible(on: boolean)
+	for _, c in gui:GetChildren() do
+		if c:IsA("GuiObject") and c.Name ~= "Toasts" then
+			c.Visible = on
+		end
+	end
+end
+
+return Hud

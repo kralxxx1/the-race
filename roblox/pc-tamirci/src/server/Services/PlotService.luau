@@ -4,6 +4,7 @@
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CityLayout = require(Shared.World.CityLayout)
@@ -230,7 +231,15 @@ function PlotService.start()
 			return { ok = false }
 		end
 		local clean = string.gsub(name, "[%c<>]", "")
-		p.shop.name = clean
+		-- shop names are shown to everyone on the sign: run them through Roblox's text filter
+		local ok, filtered = pcall(function()
+			local result = TextService:FilterStringAsync(clean, player.UserId, Enum.TextFilterContext.PublicChat)
+			return result:GetNonChatStringForBroadcastAsync()
+		end)
+		if not ok or typeof(filtered) ~= "string" then
+			return { ok = false, err = "filter" }
+		end
+		p.shop.name = filtered
 		DataService.touch(player)
 		PlotService.build(player)
 		return { ok = true }

@@ -328,7 +328,7 @@ local function hire(player: Player, payload)
 		return { ok = false, err = "gone" }
 	end
 	for _, e in p.staff do
-		if e.uid == cand.uid then
+		if e.from == cand.uid then
 			return { ok = false, err = "already" }
 		end
 	end
@@ -347,6 +347,7 @@ local function hire(player: Player, payload)
 		return { ok = false, err = "money" }
 	end
 	local rec = table.clone(cand)
+	rec.from = cand.uid -- the same candidate can't be hired twice
 	rec.uid = cand.uid .. "_" .. tostring(os.time() % 100000)
 	table.insert(p.staff, rec)
 	DataService.touch(player)
