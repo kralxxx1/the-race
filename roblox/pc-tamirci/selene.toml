@@ -1,0 +1,7 @@
+std = "roblox_lite"
+
+[lints]
+# Roblox code routinely shadows (e.g. `local part = part or ...`); keep the noise down.
+shadowing = "allow"
+multiple_statements = "allow"
+mixed_table = "allow"
