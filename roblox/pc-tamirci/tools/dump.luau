@@ -3,6 +3,7 @@
 --   lune run tools/dump.luau shop <level> [showcase] -> a player shop at a level (with PCs on display)
 --   lune run tools/dump.luau device <kind>    -> a repair bench device (desktop/laptop)
 --   lune run tools/dump.luau vehicles         -> every vehicle in a row
+--   lune run tools/dump.luau street <x> <z> [r] -> the city around a point with client traffic
 
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
@@ -25,10 +26,15 @@ local function r3(x)
 	return math.floor(x * 1000 + 0.5) / 1000
 end
 
-local function dumpParts(root)
+local function dumpParts(root, center: any?, radius: number?)
 	local out = {}
 	for _, d in root:GetDescendants() do
-		if d:IsA("BasePart") then
+		local inRange = true
+		if center and d:IsA("BasePart") then
+			local p = d.Position
+			inRange = (p.X - center.X) ^ 2 + (p.Z - center.Z) ^ 2 < radius * radius
+		end
+		if d:IsA("BasePart") and inRange then
 			local okT, transp = pcall(function()
 				return d.Transparency
 			end)
@@ -156,6 +162,27 @@ elseif what == "device" then
 	local model = PCModel.build(folder, Rules.view(dev), roblox.CFrame.new(0, 0, 0))
 	result.parts = dumpParts(model.model)
 	outName = "device_" .. kind
+elseif what == "street" then
+	local WorldBuilder = Engine.mod("ServerScriptService.Server.World.WorldBuilder")
+	local world = WorldBuilder.build({ bake = true })
+	local cx, cz = tonumber(process.args[2]) or 0, tonumber(process.args[3]) or 60
+	local radius = tonumber(process.args[4]) or 260
+	Engine.localPlayer = Engine.addPlayer("Viewer")
+	Engine.context = "client"
+	Engine.workspace.CurrentCamera.CFrame = roblox.CFrame.new(cx, 30, cz)
+	local Traffic = Engine.require(Engine.find("StarterPlayer.StarterPlayerScripts.Client.Controllers.Traffic"), "client")
+	Traffic.init()
+	for _ = 1, 600 do
+		Engine.step(1, 1 / 15)
+	end
+	local center = roblox.Vector3.new(cx, 0, cz)
+	result.parts = dumpParts(world, center, radius)
+	for _, p in dumpParts(Engine.workspace.ClientTraffic, center, radius) do
+		table.insert(result.parts, p)
+	end
+	local cars, peds = Traffic.counts()
+	print(string.format("traffic: %d cars, %d pedestrians", cars, peds))
+	outName = "street"
 elseif what == "vehicles" then
 	local Vehicles = Engine.mod("ReplicatedStorage.Shared.Data.Vehicles")
 	local VehicleModels = Engine.mod("ReplicatedStorage.Shared.Models.VehicleModels")

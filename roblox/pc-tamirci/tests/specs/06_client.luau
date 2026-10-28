@@ -6,6 +6,7 @@
 
 local Engine = require("../lib/Engine")
 local Mock = require("../lib/Mock")
+local roblox = require("@lune/roblox")
 local task = require("@lune/task")
 
 local function deepCopy(v)
@@ -336,6 +337,28 @@ return function(T)
 		request("vehicle.despawn")
 		Engine.step(2)
 		T.ok(not Vehicle.driving(), "stopped when the vehicle is gone")
+	end)
+
+	T.test("client: traffic and pedestrians around the player", function()
+		Mock.errors = {}
+		local Traffic = cmod("Controllers.Traffic")
+		local cam = Engine.workspace.CurrentCamera
+		local L = Engine.mod("ReplicatedStorage.Shared.World.CityLayout").get()
+		cam.CFrame = roblox.CFrame.new(L.poiById.plaza.pos + roblox.Vector3.new(0, 40, 0))
+		for _ = 1, 120 do
+			Engine.step(1, 1 / 30)
+			task.wait()
+		end
+		local carsN, pedsN = Traffic.counts()
+		T.ok(carsN >= 5, "cars: " .. carsN)
+		T.ok(pedsN >= 5, "pedestrians: " .. pedsN)
+		-- let them drive through junctions for a while (simulated time)
+		for _ = 1, 300 do
+			Engine.step(1, 1 / 10)
+		end
+		local folder = Engine.workspace:FindFirstChild("ClientTraffic")
+		T.ok(folder and #folder:GetChildren() > 20, "traffic models")
+		noErrors("traffic")
 	end)
 
 	T.test("client: the city lights up at night", function()

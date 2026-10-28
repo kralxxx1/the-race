@@ -71,6 +71,18 @@ function TechBot:ctx(action: string, target: string?)
 end
 
 function TechBot:try(action: string, target: string?, args)
+	-- a professional puts the wrist strap on before touching anything (if the shop has one)
+	if not self.strapChecked and action ~= "wear_strap" then
+		self.strapChecked = true
+		if not self.dev.strap then
+			local ctx = self:ctx("wear_strap", nil)
+			if ctx.owned and ctx.owned.esd_strap then
+				ctx.tool = "esd_strap"
+				local res = Rules.apply(self.dev, "wear_strap", nil, { on = true }, ctx)
+				table.insert(self.log, "wear_strap -> " .. (if res.ok then "ok" else tostring(res.reason)))
+			end
+		end
+	end
 	self.actions += 1
 	if self.actions > self.budget then
 		error("technician exceeded action budget")
@@ -495,9 +507,64 @@ function TechBot:fulfil(reqId: string, req)
 	elseif reqId == "maintenance" then
 		self:dustAll()
 		self:repaste()
+	elseif reqId == "build" then
+		self:build(req or {})
 	else
 		error("bot can't do request " .. reqId)
 	end
+end
+
+-- Builds a PC from parts into an empty case to the customer's specification: the cheapest
+-- CPU and GPU that reach the targets, a board for the CPU that fits the case, two sticks of RAM,
+-- a cooler and PSU with headroom and an NVMe drive with Windows on it.
+function TechBot:build(req)
+	local dev = self.dev
+	-- the CPU decides the platform (from the shelf, or what the manager orders)
+	local cpuId = self:partFor("cpu", function(p)
+		return p.perf >= (req.cpuMin or 0) and p.tdp <= 170 and p.socket ~= "sTR5" and (p.igpu or req.gpuMin ~= nil)
+	end)
+	local cpu = Parts.get(cpuId) :: any
+	if dev.nodes.side_panel and dev.nodes.side_panel.st == "in" then
+		self:ensure("remove", "side_panel")
+	end
+	local mobo = self:partFor("mobo", function(p)
+		return p.socket == cpu.socket and p.memSlots >= 2
+	end)
+	self:ensure("install", "mobo", { source = "inv", part = mobo })
+	-- a fresh board needs its BIOS battery
+	if dev.nodes.cmos and dev.nodes.cmos.st ~= "in" then
+		self:replace("cmos")
+	end
+	self:ensure("open_latch", "cpu_arm")
+	self:ensure("install", "cpu", { source = "inv", part = cpuId })
+	self:ensure("close_latch", "cpu_arm")
+	self:ensure("apply_paste", "cpu", { amount = 0.5 })
+	self:replace("cooler", function(p)
+		return p.rating >= cpu.tdp
+	end)
+	local board = Rules.part(dev, "mobo")
+	local slots = if board and board.memSlots >= 4 then { "ram2", "ram4" } else { "ram1", "ram2" }
+	local per = math.max(8, math.ceil((req.ramMin or 16) / 2))
+	local stick = self:partFor(slots[1], function(p)
+		return p.size >= per
+	end)
+	for _, slot in slots do
+		self:ensure("install", slot, { source = "inv", part = stick })
+	end
+	if req.gpuMin then
+		self:replace("gpu", function(p)
+			return p.perf >= req.gpuMin and not p.workstation
+		end)
+	end
+	local draw = Parts.systemDraw(cpu, Rules.part(dev, "gpu"))
+	self:replace("psu", function(p)
+		return p.watt >= draw * 1.3
+	end)
+	self:replace("nvme1", function(p)
+		return p.kind == "nvme" and p.size >= 500
+	end)
+	self:reassemble()
+	self:ensure("software", nil, { program = "os_install" })
 end
 
 return TechBot

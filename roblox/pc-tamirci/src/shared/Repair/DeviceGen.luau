@@ -126,8 +126,9 @@ local function chooseCooler(rng, tier, cpu)
 	if cpu.tdp > 110 and kind == "stock" then
 		kind = "air"
 	end
+	-- the cooler has to keep up with the CPU (a 350 W Threadripper needs a 360 mm AIO)
 	local cands = filter(Parts.byCat.cooler, function(c)
-		return c.kind == kind and Parts.coolerFits(c, socket) and c.rating >= math.min(cpu.tdp, 240) * 0.9
+		return c.kind == kind and Parts.coolerFits(c, socket) and c.rating >= cpu.tdp * 0.9
 	end)
 	if #cands == 0 then
 		cands = filter(Parts.byCat.cooler, function(c)
@@ -663,6 +664,18 @@ function DeviceGen.applyRequest(dev, id: string, rng: Random, budget: number?): 
 		end
 		local minPerf = math.floor(gpu.perf * 1.4 + 6)
 		local b = budget or 400
+		-- only ask for what exists, fits the case and roughly fits the budget
+		local case = Parts.get(dev.model)
+		local possible = false
+		for _, p in Parts.byCat.gpu do
+			if p.perf >= minPerf and not p.workstation and p.price <= b * 1.5 and (not case or not case.gpuMax or p.len <= case.gpuMax) then
+				possible = true
+				break
+			end
+		end
+		if not possible then
+			return nil
+		end
 		return { id = id, gpuMin = minPerf, partBudget = b, vars = { budget = b } }
 	elseif id == "maintenance" then
 		for nid, s in dev.nodes do
