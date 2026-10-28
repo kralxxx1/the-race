@@ -6,6 +6,7 @@
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -25,6 +26,10 @@ local rng = Random.new()
 
 local MAX_CARS = 20
 local MAX_PEDS = 26
+if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+	-- phones: lighter streets
+	MAX_CARS, MAX_PEDS = 10, 14
+end
 local SPAWN_MIN, SPAWN_MAX, DESPAWN = 80, 320, 430
 local CAR_GAP = 10
 

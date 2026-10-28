@@ -249,6 +249,16 @@ local function dress(model: Model, extras: { string }, hair: Color3, gender: str
 end
 
 -- Creates an NPC. opts: look, gender, name, seed, cf, tag
+-- Standing NPCs are anchored so dozens of idle customers and staff cost the server nothing;
+-- they are released while walking or sitting down.
+local function setAnchored(model: Model, on: boolean)
+	local root = model.PrimaryPart
+	if root then
+		root.Anchored = on
+	end
+end
+NpcService.setAnchored = setAnchored
+
 function NpcService.spawn(opts: { [string]: any }): Model
 	local rng = Random.new(opts.seed or math.random(1, 1e9))
 	local look = LOOKS[opts.look or "casual"] or LOOKS.casual
@@ -314,6 +324,7 @@ function NpcService.spawn(opts: { [string]: any }): Model
 	pcall(function()
 		root:SetNetworkOwner(nil)
 	end)
+	setAnchored(model, true)
 	NpcService.play(model, "idle")
 	return model
 end
@@ -354,6 +365,7 @@ function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: bo
 	if not hum or not root or not model.Parent then
 		return false
 	end
+	setAnchored(model, false)
 	if hum.SeatPart then
 		hum.Sit = false
 		hum.Jump = true
@@ -382,6 +394,9 @@ function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: bo
 	end
 	if model.Parent then
 		NpcService.play(model, "idle")
+		if not hum.SeatPart then
+			setAnchored(model, true)
+		end
 	end
 	return reached
 end
@@ -409,6 +424,7 @@ end
 function NpcService.sit(model: Model, seat: Seat?)
 	local hum = model:FindFirstChildOfClass("Humanoid")
 	if hum and seat and not seat.Occupant then
+		setAnchored(model, false)
 		seat:Sit(hum)
 		NpcService.play(model, "sit")
 		return true
