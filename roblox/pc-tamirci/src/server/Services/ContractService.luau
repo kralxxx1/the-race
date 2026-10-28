@@ -17,6 +17,7 @@ local Rand = require(Shared.Util.Rand)
 local DataService = require(script.Parent.DataService)
 local RepairService = require(script.Parent.RepairService)
 local MarketService = require(script.Parent.MarketService)
+local QuestService = require(script.Parent.QuestService)
 
 local ContractService = {}
 
@@ -189,6 +190,7 @@ local function finished(player: Player, job)
 	if fixed then
 		c.fixed += 1
 		DataService.money(player, c.pay, "contract")
+		QuestService.bump(player, "contract")
 		DataService.addXp(player, 22)
 		if p then
 			p.stats.repairs += 1

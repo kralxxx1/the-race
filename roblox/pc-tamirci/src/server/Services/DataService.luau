@@ -16,6 +16,7 @@ local Upgrades = require(Shared.Data.Upgrades)
 local DataService = {}
 DataService.loaded = Signal.new() -- (player, profile)
 DataService.levelUp = Signal.new() -- (player, level)
+DataService.earned = Signal.new() -- (player, amount, reason) for every income
 
 local profiles: { [Player]: { [string]: any } } = {}
 local dirty: { [Player]: boolean } = {}
@@ -63,6 +64,7 @@ local function defaults()
 		nextUid = 0,
 		last = 0,
 		daily = { day = 0, streak = 0 },
+		quests = { day = 0, list = {} },
 		settings = { music = 0.5, sfx = 0.8 },
 	}
 end
@@ -311,7 +313,7 @@ function DataService.isMemoryMode(): boolean
 end
 
 -- Adds (or with a negative amount, takes) money. Refuses to go below zero.
-function DataService.money(player: Player, delta: number, _reason: string?): boolean
+function DataService.money(player: Player, delta: number, reason: string?): boolean
 	local p = profiles[player]
 	if not p then
 		return false
@@ -322,6 +324,7 @@ function DataService.money(player: Player, delta: number, _reason: string?): boo
 	p.money = math.floor((p.money + delta) * 100 + 0.5) / 100
 	if delta > 0 then
 		p.stats.earned += delta
+		DataService.earned:Fire(player, delta, reason)
 	end
 	DataService.touch(player)
 	return true

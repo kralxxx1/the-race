@@ -47,6 +47,8 @@ return function(T)
 	local RepairService = Engine.require(Services.RepairService)
 	local ContractService = Engine.require(Services.ContractService)
 	local ShowcaseService = Engine.require(Services.ShowcaseService)
+	local QuestService = Engine.require(Services.QuestService)
+	local EmployeeService = Engine.require(Services.EmployeeService)
 	local DeviceGen = Engine.mod("ReplicatedStorage.Shared.Repair.DeviceGen")
 	local TechBot = Engine.mod("ReplicatedStorage.Shared.Repair.TechBot")
 	local rf = game:GetService("ReplicatedStorage").Remotes.Request
@@ -157,6 +159,58 @@ return function(T)
 		local open = lastPush("contracts.open")
 		T.ok(open.poi == "datacenter" and open.locked and open.why == "contract_desk", "locked without the desk")
 		T.eq(request("contracts.accept", { poi = "datacenter", key = open.offers[1].key }).err, "contract_desk", "refused")
+	end)
+
+	T.test("business: daily tasks progress and pay out once", function()
+		local p = DataService.get(player)
+		p.level = 5
+		p.quests = nil
+		local qs = QuestService.ensure(player)
+		T.eq(#qs.list, 3, "three tasks")
+		local again = QuestService.ensure(player)
+		T.ok(again == qs, "same tasks all day")
+		local q = qs.list[1]
+		T.eq(request("quests.claim", { i = 1 }).err, "not_done", "not finished yet")
+		if q.id == "earn" then
+			DataService.money(player, q.goal, "repair")
+		else
+			QuestService.bump(player, q.id, q.goal)
+		end
+		T.ok(q.n >= q.goal, "progress reached the goal")
+		local money0 = p.money
+		local r = request("quests.claim", { i = 1 })
+		T.ok(r.ok and p.money == money0 + q.reward, "reward paid")
+		T.ok(not request("quests.claim", { i = 1 }).ok, "only once")
+		-- income counts towards an earn task
+		p.quests.list[2] = { id = "earn", goal = 500, n = 0, claimed = false, reward = 100, xp = 10 }
+		DataService.money(player, 200, "repair")
+		DataService.money(player, 999, "daily")
+		T.eq(p.quests.list[2].n, 200, "only real income counts")
+	end)
+
+	T.test("business: a manager runs the shop while you are away", function()
+		local p = DataService.get(player)
+		p.staff = { { uid = "m1", role = "manager", skill = 3, wage = 200, name = "Müdür" }, { uid = "t1", role = "technician", skill = 4, wage = 120, name = "Tekno" } }
+		p.last = os.time() - 3 * 3600
+		local money0 = p.money
+		local got = EmployeeService.offlineEarnings(player, p)
+		T.ok(got > 100 and p.money == money0 + got, "offline income " .. got)
+		p.staff = { { uid = "t1", role = "technician", skill = 4, wage = 120, name = "Tekno" } }
+		T.eq(EmployeeService.offlineEarnings(player, p), 0, "nothing without a manager")
+		p.staff = {}
+	end)
+
+	T.test("business: the city hall board lists the leaders", function()
+		local board = CS:GetTagged("Leaderboard")[1]
+		T.ok(board ~= nil, "board part")
+		-- (earlier specs' servers still tick in this process and share the tag registry, so
+		-- paint explicitly instead of waiting for the next round)
+		Engine.require(Services.MarketService)._paintBoards()
+		local label = waitFor(function()
+			local gui = board:FindFirstChild("Leaders")
+			return gui and gui:FindFirstChild("Text")
+		end, 3, "board text")
+		T.ok(string.find(label.Text, player.DisplayName, 1, true) ~= nil, "player listed: " .. label.Text)
 	end)
 
 	T.test("business: a finished build sells from the showcase", function()

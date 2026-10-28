@@ -18,6 +18,7 @@ local Employees = require(Shared.Data.Employees)
 local Customers = require(Shared.Data.Customers)
 
 local DataService = require(script.Parent.DataService)
+local QuestService = require(script.Parent.QuestService)
 local PlotService = require(script.Parent.PlotService)
 local NpcService = require(script.Parent.NpcService)
 local CustomerService = require(script.Parent.CustomerService)
@@ -102,6 +103,7 @@ local function caught(t, catcher: Player?, byGuard: string?)
 	if prof then
 		prof.stats.caught += 1
 	end
+	QuestService.bump(who, "catch")
 	Net.push(owner, "toast", { key = "thief_caught", vars = { by = byGuard or (catcher and catcher.DisplayName) or "", bounty = bounty } })
 	if catcher and catcher ~= owner then
 		Net.push(catcher, "toast", { key = "bounty", vars = { amount = bounty } })

@@ -3,6 +3,7 @@
 -- PCs, tools, consumables and everything for your own shop (levels, items, looks).
 
 local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,10 +15,12 @@ local Tools = require(Shared.Data.Tools)
 local Upgrades = require(Shared.Data.Upgrades)
 local Market = require(Shared.Economy.Market)
 local DeviceGen = require(Shared.Repair.DeviceGen)
+local Builder = require(Shared.Util.Builder)
 
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local RepairService = require(script.Parent.RepairService)
+local QuestService = require(script.Parent.QuestService)
 
 local MarketService = {}
 MarketService.opened = Signal.new() -- (player, service, poi) for services owned by other modules
@@ -71,19 +74,48 @@ local function openPayload(service: string, poi: string)
 		end
 		return { free = free }
 	elseif service == "board" then
-		local rows = {}
-		for p, prof in DataService.all() do
-			table.insert(rows, { name = p.DisplayName, level = prof.level, money = math.floor(prof.money), rep = math.floor(prof.rep), repairs = prof.stats.repairs })
-		end
-		table.sort(rows, function(a, b)
-			return a.repairs * 10 + a.level > b.repairs * 10 + b.level
-		end)
-		return { rows = rows }
+		return { rows = MarketService.leaders() }
 	elseif service == "police" then
 		return {}
 	end
 	return {}
 end
+
+-- Everyone on the server, best technicians first.
+function MarketService.leaders()
+	local rows = {}
+	for p, prof in DataService.all() do
+		table.insert(rows, { name = p.DisplayName, level = prof.level, money = math.floor(prof.money), rep = math.floor(prof.rep), repairs = prof.stats.repairs })
+	end
+	table.sort(rows, function(a, b)
+		return a.repairs * 10 + a.level > b.repairs * 10 + b.level
+	end)
+	return rows
+end
+
+-- The board in front of city hall shows the server's top technicians.
+local function paintBoards()
+	local lines = { "<b>🏆 EN İYİ TAMİRCİLER</b>" }
+	local rows = MarketService.leaders()
+	for i = 1, math.min(8, #rows) do
+		local r = rows[i]
+		table.insert(lines, string.format("%d. %s  •  Sv.%d  •  %d tamir", i, r.name, r.level, r.repairs))
+	end
+	if #rows == 0 then
+		table.insert(lines, "—")
+	end
+	local text = table.concat(lines, "\n")
+	for _, board in CollectionService:GetTagged("Leaderboard") do
+		if board:IsA("BasePart") then
+			local gui = board:FindFirstChild("Leaders")
+			local existing = gui and gui:FindFirstChild("Text") :: TextLabel?
+			local label = existing or Builder.sign(board, Enum.NormalId.Front, "", { name = "Leaders", rich = true, color = Color3.fromRGB(250, 236, 190), background = Color3.fromRGB(24, 28, 38), glow = true, brightness = 1.2, padding = 0.05 })
+			label.Text = text
+		end
+	end
+end
+
+MarketService._paintBoards = paintBoards
 
 function MarketService.open(player: Player, service: string, poi: string, pos: Vector3)
 	nearService[player] = { service = service, poi = poi, t = os.clock(), pos = pos }
@@ -129,6 +161,7 @@ local function buyPart(player: Player, payload)
 	if p.uses then
 		DataService.money(player, -cost, "buy")
 		DataService.addStock(player, p.id, p.uses * qty)
+		QuestService.bump(player, "buy", qty)
 		return { ok = true }
 	end
 	if p.cat == "case" then
@@ -146,6 +179,7 @@ local function buyPart(player: Player, payload)
 		return { ok = false, err = "storage" }
 	end
 	DataService.money(player, -cost, "buy")
+	QuestService.bump(player, "buy", qty)
 	for _ = 1, qty do
 		local cond = if service == "parts_bazaar" then math.floor((0.82 + rng:NextNumber() * 0.18) * 100) / 100 else 1
 		local broken = if service == "parts_bazaar" and rng:NextNumber() < 0.08 then true else nil
@@ -177,6 +211,7 @@ local function buyUsed(player: Player, payload)
 	end
 	bought[listing.id] = true
 	DataService.money(player, -listing.price, "used")
+	QuestService.bump(player, "buy")
 	local broken = if rng:NextNumber() * 100 < listing.risk then true else nil
 	-- hidden: the player only finds out when testing it
 	local item = DataService.addPart(player, listing.part, listing.cond, "used", nil)
@@ -202,6 +237,7 @@ local function sell(player: Player, payload)
 	end
 	DataService.takePart(player, payload.uid)
 	DataService.money(player, price, "sell")
+	QuestService.bump(player, "sell")
 	return { ok = true, price = price }
 end
 
@@ -222,6 +258,7 @@ local function buyJunk(player: Player, payload)
 		return { ok = false, err = "money" }
 	end
 	bought[listing.id] = true
+	QuestService.bump(player, "junk")
 	local dev = DeviceGen.junk(Random.new(listing.seed))
 	local job = RepairService.createJob(player, { device = dev, kind = "refurb", own = true, price = 0, faults = {}, text = DeviceGen.name(dev) })
 	if not job then
@@ -374,6 +411,16 @@ function MarketService.start()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		nearService[player] = nil
+	end)
+	task.spawn(function()
+		while true do
+			pcall(paintBoards)
+			task.wait(20)
+		end
+	end)
+	-- and right away when someone arrives
+	DataService.loaded:Connect(function()
+		task.defer(pcall, paintBoards)
 	end)
 	-- forget today's sold listings at midnight
 	task.spawn(function()

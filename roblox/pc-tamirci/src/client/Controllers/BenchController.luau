@@ -10,6 +10,7 @@
 --     and finish the job
 
 local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
@@ -50,6 +51,7 @@ local holding = nil :: any
 local orbit = { yaw = 0, pitch = 0.82, dist = 7.2 }
 local dragging = false
 local dragMoved = 0
+local touchStart: Vector2? = nil
 local conns = {}
 
 local TIMED = Config.HoldActionSeconds
@@ -635,13 +637,14 @@ end
 ----------------------------------------------------------------------------------------------------
 -- hover / camera / input
 ----------------------------------------------------------------------------------------------------
-local function pick(): (string?, Vector3?, Vector3?)
+-- The device node under the mouse (or under `at`, a viewport point, for touches).
+local function pick(at: Vector2?): (string?, Vector3?, Vector3?)
 	local h = handle()
 	local cam = Workspace.CurrentCamera
 	if not h or not cam then
 		return nil, nil, nil
 	end
-	local m = UserInputService:GetMouseLocation()
+	local m = at or UserInputService:GetMouseLocation()
 	local ray = cam:ViewportPointToRay(m.X, m.Y)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
@@ -653,7 +656,7 @@ local function pick(): (string?, Vector3?, Vector3?)
 	return h:nodeOf(hit.Instance), hit.Position, hit.Normal
 end
 
-local function updateHover()
+local function updateHover(at: Vector2?)
 	local v = view()
 	if not v or busy or holding or Kit.currentWindow() then
 		setAdornee(nil)
@@ -663,7 +666,7 @@ local function updateHover()
 		end
 		return
 	end
-	local id, pos, normal = pick()
+	local id, pos, normal = pick(at)
 	if not id then
 		hover = nil
 		setAdornee(nil)
@@ -1036,7 +1039,17 @@ function BenchController.init(screen: ScreenGui, hudModule)
 		if processed then
 			return
 		end
-		if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
+		if t == Enum.UserInputType.Touch then
+			-- a second tap ends the thermal paste squeeze; otherwise wait: tap acts, drag turns
+			if holding and holding.paste then
+				holding = nil
+				return
+			end
+			touchStart = Vector2.new(input.Position.X, input.Position.Y)
+			dragMoved = 0
+			return
+		end
+		if t == Enum.UserInputType.MouseButton1 then
 			if hover and hover.id and not Kit.currentWindow() then
 				if hover.c and hover.ok then
 					task.spawn(perform, hover.id, hover.c, toolId)
@@ -1069,7 +1082,21 @@ function BenchController.init(screen: ScreenGui, hudModule)
 			return
 		end
 		local t = input.UserInputType
-		if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
+		if t == Enum.UserInputType.Touch then
+			-- a tap (not a drag) acts on the part under the finger; holds then run on their own
+			local start = touchStart
+			touchStart = nil
+			if start and dragMoved < 12 and not Kit.currentWindow() and not holding then
+				updateHover(Vector2.new(input.Position.X, input.Position.Y) + GuiService:GetGuiInset())
+				if hover and hover.id then
+					if hover.c and hover.ok then
+						task.spawn(perform, hover.id, hover.c, toolId)
+					else
+						task.spawn(nodeMenu, hover.id)
+					end
+				end
+			end
+		elseif t == Enum.UserInputType.MouseButton1 then
 			if holding and holding.t0 then
 				local f = (os.clock() - holding.t0) / holding.dur
 				if holding.paste then
@@ -1089,7 +1116,8 @@ function BenchController.init(screen: ScreenGui, hudModule)
 		if not active then
 			return
 		end
-		if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+		local turning = (input.UserInputType == Enum.UserInputType.MouseMovement and dragging) or (input.UserInputType == Enum.UserInputType.Touch and touchStart ~= nil)
+		if turning then
 			dragMoved += math.abs(input.Delta.X) + math.abs(input.Delta.Y)
 			orbit.yaw -= input.Delta.X * 0.008
 			orbit.pitch = math.clamp(orbit.pitch + input.Delta.Y * 0.006, 0.15, 1.45)

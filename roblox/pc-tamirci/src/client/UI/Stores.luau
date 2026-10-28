@@ -21,6 +21,7 @@ local Theme = require(UI.Theme)
 local Hud = require(UI.Hud)
 local App = require(UI.App)
 local ShopPanel = require(UI.ShopPanel)
+local QuestsPanel = require(UI.QuestsPanel)
 local S = require(UI.Parent.Strings)
 local State = require(UI.Parent.State)
 
@@ -367,9 +368,7 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Leaderboard and police
 ----------------------------------------------------------------------------------------------------
-local function board(o)
-	local win = storeWindow("🏛️ " .. S.t("board_title"), Vector2.new(640, 560))
-	local c = win.content
+local function leaders(o, c: Instance)
 	Kit.label(c, S.t("board_cols"), { Size = UDim2.new(1, 0, 0, 22), TextColor3 = Theme.dim, TextSize = 14 })
 	local list = Kit.list(c, { Size = UDim2.new(1, 0, 1, -30), Position = UDim2.fromOffset(0, 28) })
 	local me = game:GetService("Players").LocalPlayer
@@ -382,6 +381,30 @@ local function board(o)
 		end
 		Kit.label(right, S.money(row.money), { Size = UDim2.fromOffset(120, 36), TextColor3 = Theme.money, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Right })
 	end
+end
+
+-- City hall: today's tasks and the leaderboard.
+local function board(o)
+	local win = storeWindow("🏛️ " .. S.t("store_board"), Vector2.new(760, 560))
+	local c = win.content
+	local area = Kit.frame(c, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, -44), Position = UDim2.fromOffset(0, 44) })
+	local pages = {}
+	local tabs = Kit.tabs(c, { { id = "quests", text = "📜 " .. S.t("quests_title") }, { id = "leaders", text = "🏆 " .. S.t("board_leaders") } }, function(id)
+		for k, f in pages do
+			f.Visible = k == id
+		end
+		if not pages[id] then
+			local f = Kit.frame(area, { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) })
+			pages[id] = f
+			if id == "quests" then
+				local refresh = QuestsPanel.render(f)
+				table.insert(win.conns, State.changed:Connect(refresh))
+			else
+				leaders(o, f)
+			end
+		end
+	end)
+	tabs.select("quests")
 end
 
 local function police()

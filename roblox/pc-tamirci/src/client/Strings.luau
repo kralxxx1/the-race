@@ -74,7 +74,7 @@ local T = {
 	store_scrap = { "Hurdalık", "Scrapyard" },
 	store_tools = { "Alet-Edevat", "Tools & Hardware" },
 	store_realty = { "Emlak Ofisi", "Estate Agent" },
-	store_board = { "Belediye — Liderler", "City Hall — Leaders" },
+	store_board = { "Belediye — Görev Panosu", "City Hall — Task Board" },
 	store_police = { "Polis Merkezi", "Police Station" },
 	bought = { "Satın alındı: {name}", "Bought: {name}" },
 	sold = { "Satıldı: {price}", "Sold for {price}" },
@@ -261,6 +261,7 @@ local T = {
 	t_manager_bought = { "👔 Müdür parça aldı: {part} ({price})", "👔 Manager ordered: {part} ({price})" },
 	t_tech_done = { "🧑‍🔧 {name} işi bitirdi: {job}", "🧑‍🔧 {name} finished: {job}" },
 	t_tech_blocked = { "🧑‍🔧 {name} takıldı ({job}): {reason} {detail}", "🧑‍🔧 {name} is stuck ({job}): {reason} {detail}" },
+	t_offline_income = { "👔 Sen yokken müdürün dükkânı işletti: +{amount} ({hours} saat)", "👔 Your manager ran the shop while you were away: +{amount} ({hours} h)" },
 	t_wages_paid = { "💼 Maaşlar ödendi: {amount}", "💼 Wages paid: {amount}" },
 	t_staff_quit = { "😞 Maaş ödenemedi, {name} işi bıraktı.", "😞 Couldn't pay wages, {name} quit." },
 	t_thief_caught = { "🚨 Hırsız yakalandı! {by} • ödül {bounty}", "🚨 Thief caught! {by} • bounty {bounty}" },
@@ -303,6 +304,16 @@ local T = {
 	per_unit = { "adet", "each" },
 	consumable = { "Sarf", "Consumable" },
 	sold_out = { "Tükendi", "Sold out" },
+
+	-- daily tasks
+	quests_title = { "Günlük Görevler", "Daily Tasks" },
+	quest_claim = { "Ödülü Al", "Claim" },
+	quest_claimed = { "Alındı", "Claimed" },
+	quest_reward = { "Ödül {reward} + {xp} XP", "Reward {reward} + {xp} XP" },
+	quest_new = { "Yeni görevler her gün gece yarısı (UTC) gelir.", "New tasks arrive every day at midnight (UTC)." },
+	board_leaders = { "Liderler", "Leaders" },
+	phone_quests = { "Görevler", "Tasks" },
+	t_quest_done = { "✅ Görev tamamlandı! Ödülünü telefondan ya da Görev Panosu'ndan al ({reward}).", "✅ Task done! Claim your reward on the phone or the city hall board ({reward})." },
 
 	-- contracts
 	contracts_title = { "Toplu İşler", "Bulk Contracts" },
@@ -409,6 +420,7 @@ local T = {
 	e_bench_busy = { "Tezgâh dolu.", "The bench is busy." },
 	e_not_found = { "Bulunamadı.", "Not found." },
 	e_bad = { "Geçersiz istek.", "Invalid request." },
+	e_not_done = { "Bu görev henüz bitmedi.", "That task isn't finished yet." },
 	e_contract_busy = { "Önce elindeki sözleşmeyi bitir.", "Finish your current contract first." },
 	e_contract_desk = { "Bunun için dükkânında Kurumsal Sözleşme Ofisi olmalı.", "You need the Corporate Contracts Desk in your shop." },
 	e_generic = { "Olmadı: {err}", "That didn't work: {err}" },

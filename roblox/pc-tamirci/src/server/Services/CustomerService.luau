@@ -23,6 +23,7 @@ local DeviceGen = require(Shared.Repair.DeviceGen)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local RepairService = require(script.Parent.RepairService)
+local QuestService = require(script.Parent.QuestService)
 local NpcService = require(script.Parent.NpcService)
 
 local CustomerService = {}
@@ -601,6 +602,7 @@ local function pay(player: Player, cust, job)
 			return
 		end
 		DataService.money(player, job.price + tip, "repair")
+		QuestService.bump(player, "deliver")
 		local diff = 1
 		for _, fid in job.faults or {} do
 			local f = Faults.get(fid)
@@ -611,6 +613,7 @@ local function pay(player: Player, cust, job)
 		p.stats.repairs += 1
 		if stars == 5 then
 			p.stats.perfect += 1
+			QuestService.bump(player, "perfect")
 		end
 		local text = say(cust, if stars >= 4 then "happy" else "meh", nil, 6)
 		if tip > 0 then
@@ -717,6 +720,7 @@ function CustomerService.caught(cust, catcher: Player?)
 	if p then
 		p.stats.caught += 1
 	end
+	QuestService.bump(catcher or player, "catch")
 	NpcService.say(cust.model, if cust.lang == "en" then "OK OK! Here's your money!" else "Tamam tamam! Al paranı!", 4)
 	Net.push(player, "toast", { key = "caught_scammer", vars = { amount = amount, by = catcher and catcher.DisplayName or "" } })
 	task.delay(2.5, function()

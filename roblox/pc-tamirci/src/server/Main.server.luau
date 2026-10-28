@@ -30,8 +30,9 @@ local VehicleService = require(Services.VehicleService)
 local TimeService = require(Services.TimeService)
 local ContractService = require(Services.ContractService)
 local ShowcaseService = require(Services.ShowcaseService)
+local QuestService = require(Services.QuestService)
 
-local order = { DataService, PlotService, NpcService, RepairService, CustomerService, MarketService, EmployeeService, ThiefService, VehicleService, ContractService, ShowcaseService, TimeService }
+local order = { DataService, PlotService, NpcService, RepairService, QuestService, CustomerService, MarketService, EmployeeService, ThiefService, VehicleService, ContractService, ShowcaseService, TimeService }
 for _, s in order do
 	s.init()
 end
@@ -157,6 +158,7 @@ Net.handle("travel.taxi", function(player, poiId)
 		drop = p
 	end
 	moveTo(player, CFrame.lookAt(drop, Vector3.new(poi.pos.X, drop.Y, poi.pos.Z)))
+	QuestService.bump(player, "taxi")
 	return { ok = true, fare = fare }
 end)
 

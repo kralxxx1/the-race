@@ -10,6 +10,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
 local Net = require(Shared.Net)
 local Signal = require(Shared.Util.Signal)
 local Parts = require(Shared.Data.Parts)
@@ -404,9 +405,42 @@ function EmployeeService.payday()
 	end
 end
 
+-- A shop with a manager keeps working while its owner is away: technicians earn by the hour
+-- (up to Config.OfflineEarningsMaxHours), paid out when the owner comes back.
+function EmployeeService.offlineEarnings(player: Player, p): number
+	local last = p.last or 0
+	if last <= 0 then
+		return 0
+	end
+	local hours = math.min(Config.OfflineEarningsMaxHours, (os.time() - last) / 3600)
+	if hours < 0.1 then
+		return 0
+	end
+	local manager, perHour = false, 0
+	for _, e in p.staff do
+		if e.role == "manager" then
+			manager = true
+		elseif e.role == "technician" then
+			perHour += 30 + (e.skill or 1) * 12
+		elseif e.role == "receptionist" then
+			perHour += 15
+		end
+	end
+	if not manager or perHour <= 0 then
+		return 0
+	end
+	local total = math.floor(perHour * hours)
+	DataService.money(player, total, "offline")
+	Net.push(player, "toast", { key = "offline_income", vars = { amount = total, hours = string.format("%.1f", hours) } })
+	return total
+end
+
 function EmployeeService.init() end
 
 function EmployeeService.start()
+	DataService.loaded:Connect(function(player, p)
+		EmployeeService.offlineEarnings(player, p)
+	end)
 	PlotService.built:Connect(function(player)
 		spawnStaff(player)
 		EmployeeService.startWork(player)

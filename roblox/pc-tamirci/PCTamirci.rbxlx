@@ -2069,6 +2069,48 @@ return Parts
         </Item>
         <Item class="ModuleScript" referent="18">
           <Properties>
+            <string name="Name">Quests</string>
+            <string name="Source"><![CDATA[-- Quests: the daily tasks on the city hall board. Every player gets three a day (the same three
+-- all day, new ones at midnight UTC); {n} in the name is the goal.
+
+local Quests = {}
+
+local function N(tr, en)
+	return { tr = tr, en = en }
+end
+
+Quests.list = {
+	{ id = "deliver", icon = "🔧", goal = { 2, 4 }, reward = 140, xp = 40, name = N("Müşteriye {n} onarılmış cihaz teslim et", "Deliver {n} repaired devices") },
+	{ id = "perfect", icon = "⭐", goal = { 1, 2 }, reward = 180, xp = 50, name = N("Müşterilerden {n} kez 5 yıldız al", "Get {n} five-star reviews") },
+	{ id = "sell", icon = "♻️", goal = { 2, 4 }, reward = 90, xp = 25, name = N("2. el pazarına ya da hurdalığa {n} parça sat", "Sell {n} parts to a dealer") },
+	{ id = "buy", icon = "🛒", goal = { 2, 5 }, reward = 80, xp = 20, name = N("Parçacılardan {n} parça al", "Buy {n} parts") },
+	{ id = "junk", icon = "🏗️", goal = { 1, 1 }, reward = 120, xp = 30, level = 2, name = N("Hurdalıktan bir hurda kasa al", "Buy a junk PC at the scrapyard") },
+	{ id = "catch", icon = "🚨", goal = { 1, 1 }, reward = 200, xp = 60, level = 2, name = N("Bir hırsız ya da dolandırıcı yakala", "Catch a thief or a scammer") },
+	{ id = "taxi", icon = "🚕", goal = { 1, 2 }, reward = 60, xp = 15, name = N("{n} kez taksiye bin", "Take {n} taxi rides") },
+	{ id = "contract", icon = "🏢", goal = { 2, 3 }, reward = 220, xp = 60, level = 3, name = N("{n} sözleşme makinesini sorunsuz teslim et", "Deliver {n} working contract machines") },
+	{ id = "earn", icon = "💰", goal = { 300, 900 }, reward = 150, xp = 40, money = true, name = N("Bugün {n} kazan", "Earn {n} today") },
+}
+
+Quests.byId = {}
+for _, q in Quests.list do
+	Quests.byId[q.id] = q
+end
+
+function Quests.get(id: string)
+	return Quests.byId[id]
+end
+
+-- Rewards grow with the player's level.
+function Quests.scale(level: number): number
+	return 1 + math.max(0, level - 1) * 0.08
+end
+
+return Quests
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="19">
+          <Properties>
             <string name="Name">Tools</string>
             <string name="Source"><![CDATA[-- Tools: the repair tools a technician can own. Sold at the "Alet-Edevat" hardware shop.
 -- `actions` lists the repair actions the tool performs (see Repair/RepairRules).
@@ -2250,7 +2292,7 @@ return Tools
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="19">
+        <Item class="ModuleScript" referent="20">
           <Properties>
             <string name="Name">Upgrades</string>
             <string name="Source"><![CDATA[-- Upgrades: shop expansion levels and everything you can buy for your shop.
@@ -2375,7 +2417,7 @@ return Upgrades
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="20">
+        <Item class="ModuleScript" referent="21">
           <Properties>
             <string name="Name">Vehicles</string>
             <string name="Source"><![CDATA[-- Vehicles: everything you can buy at the dealerships and drive around the city.
@@ -2451,11 +2493,11 @@ return Vehicles
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="21">
+      <Item class="Folder" referent="22">
         <Properties>
           <string name="Name">Economy</string>
         </Properties>
-        <Item class="ModuleScript" referent="22">
+        <Item class="ModuleScript" referent="23">
           <Properties>
             <string name="Name">Market</string>
             <string name="Source"><![CDATA[-- Market: prices and listings, shared by the server (which sells) and the client (which shows them).
@@ -2591,11 +2633,11 @@ return Market
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="23">
+      <Item class="Folder" referent="24">
         <Properties>
           <string name="Name">Models</string>
         </Properties>
-        <Item class="ModuleScript" referent="24">
+        <Item class="ModuleScript" referent="25">
           <Properties>
             <string name="Name">Buildings</string>
             <string name="Source"><![CDATA[-- Buildings: procedural facades for the city.
@@ -3098,7 +3140,7 @@ return Buildings
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="25">
+        <Item class="ModuleScript" referent="26">
           <Properties>
             <string name="Name">DesktopLayout</string>
             <string name="Source"><![CDATA[-- DesktopLayout: where every node of a desktop sits and how to draw it, for PCModel.
@@ -3705,7 +3747,7 @@ return DesktopLayout
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="26">
+        <Item class="ModuleScript" referent="27">
           <Properties>
             <string name="Name">LaptopLayout</string>
             <string name="Source"><![CDATA[-- LaptopLayout: where every node of a laptop sits and how to draw it, for PCModel.
@@ -4383,7 +4425,7 @@ return LaptopLayout
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="27">
+        <Item class="ModuleScript" referent="28">
           <Properties>
             <string name="Name">PCModel</string>
             <string name="Source"><![CDATA[-- PCModel: turns a device view (RepairRules.view) into a 3D model on the bench and keeps it in sync.
@@ -4834,7 +4876,7 @@ return PCModel
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="28">
+        <Item class="ModuleScript" referent="29">
           <Properties>
             <string name="Name">PCParts</string>
             <string name="Source"><![CDATA[-- PCParts: builders for every desktop component the repair bench shows. Each builder draws the part
@@ -5807,7 +5849,7 @@ return PCParts
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="29">
+        <Item class="ModuleScript" referent="30">
           <Properties>
             <string name="Name">Props</string>
             <string name="Source"><![CDATA[-- Props: street furniture, vegetation and small objects used by the world and the shops.
@@ -6381,7 +6423,7 @@ return Props
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="30">
+        <Item class="ModuleScript" referent="31">
           <Properties>
             <string name="Name">ShopBuilder</string>
             <string name="Source"><![CDATA[-- ShopBuilder: a player's repair shop on a plot, rebuilt whenever it levels up or gets new items,
@@ -7012,7 +7054,7 @@ return ShopBuilder
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="31">
+        <Item class="ModuleScript" referent="32">
           <Properties>
             <string name="Name">ToolModels</string>
             <string name="Source"><![CDATA[-- ToolModels: the hand tools you hold over the bench. Each model's tip sits at the origin and the
@@ -7192,7 +7234,7 @@ return ToolModels
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="32">
+        <Item class="ModuleScript" referent="33">
           <Properties>
             <string name="Name">VehicleModels</string>
             <string name="Source"><![CDATA[-- VehicleModels: every buyable vehicle, built from parts with its own silhouette (cars, vans,
@@ -7618,7 +7660,7 @@ return VehicleModels
           </Properties>
         </Item>
       </Item>
-      <Item class="ModuleScript" referent="33">
+      <Item class="ModuleScript" referent="34">
         <Properties>
           <string name="Name">Net</string>
           <string name="Source"><![CDATA[-- Net: the only bridge between clients and the server.
@@ -7846,11 +7888,11 @@ return Net
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Folder" referent="34">
+      <Item class="Folder" referent="35">
         <Properties>
           <string name="Name">Repair</string>
         </Properties>
-        <Item class="ModuleScript" referent="35">
+        <Item class="ModuleScript" referent="36">
           <Properties>
             <string name="Name">DeviceGen</string>
             <string name="Source"><![CDATA[-- DeviceGen: builds believable, internally consistent devices for customers, the scrapyard and
@@ -8776,7 +8818,7 @@ return DeviceGen
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="36">
+        <Item class="ModuleScript" referent="37">
           <Properties>
             <string name="Name">DeviceTemplates</string>
             <string name="Source"><![CDATA[-- DeviceTemplates: the static node graph of a desktop PC and of a laptop.
@@ -9045,7 +9087,7 @@ return Templates
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="37">
+        <Item class="ModuleScript" referent="38">
           <Properties>
             <string name="Name">RepairRules</string>
             <string name="Source"><![CDATA[-- RepairRules: the single source of truth for what a technician may do to a device and what the
@@ -11028,7 +11070,7 @@ return Rules
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="38">
+        <Item class="ModuleScript" referent="39">
           <Properties>
             <string name="Name">TechBot</string>
             <string name="Source"><![CDATA[-- TechBot: a technician that repairs a device only through RepairRules.apply, the same way a
@@ -11605,11 +11647,11 @@ return TechBot
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="39">
+      <Item class="Folder" referent="40">
         <Properties>
           <string name="Name">Util</string>
         </Properties>
-        <Item class="ModuleScript" referent="40">
+        <Item class="ModuleScript" referent="41">
           <Properties>
             <string name="Name">Builder</string>
             <string name="Source"><![CDATA[-- Builder: small helpers for creating parts, models, signs and lights from code.
@@ -11925,7 +11967,7 @@ return Builder
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="41">
+        <Item class="ModuleScript" referent="42">
           <Properties>
             <string name="Name">Format</string>
             <string name="Source"><![CDATA[-- Format: money, numbers, durations and clock strings for both languages.
@@ -12014,7 +12056,7 @@ return Format
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="42">
+        <Item class="ModuleScript" referent="43">
           <Properties>
             <string name="Name">Rand</string>
             <string name="Source"><![CDATA[-- Rand: deterministic helpers on top of Roblox's Random.
@@ -12128,7 +12170,7 @@ return Rand
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="43">
+        <Item class="ModuleScript" referent="44">
           <Properties>
             <string name="Name">Signal</string>
             <string name="Source"><![CDATA[-- Signal: a tiny event object for module-to-module communication.
@@ -12198,11 +12240,11 @@ return Signal
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="44">
+      <Item class="Folder" referent="45">
         <Properties>
           <string name="Name">World</string>
         </Properties>
-        <Item class="ModuleScript" referent="45">
+        <Item class="ModuleScript" referent="46">
           <Properties>
             <string name="Name">CityLayout</string>
             <string name="Source"><![CDATA[-- CityLayout: the deterministic plan of the whole city.
@@ -12696,15 +12738,15 @@ return CityLayout
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="46">
+  <Item class="ServerScriptService" referent="47">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="47">
+    <Item class="Folder" referent="48">
       <Properties>
         <string name="Name">Server</string>
       </Properties>
-      <Item class="Script" referent="48">
+      <Item class="Script" referent="49">
         <Properties>
           <string name="Name">Main</string>
           <token name="RunContext">0</token>
@@ -12740,8 +12782,9 @@ local VehicleService = require(Services.VehicleService)
 local TimeService = require(Services.TimeService)
 local ContractService = require(Services.ContractService)
 local ShowcaseService = require(Services.ShowcaseService)
+local QuestService = require(Services.QuestService)
 
-local order = { DataService, PlotService, NpcService, RepairService, CustomerService, MarketService, EmployeeService, ThiefService, VehicleService, ContractService, ShowcaseService, TimeService }
+local order = { DataService, PlotService, NpcService, RepairService, QuestService, CustomerService, MarketService, EmployeeService, ThiefService, VehicleService, ContractService, ShowcaseService, TimeService }
 for _, s in order do
 	s.init()
 end
@@ -12867,6 +12910,7 @@ Net.handle("travel.taxi", function(player, poiId)
 		drop = p
 	end
 	moveTo(player, CFrame.lookAt(drop, Vector3.new(poi.pos.X, drop.Y, poi.pos.Z)))
+	QuestService.bump(player, "taxi")
 	return { ok = true, fare = fare }
 end)
 
@@ -12874,11 +12918,11 @@ print("[PC Tamircisi] server started")
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Folder" referent="49">
+      <Item class="Folder" referent="50">
         <Properties>
           <string name="Name">Services</string>
         </Properties>
-        <Item class="ModuleScript" referent="50">
+        <Item class="ModuleScript" referent="51">
           <Properties>
             <string name="Name">ContractService</string>
             <string name="Source"><![CDATA[-- ContractService: bulk work from the internet café and the data centre. A contract is a batch
@@ -12900,6 +12944,7 @@ local Rand = require(Shared.Util.Rand)
 local DataService = require(script.Parent.DataService)
 local RepairService = require(script.Parent.RepairService)
 local MarketService = require(script.Parent.MarketService)
+local QuestService = require(script.Parent.QuestService)
 
 local ContractService = {}
 
@@ -13072,6 +13117,7 @@ local function finished(player: Player, job)
 	if fixed then
 		c.fixed += 1
 		DataService.money(player, c.pay, "contract")
+		QuestService.bump(player, "contract")
 		DataService.addXp(player, 22)
 		if p then
 			p.stats.repairs += 1
@@ -13134,7 +13180,7 @@ return ContractService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="51">
+        <Item class="ModuleScript" referent="52">
           <Properties>
             <string name="Name">CustomerService</string>
             <string name="Source"><![CDATA[-- CustomerService: people who walk into your shop with a broken device.
@@ -13162,6 +13208,7 @@ local DeviceGen = require(Shared.Repair.DeviceGen)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local RepairService = require(script.Parent.RepairService)
+local QuestService = require(script.Parent.QuestService)
 local NpcService = require(script.Parent.NpcService)
 
 local CustomerService = {}
@@ -13740,6 +13787,7 @@ local function pay(player: Player, cust, job)
 			return
 		end
 		DataService.money(player, job.price + tip, "repair")
+		QuestService.bump(player, "deliver")
 		local diff = 1
 		for _, fid in job.faults or {} do
 			local f = Faults.get(fid)
@@ -13750,6 +13798,7 @@ local function pay(player: Player, cust, job)
 		p.stats.repairs += 1
 		if stars == 5 then
 			p.stats.perfect += 1
+			QuestService.bump(player, "perfect")
 		end
 		local text = say(cust, if stars >= 4 then "happy" else "meh", nil, 6)
 		if tip > 0 then
@@ -13856,6 +13905,7 @@ function CustomerService.caught(cust, catcher: Player?)
 	if p then
 		p.stats.caught += 1
 	end
+	QuestService.bump(catcher or player, "catch")
 	NpcService.say(cust.model, if cust.lang == "en" then "OK OK! Here's your money!" else "Tamam tamam! Al paranı!", 4)
 	Net.push(player, "toast", { key = "caught_scammer", vars = { amount = amount, by = catcher and catcher.DisplayName or "" } })
 	task.delay(2.5, function()
@@ -14044,7 +14094,7 @@ return CustomerService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="52">
+        <Item class="ModuleScript" referent="53">
           <Properties>
             <string name="Name">DataService</string>
             <string name="Source"><![CDATA[-- DataService: each player's save (money, XP, tools, parts, shop, staff, vehicles...).
@@ -14065,6 +14115,7 @@ local Upgrades = require(Shared.Data.Upgrades)
 local DataService = {}
 DataService.loaded = Signal.new() -- (player, profile)
 DataService.levelUp = Signal.new() -- (player, level)
+DataService.earned = Signal.new() -- (player, amount, reason) for every income
 
 local profiles: { [Player]: { [string]: any } } = {}
 local dirty: { [Player]: boolean } = {}
@@ -14112,6 +14163,7 @@ local function defaults()
 		nextUid = 0,
 		last = 0,
 		daily = { day = 0, streak = 0 },
+		quests = { day = 0, list = {} },
 		settings = { music = 0.5, sfx = 0.8 },
 	}
 end
@@ -14360,7 +14412,7 @@ function DataService.isMemoryMode(): boolean
 end
 
 -- Adds (or with a negative amount, takes) money. Refuses to go below zero.
-function DataService.money(player: Player, delta: number, _reason: string?): boolean
+function DataService.money(player: Player, delta: number, reason: string?): boolean
 	local p = profiles[player]
 	if not p then
 		return false
@@ -14371,6 +14423,7 @@ function DataService.money(player: Player, delta: number, _reason: string?): boo
 	p.money = math.floor((p.money + delta) * 100 + 0.5) / 100
 	if delta > 0 then
 		p.stats.earned += delta
+		DataService.earned:Fire(player, delta, reason)
 	end
 	DataService.touch(player)
 	return true
@@ -14568,7 +14621,7 @@ return DataService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="53">
+        <Item class="ModuleScript" referent="54">
           <Properties>
             <string name="Name">EmployeeService</string>
             <string name="Source"><![CDATA[-- EmployeeService: hiring at the staff agency, wages, and the staff at work in your shop.
@@ -14583,6 +14636,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
 local Net = require(Shared.Net)
 local Signal = require(Shared.Util.Signal)
 local Parts = require(Shared.Data.Parts)
@@ -14977,9 +15031,42 @@ function EmployeeService.payday()
 	end
 end
 
+-- A shop with a manager keeps working while its owner is away: technicians earn by the hour
+-- (up to Config.OfflineEarningsMaxHours), paid out when the owner comes back.
+function EmployeeService.offlineEarnings(player: Player, p): number
+	local last = p.last or 0
+	if last <= 0 then
+		return 0
+	end
+	local hours = math.min(Config.OfflineEarningsMaxHours, (os.time() - last) / 3600)
+	if hours < 0.1 then
+		return 0
+	end
+	local manager, perHour = false, 0
+	for _, e in p.staff do
+		if e.role == "manager" then
+			manager = true
+		elseif e.role == "technician" then
+			perHour += 30 + (e.skill or 1) * 12
+		elseif e.role == "receptionist" then
+			perHour += 15
+		end
+	end
+	if not manager or perHour <= 0 then
+		return 0
+	end
+	local total = math.floor(perHour * hours)
+	DataService.money(player, total, "offline")
+	Net.push(player, "toast", { key = "offline_income", vars = { amount = total, hours = string.format("%.1f", hours) } })
+	return total
+end
+
 function EmployeeService.init() end
 
 function EmployeeService.start()
+	DataService.loaded:Connect(function(player, p)
+		EmployeeService.offlineEarnings(player, p)
+	end)
 	PlotService.built:Connect(function(player)
 		spawnStaff(player)
 		EmployeeService.startWork(player)
@@ -15025,7 +15112,7 @@ return EmployeeService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="54">
+        <Item class="ModuleScript" referent="55">
           <Properties>
             <string name="Name">MarketService</string>
             <string name="Source"><![CDATA[-- MarketService: the city's shops. Opens the right UI when a player walks up to a service counter
@@ -15033,6 +15120,7 @@ return EmployeeService
 -- PCs, tools, consumables and everything for your own shop (levels, items, looks).
 
 local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -15044,10 +15132,12 @@ local Tools = require(Shared.Data.Tools)
 local Upgrades = require(Shared.Data.Upgrades)
 local Market = require(Shared.Economy.Market)
 local DeviceGen = require(Shared.Repair.DeviceGen)
+local Builder = require(Shared.Util.Builder)
 
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local RepairService = require(script.Parent.RepairService)
+local QuestService = require(script.Parent.QuestService)
 
 local MarketService = {}
 MarketService.opened = Signal.new() -- (player, service, poi) for services owned by other modules
@@ -15101,19 +15191,48 @@ local function openPayload(service: string, poi: string)
 		end
 		return { free = free }
 	elseif service == "board" then
-		local rows = {}
-		for p, prof in DataService.all() do
-			table.insert(rows, { name = p.DisplayName, level = prof.level, money = math.floor(prof.money), rep = math.floor(prof.rep), repairs = prof.stats.repairs })
-		end
-		table.sort(rows, function(a, b)
-			return a.repairs * 10 + a.level > b.repairs * 10 + b.level
-		end)
-		return { rows = rows }
+		return { rows = MarketService.leaders() }
 	elseif service == "police" then
 		return {}
 	end
 	return {}
 end
+
+-- Everyone on the server, best technicians first.
+function MarketService.leaders()
+	local rows = {}
+	for p, prof in DataService.all() do
+		table.insert(rows, { name = p.DisplayName, level = prof.level, money = math.floor(prof.money), rep = math.floor(prof.rep), repairs = prof.stats.repairs })
+	end
+	table.sort(rows, function(a, b)
+		return a.repairs * 10 + a.level > b.repairs * 10 + b.level
+	end)
+	return rows
+end
+
+-- The board in front of city hall shows the server's top technicians.
+local function paintBoards()
+	local lines = { "<b>🏆 EN İYİ TAMİRCİLER</b>" }
+	local rows = MarketService.leaders()
+	for i = 1, math.min(8, #rows) do
+		local r = rows[i]
+		table.insert(lines, string.format("%d. %s  •  Sv.%d  •  %d tamir", i, r.name, r.level, r.repairs))
+	end
+	if #rows == 0 then
+		table.insert(lines, "—")
+	end
+	local text = table.concat(lines, "\n")
+	for _, board in CollectionService:GetTagged("Leaderboard") do
+		if board:IsA("BasePart") then
+			local gui = board:FindFirstChild("Leaders")
+			local existing = gui and gui:FindFirstChild("Text") :: TextLabel?
+			local label = existing or Builder.sign(board, Enum.NormalId.Front, "", { name = "Leaders", rich = true, color = Color3.fromRGB(250, 236, 190), background = Color3.fromRGB(24, 28, 38), glow = true, brightness = 1.2, padding = 0.05 })
+			label.Text = text
+		end
+	end
+end
+
+MarketService._paintBoards = paintBoards
 
 function MarketService.open(player: Player, service: string, poi: string, pos: Vector3)
 	nearService[player] = { service = service, poi = poi, t = os.clock(), pos = pos }
@@ -15159,6 +15278,7 @@ local function buyPart(player: Player, payload)
 	if p.uses then
 		DataService.money(player, -cost, "buy")
 		DataService.addStock(player, p.id, p.uses * qty)
+		QuestService.bump(player, "buy", qty)
 		return { ok = true }
 	end
 	if p.cat == "case" then
@@ -15176,6 +15296,7 @@ local function buyPart(player: Player, payload)
 		return { ok = false, err = "storage" }
 	end
 	DataService.money(player, -cost, "buy")
+	QuestService.bump(player, "buy", qty)
 	for _ = 1, qty do
 		local cond = if service == "parts_bazaar" then math.floor((0.82 + rng:NextNumber() * 0.18) * 100) / 100 else 1
 		local broken = if service == "parts_bazaar" and rng:NextNumber() < 0.08 then true else nil
@@ -15207,6 +15328,7 @@ local function buyUsed(player: Player, payload)
 	end
 	bought[listing.id] = true
 	DataService.money(player, -listing.price, "used")
+	QuestService.bump(player, "buy")
 	local broken = if rng:NextNumber() * 100 < listing.risk then true else nil
 	-- hidden: the player only finds out when testing it
 	local item = DataService.addPart(player, listing.part, listing.cond, "used", nil)
@@ -15232,6 +15354,7 @@ local function sell(player: Player, payload)
 	end
 	DataService.takePart(player, payload.uid)
 	DataService.money(player, price, "sell")
+	QuestService.bump(player, "sell")
 	return { ok = true, price = price }
 end
 
@@ -15252,6 +15375,7 @@ local function buyJunk(player: Player, payload)
 		return { ok = false, err = "money" }
 	end
 	bought[listing.id] = true
+	QuestService.bump(player, "junk")
 	local dev = DeviceGen.junk(Random.new(listing.seed))
 	local job = RepairService.createJob(player, { device = dev, kind = "refurb", own = true, price = 0, faults = {}, text = DeviceGen.name(dev) })
 	if not job then
@@ -15405,6 +15529,16 @@ function MarketService.start()
 	Players.PlayerRemoving:Connect(function(player)
 		nearService[player] = nil
 	end)
+	task.spawn(function()
+		while true do
+			pcall(paintBoards)
+			task.wait(20)
+		end
+	end)
+	-- and right away when someone arrives
+	DataService.loaded:Connect(function()
+		task.defer(pcall, paintBoards)
+	end)
 	-- forget today's sold listings at midnight
 	task.spawn(function()
 		local day = Market.day()
@@ -15422,7 +15556,7 @@ return MarketService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="55">
+        <Item class="ModuleScript" referent="56">
           <Properties>
             <string name="Name">NpcService</string>
             <string name="Source"><![CDATA[-- NpcService: people in the city — customers, staff, thieves. Builds an R15 body from a base rig,
@@ -15944,7 +16078,7 @@ return NpcService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="56">
+        <Item class="ModuleScript" referent="57">
           <Properties>
             <string name="Name">PlotService</string>
             <string name="Source"><![CDATA[-- PlotService: the 66 shop plots. Every online player owns one shop; free plots show a "for rent"
@@ -16204,7 +16338,118 @@ return PlotService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="57">
+        <Item class="ModuleScript" referent="58">
+          <Properties>
+            <string name="Name">QuestService</string>
+            <string name="Source"><![CDATA[-- QuestService: three daily tasks per player (Data/Quests). Other services report progress with
+-- QuestService.bump(player, kind, amount); income counts through DataService.earned. Finished
+-- tasks are claimed from the city hall board or the phone.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Net = require(Shared.Net)
+local Quests = require(Shared.Data.Quests)
+local Market = require(Shared.Economy.Market)
+local Rand = require(Shared.Util.Rand)
+
+local DataService = require(script.Parent.DataService)
+
+local QuestService = {}
+
+local V = Net.V
+
+-- income that counts towards "earn"
+local EARNING = { repair = true, contract = true, showcase = true, resale = true, sell = true, bounty = true, tip = true }
+
+-- Today's three tasks for the player (made on first use each day).
+function QuestService.ensure(player: Player)
+	local p = DataService.get(player)
+	if not p then
+		return nil
+	end
+	local day = Market.day()
+	if p.quests and p.quests.day == day and #p.quests.list > 0 then
+		return p.quests
+	end
+	local rng = Rand.new(day * 7919 + player.UserId % 100003)
+	local pool = {}
+	for _, q in Quests.list do
+		if (q.level or 1) <= p.level then
+			table.insert(pool, q)
+		end
+	end
+	Rand.shuffle(rng, pool)
+	local scale = Quests.scale(p.level)
+	local list = {}
+	for i = 1, math.min(3, #pool) do
+		local q = pool[i]
+		local goal = rng:NextInteger(q.goal[1], q.goal[2])
+		if q.money then
+			goal = math.floor(goal * scale / 50 + 0.5) * 50
+		end
+		table.insert(list, { id = q.id, goal = goal, n = 0, claimed = false, reward = math.floor(q.reward * scale), xp = q.xp })
+	end
+	p.quests = { day = day, list = list }
+	DataService.touch(player)
+	return p.quests
+end
+
+function QuestService.bump(player: Player, kind: string, amount: number?)
+	local qs = QuestService.ensure(player)
+	if not qs then
+		return
+	end
+	local changed = false
+	for _, q in qs.list do
+		if q.id == kind and q.n < q.goal then
+			q.n = math.min(q.goal, q.n + (amount or 1))
+			changed = true
+			if q.n >= q.goal then
+				Net.push(player, "toast", { key = "quest_done", vars = { reward = q.reward } })
+			end
+		end
+	end
+	if changed then
+		DataService.touch(player)
+	end
+end
+
+local function claim(player: Player, payload)
+	if not V.tbl(payload) or not V.int(payload.i, 1, 3) then
+		return { ok = false, err = "bad" }
+	end
+	local qs = QuestService.ensure(player)
+	local q = qs and qs.list[payload.i]
+	if not q or q.claimed or q.n < q.goal then
+		return { ok = false, err = "not_done" }
+	end
+	q.claimed = true
+	DataService.money(player, q.reward, "quest")
+	DataService.addXp(player, q.xp)
+	DataService.touch(player)
+	return { ok = true, reward = q.reward }
+end
+
+function QuestService.init() end
+
+function QuestService.start()
+	Net.handle("quests.claim", claim)
+	DataService.loaded:Connect(function(player)
+		QuestService.ensure(player)
+	end)
+	DataService.earned:Connect(function(player, delta, reason)
+		if EARNING[reason or ""] then
+			QuestService.bump(player, "earn", math.floor(delta))
+		end
+	end)
+end
+
+return QuestService
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="59">
           <Properties>
             <string name="Name">RepairService</string>
             <string name="Source"><![CDATA[-- RepairService: jobs (customer devices and your own projects), workbenches and every repair action.
@@ -16882,7 +17127,7 @@ return RepairService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="58">
+        <Item class="ModuleScript" referent="60">
           <Properties>
             <string name="Name">ShowcaseService</string>
             <string name="Source"><![CDATA[-- ShowcaseService: the PC showcase in the shop window (a shop item from level 4). Put a finished
@@ -17089,7 +17334,7 @@ return ShowcaseService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="59">
+        <Item class="ModuleScript" referent="61">
           <Properties>
             <string name="Name">ThiefService</string>
             <string name="Source"><![CDATA[-- ThiefService: shoplifters. Now and then (more often at night) a thief slips into a shop, grabs
@@ -17112,6 +17357,7 @@ local Employees = require(Shared.Data.Employees)
 local Customers = require(Shared.Data.Customers)
 
 local DataService = require(script.Parent.DataService)
+local QuestService = require(script.Parent.QuestService)
 local PlotService = require(script.Parent.PlotService)
 local NpcService = require(script.Parent.NpcService)
 local CustomerService = require(script.Parent.CustomerService)
@@ -17196,6 +17442,7 @@ local function caught(t, catcher: Player?, byGuard: string?)
 	if prof then
 		prof.stats.caught += 1
 	end
+	QuestService.bump(who, "catch")
 	Net.push(owner, "toast", { key = "thief_caught", vars = { by = byGuard or (catcher and catcher.DisplayName) or "", bounty = bounty } })
 	if catcher and catcher ~= owner then
 		Net.push(catcher, "toast", { key = "bounty", vars = { amount = bounty } })
@@ -17406,7 +17653,7 @@ return ThiefService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="60">
+        <Item class="ModuleScript" referent="62">
           <Properties>
             <string name="Name">TimeService</string>
             <string name="Source"><![CDATA[-- TimeService: the day/night cycle, the weather and the in-game calendar.
@@ -17477,7 +17724,7 @@ return TimeService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="61">
+        <Item class="ModuleScript" referent="63">
           <Properties>
             <string name="Name">VehicleService</string>
             <string name="Source"><![CDATA[-- VehicleService: dealerships (display models, buying) and your own vehicles. Owned vehicles are
@@ -17704,11 +17951,11 @@ return VehicleService
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="62">
+      <Item class="Folder" referent="64">
         <Properties>
           <string name="Name">World</string>
         </Properties>
-        <Item class="ModuleScript" referent="63">
+        <Item class="ModuleScript" referent="65">
           <Properties>
             <string name="Name">Blocks</string>
             <string name="Source"><![CDATA[-- Blocks: the ordinary city fabric between the landmarks — houses, apartment blocks, office
@@ -17922,7 +18169,7 @@ return Blocks
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="64">
+        <Item class="ModuleScript" referent="66">
           <Properties>
             <string name="Name">Landmarks</string>
             <string name="Source"><![CDATA[-- Landmarks: builds every named place from the layout (commerce, civic and nature groups).
@@ -17948,7 +18195,7 @@ return Landmarks
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="65">
+        <Item class="ModuleScript" referent="67">
           <Properties>
             <string name="Name">LandmarksCivic</string>
             <string name="Source"><![CDATA[-- Civic landmarks: Republic Square (clock tower, fountain, city hall, bank, café), the university,
@@ -18296,7 +18543,7 @@ return Civic
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="66">
+        <Item class="ModuleScript" referent="68">
           <Properties>
             <string name="Name">LandmarksCommerce</string>
             <string name="Source"><![CDATA[-- Commerce landmarks: every shop, market and dealer the player visits, plus food places and other
@@ -18897,7 +19144,7 @@ return Commerce
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="67">
+        <Item class="ModuleScript" referent="69">
           <Properties>
             <string name="Name">LandmarksNature</string>
             <string name="Source"><![CDATA[-- Nature and leisure: Lake Park, the funfair, the container port, the marina, the old pier,
@@ -19560,7 +19807,7 @@ return Nature
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="68">
+        <Item class="ModuleScript" referent="70">
           <Properties>
             <string name="Name">Roads</string>
             <string name="Source"><![CDATA[-- Roads: asphalt, sidewalks, curbs, lane markings, crosswalks, intersections, traffic lights,
@@ -19892,7 +20139,7 @@ return Roads
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="69">
+        <Item class="ModuleScript" referent="71">
           <Properties>
             <string name="Name">TerrainBuilder</string>
             <string name="Source"><![CDATA[-- Terrain: grass ground, the beach and the sea, the northern hills and the park lake.
@@ -20030,7 +20277,7 @@ return Terrain
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="70">
+        <Item class="ModuleScript" referent="72">
           <Properties>
             <string name="Name">WorldBuilder</string>
             <string name="Source"><![CDATA[-- WorldBuilder: builds the whole city once when the server starts.
@@ -20103,19 +20350,19 @@ return WorldBuilder
       </Item>
     </Item>
   </Item>
-  <Item class="SoundService" referent="71">
+  <Item class="SoundService" referent="73">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>
     </Properties>
   </Item>
-  <Item class="StarterGui" referent="72">
+  <Item class="StarterGui" referent="74">
     <Properties>
       <string name="Name">StarterGui</string>
       <bool name="ResetPlayerGuiOnSpawn">false</bool>
     </Properties>
   </Item>
-  <Item class="StarterPlayer" referent="73">
+  <Item class="StarterPlayer" referent="75">
     <Properties>
       <string name="Name">StarterPlayer</string>
       <float name="CameraMaxZoomDistance">90</float>
@@ -20123,19 +20370,19 @@ return WorldBuilder
       <bool name="EnableMouseLockOption">true</bool>
       <bool name="LoadCharacterAppearance">true</bool>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="74">
+    <Item class="StarterPlayerScripts" referent="76">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="75">
+      <Item class="Folder" referent="77">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="Folder" referent="76">
+        <Item class="Folder" referent="78">
           <Properties>
             <string name="Name">Controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="77">
+          <Item class="ModuleScript" referent="79">
             <Properties>
               <string name="Name">Ambience</string>
               <string name="Source"><![CDATA[-- Ambience: everything that makes the city feel alive, done locally on each client.
@@ -20716,7 +20963,7 @@ return Ambience
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="78">
+          <Item class="ModuleScript" referent="80">
             <Properties>
               <string name="Name">BenchController</string>
               <string name="Source"><![CDATA[-- BenchController: working at a repair bench.
@@ -20731,6 +20978,7 @@ return Ambience
 --     and finish the job
 
 local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
@@ -20771,6 +21019,7 @@ local holding = nil :: any
 local orbit = { yaw = 0, pitch = 0.82, dist = 7.2 }
 local dragging = false
 local dragMoved = 0
+local touchStart: Vector2? = nil
 local conns = {}
 
 local TIMED = Config.HoldActionSeconds
@@ -21356,13 +21605,14 @@ end
 ----------------------------------------------------------------------------------------------------
 -- hover / camera / input
 ----------------------------------------------------------------------------------------------------
-local function pick(): (string?, Vector3?, Vector3?)
+-- The device node under the mouse (or under `at`, a viewport point, for touches).
+local function pick(at: Vector2?): (string?, Vector3?, Vector3?)
 	local h = handle()
 	local cam = Workspace.CurrentCamera
 	if not h or not cam then
 		return nil, nil, nil
 	end
-	local m = UserInputService:GetMouseLocation()
+	local m = at or UserInputService:GetMouseLocation()
 	local ray = cam:ViewportPointToRay(m.X, m.Y)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
@@ -21374,7 +21624,7 @@ local function pick(): (string?, Vector3?, Vector3?)
 	return h:nodeOf(hit.Instance), hit.Position, hit.Normal
 end
 
-local function updateHover()
+local function updateHover(at: Vector2?)
 	local v = view()
 	if not v or busy or holding or Kit.currentWindow() then
 		setAdornee(nil)
@@ -21384,7 +21634,7 @@ local function updateHover()
 		end
 		return
 	end
-	local id, pos, normal = pick()
+	local id, pos, normal = pick(at)
 	if not id then
 		hover = nil
 		setAdornee(nil)
@@ -21757,7 +22007,17 @@ function BenchController.init(screen: ScreenGui, hudModule)
 		if processed then
 			return
 		end
-		if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
+		if t == Enum.UserInputType.Touch then
+			-- a second tap ends the thermal paste squeeze; otherwise wait: tap acts, drag turns
+			if holding and holding.paste then
+				holding = nil
+				return
+			end
+			touchStart = Vector2.new(input.Position.X, input.Position.Y)
+			dragMoved = 0
+			return
+		end
+		if t == Enum.UserInputType.MouseButton1 then
 			if hover and hover.id and not Kit.currentWindow() then
 				if hover.c and hover.ok then
 					task.spawn(perform, hover.id, hover.c, toolId)
@@ -21790,7 +22050,21 @@ function BenchController.init(screen: ScreenGui, hudModule)
 			return
 		end
 		local t = input.UserInputType
-		if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
+		if t == Enum.UserInputType.Touch then
+			-- a tap (not a drag) acts on the part under the finger; holds then run on their own
+			local start = touchStart
+			touchStart = nil
+			if start and dragMoved < 12 and not Kit.currentWindow() and not holding then
+				updateHover(Vector2.new(input.Position.X, input.Position.Y) + GuiService:GetGuiInset())
+				if hover and hover.id then
+					if hover.c and hover.ok then
+						task.spawn(perform, hover.id, hover.c, toolId)
+					else
+						task.spawn(nodeMenu, hover.id)
+					end
+				end
+			end
+		elseif t == Enum.UserInputType.MouseButton1 then
 			if holding and holding.t0 then
 				local f = (os.clock() - holding.t0) / holding.dur
 				if holding.paste then
@@ -21810,7 +22084,8 @@ function BenchController.init(screen: ScreenGui, hudModule)
 		if not active then
 			return
 		end
-		if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+		local turning = (input.UserInputType == Enum.UserInputType.MouseMovement and dragging) or (input.UserInputType == Enum.UserInputType.Touch and touchStart ~= nil)
+		if turning then
 			dragMoved += math.abs(input.Delta.X) + math.abs(input.Delta.Y)
 			orbit.yaw -= input.Delta.X * 0.008
 			orbit.pitch = math.clamp(orbit.pitch + input.Delta.Y * 0.006, 0.15, 1.45)
@@ -21846,7 +22121,7 @@ return BenchController
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="79">
+          <Item class="ModuleScript" referent="81">
             <Properties>
               <string name="Name">BenchViews</string>
               <string name="Source"><![CDATA[-- BenchViews: draws the device sitting on every nearby workbench from the bench's "DeviceView"
@@ -22129,7 +22404,7 @@ return BenchViews
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="80">
+          <Item class="ModuleScript" referent="82">
             <Properties>
               <string name="Name">MapController</string>
               <string name="Source"><![CDATA[-- MapController: the city map (M), the corner minimap and GPS directions.
@@ -22998,7 +23273,7 @@ return MapController
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="81">
+          <Item class="ModuleScript" referent="83">
             <Properties>
               <string name="Name">Traffic</string>
               <string name="Source"><![CDATA[-- Traffic: life on the streets around you, simulated on each client (nothing to replicate).
@@ -23497,7 +23772,7 @@ return Traffic
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="82">
+          <Item class="ModuleScript" referent="84">
             <Properties>
               <string name="Name">Tutorial</string>
               <string name="Source"><![CDATA[-- Tutorial: five short steps for new players, shown in a card at the top of the screen.
@@ -23590,7 +23865,7 @@ return Tutorial
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="83">
+          <Item class="ModuleScript" referent="85">
             <Properties>
               <string name="Name">VehicleController</string>
               <string name="Source"><![CDATA[-- VehicleController: driving your car or motorbike, and wheels turning on every vehicle in town.
@@ -23823,7 +24098,7 @@ return VehicleController
             </Properties>
           </Item>
         </Item>
-        <Item class="LocalScript" referent="84">
+        <Item class="LocalScript" referent="86">
           <Properties>
             <string name="Name">Main</string>
             <string name="Source"><![CDATA[-- PC Tamircisi Simülatörü — client entry point: language, HUD, windows and controllers.
@@ -23891,8 +24166,8 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Messages from the server
 ----------------------------------------------------------------------------------------------------
-local MONEY_VARS = { amount = true, fine = true, bounty = true, cash = true, price = true, bonus = true }
-local GOOD = { tech_done = true, caught_scammer = true, thief_caught = true, bounty = true, moved = true, manager_bought = true, contract_machine = true, contract_done = true, showcase_put = true, showcase_sold = true }
+local MONEY_VARS = { amount = true, fine = true, bounty = true, cash = true, price = true, bonus = true, reward = true }
+local GOOD = { quest_done = true, offline_income = true, tech_done = true, caught_scammer = true, thief_caught = true, bounty = true, moved = true, manager_bought = true, contract_machine = true, contract_done = true, showcase_put = true, showcase_sold = true }
 local BAD = { police_fine = true, customer_left = true, scammer_escaped = true, thief_escaped = true, alarm = true, staff_quit = true, esd_zap = true, jobs_full = true, contract_machine_bad = true }
 
 Net.on("toast", function(t)
@@ -24007,7 +24282,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="85">
+        <Item class="ModuleScript" referent="87">
           <Properties>
             <string name="Name">State</string>
             <string name="Source"><![CDATA[-- State: what the client knows about the player (the server's data snapshot, jobs, shop) with
@@ -24097,7 +24372,7 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="86">
+        <Item class="ModuleScript" referent="88">
           <Properties>
             <string name="Name">Strings</string>
             <string name="Source"><![CDATA[-- Strings: every piece of UI text in Turkish and English. S.t(key, vars) picks the player's
@@ -24176,7 +24451,7 @@ local T = {
 	store_scrap = { "Hurdalık", "Scrapyard" },
 	store_tools = { "Alet-Edevat", "Tools & Hardware" },
 	store_realty = { "Emlak Ofisi", "Estate Agent" },
-	store_board = { "Belediye — Liderler", "City Hall — Leaders" },
+	store_board = { "Belediye — Görev Panosu", "City Hall — Task Board" },
 	store_police = { "Polis Merkezi", "Police Station" },
 	bought = { "Satın alındı: {name}", "Bought: {name}" },
 	sold = { "Satıldı: {price}", "Sold for {price}" },
@@ -24363,6 +24638,7 @@ local T = {
 	t_manager_bought = { "👔 Müdür parça aldı: {part} ({price})", "👔 Manager ordered: {part} ({price})" },
 	t_tech_done = { "🧑‍🔧 {name} işi bitirdi: {job}", "🧑‍🔧 {name} finished: {job}" },
 	t_tech_blocked = { "🧑‍🔧 {name} takıldı ({job}): {reason} {detail}", "🧑‍🔧 {name} is stuck ({job}): {reason} {detail}" },
+	t_offline_income = { "👔 Sen yokken müdürün dükkânı işletti: +{amount} ({hours} saat)", "👔 Your manager ran the shop while you were away: +{amount} ({hours} h)" },
 	t_wages_paid = { "💼 Maaşlar ödendi: {amount}", "💼 Wages paid: {amount}" },
 	t_staff_quit = { "😞 Maaş ödenemedi, {name} işi bıraktı.", "😞 Couldn't pay wages, {name} quit." },
 	t_thief_caught = { "🚨 Hırsız yakalandı! {by} • ödül {bounty}", "🚨 Thief caught! {by} • bounty {bounty}" },
@@ -24405,6 +24681,16 @@ local T = {
 	per_unit = { "adet", "each" },
 	consumable = { "Sarf", "Consumable" },
 	sold_out = { "Tükendi", "Sold out" },
+
+	-- daily tasks
+	quests_title = { "Günlük Görevler", "Daily Tasks" },
+	quest_claim = { "Ödülü Al", "Claim" },
+	quest_claimed = { "Alındı", "Claimed" },
+	quest_reward = { "Ödül {reward} + {xp} XP", "Reward {reward} + {xp} XP" },
+	quest_new = { "Yeni görevler her gün gece yarısı (UTC) gelir.", "New tasks arrive every day at midnight (UTC)." },
+	board_leaders = { "Liderler", "Leaders" },
+	phone_quests = { "Görevler", "Tasks" },
+	t_quest_done = { "✅ Görev tamamlandı! Ödülünü telefondan ya da Görev Panosu'ndan al ({reward}).", "✅ Task done! Claim your reward on the phone or the city hall board ({reward})." },
 
 	-- contracts
 	contracts_title = { "Toplu İşler", "Bulk Contracts" },
@@ -24511,6 +24797,7 @@ local T = {
 	e_bench_busy = { "Tezgâh dolu.", "The bench is busy." },
 	e_not_found = { "Bulunamadı.", "Not found." },
 	e_bad = { "Geçersiz istek.", "Invalid request." },
+	e_not_done = { "Bu görev henüz bitmedi.", "That task isn't finished yet." },
 	e_contract_busy = { "Önce elindeki sözleşmeyi bitir.", "Finish your current contract first." },
 	e_contract_desk = { "Bunun için dükkânında Kurumsal Sözleşme Ofisi olmalı.", "You need the Corporate Contracts Desk in your shop." },
 	e_generic = { "Olmadı: {err}", "That didn't work: {err}" },
@@ -24589,11 +24876,11 @@ return S
 ]]></string>
           </Properties>
         </Item>
-        <Item class="Folder" referent="87">
+        <Item class="Folder" referent="89">
           <Properties>
             <string name="Name">UI</string>
           </Properties>
-          <Item class="ModuleScript" referent="88">
+          <Item class="ModuleScript" referent="90">
             <Properties>
               <string name="Name">App</string>
               <string name="Source"><![CDATA[-- App: things every window shares (the main ScreenGui) and the usual "did it work?" toast.
@@ -24645,7 +24932,7 @@ return App
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="89">
+          <Item class="ModuleScript" referent="91">
             <Properties>
               <string name="Name">ContractsPanel</string>
               <string name="Source"><![CDATA[-- ContractsPanel: bulk work offered by the internet café and the data centre.
@@ -24703,7 +24990,7 @@ return ContractsPanel
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="90">
+          <Item class="ModuleScript" referent="92">
             <Properties>
               <string name="Name">CustomerDialog</string>
               <string name="Source"><![CDATA[-- CustomerDialog: talking to a customer at the counter. Shows what they say, the device and the
@@ -24852,7 +25139,7 @@ return CustomerDialog
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="91">
+          <Item class="ModuleScript" referent="93">
             <Properties>
               <string name="Name">Garage</string>
               <string name="Source"><![CDATA[-- Garage: the dealerships (a turning 3D preview, stats, colours, buying) and your own vehicles
@@ -25107,7 +25394,7 @@ return Garage
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="92">
+          <Item class="ModuleScript" referent="94">
             <Properties>
               <string name="Name">Hud</string>
               <string name="Source"><![CDATA[-- Hud: money, level and XP, reputation, the clock, the quick buttons and toasts.
@@ -25323,7 +25610,7 @@ return Hud
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="93">
+          <Item class="ModuleScript" referent="95">
             <Properties>
               <string name="Name">Inventory</string>
               <string name="Source"><![CDATA[-- Inventory (B): parts on your shelves, consumables and the tools you own.
@@ -25451,7 +25738,7 @@ return Inventory
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="94">
+          <Item class="ModuleScript" referent="96">
             <Properties>
               <string name="Name">JobsPanel</string>
               <string name="Source"><![CDATA[-- JobsPanel (J): every job in your shop — queued, on a bench, waiting for pickup — with what the
@@ -25583,7 +25870,7 @@ return JobsPanel
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="95">
+          <Item class="ModuleScript" referent="97">
             <Properties>
               <string name="Name">Kit</string>
               <string name="Source"><![CDATA[-- Kit: small UI building blocks with the game's look (rounded dark panels, accent buttons,
@@ -26053,7 +26340,7 @@ return Kit
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="96">
+          <Item class="ModuleScript" referent="98">
             <Properties>
               <string name="Name">Phone</string>
               <string name="Source"><![CDATA[-- Phone (P): apps for everything you can do from anywhere — your shop, team, garage, jobs,
@@ -26075,6 +26362,7 @@ local StaffPanel = require(UI.StaffPanel)
 local Garage = require(UI.Garage)
 local JobsPanel = require(UI.JobsPanel)
 local Inventory = require(UI.Inventory)
+local QuestsPanel = require(UI.QuestsPanel)
 local S = require(UI.Parent.Strings)
 local State = require(UI.Parent.State)
 
@@ -26214,6 +26502,7 @@ function Phone.open()
 			end
 		end },
 		{ "🎁", S.t("phone_daily"), claimDaily },
+		{ "📜", S.t("phone_quests"), QuestsPanel.open },
 		{ "📊", S.t("phone_stats"), function()
 			page(S.t("phone_stats"), statsPage)
 		end },
@@ -26257,7 +26546,83 @@ return Phone
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="97">
+          <Item class="ModuleScript" referent="99">
+            <Properties>
+              <string name="Name">QuestsPanel</string>
+              <string name="Source"><![CDATA[-- QuestsPanel: today's three tasks with progress and rewards (city hall board and phone).
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Net = require(Shared.Net)
+local Quests = require(Shared.Data.Quests)
+
+local UI = script.Parent
+local Kit = require(UI.Kit)
+local Theme = require(UI.Theme)
+local Hud = require(UI.Hud)
+local App = require(UI.App)
+local S = require(UI.Parent.Strings)
+local State = require(UI.Parent.State)
+
+local QuestsPanel = {}
+
+-- Fills `parent` with the task list; returns a function that refreshes it.
+function QuestsPanel.render(parent: Instance)
+	local list = Kit.list(parent, { Size = UDim2.new(1, 0, 1, -24) }, 8)
+	Kit.label(parent, S.t("quest_new"), { Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 1, -20), TextColor3 = Theme.dim, TextSize = 13 })
+	local function fill()
+		Kit.clear(list)
+		local qs = State.data and State.data.quests
+		for i, q in qs and qs.list or {} do
+			local def = Quests.get(q.id)
+			if def then
+				local goalText = if def.money then S.money(q.goal) else tostring(q.goal)
+				local progress = if def.money then S.money(q.n) .. " / " .. S.money(q.goal) else q.n .. " / " .. q.goal
+				local title = string.gsub(S.pick(def.name), "{n}", goalText)
+				local f, right = Kit.row(list, def.icon, title, progress .. "   •   " .. S.t("quest_reward", { reward = S.money(q.reward), xp = q.xp }), { LayoutOrder = i, Size = UDim2.new(1, 0, 0, 66) }, 150)
+				local bar = Kit.progress(f, { Size = UDim2.new(1, -236, 0, 5), Position = UDim2.fromOffset(58, 54) }, if q.n >= q.goal then Theme.good else Theme.accent)
+				bar:set(q.n / math.max(1, q.goal))
+				if q.claimed then
+					Kit.pill(right, "✔ " .. S.t("quest_claimed"), Theme.good)
+				elseif q.n >= q.goal then
+					Kit.button(right, "🎁 " .. S.t("quest_claim"), function()
+						local r = Net.request("quests.claim", { i = i })
+						if r.ok then
+							Hud.toast("🎁 +" .. S.money(r.reward or q.reward), "good")
+						else
+							App.report(r)
+						end
+					end, { Size = UDim2.fromOffset(140, 38) }, "good")
+				else
+					Kit.pill(right, math.floor(q.n / math.max(1, q.goal) * 100) .. "%", Theme.card)
+				end
+			end
+		end
+		if not qs or #qs.list == 0 then
+			Kit.label(list, S.t("empty"), { TextColor3 = Theme.dim, Size = UDim2.new(1, 0, 0, 40) })
+		end
+	end
+	fill()
+	return fill
+end
+
+function QuestsPanel.open()
+	local conn
+	local win = Kit.window(App.screen :: ScreenGui, "📜 " .. S.t("quests_title"), Vector2.new(720, 420), function()
+		if conn then
+			conn:Disconnect()
+		end
+	end)
+	local refresh = QuestsPanel.render(win.content)
+	conn = State.changed:Connect(refresh)
+end
+
+return QuestsPanel
+]]></string>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="100">
             <Properties>
               <string name="Name">ShopPanel</string>
               <string name="Source"><![CDATA[-- ShopPanel: your shop. Expand to the next level, buy furniture and equipment, change the look
@@ -26496,7 +26861,7 @@ return ShopPanel
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="98">
+          <Item class="ModuleScript" referent="101">
             <Properties>
               <string name="Name">StaffPanel</string>
               <string name="Source"><![CDATA[-- StaffPanel: the staff agency (candidates to hire) and your team (wages, dismissing).
@@ -26635,7 +27000,7 @@ return StaffPanel
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="99">
+          <Item class="ModuleScript" referent="102">
             <Properties>
               <string name="Name">Stores</string>
               <string name="Source"><![CDATA[-- Stores: the city's counters. One window per service:
@@ -26661,6 +27026,7 @@ local Theme = require(UI.Theme)
 local Hud = require(UI.Hud)
 local App = require(UI.App)
 local ShopPanel = require(UI.ShopPanel)
+local QuestsPanel = require(UI.QuestsPanel)
 local S = require(UI.Parent.Strings)
 local State = require(UI.Parent.State)
 
@@ -27007,9 +27373,7 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Leaderboard and police
 ----------------------------------------------------------------------------------------------------
-local function board(o)
-	local win = storeWindow("🏛️ " .. S.t("board_title"), Vector2.new(640, 560))
-	local c = win.content
+local function leaders(o, c: Instance)
 	Kit.label(c, S.t("board_cols"), { Size = UDim2.new(1, 0, 0, 22), TextColor3 = Theme.dim, TextSize = 14 })
 	local list = Kit.list(c, { Size = UDim2.new(1, 0, 1, -30), Position = UDim2.fromOffset(0, 28) })
 	local me = game:GetService("Players").LocalPlayer
@@ -27022,6 +27386,30 @@ local function board(o)
 		end
 		Kit.label(right, S.money(row.money), { Size = UDim2.fromOffset(120, 36), TextColor3 = Theme.money, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Right })
 	end
+end
+
+-- City hall: today's tasks and the leaderboard.
+local function board(o)
+	local win = storeWindow("🏛️ " .. S.t("store_board"), Vector2.new(760, 560))
+	local c = win.content
+	local area = Kit.frame(c, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, -44), Position = UDim2.fromOffset(0, 44) })
+	local pages = {}
+	local tabs = Kit.tabs(c, { { id = "quests", text = "📜 " .. S.t("quests_title") }, { id = "leaders", text = "🏆 " .. S.t("board_leaders") } }, function(id)
+		for k, f in pages do
+			f.Visible = k == id
+		end
+		if not pages[id] then
+			local f = Kit.frame(area, { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) })
+			pages[id] = f
+			if id == "quests" then
+				local refresh = QuestsPanel.render(f)
+				table.insert(win.conns, State.changed:Connect(refresh))
+			else
+				leaders(o, f)
+			end
+		end
+	end)
+	tabs.select("quests")
 end
 
 local function police()
@@ -27060,7 +27448,7 @@ return Stores
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="100">
+          <Item class="ModuleScript" referent="103">
             <Properties>
               <string name="Name">Theme</string>
               <string name="Source"><![CDATA[-- Theme: colours, fonts and sizes shared by every window.
@@ -27117,7 +27505,7 @@ return Theme
       </Item>
     </Item>
   </Item>
-  <Item class="Workspace" referent="101">
+  <Item class="Workspace" referent="104">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

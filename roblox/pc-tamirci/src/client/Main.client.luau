@@ -63,8 +63,8 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Messages from the server
 ----------------------------------------------------------------------------------------------------
-local MONEY_VARS = { amount = true, fine = true, bounty = true, cash = true, price = true, bonus = true }
-local GOOD = { tech_done = true, caught_scammer = true, thief_caught = true, bounty = true, moved = true, manager_bought = true, contract_machine = true, contract_done = true, showcase_put = true, showcase_sold = true }
+local MONEY_VARS = { amount = true, fine = true, bounty = true, cash = true, price = true, bonus = true, reward = true }
+local GOOD = { quest_done = true, offline_income = true, tech_done = true, caught_scammer = true, thief_caught = true, bounty = true, moved = true, manager_bought = true, contract_machine = true, contract_done = true, showcase_put = true, showcase_sold = true }
 local BAD = { police_fine = true, customer_left = true, scammer_escaped = true, thief_escaped = true, alarm = true, staff_quit = true, esd_zap = true, jobs_full = true, contract_machine_bad = true }
 
 Net.on("toast", function(t)
