@@ -411,10 +411,18 @@ function TechBot:fix(faultId: string)
 			self:ensure("solder", id)
 		end
 	elseif faultId == "mobo_dead" then
+		-- a board that takes the same CPU, RAM and NVMe drives and fits the case
 		local cpu = Rules.part(dev, "cpu")
 		local ram = Rules.part(dev, "ram1") or Rules.part(dev, "ram2")
+		local case = Parts.get(dev.model)
+		local nvme = 0
+		for _, d in { "nvme1", "nvme2" } do
+			if dev.nodes[d] and dev.nodes[d].st == "in" then
+				nvme += 1
+			end
+		end
 		self:replace("mobo", function(p)
-			return p.socket == cpu.socket and (not ram or p.mem == ram.mem) and p.memSlots >= 2
+			return p.socket == cpu.socket and (not ram or p.mem == ram.mem) and p.memSlots >= 2 and (p.m2 or 0) >= nvme and (not case or not case.forms or Parts.caseFits(case, p.form))
 		end)
 	elseif faultId == "cpu_dead" then
 		local needsIgpu = dev.nodes.gpu.st ~= "in"

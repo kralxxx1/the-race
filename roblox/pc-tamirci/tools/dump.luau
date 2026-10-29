@@ -327,11 +327,16 @@ elseif what == "parts" then
 		roblox.CFrame.new(), -- top edge up
 		roblox.CFrame.Angles(math.pi / 2, 0, 0), -- back up
 	}
-	-- one row per item (z = (i - 1) * 2.4), its three views side by side at x = 0, 3.2, 6.4
+	-- one row per item (z = (i - 1) * 2.4), its three views side by side at x = 0, 3.2, 6.4 (RAM:
+	-- rows 0.9 apart, views 1.5 apart)
+	local dx, dz = 3.2, 2.4
+	if cat == "ram" then
+		dx, dz = 1.5, 0.9
+	end
 	for i, p in picks do
-		local z = (i - 1) * 2.4
+		local z = (i - 1) * dz
 		for col, pose in poses do
-			local x = (col - 1) * 3.2
+			local x = (col - 1) * dx
 			local cf
 			if cat == "gpu" then
 				-- centre each view of the card on its spot
@@ -339,6 +344,31 @@ elseif what == "parts" then
 				local shift = ({ roblox.Vector3.new(L / 2, 0, H / 2), roblox.Vector3.new(L / 2, 0, -T / 2), roblox.Vector3.new(L / 2, 0, -H / 2) })[col]
 				cf = roblox.CFrame.new(roblox.Vector3.new(x, 0, z) + shift) * pose
 				local m = PCParts.gpu(cf, p, Parts.gpuConnectors(p))
+				m.Parent = folder
+			elseif cat == "mobo" then
+				-- boards lie flat (parts up): one view, board centred on its spot
+				if col == 2 then
+					local W, D = 24.4, 30.5 -- along -X and +Z (PCParts.boardLayout)
+					if p.form == "mATX" then
+						W, D = 24.4, 24.4
+					elseif p.form == "ITX" then
+						W, D = 17, 17
+					end
+					cf = roblox.CFrame.new(x + W * 0.075 / 2, 0, z - D * 0.075 / 2)
+					local m = PCParts.mobo(cf, p)
+					m.Parent = folder
+				end
+			elseif cat == "cooler" then
+				-- seen from the fan side, from above, from the back (it stands on the CPU, +Y up)
+				local turn = ({ roblox.CFrame.Angles(math.rad(-60), 0, 0), roblox.CFrame.new(), roblox.CFrame.Angles(math.rad(60), 0, 0) })[col]
+				cf = roblox.CFrame.new(x, 0, z) * turn
+				local m = PCParts.cooler(cf, p, nil)
+				m.Parent = folder
+			elseif cat == "ram" then
+				-- one face, the top edge, the other face (the stick runs along Z)
+				local rp = ({ roblox.CFrame.Angles(0, 0, math.pi / 2), roblox.CFrame.new(), roblox.CFrame.Angles(0, 0, -math.pi / 2) })[col]
+				cf = roblox.CFrame.new(x, 0, z) * roblox.CFrame.Angles(0, math.pi / 2, 0) * rp
+				local m = PCParts.ram(cf, p)
 				m.Parent = folder
 			else
 				cf = roblox.CFrame.new(x, 0, z) * pose

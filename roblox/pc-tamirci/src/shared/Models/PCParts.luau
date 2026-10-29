@@ -32,6 +32,7 @@ local THEMES = {
 	green = { pcb = { 26, 88, 46 }, sink = { 170, 174, 180 }, accent = { 210, 214, 220 } },
 	red = { pcb = { 24, 24, 28 }, sink = { 170, 30, 34 }, accent = { 230, 60, 60 } },
 	white = { pcb = { 232, 232, 236 }, sink = { 244, 244, 246 }, accent = { 200, 204, 210 } },
+	taichi = { pcb = { 22, 22, 24 }, sink = { 40, 40, 42 }, accent = { 196, 150, 80 } },
 }
 PCParts.Themes = THEMES
 
@@ -90,21 +91,54 @@ local function cyl(m: Instance, cf: CFrame, axis: string, length: number, diamet
 end
 PCParts.cyl = cyl
 
--- small text sticker on a face of `part`
+-- A clear carrier lying flat on a surface (cf: the spot, +Y out of the surface) whose text reads
+-- along +X with its top towards -Z: upright for the technician, who looks along -Z.
+local FLAT = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, -1))
+PCParts.FLAT = FLAT
+local function flatText(parent: Instance, cf: CFrame, w: number, h: number, text: string, color: any, ppS: number?, font: Font?, glow: boolean?): BasePart
+	local c = Instance.new("Part")
+	c.Name = "Text"
+	c.Anchored = true
+	c.CanCollide = false
+	c.CanTouch = false
+	c.CanQuery = false
+	c.CastShadow = false
+	c.Transparency = 1
+	c.Size = Vector3.new(w, h, 0.002)
+	c.CFrame = cf * FLAT
+	B.sign(c, Enum.NormalId.Front, text, { color = col(color), pixelsPerStud = ppS or 300, font = font or B.Fonts.Bold, glow = glow })
+	c.Parent = parent
+	return c
+end
+PCParts.flatText = flatText
+
+-- small text sticker on a face of `part` (on the top face it lies on a flat carrier, so it reads
+-- the same way everywhere)
 local function label(part: BasePart, face: Enum.NormalId, text: string, color: any, ppS: number?, font: Font?)
+	if face == Enum.NormalId.Top then
+		local sz = part.Size
+		flatText(part, part.CFrame * CFrame.new(0, sz.Y / 2 + 0.0012, 0), sz.X, sz.Z, text, color, ppS, font)
+		return
+	end
 	B.sign(part, face, text, { color = col(color), pixelsPerStud = ppS or 300, font = font or B.Fonts.Bold })
 end
 PCParts.label = label
 
 -- Fan rotor (blades + hub) spinning around the local Y axis of cf; tagged for the bench animator.
-local function rotor(m: Instance, cf: CFrame, diameter: number, bladeCol: any, hubCol: any, blades: number?): Model
+-- glow: translucent blades lit from the hub (ARGB fans), colour-cycling while the PC runs.
+local function rotor(m: Instance, cf: CFrame, diameter: number, bladeCol: any, hubCol: any, blades: number?, glow: boolean?): Model
 	local r = newModel("Rotor", cf)
 	r:SetAttribute("SpinAxis", "Y")
 	local n = blades or 7
 	for i = 1, n do
 		local a = (i / n) * math.pi * 2
 		local bcf = cf * CFrame.Angles(0, a, 0) * CFrame.new(diameter * 0.27, 0, 0) * CFrame.Angles(math.rad(28), 0, 0)
-		box(r, bcf, Vector3.new(diameter * 0.36, math.max(0.006, diameter * 0.02), diameter * 0.2), bladeCol, M.SmoothPlastic)
+		local b = box(r, bcf, Vector3.new(diameter * 0.36, math.max(0.006, diameter * 0.02), diameter * 0.2), if glow then Color3.fromRGB(230, 225, 255) else bladeCol, if glow then M.Neon else M.SmoothPlastic)
+		if glow then
+			b.Transparency = 0.25
+			b.CastShadow = false
+			b:SetAttribute("RGB", true)
+		end
 	end
 	cyl(r, cf, "Y", diameter * 0.12, diameter * 0.32, hubCol, M.SmoothPlastic)
 	r.Parent = m
@@ -252,6 +286,10 @@ function PCParts.chassis(cf: CFrame, casePart): (Model, Vector3)
 	-- brand badge on the front
 	local badge = box(m, cf * CFrame.new(-lx / 2 - 0.004, ly * 0.5, lz / 2 - cm(4)), Vector3.new(0.008, cm(1.5), cm(5)), Color3.fromRGB(200, 200, 204), M.Metal)
 	badge.Name = "Badge"
+	local maker = PCParts.makerOf(casePart)
+	if maker then
+		label(badge, Enum.NormalId.Left, if maker == "ASUS" then "ROG" else maker, Color3.fromRGB(30, 30, 34), 400, B.Fonts.Heavy)
+	end
 	return m, dims
 end
 
@@ -324,7 +362,9 @@ function PCParts.boardLayout(moboPart)
 	if itx then
 		L.nvme = { at(8.5, 12.3) }
 	end
-	L.cmos = at(14.5, 17.6)
+	-- the CMOS battery: below the slots on the bigger boards, beside the RAM on ITX
+	L.cmos = if itx then at(15.95, 4.3) else at(14.5, 17.6)
+	L.cmosSize = if itx then 2.1 else 2.3
 	L.caps = {
 		at(4.2, 3.0), at(4.2, 4.5), at(4.2, 6.0),
 		at(su - 2, 11.2), at(su, 11.2), at(su + 2, 11.2),
@@ -334,12 +374,32 @@ function PCParts.boardLayout(moboPart)
 	L.cpuFan = at(14.6, 0.8)
 	L.sysFan = { at(W - 1, 2), at(W - 1, 16), at(W - 6, H - 1), at(W - 9, H - 1), at(3, H - 1), at(W - 12, H - 1) }
 	L.sata = { at(W - 1.1, math.min(H - 3, 22)), at(W - 1.1, math.min(H - 5, 24.2)) }
-	L.chipset = at(17.5, math.min(H - 5, 20.3))
+	L.chipset = if itx then at(16, 16.3) else at(17.5, math.min(H - 5, 20.3))
+	L.chipsetSize = if itx then { 2.0, 1.2 } else { 5.5, 4.8 }
 	return L
 end
 
 local function themeOf(moboPart)
 	return THEMES[moboPart and moboPart.theme or "black"] or THEMES.black
+end
+
+-- The board's series, printed on its heatsinks ("ROG STRIX", "TOMAHAWK"...).
+local SERIES = {
+	{ "ROG MAXIMUS", "ROG MAXIMUS" }, { "ROG CROSSHAIR", "ROG CROSSHAIR" }, { "ROG STRIX", "ROG STRIX" },
+	{ "TUF", "TUF GAMING" }, { "PRIME", "PRIME" }, { "PRO WS", "PRO WS" }, { "AORUS", "AORUS" },
+	{ "TOMAHAWK", "TOMAHAWK" }, { "EDGE", "MPG EDGE" }, { "CARBON", "MPG CARBON" }, { "GAMING M5", "GAMING" },
+	{ "STEEL LEGEND", "STEEL LEGEND" }, { "RIPTIDE", "PG RIPTIDE" }, { "LIGHTNING", "LIGHTNING" }, { "MSI PRO", "PRO" },
+	{ "HUANANZHI", "X99" }, { "PROART", "ProArt" }, { "TAICHI", "TAICHI" }, { "MORTAR", "MORTAR" },
+	{ "GAMING PLUS", "GAMING PLUS" }, { "GAMING X", "GAMING X" }, { "PRO RS", "PRO RS" }, { "BIOSTAR", "BIOSTAR" },
+}
+function PCParts.boardSeries(moboPart): string
+	local n = string.upper(moboPart and moboPart.name or "")
+	for _, e in SERIES do
+		if string.find(n, e[1], 1, true) then
+			return e[2]
+		end
+	end
+	return string.upper(moboPart and moboPart.brand or "")
 end
 
 function PCParts.mobo(cf: CFrame, moboPart): (Model, any)
@@ -349,6 +409,9 @@ function PCParts.mobo(cf: CFrame, moboPart): (Model, any)
 	local pcb, sink, accent = col(th.pcb), col(th.sink), col(th.accent)
 	local W, H = L.W, L.H
 	local at = L.at
+	local price = moboPart and moboPart.price or 100
+	local tier = if price >= 250 then 3 elseif price >= 110 then 2 else 1
+	local series = PCParts.boardSeries(moboPart)
 	local pcbPart = box(m, cf * CFrame.new(-cm(W) / 2, -0.008, cm(H) / 2), Vector3.new(cm(W), 0.016, cm(H)), pcb, M.SmoothPlastic, { Name = "PCB" })
 	pcbPart:SetAttribute("Detail", "pcb")
 	-- traces / silkscreen hints
@@ -364,13 +427,74 @@ function PCParts.mobo(cf: CFrame, moboPart): (Model, any)
 	local ioH = math.min(15, H - 2)
 	local io = box(m, cf * at(1.6, 0.6 + ioH / 2, cm(1.8)), Vector3.new(cm(3.2), cm(3.6), cm(ioH)), sink, M.Metal, { Name = "IOShroud" })
 	io:SetAttribute("Detail", "io")
-	box(m, cf * at(1.6, 0.6 + ioH / 2, cm(3.62)), Vector3.new(cm(2.6), 0.004, cm(ioH - 1)), accent, if moboPart and (moboPart.theme == "rog" or moboPart.theme == "aorus") then M.Neon else M.Metal, { Name = "IOAccent" })
-	-- VRM heatsinks: one above the socket, one between the socket and the I/O
+	local ioAccent = box(m, cf * at(1.6, 0.6 + ioH / 2, cm(3.62)), Vector3.new(cm(2.6), 0.004, cm(ioH - 1)), accent, if moboPart and (moboPart.theme == "rog" or moboPart.theme == "aorus") then M.Neon else M.Metal, { Name = "IOAccent" })
+	if ioAccent.Material == M.Neon then
+		ioAccent:SetAttribute("RGB", true)
+	end
+	-- the name along the cover (rotated: it runs along the board's edge)
+	flatText(m, cf * at(1.6, 0.6 + ioH * 0.62, cm(3.63)) * CFrame.Angles(0, math.pi / 2, 0), cm(ioH * 0.5), cm(1.6), series, if ioAccent.Material == M.Neon then Color3.fromRGB(20, 20, 22) else Color3.fromRGB(235, 235, 238), 380, B.Fonts.Heavy)
+	-- the rear panel: USB, LAN, audio, BIOS flashback, Wi-Fi antennas
+	do
+		local ports = {
+			{ 1.6, Color3.fromRGB(30, 30, 34), 1.4, 1.5 }, -- PS/2 / video
+			{ 3.6, Color3.fromRGB(40, 90, 200), 1.4, 1.4 }, -- USB 3
+			{ 5.4, Color3.fromRGB(200, 40, 40), 1.4, 1.4 }, -- USB 3.2 Gen 2
+			{ 7.3, Color3.fromRGB(30, 30, 34), 1.6, 1.4 }, -- LAN
+			{ 9.2, Color3.fromRGB(40, 90, 200), 1.4, 1.4 },
+			{ 11.0, Color3.fromRGB(20, 20, 22), 1.0, 0.8 }, -- USB-C
+		}
+		for _, pt in ports do
+			box(m, cf * at(-0.02, pt[1], cm(0.4 + pt[4] / 2)), Vector3.new(cm(0.3), cm(pt[4]), cm(pt[3])), pt[2], M.SmoothPlastic, { Name = "RearPort" })
+		end
+		local jack = { Color3.fromRGB(120, 200, 80), Color3.fromRGB(240, 120, 160), Color3.fromRGB(80, 160, 230) }
+		for k, c in jack do
+			cyl(m, cf * at(-0.02, 12.6 + (k - 1) * 0.9, cm(1.0)), "X", cm(0.3), cm(0.75), c, M.SmoothPlastic)
+		end
+		if moboPart and moboPart.wifi then
+			for k = 0, 1 do
+				cyl(m, cf * at(-0.05, 2 + k * 1.2, cm(3.2)), "X", cm(0.6), cm(0.6), GOLD, M.Metal)
+			end
+		end
+	end
+	-- VRM: the chokes and power stages round the socket, under heatsinks on all but the cheapest
+	-- boards (finned on mid-range boards, sculpted with the series name and a heat pipe on the top
+	-- ones)
 	local su = if L.form == "ITX" then 8 else 10
-	box(m, cf * at(su + 1, 2.6, cm(1.6)), Vector3.new(cm(10), cm(3.2), cm(2.4)), sink, M.Metal, { Name = "VRMTop" })
-	box(m, cf * at(4.7, 8, cm(1.6)), Vector3.new(cm(2.2), cm(3.2), cm(8.5)), sink, M.Metal, { Name = "VRMRear" })
-	for k = -2, 2 do
-		box(m, cf * at(su + 1 + k * 1.8, 2.6, cm(3.22)), Vector3.new(cm(0.4), 0.004, cm(2.2)), sink:Lerp(Color3.new(0, 0, 0), 0.35), M.Metal)
+	local dark = sink:Lerp(Color3.new(0, 0, 0), 0.35)
+	local choke = Color3.fromRGB(70, 72, 76)
+	for k = 0, 7 do
+		box(m, cf * at(su - 3.5 + k * 1.05, 4.4, cm(0.35)), Vector3.new(cm(0.8), cm(0.7), cm(0.8)), choke, M.Metal)
+	end
+	for k = 0, 5 do
+		box(m, cf * at(6.3, 4.6 + k * 1.1, cm(0.35)), Vector3.new(cm(0.8), cm(0.7), cm(0.8)), choke, M.Metal)
+	end
+	if tier == 1 then
+		-- bare power stages next to the chokes, a small passive sink over half of them
+		for k = 0, 7 do
+			box(m, cf * at(su - 3.5 + k * 1.05, 2.9, cm(0.08)), Vector3.new(cm(0.6), cm(0.16), cm(0.5)), Color3.fromRGB(20, 20, 22))
+		end
+		box(m, cf * at(4.7, 8, cm(0.9)), Vector3.new(cm(1.6), cm(1.8), cm(6)), sink, M.Metal, { Name = "VRMRear" })
+	else
+		local topW = if L.form == "ITX" then 7.6 else 10
+		local top = box(m, cf * at(su + 1, 2.6, cm(1.6)), Vector3.new(cm(topW), cm(3.2), cm(2.4)), sink, M.Metal, { Name = "VRMTop" })
+		local rear = box(m, cf * at(4.7, 8, cm(1.6)), Vector3.new(cm(2.2), cm(3.2), cm(8.5)), sink, M.Metal, { Name = "VRMRear" })
+		if tier == 2 then
+			-- milled fins across the top
+			for k = -3, 3 do
+				box(m, cf * at(su + 1 + k * topW / 8, 2.6, cm(3.21)), Vector3.new(cm(0.35), 0.003, cm(2.3)), dark, M.Metal)
+			end
+			for k = -3, 3 do
+				box(m, cf * at(4.7, 8 + k * 1.15, cm(3.21)), Vector3.new(cm(2.1), 0.003, cm(0.35)), dark, M.Metal)
+			end
+		else
+			-- sculpted covers with a chamfer, an accent line and the heat pipe between them
+			B.wedge(m, cf * at(su + 1, 4.05, cm(2.6)) * CFrame.Angles(0, math.pi, 0), Vector3.new(cm(topW), cm(1.2), cm(0.5)), sink, M.Metal, { CanCollide = false, CanTouch = false })
+			box(m, cf * at(su + 1, 1.55, cm(3.22)), Vector3.new(cm(topW - 0.4), 0.004, cm(0.3)), accent, M.Metal)
+			box(m, cf * at(3.65, 8, cm(3.22)), Vector3.new(cm(0.3), 0.004, cm(8.2)), accent, M.Metal)
+			cyl(m, cf * at(5.2, 3.1, cm(2.5)), "Y", cm(0.6), cm(1.4), Color3.fromRGB(196, 198, 202), M.Metal)
+		end
+		flatText(m, top.CFrame * CFrame.new(0, top.Size.Y / 2 + 0.0012, 0), cm(topW - 1.4), cm(1.3), series, th.accent, 400, B.Fonts.Heavy)
+		_ = rear
 	end
 	-- socket frame (the pins and the arm are their own nodes)
 	local sw, sh = L.socketSize[1], L.socketSize[2]
@@ -406,8 +530,50 @@ function PCParts.mobo(cf: CFrame, moboPart): (Model, any)
 		end
 	end
 	-- chipset heatsink with the brand
-	local chip = box(m, cf * L.chipset * CFrame.new(0, cm(0.6), 0), Vector3.new(cm(5.5), cm(1.2), cm(4.8)), sink, M.Metal, { Name = "Chipset" })
+	local cw, cd = L.chipsetSize[1], L.chipsetSize[2]
+	local chip = box(m, cf * L.chipset * CFrame.new(0, cm(0.6), 0), Vector3.new(cm(cw), cm(1.2), cm(cd)), sink, M.Metal, { Name = "Chipset" })
 	label(chip, Enum.NormalId.Top, string.upper(moboPart and moboPart.brand or "ASUS") .. "\n" .. (moboPart and moboPart.chipset or ""), th.accent, 260)
+	if L.form ~= "ITX" then
+		B.wedge(m, cf * L.chipset * CFrame.new(cm(cw / 2 + 0.35), cm(0.6), 0) * CFrame.Angles(0, -math.pi / 2, 0), Vector3.new(cm(cd), cm(1.2), cm(0.7)), accent, M.Metal, { CanCollide = false, CanTouch = false })
+	end
+	if tier == 3 and L.form ~= "ITX" then
+		local glow = box(m, cf * L.chipset * CFrame.new(0, cm(0.15), cm(cd / 2 + 0.15)), Vector3.new(cm(cw - 0.1), cm(0.25), cm(0.2)), accent, M.Neon, { Name = "BoardRGB", CastShadow = false })
+		glow:SetAttribute("RGB", true)
+	end
+	-- audio corner: the codec under its shield, gold-topped audio capacitors, the isolation line
+	if L.form ~= "ITX" then
+		local codec = box(m, cf * at(1.9, H - 4.2, cm(0.15)), Vector3.new(cm(1.6), cm(0.3), cm(1.6)), Color3.fromRGB(38, 38, 42), M.Metal)
+		label(codec, Enum.NormalId.Top, "AUDIO", Color3.fromRGB(200, 200, 204), 600, B.Fonts.Bold)
+		for k = 0, 5 do
+			cyl(m, cf * at(1.0 + (k % 3) * 0.9, H - 7.4 + math.floor(k / 3) * 1.1, cm(0.45)), "Y", cm(0.9), cm(0.65), if tier == 3 then GOLD else Color3.fromRGB(150, 30, 40), M.Metal)
+		end
+		box(m, cf * at(3.55, H - 4.6, 0.0006), Vector3.new(cm(0.06), 0.0012, cm(9)), pcb:Lerp(Color3.new(1, 1, 1), 0.35))
+		box(m, cf * at(1.75, H - 9.1, 0.0006), Vector3.new(cm(3.6), 0.0012, cm(0.06)), pcb:Lerp(Color3.new(1, 1, 1), 0.35))
+	end
+	-- headers along the bottom edge and the right edge
+	local pinBlock = Color3.fromRGB(26, 26, 28)
+	if L.form ~= "ITX" then
+		box(m, cf * at(W - 3, H - 1, cm(0.3)), Vector3.new(cm(1.4), cm(0.6), cm(0.55)), pinBlock, M.SmoothPlastic, { Name = "FPanel" })
+		for _, u in { W - 15, W - 17.4 } do
+			box(m, cf * at(u, H - 1, cm(0.3)), Vector3.new(cm(1.3), cm(0.6), cm(0.5)), pinBlock)
+		end
+		box(m, cf * at(5.1, H - 1, cm(0.3)), Vector3.new(cm(0.9), cm(0.6), cm(0.4)), Color3.fromRGB(236, 236, 230))
+		box(m, cf * at(W - 1.2, 13.2, cm(0.5)), Vector3.new(cm(1.0), cm(1.0), cm(1.8)), if tier >= 2 then pinBlock else Color3.fromRGB(40, 90, 200), M.SmoothPlastic, { Name = "USB3Header" })
+	end
+	-- debug LEDs (CPU, DRAM, VGA, BOOT) beside the 24-pin on the better boards
+	if tier >= 2 then
+		for k, c in { Color3.fromRGB(255, 60, 50), Color3.fromRGB(255, 200, 40), Color3.fromRGB(240, 240, 240), Color3.fromRGB(60, 220, 90) } do
+			box(m, cf * at(W - 3.0, 6.0 + k * 0.6, cm(0.06)), Vector3.new(cm(0.3), cm(0.12), cm(0.2)), c, M.SmoothPlastic, { Name = "DebugLed" })
+		end
+	end
+	-- silkscreen
+	local silkText = Color3.fromRGB(225, 225, 228)
+	if th.pcb[1] > 180 then
+		silkText = Color3.fromRGB(60, 60, 64)
+	end
+	flatText(m, cf * at(4.6, 16.4, 0.0012), cm(3), cm(0.6), "PCI_E1", silkText, 500, B.Fonts.Medium)
+	flatText(m, cf * at(16.4 + ((moboPart and moboPart.memSlots or 4) - 1) * 0.425, 16.2, 0.0012), cm(4), cm(0.6), "DIMM", silkText, 500, B.Fonts.Medium)
+	flatText(m, cf * at(14.6, 1.9, 0.0012), cm(2.4), cm(0.5), "CPU_FAN", silkText, 500, B.Fonts.Medium)
 	-- power connectors
 	box(m, cf * L.atx24 * CFrame.new(0, cm(0.55), 0), Vector3.new(cm(1.25), cm(1.1), cm(5.3)), Color3.fromRGB(236, 236, 230), M.SmoothPlastic, { Name = "ATX24" })
 	box(m, cf * L.eps * CFrame.new(0, cm(0.5), 0), Vector3.new(cm(2.2), cm(1), cm(1.1)), Color3.fromRGB(236, 236, 230), M.SmoothPlastic, { Name = "EPS" })
@@ -419,7 +585,7 @@ function PCParts.mobo(cf: CFrame, moboPart): (Model, any)
 		box(m, cf * s * CFrame.new(0, cm(0.5), 0), Vector3.new(cm(0.9), cm(1), cm(1.6)), Color3.fromRGB(40, 40, 44))
 	end
 	-- CMOS battery holder
-	cyl(m, cf * L.cmos * CFrame.new(0, cm(0.15), 0), "Y", cm(0.3), cm(2.3), Color3.fromRGB(40, 40, 44), M.SmoothPlastic)
+	cyl(m, cf * L.cmos * CFrame.new(0, cm(0.15), 0), "Y", cm(0.3), cm(L.cmosSize), Color3.fromRGB(40, 40, 44), M.SmoothPlastic)
 	-- a row of solid caps around the socket area (decoration; the six service caps are nodes)
 	for k = 0, 4 do
 		cyl(m, cf * at(4.2 + k * 0.9, 13.2, cm(0.55)), "Y", cm(1.1), cm(0.75), Color3.fromRGB(40, 40, 44), M.Metal)
@@ -524,104 +690,210 @@ local function fanFrame(m: Instance, cf: CFrame, size: number, frameCol: Color3,
 	for k = 0, 3 do
 		box(m, cf * CFrame.new(0, -t * 0.4, 0) * CFrame.Angles(0, k * math.pi / 2 + math.rad(20), 0) * CFrame.new(s * 0.25, 0, 0), Vector3.new(s * 0.5, t * 0.12, s * 0.03), frameCol, M.SmoothPlastic)
 	end
-	rotor(m, cf * CFrame.new(0, t * 0.05, 0), s * 0.92, bladeCol, frameCol)
-	if rgb then
-		local ring = cyl(m, cf * CFrame.new(0, t * 0.48, 0), "Y", 0.006, s * 0.95, Color3.fromRGB(150, 70, 255), M.Neon, { Name = "FanRGB", Transparency = 0.55 })
-		ring:SetAttribute("RGB", true)
-	end
+	-- ARGB fans light their blades from the hub
+	rotor(m, cf * CFrame.new(0, t * 0.05, 0), s * 0.92, bladeCol, frameCol, nil, rgb)
 	box(m, cf, Vector3.new(s, t, s), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
 end
 PCParts.fanFrame = fanFrame
 
+-- Tower coolers by maker: fin and cap colours, the logo on top, whether the heat-pipe tips show,
+-- the fans' frame and blade colours and the heat-pipe count per tower.
+local NICKEL = Color3.fromRGB(198, 200, 204)
+local COPPER = Color3.fromRGB(196, 116, 70)
+local TOWERS = {
+	cm = { fin = Color3.fromRGB(196, 198, 204), cap = Color3.fromRGB(24, 24, 26), logo = "COOLER MASTER", pipe = COPPER, pipes = 4 },
+	deepcool = { fin = Color3.fromRGB(196, 198, 204), cap = Color3.fromRGB(22, 22, 24), logo = "DEEPCOOL", pipe = NICKEL, pipes = 4 },
+	thermalright = { fin = Color3.fromRGB(196, 198, 204), logo = "Thermalright", tips = true, pipe = NICKEL, pipes = 3 },
+	noctua = { fin = Color3.fromRGB(200, 202, 206), logo = "noctua", tips = true, pipe = NICKEL, pipes = 6, frame = Color3.fromRGB(110, 76, 50), blade = Color3.fromRGB(210, 190, 160) },
+	noctuablack = { fin = Color3.fromRGB(30, 30, 32), logo = "noctua", tips = true, pipe = Color3.fromRGB(34, 34, 36), pipes = 6 },
+	bequiet = { fin = Color3.fromRGB(28, 28, 30), cap = Color3.fromRGB(44, 44, 48), logo = "be quiet!", pipe = Color3.fromRGB(40, 40, 44), pipes = 7 },
+	arctic = { fin = Color3.fromRGB(196, 198, 204), cap = Color3.fromRGB(22, 22, 24), logo = "ARCTIC", pipe = NICKEL, pipes = 4 },
+	scythe = { fin = Color3.fromRGB(196, 198, 204), logo = "SCYTHE", tips = true, pipe = NICKEL, pipes = 3, frame = Color3.fromRGB(60, 60, 64), blade = Color3.fromRGB(48, 48, 52) },
+	idcool = { fin = Color3.fromRGB(196, 198, 204), cap = Color3.fromRGB(22, 22, 24), logo = "ID-COOLING", pipe = COPPER, pipes = 4 },
+}
+-- AIO pumps: the cap and its light, the logo
+local PUMPS = {
+	nzxt = { round = true, logo = "NZXT", ring = true },
+	corsair = { round = false, logo = "CORSAIR", ring = true },
+	arctic = { round = false, logo = "ARCTIC", vrmFan = true },
+	lianli = { round = false, logo = "LIAN LI", mirror = true },
+	deepcool = { round = false, logo = "DEEPCOOL", mirror = true },
+	msi = { round = true, logo = "msi", ring = true },
+	rog = { round = false, logo = "ROG", ring = false },
+}
+
 function PCParts.cooler(cf: CFrame, coolerPart, ctx): Model
 	local m = newModel("Cooler", cf)
-	local kind = coolerPart and coolerPart.kind or "stock"
+	local p = coolerPart or {}
+	local kind = p.kind or "stock"
 	local alu = Color3.fromRGB(196, 198, 204)
-	local copper = Color3.fromRGB(196, 116, 70)
+	local copper = COPPER
 	local black = Color3.fromRGB(28, 28, 32)
-	local rgb = coolerPart and coolerPart.rgb
+	local rgb = p.rgb
+	local style = p.style or (if kind == "stock" then (if p.sockets == "amd" then "amd" else "intel") elseif kind == "air" then "cm" else "arctic")
 	if kind == "stock" then
-		local amd = coolerPart and coolerPart.sockets == "amd"
-		if amd then
-			-- AMD Wraith: square black shroud with a round fan
-			box(m, cf * CFrame.new(0, cm(2.2), 0), Vector3.new(cm(9.5), cm(4.4), cm(9.5)), black, M.SmoothPlastic, { Name = "Shroud" })
-			rotor(m, cf * CFrame.new(0, cm(4.45), 0), cm(8.6), black:Lerp(Color3.new(1, 1, 1), 0.1), black)
-			if rgb then
-				local ring = cyl(m, cf * CFrame.new(0, cm(4.5), 0), "Y", 0.008, cm(9.2), Color3.fromRGB(255, 60, 160), M.Neon, { Name = "CoolerRGB", Transparency = 0.5 })
-				ring:SetAttribute("RGB", true)
+		if style == "amd" then
+			-- AMD Wraith: square black shroud with a round fan; the Spire and Prism stand taller and
+			-- carry a ring round the fan (lit on the Prism), the AMD logo on the hub
+			local tall = p.id ~= "cool_amd_stealth"
+			local hgt = if tall then cm(5.6) else cm(4.4)
+			box(m, cf * CFrame.new(0, hgt / 2, 0), Vector3.new(cm(9.5), hgt, cm(9.5)), black, M.SmoothPlastic, { Name = "Shroud" })
+			if p.id == "cool_amd_prism" then
+				for k = -1, 1, 2 do
+					cyl(m, cf * CFrame.new(k * cm(4.9), hgt * 0.4, 0), "Z", cm(8), cm(0.7), copper, M.Metal)
+				end
 			end
-			dustLayer(m, cf * CFrame.new(0, cm(4.6), 0), Vector3.new(cm(9.6), 0.01, cm(9.6)))
+			if tall then
+				local ring = cyl(m, cf * CFrame.new(0, hgt + 0.003, 0), "Y", 0.006, cm(9.3), if rgb then Color3.fromRGB(255, 60, 160) else Color3.fromRGB(150, 152, 158), if rgb then M.Neon else M.Metal, { Name = "CoolerRGB" })
+				ring:SetAttribute("RGB", rgb == true)
+				cyl(m, cf * CFrame.new(0, hgt + 0.0035, 0), "Y", 0.006, cm(8.9), Color3.fromRGB(12, 12, 14), M.SmoothPlastic)
+			end
+			rotor(m, cf * CFrame.new(0, hgt + (if tall then 0.005 else 0.002), 0), cm(8.6), black:Lerp(Color3.new(1, 1, 1), 0.1), black)
+			flatText(m, cf * CFrame.new(0, hgt + cm(0.6), 0), cm(2.2), cm(0.9), "AMD", Color3.fromRGB(235, 235, 238), 400, B.Fonts.Heavy)
+			dustLayer(m, cf * CFrame.new(0, hgt + cm(0.2), 0), Vector3.new(cm(9.6), 0.01, cm(9.6)))
 		else
-			-- Intel stock: round aluminium sink, copper core, black fan on top
-			cyl(m, cf * CFrame.new(0, cm(1.4), 0), "Y", cm(2.8), cm(9.4), alu, M.Metal, { Name = "Sink" })
+			-- Intel: round aluminium sink with radial fins and a copper core under the fan (the
+			-- Laminar is black with a blue ring)
+			local laminar = style == "laminar"
+			local sinkCol = if laminar then Color3.fromRGB(30, 30, 34) else alu
+			cyl(m, cf * CFrame.new(0, cm(1.4), 0), "Y", cm(2.8), cm(9.4), sinkCol, M.Metal, { Name = "Sink" })
 			cyl(m, cf * CFrame.new(0, cm(1.4), 0), "Y", cm(2.82), cm(3), copper, M.Metal)
+			for k = 0, 11 do
+				box(m, cf * CFrame.Angles(0, k * math.pi / 6, 0) * CFrame.new(cm(4.72), cm(1.4), 0), Vector3.new(cm(0.06), cm(2.7), cm(0.5)), sinkCol:Lerp(Color3.new(0, 0, 0), 0.4), M.Metal)
+			end
 			cyl(m, cf * CFrame.new(0, cm(3.4), 0), "Y", cm(1.2), cm(9), black, M.SmoothPlastic)
+			if laminar then
+				cyl(m, cf * CFrame.new(0, cm(4.0), 0), "Y", 0.004, cm(9.1), Color3.fromRGB(60, 140, 230), M.Neon, { Name = "CoolerRGB", Transparency = 0.3 })
+				cyl(m, cf * CFrame.new(0, cm(4.0) + 0.001, 0), "Y", 0.004, cm(8.6), Color3.fromRGB(12, 12, 14))
+			end
 			rotor(m, cf * CFrame.new(0, cm(4.05), 0), cm(8), black:Lerp(Color3.new(1, 1, 1), 0.12), black)
+			flatText(m, cf * CFrame.new(0, cm(4.6), 0), cm(2.0), cm(0.8), "intel", Color3.fromRGB(70, 150, 230), 400, B.Fonts.Heavy)
 			dustLayer(m, cf * CFrame.new(0, cm(4.2), 0), Vector3.new(cm(9.2), 0.01, cm(9.2)))
 		end
 	elseif kind == "air" then
-		local towers = coolerPart and coolerPart.towers or 1
+		local T = TOWERS[style] or TOWERS.cm
+		local towers = p.towers or 1
 		local h = cm(15.6)
-		-- base plate and heat pipes
 		box(m, cf * CFrame.new(0, cm(0.6), 0), Vector3.new(cm(4), cm(1.2), cm(4)), copper, M.Metal, { Name = "Base" })
-		local finCol = if coolerPart and coolerPart.noctua then alu elseif coolerPart and (coolerPart.id == "cool_drp5" or coolerPart.id == "cool_nhd15" or coolerPart.id == "cool_hyper212") then black else alu
+		box(m, cf * CFrame.new(0, cm(1.35), 0), Vector3.new(cm(5.6), cm(0.3), cm(3.2)), Color3.fromRGB(40, 40, 44), M.Metal)
+		local finCol = T.fin
 		local tw = cm(5)
 		local xs = if towers == 2 then { -cm(4.6), cm(4.6) } else { 0 }
+		local gap = finCol:Lerp(Color3.new(0, 0, 0), if (finCol.R + finCol.G + finCol.B) > 1.5 then 0.4 else 0.6)
 		for _, x in xs do
+			-- heat pipes up from the base
 			for k = -1, 1 do
-				cyl(m, cf * CFrame.new(x * 0.5 + k * cm(0.9), h * 0.45, 0), "Y", h * 0.9, cm(0.6), copper, M.Metal)
+				cyl(m, cf * CFrame.new(x * 0.5 + k * cm(0.9), h * 0.45, 0), "Y", h * 0.9, cm(0.6), T.pipe, M.Metal)
 			end
 			local stack = box(m, cf * CFrame.new(x, h * 0.62, 0), Vector3.new(tw, h * 0.72, cm(12.4)), finCol, M.Metal, { Name = "FinStack" })
 			stack:SetAttribute("Detail", "fins")
-			-- fin lines on the top
-			for k = -5, 5 do
-				box(m, cf * CFrame.new(x, h * 0.98 + 0.002, k * cm(1.1)), Vector3.new(tw, 0.004, 0.006), finCol:Lerp(Color3.new(0, 0, 0), 0.35), M.Metal)
+			-- the fin edges on the sides
+			for k = 0, 13 do
+				local y = h * 0.27 + (k + 0.5) * h * 0.7 / 14
+				for side = -1, 1, 2 do
+					box(m, cf * CFrame.new(x, y, side * cm(6.21)), Vector3.new(tw * 0.98, cm(0.07), 0.003), gap, M.Metal)
+				end
 			end
-			-- top cap
-			box(m, cf * CFrame.new(x, h * 0.99, 0), Vector3.new(tw * 1.02, cm(0.5), cm(12.6)), if coolerPart and coolerPart.id == "cool_ak620d" then Color3.fromRGB(20, 20, 22) else finCol:Lerp(Color3.new(0, 0, 0), 0.2), M.Metal)
+			if T.cap then
+				-- a cover on top (brushed on the be quiet!)
+				box(m, cf * CFrame.new(x, h * 0.99, 0), Vector3.new(tw * 1.04, cm(0.6), cm(12.7)), T.cap, M.Metal, { Name = "TopCover" })
+			else
+				-- bare top fin with the heat pipe tips poking through
+				for k = 1, T.pipes do
+					local z = -cm(4.5) + (k - 1) * cm(9) / math.max(1, T.pipes - 1)
+					for side = -1, 1, 2 do
+						cyl(m, cf * CFrame.new(x + side * tw * 0.22, h * 0.98 + cm(0.25), z), "Y", cm(0.5), cm(0.62), T.pipe, M.Metal)
+					end
+				end
+				for k = -5, 5 do
+					box(m, cf * CFrame.new(x, h * 0.98 + 0.002, k * cm(1.1)), Vector3.new(tw, 0.004, 0.006), gap, M.Metal)
+				end
+			end
 			dustLayer(m, cf * CFrame.new(x, h * 0.62, 0), Vector3.new(tw * 1.04, h * 0.74, cm(12.6)))
 		end
-		-- fan(s) on the intake (front, -X) side of each tower
-		local fanCol = if coolerPart and coolerPart.noctua then Color3.fromRGB(110, 76, 50) else black
-		local bladeCol = if coolerPart and coolerPart.noctua then Color3.fromRGB(210, 190, 160) else black:Lerp(Color3.new(1, 1, 1), 0.08)
+		-- the maker's logo on top (on the cover, or on a plate over the last fin)
+		local logoX = xs[#xs]
+		if not T.cap then
+			box(m, cf * CFrame.new(logoX, h * 0.98 + cm(0.12), 0), Vector3.new(tw * 0.5, cm(0.1), cm(4)), if style == "noctua" then Color3.fromRGB(200, 202, 206) else Color3.fromRGB(24, 24, 26), M.Metal)
+		end
+		flatText(m, cf * CFrame.new(logoX, h * 0.99 + cm(0.31), 0) * CFrame.Angles(0, math.pi / 2, 0), cm(9), tw * 0.42, T.logo, if style == "noctua" then Color3.fromRGB(110, 76, 50) else Color3.fromRGB(230, 230, 234), 400, B.Fonts.Heavy)
+		-- fan(s): on the intake (front, -X) side, or between the towers
+		local fanCol = T.frame or black
+		local bladeCol = T.blade or black:Lerp(Color3.new(1, 1, 1), 0.08)
 		local fx = if towers == 2 then 0 else -tw / 2 - cm(1.4)
 		local fanSize = if towers == 2 then cm(14) else cm(12)
 		local fanModel = newModel("CoolerFan", cf * CFrame.new(fx, h * 0.6, 0) * CFrame.Angles(0, 0, math.pi / 2))
 		fanFrame(fanModel, cf * CFrame.new(fx, h * 0.6, 0) * CFrame.Angles(0, 0, math.pi / 2), fanSize, fanCol, bladeCol, rgb)
 		fanModel.Parent = m
-		if coolerPart and coolerPart.id == "cool_ak620d" then
-			local disp = box(m, cf * CFrame.new(0, h * 1.01, 0), Vector3.new(cm(8), 0.006, cm(4)), Color3.fromRGB(10, 10, 12), M.SmoothPlastic, { Name = "TempDisplay" })
-			label(disp, Enum.NormalId.Top, "45°C", Color3.fromRGB(80, 200, 255), 300, B.Fonts.Mono)
+		if p.display then
+			local disp = box(m, cf * CFrame.new(0, h * 1.01, cm(4.2)), Vector3.new(cm(8), 0.006, cm(3)), Color3.fromRGB(10, 10, 12), M.SmoothPlastic, { Name = "TempDisplay" })
+			flatText(m, disp.CFrame * CFrame.new(0, 0.0042, 0), cm(7), cm(2.6), "45°C  12%", Color3.fromRGB(80, 200, 255), 300, B.Fonts.Mono, true)
 		end
 	else
 		-- AIO: pump block on the CPU, tubes up to the radiator on the top panel
-		local block = cyl(m, cf * CFrame.new(0, cm(1.9), 0), "Y", cm(3.8), cm(6.6), black, M.SmoothPlastic, { Name = "Pump" })
-		local cap = cyl(m, cf * CFrame.new(0, cm(3.85), 0), "Y", 0.008, cm(5.4), if rgb then Color3.fromRGB(120, 60, 255) else Color3.fromRGB(60, 60, 66), if rgb then M.Neon else M.Metal, { Name = "PumpCap" })
-		if rgb then
-			cap:SetAttribute("RGB", true)
-		end
-		if coolerPart and coolerPart.lcd then
-			label(cap, Enum.NormalId.Top, "38°C", Color3.fromRGB(255, 255, 255), 400, B.Fonts.Heavy)
+		local P = PUMPS[style] or PUMPS.arctic
+		local block
+		if P.round then
+			block = cyl(m, cf * CFrame.new(0, cm(1.9), 0), "Y", cm(3.8), cm(6.6), black, M.SmoothPlastic, { Name = "Pump" })
+		else
+			block = box(m, cf * CFrame.new(0, cm(1.9), 0), Vector3.new(cm(6.4), cm(3.8), cm(6.4)), black, M.SmoothPlastic, { Name = "Pump" })
 		end
 		block:SetAttribute("Detail", "pump")
-		local rad = coolerPart and coolerPart.radiator or 240
+		local top = cm(3.8)
+		if P.vrmFan then
+			-- the Liquid Freezer's little fan for the board's power stages
+			local vcf = cf * CFrame.new(cm(3.3), cm(1.9), 0) * CFrame.Angles(0, 0, -math.pi / 2)
+			cyl(m, vcf, "Y", cm(0.4), cm(3.4), Color3.fromRGB(20, 20, 22))
+			rotor(m, vcf * CFrame.new(0, cm(0.25), 0), cm(3), Color3.fromRGB(40, 40, 44), Color3.fromRGB(20, 20, 22))
+		end
+		local lit = rgb and Color3.fromRGB(120, 60, 255) or Color3.fromRGB(60, 60, 66)
+		if p.lcd then
+			-- a round or square screen with the temperature
+			local scr = if P.round then cyl(m, cf * CFrame.new(0, top + 0.003, 0), "Y", 0.006, cm(5.8), Color3.fromRGB(8, 10, 14), M.Glass, { Name = "PumpCap" }) else box(m, cf * CFrame.new(0, top + 0.003, 0), Vector3.new(cm(6), 0.006, cm(6)), Color3.fromRGB(8, 10, 14), M.Glass, { Name = "PumpCap" })
+			_ = scr
+			flatText(m, cf * CFrame.new(0, top + 0.0072, 0), cm(4.6), cm(2.4), if style == "rog" then "ROG\n38°C" else "38°C", Color3.fromRGB(255, 255, 255), 400, B.Fonts.Heavy, true)
+		elseif P.mirror then
+			-- infinity mirror: lit rings sinking into dark glass
+			box(m, cf * CFrame.new(0, top + 0.003, 0), Vector3.new(cm(6), 0.006, cm(6)), Color3.fromRGB(10, 10, 14), M.Glass, { Name = "PumpCap" })
+			for k = 0, 2 do
+				local ring = cyl(m, cf * CFrame.new(0, top + 0.0062 + k * 0.0004, 0), "Y", 0.0006, cm(5.2 - k * 1.3), lit, M.Neon, { Name = "CoolerRGB", Transparency = 0.2 + k * 0.2 })
+				ring:SetAttribute("RGB", rgb == true)
+				cyl(m, cf * CFrame.new(0, top + 0.0064 + k * 0.0004, 0), "Y", 0.0006, cm(5.2 - k * 1.3 - 0.4), Color3.fromRGB(10, 10, 14), M.Glass)
+			end
+		else
+			local cap = if P.round then cyl(m, cf * CFrame.new(0, top + 0.004, 0), "Y", 0.008, cm(5.6), Color3.fromRGB(26, 26, 30), M.SmoothPlastic, { Name = "PumpCap" }) else box(m, cf * CFrame.new(0, top + 0.004, 0), Vector3.new(cm(5.6), 0.008, cm(5.6)), Color3.fromRGB(26, 26, 30), M.SmoothPlastic, { Name = "PumpCap" })
+			_ = cap
+			if P.ring then
+				local ring = cyl(m, cf * CFrame.new(0, top + 0.0035, 0), "Y", 0.007, cm(6.2), lit, if rgb then M.Neon else M.Metal, { Name = "CoolerRGB" })
+				ring:SetAttribute("RGB", rgb == true)
+			end
+		end
+		if not p.lcd then
+			flatText(m, cf * CFrame.new(0, top + 0.0095, 0), cm(4.4), cm(1.3), P.logo, Color3.fromRGB(236, 236, 240), 400, B.Fonts.Heavy)
+		end
+		local rad = p.radiator or 240
 		local fans = if rad >= 360 then 3 else 2
 		local radLen = cm(fans * 12 + 3.6)
 		-- radiator (long axis X, fans on +Z) where the layout mounts it; beside the pump otherwise
 		local radCf = cf * ((ctx and ctx.radCf) or CFrame.new(-cm(14), cm(8), 0) * CFrame.Angles(0, math.pi / 2, 0))
-		box(m, radCf, Vector3.new(radLen, cm(12), cm(2.7)), black, M.Metal, { Name = "Radiator" })
+		local radThick = if style == "arctic" then cm(3.8) else cm(2.7)
+		local radBody = box(m, radCf * CFrame.new(0, 0, (cm(2.7) - radThick) / 2), Vector3.new(radLen, cm(12), radThick), black, M.Metal, { Name = "Radiator" })
 		for k = -10, 10 do
 			box(m, radCf * CFrame.new(k * radLen / 22, 0, cm(1.36)), Vector3.new(0.006, cm(11), 0.004), Color3.fromRGB(60, 60, 66), M.Metal)
 		end
+		-- the maker's sticker on the end tank
+		box(m, radCf * CFrame.new(-radLen / 2 + cm(1.1), 0, cm(1.37)), Vector3.new(cm(1.6), cm(10.5), 0.004), Color3.fromRGB(20, 20, 22), M.SmoothPlastic)
+		label(radBody, Enum.NormalId.Top, P.logo, Color3.fromRGB(220, 220, 224), 300, B.Fonts.Heavy)
+		local fanFrameCol = if style == "lianli" then Color3.fromRGB(236, 236, 238) else black
 		for i = 1, fans do
 			local x = -radLen / 2 + cm(1.8) + cm(6) + (i - 1) * cm(12)
 			local fcf = radCf * CFrame.new(x, 0, cm(2.7)) * CFrame.Angles(math.pi / 2, 0, 0)
 			local fm = newModel("RadFan", fcf)
-			fanFrame(fm, fcf, cm(12), black, black:Lerp(Color3.new(1, 1, 1), 0.08), rgb)
+			fanFrame(fm, fcf, cm(12), fanFrameCol, fanFrameCol:Lerp(Color3.new(0.5, 0.5, 0.5), 0.15), rgb)
 			fm.Parent = m
 		end
 		dustLayer(m, radCf * CFrame.new(0, 0, cm(1.5)), Vector3.new(radLen, cm(12), 0.01))
-		-- two tubes from the pump to the radiator end
+		-- two sleeved tubes from the pump to the radiator end, with their fittings
 		local p0 = (cf * CFrame.new(cm(1.2), cm(2.5), -cm(2.5))).Position
 		local p1 = (radCf * CFrame.new(radLen / 2 - cm(2), cm(3), cm(1))).Position
 		for k = 0, 1 do
@@ -631,8 +903,9 @@ function PCParts.cooler(cf: CFrame, coolerPart, ctx): Model
 			for _, seg in { { a, mid }, { mid, b } } do
 				local d = (seg[2] - seg[1]).Magnitude
 				local sc = CFrame.lookAt((seg[1] + seg[2]) / 2, seg[2]) * CFrame.Angles(0, math.pi / 2, 0)
-				cyl(m, sc, "X", d, cm(1.2), Color3.fromRGB(22, 22, 24), M.Rubber)
+				cyl(m, sc, "X", d, cm(1.2), Color3.fromRGB(22, 22, 24), M.Fabric)
 			end
+			cyl(m, CFrame.new(a), "Y", cm(1.0), cm(1.5), Color3.fromRGB(36, 36, 40), M.Metal)
 		end
 	end
 	return m
@@ -648,40 +921,217 @@ local RAM_COLORS = {
 	white = { 238, 238, 240 },
 	blue = { 30, 70, 160 },
 	red = { 170, 30, 34 },
+	gold = { 204, 172, 96 },
 }
+
+-- Module height (cm from the contact edge) and the light bar on top (cm) per heat spreader.
+local RAM_STYLES = {
+	bare = { h = 3.1 },
+	server = { h = 3.1 },
+	lpx = { h = 3.4 },
+	flare = { h = 3.3 },
+	pro = { h = 3.5 },
+	hyperx = { h = 3.3 },
+	fury = { h = 3.4 },
+	ballistix = { h = 3.9 },
+	ripjaws = { h = 4.2 },
+	viper = { h = 4.4 },
+	vrgb = { h = 4.4, bar = 0.9 },
+	dominator = { h = 5.5, bar = 0.7 },
+	trident = { h = 4.4, bar = 0.9 },
+	trident5 = { h = 4.2, bar = 0.7 },
+	royal = { h = 4.4, bar = 1.0 },
+	delta = { h = 4.9, bar = 0.9 },
+	xpg = { h = 4.0, bar = 0.8 },
+	furyrgb = { h = 4.2, bar = 0.8 },
+	renegade = { h = 3.9, bar = 0.6 },
+}
+PCParts.RamStyles = RAM_STYLES
+
+-- The line's name as printed on the spreader.
+local function ramBadge(p): string
+	local n, st = p.name or "", p.style
+	if st == "lpx" then
+		return if string.find(n, "LPX", 1, true) then "VENGEANCE LPX" else "VENGEANCE"
+	elseif st == "vrgb" then
+		return "VENGEANCE"
+	elseif st == "dominator" then
+		return "DOMINATOR"
+	elseif st == "trident" then
+		return if string.find(n, "Neo", 1, true) then "TRIDENT Z NEO" else "TRIDENT Z"
+	elseif st == "trident5" then
+		return "TRIDENT Z5"
+	elseif st == "royal" then
+		return "TRIDENT Z5 ROYAL"
+	elseif st == "fury" or st == "furyrgb" then
+		return "FURY"
+	elseif st == "renegade" then
+		return "FURY RENEGADE"
+	elseif st == "delta" then
+		return "T-FORCE DELTA"
+	elseif st == "xpg" then
+		return "XPG"
+	elseif st == "ballistix" then
+		return "BALLISTIX"
+	elseif st == "ripjaws" then
+		return "RIPJAWS"
+	elseif st == "flare" then
+		return if string.find(n, "Ripjaws", 1, true) then "RIPJAWS S5" else "FLARE X5"
+	elseif st == "viper" then
+		return "VIPER"
+	elseif st == "hyperx" then
+		return "HyperX"
+	elseif st == "pro" then
+		return "CRUCIAL PRO"
+	end
+	return ""
+end
 
 function PCParts.ram(cf: CFrame, ramPart): Model
 	local m = newModel("RAM", cf)
-	local so = ramPart and ramPart.form == "SODIMM"
+	local p = ramPart or {}
+	local so = p.form == "SODIMM"
 	local len = if so then cm(6.95) else cm(13.3)
-	local h = if so then cm(3) else cm(3.1)
-	local colour = ramPart and ramPart.color or "green"
-	local bare = colour == "green"
+	local pcbH = if so then cm(3) else cm(3.1)
+	local style = p.style or (if (p.color or "green") == "green" then "bare" else "lpx")
+	local st = RAM_STYLES[style] or RAM_STYLES.lpx
+	local h = if so then pcbH else cm(st.h)
 	local pcb = Color3.fromRGB(30, 100, 56)
-	box(m, cf * CFrame.new(0, h / 2, 0), Vector3.new(cm(0.12), h, len), pcb, M.SmoothPlastic, { Name = "PCB" })
+	box(m, cf * CFrame.new(0, pcbH / 2, 0), Vector3.new(cm(0.12), pcbH, len), pcb, M.SmoothPlastic, { Name = "PCB" })
 	box(m, cf * CFrame.new(0, cm(0.25), 0), Vector3.new(cm(0.14), cm(0.5), len * 0.94), GOLD, M.Metal, { Name = "Contacts" })
-	-- notch
-	box(m, cf * CFrame.new(0, cm(0.2), len * 0.1), Vector3.new(cm(0.2), cm(0.45), cm(0.3)), Color3.fromRGB(12, 12, 14))
-	if bare then
-		-- memory chips on both sides
+	-- the key notch sits where the generation puts it (DDR5 nearly central, older ones further out)
+	local notchZ = if p.mem == "DDR5" then -len * 0.02 elseif p.mem == "DDR4" then len * 0.04 elseif p.mem == "DDR3" then len * 0.12 else len * 0.15
+	box(m, cf * CFrame.new(0, cm(0.2), notchZ), Vector3.new(cm(0.2), cm(0.45), cm(0.3)), Color3.fromRGB(12, 12, 14))
+	local stickerX = -cm(0.08)
+	if style == "bare" or style == "server" then
+		-- memory chips on both sides; a DDR5 module carries its own power chip, an ECC server stick
+		-- a ninth chip and the register in the middle
+		local n = if so then 4 elseif style == "server" then 9 else 8
 		for side = -1, 1, 2 do
-			for k = 0, (if so then 3 else 7) do
-				local z = -len / 2 + len * (k + 0.75) / (if so then 4.6 else 8.6)
-				box(m, cf * CFrame.new(side * cm(0.12), h * 0.55, z), Vector3.new(cm(0.12), cm(1.1), cm(1.1)), Color3.fromRGB(20, 20, 22))
+			for k = 0, n - 1 do
+				local z = -len / 2 + len * (k + 0.75) / (n + 0.6)
+				if not (style == "server" and k == 4) then
+					box(m, cf * CFrame.new(side * cm(0.12), pcbH * 0.55, z), Vector3.new(cm(0.12), cm(1.1), cm(1.0)), Color3.fromRGB(20, 20, 22))
+				end
 			end
 		end
-	else
-		local spread = col(RAM_COLORS[colour] or RAM_COLORS.black)
-		local hs = box(m, cf * CFrame.new(0, h * 0.58, 0), Vector3.new(cm(0.62), h * 0.84, len * 0.99), spread, M.Metal, { Name = "Spreader" })
-		label(hs, Enum.NormalId.Right, string.upper(ramPart and ramPart.name or "") , if colour == "white" or colour == "silver" then Color3.fromRGB(30, 30, 30) else Color3.fromRGB(230, 230, 230), 260, B.Fonts.Bold)
-		if ramPart and ramPart.rgb then
-			local bar = box(m, cf * CFrame.new(0, h + cm(0.35), 0), Vector3.new(cm(0.5), cm(0.7), len * 0.96), Color3.fromRGB(120, 200, 255), M.Neon, { Name = "RamRGB", Transparency = 0.35 })
-			bar:SetAttribute("RGB", true)
+		if style == "server" then
+			box(m, cf * CFrame.new(cm(0.12), pcbH * 0.55, 0), Vector3.new(cm(0.12), cm(0.9), cm(1.6)), Color3.fromRGB(26, 26, 30))
 		end
+		if p.mem == "DDR5" then
+			box(m, cf * CFrame.new(cm(0.12), pcbH * 0.85, len * 0.36), Vector3.new(cm(0.1), cm(0.5), cm(0.5)), Color3.fromRGB(30, 30, 34))
+		end
+		stickerX = -cm(0.2)
+	else
+		local spread = col(RAM_COLORS[p.color or "black"] or RAM_COLORS.black)
+		local light = (spread.R + spread.G + spread.B) > 1.6
+		local dark = spread:Lerp(Color3.new(0, 0, 0), 0.5)
+		local textCol = if light then Color3.fromRGB(30, 30, 34) else Color3.fromRGB(236, 236, 240)
+		local bar = if st.bar then cm(st.bar) else 0
+		local plateTop = h - bar
+		local plateH = plateTop - cm(0.6)
+		local plateY = (cm(0.6) + plateTop) / 2
+		local plates = {}
+		for side = -1, 1, 2 do
+			plates[side] = box(m, cf * CFrame.new(side * cm(0.24), plateY, 0), Vector3.new(cm(0.16), plateH, len * 0.985), spread, M.Metal, { Name = "Spreader" })
+		end
+		-- the spreader's own shape and trim
+		local function bothSides(fn)
+			for side = -1, 1, 2 do
+				fn(side, side * cm(0.33))
+			end
+		end
+		if style == "lpx" then
+			-- the stepped top edge of the Vengeance LPX
+			box(m, cf * CFrame.new(0, plateTop - cm(0.05), 0), Vector3.new(cm(0.64), cm(0.1), len * 0.985), spread, M.Metal)
+			for k = 0, 4 do
+				box(m, cf * CFrame.new(0, plateTop + cm(0.15), -len * 0.4 + k * len * 0.2), Vector3.new(cm(0.64), cm(0.3), len * 0.1), spread, M.Metal)
+			end
+		elseif style == "fury" or style == "renegade" then
+			bothSides(function(_, x)
+				if style == "fury" then
+					for k = 0, 1 do
+						box(m, cf * CFrame.new(x, plateY, len * 0.33 + k * len * 0.08) * CFrame.Angles(math.rad(-35), 0, 0), Vector3.new(0.003, plateH * 0.9, cm(0.35)), dark, M.Metal)
+					end
+				else
+					box(m, cf * CFrame.new(x, cm(0.6) + plateH * 0.17, 0), Vector3.new(0.003, plateH * 0.34, len * 0.97), Color3.fromRGB(190, 192, 198), M.Metal)
+				end
+			end)
+		elseif style == "hyperx" or style == "viper" or style == "pro" or style == "flare" then
+			bothSides(function(_, x)
+				box(m, cf * CFrame.new(x, plateTop - plateH * 0.18, 0), Vector3.new(0.003, plateH * 0.3, len * 0.97), if style == "hyperx" then Color3.fromRGB(20, 20, 22) else spread:Lerp(Color3.new(1, 1, 1), 0.3), M.Metal)
+			end)
+		elseif style == "ballistix" then
+			bothSides(function(_, x)
+				B.wedge(m, cf * CFrame.new(x, plateY + plateH * 0.12, len * 0.3) * CFrame.Angles(0, math.pi / 2, 0), Vector3.new(len * 0.36, plateH * 0.7, 0.004), Color3.fromRGB(200, 40, 40), M.SmoothPlastic, { CanCollide = false, CanTouch = false })
+			end)
+		elseif style == "ripjaws" then
+			-- the jagged "claw" fins along the top
+			for k = 0, 5 do
+				B.wedge(m, cf * CFrame.new(0, plateTop + cm(0.35), -len * 0.42 + k * len * 0.168), Vector3.new(cm(0.6), cm(0.7), len * 0.15), spread, M.Metal, { CanCollide = false, CanTouch = false })
+			end
+		elseif style == "dominator" or style == "royal" then
+			-- brushed top rails either side of the light bar
+			for side = -1, 1, 2 do
+				box(m, cf * CFrame.new(side * cm(0.27), plateTop + bar * 0.45, 0), Vector3.new(cm(0.1), bar * 0.9, len * 0.985), if style == "royal" then Color3.fromRGB(220, 222, 228) else Color3.fromRGB(176, 178, 184), M.Metal)
+			end
+		elseif style == "trident" or style == "trident5" then
+			-- two-tone: a black band across the brushed plate
+			bothSides(function(_, x)
+				box(m, cf * CFrame.new(x, cm(0.6) + plateH * 0.18, 0), Vector3.new(0.003, plateH * 0.36, len * 0.97), Color3.fromRGB(28, 28, 32), M.Metal)
+			end)
+		end
+		-- the light bar: a frosted diffuser (lit when the PC is on) or a closed top
+		if bar > 0 then
+			local diff = box(m, cf * CFrame.new(0, plateTop + bar / 2, 0), Vector3.new(cm(if style == "dominator" or style == "royal" then 0.42 else 0.6), bar, len * 0.96), Color3.fromRGB(236, 236, 242), M.Neon, { Name = "RamRGB", Transparency = 0.12, CastShadow = false })
+			if p.rgb then
+				diff:SetAttribute("RGB", true)
+			end
+			if style == "trident" then
+				-- the Trident Z's raised wave at one end
+				local wave = box(m, cf * CFrame.new(0, plateTop + bar + cm(0.25), -len * 0.22), Vector3.new(cm(0.6), cm(0.5), len * 0.5), Color3.fromRGB(236, 236, 242), M.Neon, { Name = "RamRGB", Transparency = 0.12, CastShadow = false })
+				wave:SetAttribute("RGB", p.rgb == true)
+			elseif style == "delta" then
+				-- the wing-shaped diffuser of the T-Force Delta
+				for k = -1, 1, 2 do
+					local w = B.wedge(m, cf * CFrame.new(0, plateTop + bar + cm(0.3), k * len * 0.25) * CFrame.Angles(0, if k > 0 then 0 else math.pi, 0), Vector3.new(cm(0.6), cm(0.6), len * 0.48), Color3.fromRGB(236, 236, 242), M.Neon, { Name = "RamRGB", Transparency = 0.12, CanCollide = false, CanTouch = false, CastShadow = false })
+					w:SetAttribute("RGB", p.rgb == true)
+				end
+			elseif style == "vrgb" or style == "xpg" then
+				-- the light zones
+				for k = -2, 2 do
+					box(m, cf * CFrame.new(0, plateTop + bar / 2, k * len * 0.19), Vector3.new(cm(0.62), bar * 1.02, cm(0.12)), dark, M.SmoothPlastic)
+				end
+			elseif style == "royal" then
+				box(m, cf * CFrame.new(0, plateTop + bar * 0.6, 0), Vector3.new(cm(0.3), bar * 0.6, len * 0.9), Color3.fromRGB(240, 240, 250), M.Glass, { Transparency = 0.3 })
+			end
+		else
+			box(m, cf * CFrame.new(0, plateTop - cm(0.06), 0), Vector3.new(cm(0.64), cm(0.12), len * 0.985), spread, M.Metal)
+		end
+		-- the line's name on both faces, clear of the trim (on clear carriers over the plates)
+		local badge = ramBadge(p)
+		if badge ~= "" then
+			local z0, z1, y0f, y1f = -0.45, 0.45, 0.3, 1.0
+			if style == "trident" or style == "trident5" or style == "renegade" then
+				y0f = 0.4
+			elseif style == "fury" then
+				z1 = 0.26
+			elseif style == "ballistix" then
+				z1 = 0.08
+			elseif style == "hyperx" or style == "viper" or style == "pro" or style == "flare" then
+				y0f, y1f = 0.1, 0.62
+			end
+			for side = -1, 1, 2 do
+				local yb = side == -1 and math.max(y0f, 0.55) or y0f -- the capacity sticker is low on the -X side
+				local carrier = box(m, cf * CFrame.new(side * (cm(0.32) + 0.002), cm(0.6) + plateH * (yb + y1f) / 2, len * (z0 + z1) / 2), Vector3.new(0.002, plateH * (y1f - yb), len * (z1 - z0)), textCol, M.SmoothPlastic, { Name = "Text", Transparency = 1, CastShadow = false, CanQuery = false })
+				label(carrier, if side == 1 then Enum.NormalId.Right else Enum.NormalId.Left, badge, textCol, 300, B.Fonts.Heavy)
+			end
+		end
+		stickerX = -cm(0.34)
 	end
 	-- capacity sticker
-	local sticker = box(m, cf * CFrame.new(-cm(0.4), h * 0.5, len * 0.2), Vector3.new(0.004, cm(1.2), cm(3)), Color3.fromRGB(240, 240, 236), M.SmoothPlastic)
-	label(sticker, Enum.NormalId.Left, (ramPart and ramPart.size or 8) .. "GB " .. (ramPart and ramPart.mem or ""), Color3.fromRGB(30, 30, 30), 600, B.Fonts.Bold)
+	local sticker = box(m, cf * CFrame.new(stickerX, math.min(h * 0.32, cm(1.3)), len * 0.3), Vector3.new(0.004, cm(1.0), cm(3)), Color3.fromRGB(240, 240, 236), M.SmoothPlastic)
+	label(sticker, Enum.NormalId.Left, (p.size or 8) .. "GB " .. (p.mem or "") .. "-" .. (p.speed or ""), Color3.fromRGB(30, 30, 30), 600, B.Fonts.Bold)
 	box(m, cf * CFrame.new(0, h / 2, 0), Vector3.new(0.12, h, len), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
 	return m
 end
@@ -721,6 +1171,28 @@ end
 -- Power supply. Origin: centre. Depth along X, width along Y, height along Z; fan on +Z,
 -- label on +Y, modular sockets on -X (towards the case front).
 ----------------------------------------------------------------------------------------------------
+-- The maker's name as printed on its products, from the first word of the part's name.
+local MAKERS = {
+	Corsair = "CORSAIR", Seasonic = "SEASONIC", be = "be quiet!", Cooler = "COOLER MASTER", MSI = "msi",
+	ASUS = "ASUS", Thermaltake = "Thermaltake", EVGA = "EVGA", NZXT = "NZXT", DeepCool = "DEEPCOOL", FSP = "FSP",
+	Samsung = "SAMSUNG", WD = "WD", Kingston = "KINGSTON", Crucial = "Crucial", Seagate = "SEAGATE", SK = "SK hynix",
+	TeamGroup = "T-FORCE", Lexar = "Lexar", SanDisk = "SanDisk", Toshiba = "TOSHIBA", Lian = "LIAN LI",
+	Fractal = "FRACTAL", Phanteks = "PHANTEKS", Montech = "MONTECH", HYTE = "HYTE", Jonsbo = "JONSBO", Arctic = "ARCTIC",
+	Noctua = "noctua", Thermalright = "Thermalright", Dell = "DELL", HP = "hp", Turbox = "TURBOX",
+}
+function PCParts.makerOf(part): string?
+	local first = string.match(part and part.name or "", "^(%S+)")
+	return first and MAKERS[first]
+end
+
+-- Accent colours by maker (labels, stripes).
+local MAKER_ACCENT = {
+	["SEASONIC"] = Color3.fromRGB(214, 176, 72), ["be quiet!"] = Color3.fromRGB(230, 120, 40),
+	["COOLER MASTER"] = Color3.fromRGB(150, 80, 220), ["msi"] = Color3.fromRGB(220, 30, 40), ["ASUS"] = Color3.fromRGB(230, 20, 40),
+	["Thermaltake"] = Color3.fromRGB(220, 30, 40), ["NZXT"] = Color3.fromRGB(140, 80, 230), ["DEEPCOOL"] = Color3.fromRGB(80, 170, 255),
+	["FSP"] = Color3.fromRGB(255, 200, 40), ["TURBOX"] = Color3.fromRGB(255, 210, 40), ["EVGA"] = Color3.fromRGB(230, 230, 230),
+}
+
 function PCParts.psuDims(psuPart): Vector3
 	if psuPart and psuPart.form == "SFX" then
 		return Vector3.new(cm(10), cm(12.5), cm(6.35))
@@ -732,7 +1204,10 @@ function PCParts.psu(cf: CFrame, psuPart): Model
 	local m = newModel("PSU", cf)
 	local d = PCParts.psuDims(psuPart)
 	local q = psuPart and psuPart.quality or 0.5
-	local shell = if q >= 0.8 then Color3.fromRGB(26, 26, 30) elseif q >= 0.5 then Color3.fromRGB(40, 40, 44) else Color3.fromRGB(150, 152, 156)
+	local maker = PCParts.makerOf(psuPart)
+	local oem = maker == "DELL" or maker == "hp"
+	local shell = if oem then Color3.fromRGB(160, 162, 166) elseif q >= 0.8 then Color3.fromRGB(26, 26, 30) elseif q >= 0.5 then Color3.fromRGB(40, 40, 44) else Color3.fromRGB(150, 152, 156)
+	local accent = maker and MAKER_ACCENT[maker] or Color3.fromRGB(230, 230, 232)
 	local body = box(m, cf, d, shell, M.Metal, { Name = "Shell" })
 	body:SetAttribute("Detail", "psu")
 	-- fan grille on +Z
@@ -743,10 +1218,29 @@ function PCParts.psu(cf: CFrame, psuPart): Model
 		box(m, fc * CFrame.new(0, 0.004, k * math.min(d.X, d.Y) * 0.12), Vector3.new(math.min(d.X, d.Y) * 0.86, 0.004, 0.006), STEEL, M.Metal)
 	end
 	dustLayer(m, fc * CFrame.new(0, 0.008, 0), Vector3.new(d.X * 0.9, 0.01, d.Y * 0.9))
-	-- label on top (+Y)
-	local lab = box(m, cf * CFrame.new(0, d.Y / 2 + 0.002, 0), Vector3.new(d.X * 0.8, 0.004, d.Z * 0.75), if q >= 0.5 then Color3.fromRGB(20, 20, 22) else Color3.fromRGB(230, 230, 226), M.SmoothPlastic, { Name = "Label" })
+	-- the side label (+Y): the maker in big letters, the model and wattage, the 80 PLUS badge and
+	-- the maker's accent stripe; budget units get a plain paper sticker
+	local paper = q < 0.5 or oem
+	box(m, cf * CFrame.new(0, d.Y / 2 + 0.002, 0), Vector3.new(d.X * 0.84, 0.004, d.Z * 0.8), if paper then Color3.fromRGB(232, 232, 226) else Color3.fromRGB(18, 18, 20), M.SmoothPlastic, { Name = "Label" })
 	local name = psuPart and psuPart.name or "PSU"
-	label(lab, Enum.NormalId.Top, (psuPart and psuPart.watt or 500) .. "W\n" .. name, if q >= 0.5 then Color3.fromRGB(230, 230, 230) else Color3.fromRGB(30, 30, 30), 240, B.Fonts.Heavy)
+	local ink = if paper then Color3.fromRGB(30, 30, 30) else Color3.fromRGB(236, 236, 238)
+	flatText(m, cf * CFrame.new(0, d.Y / 2 + 0.0045, -d.Z * 0.18), d.X * 0.76, d.Z * 0.26, maker or string.upper(string.match(name, "^(%S+)") or "PSU"), if paper then ink else accent, 300, B.Fonts.Heavy)
+	flatText(m, cf * CFrame.new(0, d.Y / 2 + 0.0045, d.Z * 0.12), d.X * 0.76, d.Z * 0.18, (psuPart and psuPart.watt or 500) .. "W  •  " .. (string.match(name, "^%S+%s+(.+)$") or name), ink, 300, B.Fonts.Bold)
+	local eff = psuPart and psuPart.eff or ""
+	if eff ~= "Yok" and eff ~= "" then
+		local medal = ({ Bronze = Color3.fromRGB(176, 110, 60), Gold = Color3.fromRGB(214, 176, 72), Platinum = Color3.fromRGB(200, 204, 210), Titanium = Color3.fromRGB(120, 124, 130) })[eff] or Color3.fromRGB(220, 220, 220)
+		local badge = box(m, cf * CFrame.new(d.X * 0.3, d.Y / 2 + 0.005, d.Z * 0.3), Vector3.new(cm(2.4), 0.002, cm(1.4)), medal, M.SmoothPlastic)
+		label(badge, Enum.NormalId.Top, "80 PLUS\n" .. string.upper(eff), Color3.fromRGB(20, 20, 22), 500, B.Fonts.Heavy)
+	end
+	if not paper then
+		box(m, cf * CFrame.new(0, d.Y / 2 + 0.0042, d.Z * 0.37), Vector3.new(d.X * 0.84, 0.002, cm(0.3)), accent, M.SmoothPlastic)
+	end
+	if psuPart and psuPart.id == "psu_thor1200" then
+		-- the ROG Thor's OLED power meter
+		local oled = box(m, cf * CFrame.new(-d.X * 0.28, d.Y / 2 + 0.005, d.Z * 0.3), Vector3.new(cm(3.4), 0.002, cm(1.6)), Color3.fromRGB(6, 6, 8), M.Glass)
+		_ = oled
+		flatText(m, cf * CFrame.new(-d.X * 0.28, d.Y / 2 + 0.0065, d.Z * 0.3), cm(3), cm(1.3), "642 W", Color3.fromRGB(255, 80, 90), 400, B.Fonts.Mono, true)
+	end
 	-- modular sockets / cable exit on -X
 	local modular = psuPart and psuPart.modular or "none"
 	if modular ~= "none" then
@@ -804,26 +1298,66 @@ function PCParts.storage(cf: CFrame, part): Model
 	local kind = part and part.kind or "ssd25"
 	local d = PCParts.storageDims(part)
 	local name = part and part.name or ""
+	local maker = PCParts.makerOf(part)
+	local model = string.match(name, "^%S+%s+(.+)$") or name
+	if maker == "WD" or maker == "SK hynix" then
+		model = string.match(name, "^%S+%s+%S+%s+(.+)$") or model
+	end
 	if kind == "nvme" then
-		box(m, cf * CFrame.new(0, cm(0.08), 0), Vector3.new(d.X, cm(0.16), d.Z), Color3.fromRGB(20, 60, 36), M.SmoothPlastic, { Name = "PCB" })
+		box(m, cf * CFrame.new(0, cm(0.08), 0), Vector3.new(d.X, cm(0.16), d.Z), Color3.fromRGB(20, 22, 24), M.SmoothPlastic, { Name = "PCB" })
 		box(m, cf * CFrame.new(d.X / 2 - cm(0.4), cm(0.08), 0), Vector3.new(cm(0.8), cm(0.18), d.Z * 0.9), GOLD, M.Metal)
-		local stick = box(m, cf * CFrame.new(-cm(0.4), cm(0.24), 0), Vector3.new(d.X * 0.82, cm(0.16), d.Z * 0.92), Color3.fromRGB(24, 24, 26), M.SmoothPlastic, { Name = "Sticker" })
-		label(stick, Enum.NormalId.Top, name, Color3.fromRGB(230, 230, 230), 420, B.Fonts.Bold)
+		if part and part.heatsink then
+			-- an aluminium heatsink over the drive, finned, with the maker's name
+			local hsCol = if maker == "SEAGATE" then Color3.fromRGB(40, 40, 44) elseif maker == "Crucial" then Color3.fromRGB(150, 154, 160) else Color3.fromRGB(26, 26, 30)
+			local hs = box(m, cf * CFrame.new(-cm(0.4), cm(0.6), 0), Vector3.new(d.X * 0.84, cm(0.9), d.Z * 0.96), hsCol, M.Metal, { Name = "Heatsink" })
+			for k = -3, 3 do
+				box(m, cf * CFrame.new(-cm(0.4) + k * d.X * 0.11, cm(1.05) + 0.001, 0), Vector3.new(cm(0.12), 0.002, d.Z * 0.9), hsCol:Lerp(Color3.new(0, 0, 0), 0.5), M.Metal)
+			end
+			if maker == "SEAGATE" then
+				box(m, cf * CFrame.new(-cm(0.4), cm(1.05) + 0.0015, d.Z * 0.35), Vector3.new(d.X * 0.8, 0.002, cm(0.2)), Color3.fromRGB(255, 120, 30), M.SmoothPlastic)
+			end
+			label(hs, Enum.NormalId.Top, (maker or "") .. "  " .. model, Color3.fromRGB(230, 230, 232), 420, B.Fonts.Bold)
+		else
+			-- the sticker: the maker's colours
+			local stickCol = if maker == "KINGSTON" and string.find(name, "NV", 1, true) then Color3.fromRGB(30, 60, 140) elseif string.find(name, "Blue", 1, true) then Color3.fromRGB(30, 80, 170) elseif maker == "T-FORCE" or maker == "Lexar" then Color3.fromRGB(150, 154, 160) else Color3.fromRGB(24, 24, 26)
+			local stick = box(m, cf * CFrame.new(-cm(0.4), cm(0.24), 0), Vector3.new(d.X * 0.82, cm(0.16), d.Z * 0.92), stickCol, M.SmoothPlastic, { Name = "Sticker" })
+			label(stick, Enum.NormalId.Top, (maker or "") .. "\n" .. model, Color3.fromRGB(236, 236, 238), 420, B.Fonts.Bold)
+			-- controller and flash chips under the sticker's edge
+			for k = 0, 1 do
+				box(m, cf * CFrame.new(-d.X * 0.25 + k * d.X * 0.3, cm(0.2), d.Z * 0.47), Vector3.new(cm(1.2), cm(0.08), cm(0.12)), Color3.fromRGB(14, 14, 16))
+			end
+		end
 		-- screw notch
 		box(m, cf * CFrame.new(-d.X / 2 + cm(0.15), cm(0.08), 0), Vector3.new(cm(0.3), cm(0.17), cm(0.5)), Color3.fromRGB(196, 170, 90), M.Metal)
 	elseif kind == "hdd35" then
 		box(m, cf * CFrame.new(0, d.Y / 2, 0), d, Color3.fromRGB(176, 180, 186), M.Metal, { Name = "Body" })
 		local lab = box(m, cf * CFrame.new(0, d.Y + 0.002, 0), Vector3.new(d.X * 0.7, 0.004, d.Z * 0.8), Color3.fromRGB(236, 236, 232), M.SmoothPlastic, { Name = "Label" })
 		label(lab, Enum.NormalId.Top, name, Color3.fromRGB(30, 30, 30), 200, B.Fonts.Bold)
+		-- the line's colour band (WD Blue/Red/Black, BarraCuda, IronWolf, Toshiba)
+		local band = if string.find(name, "Red", 1, true) then Color3.fromRGB(200, 40, 46) elseif string.find(name, "Black", 1, true) then Color3.fromRGB(26, 26, 28) elseif maker == "WD" then Color3.fromRGB(30, 90, 190) elseif string.find(name, "IronWolf", 1, true) then Color3.fromRGB(240, 120, 30) elseif maker == "TOSHIBA" then Color3.fromRGB(200, 40, 46) else Color3.fromRGB(40, 150, 140)
+		box(m, cf * CFrame.new(-d.X * 0.3, d.Y + 0.0045, 0), Vector3.new(d.X * 0.1, 0.002, d.Z * 0.8), band, M.SmoothPlastic)
+		-- the spindle bump and the four lid screws
+		cyl(m, cf * CFrame.new(d.X * 0.22, d.Y + 0.003, d.Z * 0.28), "Y", 0.004, cm(2.2), Color3.fromRGB(196, 200, 206), M.Metal)
+		for _, o in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+			cyl(m, cf * CFrame.new(o[1] * d.X * 0.44, d.Y + 0.002, o[2] * d.Z * 0.42), "Y", 0.004, cm(0.5), Color3.fromRGB(150, 152, 156), M.Metal)
+		end
 		box(m, cf * CFrame.new(0, -0.002, 0), Vector3.new(d.X * 0.8, 0.004, d.Z * 0.75), Color3.fromRGB(20, 70, 40))
 		-- SATA connectors on the +X end
 		box(m, cf * CFrame.new(d.X / 2 + 0.004, d.Y * 0.4, -d.Z * 0.15), Vector3.new(0.008, cm(0.8), cm(2.2)), Color3.fromRGB(20, 20, 22))
 		box(m, cf * CFrame.new(d.X / 2 + 0.004, d.Y * 0.4, d.Z * 0.25), Vector3.new(0.008, cm(0.8), cm(1.2)), Color3.fromRGB(20, 20, 22))
 	else
-		local shell = if kind == "hdd25" then Color3.fromRGB(176, 180, 186) else Color3.fromRGB(34, 34, 38)
+		-- 2.5" drives: the SSD makers' cases and labels
+		local shell = if kind == "hdd25" then Color3.fromRGB(176, 180, 186) elseif maker == "Crucial" then Color3.fromRGB(150, 154, 160) else Color3.fromRGB(34, 34, 38)
+		local labCol = if kind == "hdd25" then Color3.fromRGB(236, 236, 232)
+			elseif maker == "SAMSUNG" then Color3.fromRGB(20, 20, 22)
+			elseif maker == "Crucial" then Color3.fromRGB(30, 60, 120)
+			elseif maker == "WD" then Color3.fromRGB(30, 90, 190)
+			elseif maker == "SanDisk" then Color3.fromRGB(200, 30, 40)
+			elseif maker == "KINGSTON" then Color3.fromRGB(120, 124, 130)
+			else Color3.fromRGB(200, 40, 50)
 		box(m, cf * CFrame.new(0, d.Y / 2, 0), d, shell, M.Metal, { Name = "Body" })
-		local lab = box(m, cf * CFrame.new(0, d.Y + 0.002, 0), Vector3.new(d.X * 0.85, 0.004, d.Z * 0.8), if kind == "hdd25" then Color3.fromRGB(236, 236, 232) else Color3.fromRGB(200, 40, 50), M.SmoothPlastic, { Name = "Label" })
-		label(lab, Enum.NormalId.Top, name, if kind == "hdd25" then Color3.fromRGB(30, 30, 30) else Color3.fromRGB(255, 255, 255), 240, B.Fonts.Bold)
+		local lab = box(m, cf * CFrame.new(0, d.Y + 0.002, 0), Vector3.new(d.X * 0.85, 0.004, d.Z * 0.8), labCol, M.SmoothPlastic, { Name = "Label" })
+		label(lab, Enum.NormalId.Top, if kind == "hdd25" then name else (maker or "") .. "\n" .. model, if kind == "hdd25" then Color3.fromRGB(30, 30, 30) else Color3.fromRGB(255, 255, 255), 240, B.Fonts.Bold)
 		box(m, cf * CFrame.new(d.X / 2 + 0.004, d.Y * 0.5, 0), Vector3.new(0.008, cm(0.5), cm(3)), Color3.fromRGB(20, 20, 22))
 	end
 	box(m, cf * CFrame.new(0, d.Y / 2, 0), Vector3.new(d.X, math.max(d.Y, 0.06), d.Z), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
@@ -835,8 +1369,8 @@ end
 ----------------------------------------------------------------------------------------------------
 function PCParts.cmos(cf: CFrame): Model
 	local m = newModel("CMOS", cf)
-	local cell = cyl(m, cf * CFrame.new(0, cm(0.45), 0), "Y", cm(0.32), cm(2), Color3.fromRGB(200, 202, 208), M.Metal, { Name = "Cell" })
-	label(cell, Enum.NormalId.Top, "CR2032", Color3.fromRGB(60, 60, 64), 500, B.Fonts.Bold)
+	cyl(m, cf * CFrame.new(0, cm(0.45), 0), "Y", cm(0.32), cm(2), Color3.fromRGB(200, 202, 208), M.Metal, { Name = "Cell" })
+	flatText(m, cf * CFrame.new(0, cm(0.61) + 0.0012, 0), cm(1.4), cm(0.45), "CR2032", Color3.fromRGB(60, 60, 64), 500, B.Fonts.Bold)
 	box(m, cf * CFrame.new(0, cm(0.45), 0), Vector3.new(0.14, 0.06, 0.14), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
 	return m
 end

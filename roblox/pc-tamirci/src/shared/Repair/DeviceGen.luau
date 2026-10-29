@@ -15,19 +15,19 @@ local DeviceGen = {}
 DeviceGen.Tiers = {
 	retro = { cpu = { 0, 20 }, years = { 2007, 2014 }, gpu = { 0, 14 }, gpuChance = 0.6, ram = { 2, 8 }, sticks = 2, storage = "hdd", cooler = "stock", cases = { "case_retro" }, fans = { 1, 1 }, psu = "cheap" },
 	office = { cpu = { 8, 45 }, years = { 2015, 2024 }, gpu = nil, gpuChance = 0, igpu = true, ram = { 4, 16 }, sticks = 1, storage = "ssd", cooler = "stock", cases = { "case_office", "case_sff" }, fans = { 1, 1 }, psu = "oem" },
-	budget = { cpu = { 14, 45 }, years = { 2017, 2024 }, gpu = { 8, 30 }, gpuChance = 1, ram = { 8, 8 }, sticks = 2, storage = "ssd", cooler = "stock", cases = { "case_budgetrgb", "case_q300l", "case_popair" }, fans = { 1, 3 }, psu = "budget" },
-	mid = { cpu = { 30, 62 }, years = { 2019, 2025 }, gpu = { 24, 52 }, gpuChance = 1, ram = { 8, 16 }, sticks = 2, storage = "nvme", cooler = "air", cases = { "case_4000d", "case_h5flow", "case_popair", "case_north", "case_budgetrgb" }, fans = { 2, 4 }, psu = "good" },
-	high = { cpu = { 50, 86 }, years = { 2020, 2025 }, gpu = { 45, 82 }, gpuChance = 1, ram = { 16, 32 }, sticks = 2, storage = "nvme", cooler = "aio", cases = { "case_o11evo", "case_4000dw", "case_north", "case_nv7", "case_h5flow" }, fans = { 3, 6 }, psu = "good" },
-	enthusiast = { cpu = { 75, 101 }, years = { 2022, 2025 }, gpu = { 70, 130 }, gpuChance = 1, ram = { 16, 48 }, sticks = 2, storage = "nvme2", cooler = "aio", cases = { "case_o11vision", "case_nv7", "case_define7xl", "case_o11evo" }, fans = { 4, 6 }, psu = "premium" },
-	workstation = { cpu = { 60, 141 }, years = { 2021, 2025 }, gpu = { 28, 95 }, gpuChance = 1, workstationGpu = true, ram = { 32, 64 }, sticks = 4, storage = "nvme2", cooler = "air", cases = { "case_define7xl", "case_north" }, fans = { 3, 6 }, psu = "premium" },
+	budget = { cpu = { 14, 45 }, years = { 2017, 2024 }, gpu = { 8, 30 }, gpuChance = 1, ram = { 8, 8 }, sticks = 2, storage = "ssd", cooler = "stock", cases = { "case_budgetrgb", "case_q300l", "case_popair", "case_versah18", "case_jonsbod41", "case_air903" }, fans = { 1, 3 }, psu = "budget" },
+	mid = { cpu = { 30, 62 }, years = { 2019, 2025 }, gpu = { 24, 52 }, gpuChance = 1, ram = { 8, 16 }, sticks = 2, storage = "nvme", cooler = "air", cases = { "case_4000d", "case_h5flow", "case_popair", "case_north", "case_budgetrgb", "case_lancool216", "case_xtpro", "case_td500", "case_ch560", "case_pb500dx", "case_h7flow", "case_3500x" }, fans = { 2, 4 }, psu = "good" },
+	high = { cpu = { 50, 86 }, years = { 2020, 2025 }, gpu = { 45, 82 }, gpuChance = 1, ram = { 16, 32 }, sticks = 2, storage = "nvme", cooler = "aio", cases = { "case_o11evo", "case_4000dw", "case_north", "case_nv7", "case_h5flow", "case_lancool3w", "case_5000d", "case_h9flow", "case_o11airmini", "case_y60" }, fans = { 3, 6 }, psu = "good" },
+	enthusiast = { cpu = { 75, 101 }, years = { 2022, 2025 }, gpu = { 70, 130 }, gpuChance = 1, ram = { 16, 48 }, sticks = 2, storage = "nvme2", cooler = "aio", cases = { "case_o11vision", "case_nv7", "case_define7xl", "case_o11evo", "case_torrent", "case_northxl", "case_hyperion", "case_h9flow" }, fans = { 4, 6 }, psu = "premium" },
+	workstation = { cpu = { 60, 141 }, years = { 2021, 2025 }, gpu = { 28, 95 }, gpuChance = 1, workstationGpu = true, ram = { 32, 64 }, sticks = 4, storage = "nvme2", cooler = "air", cases = { "case_define7xl", "case_north", "case_torrent", "case_5000d" }, fans = { 3, 6 }, psu = "premium" },
 }
 
 local PSU_GROUPS = {
-	cheap = { "psu_turbox500", "psu_lite450" },
-	oem = { "psu_oem300", "psu_lite450" },
-	budget = { "psu_mwe550", "psu_cv650", "psu_turbox500" },
-	good = { "psu_pp12m650", "psu_rm750e", "psu_focus750", "psu_a850gl", "psu_rm850x" },
-	premium = { "psu_rm850x", "psu_vertex1000", "psu_thor1200", "psu_dpp1300", "psu_ax1600i" },
+	cheap = { "psu_turbox500", "psu_lite450", "psu_fsp500" },
+	oem = { "psu_oem300", "psu_lite450", "psu_dell240" },
+	budget = { "psu_mwe550", "psu_cv650", "psu_turbox500", "psu_cx550", "psu_a650bn", "psu_evga600", "psu_smart500" },
+	good = { "psu_pp12m650", "psu_rm750e", "psu_focus750", "psu_a850gl", "psu_rm850x", "psu_focus650", "psu_mwe750", "psu_pq750m", "psu_c850", "psu_v850", "psu_g6_850" },
+	premium = { "psu_rm850x", "psu_vertex1000", "psu_thor1200", "psu_dpp1300", "psu_ax1600i", "psu_sp12_850", "psu_gf3_1000", "psu_rm1000x", "psu_prime1300", "psu_hx1500i" },
 }
 
 local function filter(list, fn)
@@ -170,7 +170,7 @@ local function chooseCase(rng, tier, mobo)
 		end
 	end
 	if mobo.form == "ITX" and rng:NextNumber() < 0.6 then
-		return Parts.get("case_nr200p")
+		return Parts.get(if rng:NextNumber() < 0.7 then "case_nr200p" else "case_terra")
 	end
 	if #cands == 0 then
 		cands = filter(Parts.byCat.case, function(c)
@@ -881,7 +881,7 @@ function DeviceGen.forJob(rng: Random, profile: { [string]: any }, level: number
 				budget = Rand.pick(rng, { 700, 900, 1200, 1500, 2000, 2800, 3600 })
 			end
 			if r.id == "build" then
-				local caseId = Rand.pick(rng, { "case_4000d", "case_4000dw", "case_popair", "case_h5flow", "case_o11evo", "case_o11vision", "case_north", "case_budgetrgb" })
+				local caseId = Rand.pick(rng, { "case_4000d", "case_4000dw", "case_popair", "case_h5flow", "case_o11evo", "case_o11vision", "case_north", "case_budgetrgb", "case_lancool216", "case_h9flow", "case_5000d", "case_y60", "case_3500x", "case_northxl" })
 				dev = DeviceGen.emptyCase(caseId)
 			end
 			local req = DeviceGen.applyRequest(dev, r.id, rng, budget)
