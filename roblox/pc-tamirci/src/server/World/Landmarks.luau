@@ -1,4 +1,4 @@
--- Landmarks: builds every named place from the layout (commerce, civic and nature groups).
+-- Landmarks: builds every named place from the layout (commerce, civic, nature and the outer belt).
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local CityLayout = require(Shared.World.CityLayout)
@@ -6,6 +6,7 @@ local CityLayout = require(Shared.World.CityLayout)
 local Commerce = require(script.Parent.LandmarksCommerce)
 local Civic = require(script.Parent.LandmarksCivic)
 local Nature = require(script.Parent.LandmarksNature)
+local Outer = require(script.Parent.LandmarksOuter)
 
 local Landmarks = {}
 
@@ -14,7 +15,8 @@ function Landmarks.build(parent: Instance, yieldFn: (() -> ())?)
 	Commerce.build(parent, L, yieldFn)
 	Civic.build(parent, L, yieldFn)
 	Nature.build(parent, L, yieldFn)
-	Landmarks.errors = { Commerce.lastError, Civic.lastError, Nature.lastError }
+	Outer.build(parent, L, yieldFn)
+	Landmarks.errors = { Commerce.lastError, Civic.lastError, Nature.lastError, Outer.lastError }
 end
 
 return Landmarks

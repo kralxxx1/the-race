@@ -12,6 +12,8 @@ local Buildings = require(Shared.Models.Buildings)
 local CityLayout = require(Shared.World.CityLayout)
 local Assets = require(Shared.Util.Assets)
 
+local BlocksOuter = require(script.Parent.BlocksOuter)
+
 local Blocks = {}
 local M = Enum.Material
 local P = B.Palette
@@ -39,6 +41,16 @@ local GROUND = {
 	CST = { M.Pavement, Color3.fromRGB(226, 216, 196) },
 	HAR = { M.Concrete, Color3.fromRGB(140, 142, 144) },
 	MAR = { M.WoodPlanks, Color3.fromRGB(170, 140, 100) },
+	HVL = { M.Grass, Color3.fromRGB(112, 152, 82) },
+	OSB = { M.Concrete, Color3.fromRGB(156, 154, 148) },
+	TRS = { M.Concrete, Color3.fromRGB(146, 146, 144) },
+	BLK = { M.Cobblestone, Color3.fromRGB(190, 182, 166) },
+	VIL = { M.Pavement, Color3.fromRGB(206, 200, 188) },
+	TKP = { M.Grass, Color3.fromRGB(106, 156, 80) },
+	CFT = { M.Grass, Color3.fromRGB(120, 140, 70) },
+	GLF = { M.Grass, Color3.fromRGB(92, 140, 66) },
+	KRV = { M.Grass, Color3.fromRGB(104, 148, 76) },
+	YZL = { M.Pavement, Color3.fromRGB(226, 216, 196) },
 }
 
 function Blocks.ground(parent: Instance, block)
@@ -160,7 +172,10 @@ local function half(parent: Instance, block, face: string, rng: Random)
 		return CFrame.lookAt(p, p + look)
 	end
 
-	if district == "SUB" then
+	local outer = (BlocksOuter :: any)[district]
+	if outer then
+		outer(parent, block, face, { frontCf = frontCf, depth = depth }, rng)
+	elseif district == "SUB" then
 		if rng:NextNumber() < 0.22 and Assets.get("CityBuildings", "KitA") then
 			-- a row of brick apartment blocks with shops on the ground floor
 			realRow(parent, frontCf, block.x0 + 4, block.x1 - 4, depth - 10, rng, { { names = KITS_LOW, pref = 0.88, min = 0.7, inset = 4 } }, 2)
@@ -296,7 +311,7 @@ function Blocks.fillPoiSites(world: Instance, rng: Random): number
 			table.insert(sites, { poi = poi, st = st, block = block, lo = math.huge, hi = -math.huge })
 		end
 	end
-	for _, folderName in { "Commerce", "Civic", "Nature" } do
+	for _, folderName in { "Commerce", "Civic", "Nature", "Outer" } do
 		local f = world:FindFirstChild(folderName)
 		for _, d in if f then f:GetDescendants() else {} do
 			if d:IsA("BasePart") then -- markers count too: spawn points must stay clear

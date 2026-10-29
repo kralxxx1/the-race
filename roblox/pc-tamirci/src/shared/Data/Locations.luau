@@ -78,7 +78,17 @@ Locations.list = {
 	{ id = "windfarm", cat = "nature", icon = "🌬️", name = N("Rüzgâr Tarlası", "Wind Farm"), desc = N("Dönen dev türbinler.", "Giant spinning turbines.") },
 	{ id = "camp", cat = "nature", icon = "🏕️", name = N("Kamp Alanı", "Campsite"), desc = N("Çadırlar ve kamp ateşi.", "Tents and a campfire.") },
 	{ id = "radio_tower", cat = "nature", icon = "📡", name = N("Radyo Kulesi", "Radio Tower"), desc = N("Tepedeki kırmızı ışıklı kule.", "The hilltop tower with red lights.") },
-	{ id = "farm", cat = "nature", icon = "🚜", name = N("Çiftlik", "Farm"), desc = N("Tarlalar ve ahır.", "Fields and a barn.") },
+	{ id = "farm", cat = "nature", icon = "🚜", name = N("Çiftlikler", "Farmland"), desc = N("Tarlalar, seralar, meyve bahçesi ve ahır.", "Fields, greenhouses, an orchard and a barn.") },
+	-- The outer belt
+	{ id = "airport", cat = "business", icon = "✈️", service = "contracts", name = N("Şehir Havalimanı", "City Airport"), desc = N("Pist, terminal ve kule. Terminalin bilgisayarları sözleşmeyle bakılır.", "Runway, terminal and tower. The terminal's computers are looked after on contract.") },
+	{ id = "shipyard", cat = "landmark", icon = "⛴️", name = N("Tersane", "Shipyard"), desc = N("Kızakta yapılan gemiler ve dev vinçler.", "Ships on the slipways and giant cranes.") },
+	{ id = "fishing_village", cat = "food", icon = "🎣", name = N("Balıkçı Köyü", "Fishing Village"), desc = N("Beyaz evler, ağlar, sandallar ve taze balık tezgâhları.", "White houses, nets, rowing boats and fresh-fish stalls.") },
+	{ id = "osb", cat = "business", icon = "🚛", service = "contracts", name = N("Organize Sanayi Bölgesi", "Organised Industrial Zone"), desc = N("Fabrikalar, silolar, tır parkı. Fabrika ofisleri toplu bakım ister.", "Factories, silos and a truck park. The factory offices want bulk maintenance.") },
+	{ id = "teknopark", cat = "business", icon = "🔬", service = "contracts", name = N("Teknopark", "Technopark"), desc = N("Yazılım ve donanım şirketleri, çip laboratuvarı. Geliştirici bilgisayarları işi.", "Software and hardware firms and a chip lab. Developer workstation jobs.") },
+	{ id = "golf", cat = "leisure", icon = "⛳", name = N("Golf Kulübü", "Golf Club"), desc = N("Dokuz delik, göl ve kulüp binası.", "Nine holes, a pond and a clubhouse.") },
+	{ id = "caravan", cat = "nature", icon = "🚐", name = N("Karavan Parkı", "Caravan Park"), desc = N("Karavanlar, çadırlar ve piknik masaları.", "Caravans, tents and picnic tables.") },
+	{ id = "villa_club", cat = "leisure", icon = "🎾", service = "contracts", name = N("Villa Tepe Kulübü", "Villa Hill Club"), desc = N("Tenis kortları ve havuz. Villa sahipleri pahalı oyun bilgisayarlarına bakım ister.", "Tennis courts and a pool. Villa owners want their expensive gaming rigs looked after.") },
+	{ id = "summer_site", cat = "leisure", icon = "🏝️", name = N("Yazlık Sitesi", "Holiday Village"), desc = N("Havuzlu site, plaj kulübü ve yazlık evler.", "A pool, a beach club and summer houses.") },
 	{ id = "industrial", cat = "business", icon = "🏭", service = "factory", name = N("Sanayi Sitesi ve Fabrika", "Industrial Estate and Factory"), desc = N("Kendi fabrikanı kur: RAM, SSD, PSU, kasa ve çevre birimi üret.", "Set up your own factory: make RAM, SSDs, PSUs, cases and peripherals.") },
 }
 

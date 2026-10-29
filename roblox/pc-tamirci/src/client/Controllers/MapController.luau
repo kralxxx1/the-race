@@ -35,6 +35,7 @@ local mapRoot: Frame? = nil
 local viewport: Frame
 local canvas: Frame
 local nameLabels: { TextLabel } = {}
+local districtLabels: { TextLabel } = {}
 local plotMarks: { [number]: Frame } = {}
 local miniPlotMarks: { [number]: Frame } = {}
 local info: Frame
@@ -147,6 +148,78 @@ local function drawCity(c: Frame, big: boolean, marks: { [number]: Frame }, onPo
 		local z0, z1 = math.min(r.a.Y, r.b.Y) - hw, math.max(r.a.Y, r.b.Y) + hw
 		local col = if r.kind == "ring" then Color3.fromRGB(70, 72, 80) elseif r.kind == "main" then Color3.fromRGB(60, 62, 70) else Color3.fromRGB(84, 86, 94)
 		rect(c, x0, z0, x1, z1, col, 3)
+	end
+	-- district names over each run of blocks of the same district (the big map only; the
+	-- landmarks that fill a whole site carry their own name)
+	if big then
+		local SAME = { TEP = "TEC" }
+		local LABELLED = { SUB = true, IND = true, OLD = true, DWN = true, TEC = true, DLR = true, SEA = true, CST = true, OSB = true, BLK = true, VIL = true, YZL = true }
+		local grid = CityLayout.DistrictGrid
+		local function districtOf(r: number, col: number): string?
+			local row = grid[r]
+			local d = row and row[col]
+			local blk = L.blockAt[r .. "_" .. col]
+			if not d or not blk or blk.group then
+				return nil
+			end
+			return SAME[d] or d
+		end
+		local seen = {}
+		for r = 1, #grid do
+			for col = 1, #grid[r] do
+				local d = districtOf(r, col)
+				if d and LABELLED[d] and not seen[r .. "_" .. col] then
+					-- flood the run of blocks
+					seen[r .. "_" .. col] = true
+					local cells, queue = {}, { { r, col } }
+					while #queue > 0 do
+						local cur = table.remove(queue)
+						table.insert(cells, L.blockAt[cur[1] .. "_" .. cur[2]])
+						for _, step in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+							local rr, cc = cur[1] + step[1], cur[2] + step[2]
+							if districtOf(rr, cc) == d and not seen[rr .. "_" .. cc] then
+								seen[rr .. "_" .. cc] = true
+								table.insert(queue, { rr, cc })
+							end
+						end
+					end
+					if #cells >= 2 then
+						local x, z = 0, 0
+						for _, b in cells do
+							x += (b.x0 + b.x1) / 2
+							z += (b.z0 + b.z1) / 2
+						end
+						x, z = x / #cells, z / #cells
+						-- on the block nearest the middle that has no icons on it
+						local best, bestD = nil, math.huge
+						for _, b in cells do
+							local dd = ((b.x0 + b.x1) / 2 - x) ^ 2 + ((b.z0 + b.z1) / 2 - z) ^ 2
+							if not b.pois and not b.plots and dd < bestD then
+								best, bestD = b, dd
+							end
+						end
+						if best then
+							x, z = (best.x0 + best.x1) / 2, (best.z0 + best.z1) / 2
+						end
+						local label = Kit.label(c, S.pick(CityLayout.Districts[d].name), {
+							Name = "District_" .. d,
+							AnchorPoint = Vector2.new(0.5, 0.5),
+							Position = UDim2.fromScale(sx(x), sz(z)),
+							Size = UDim2.fromOffset(220, 24),
+							TextSize = 17,
+							FontFace = Theme.heavy,
+							TextColor3 = Color3.new(1, 1, 1),
+							TextTransparency = 0.2,
+							TextStrokeTransparency = 0.45,
+							TextXAlignment = Enum.TextXAlignment.Center,
+							ZIndex = 5,
+						})
+						label.TextScaled = false
+						table.insert(districtLabels, label)
+					end
+				end
+			end
+		end
 	end
 	-- shop plots
 	for _, p in L.plots do
@@ -609,6 +682,10 @@ local function setZoom(z: number, anchor: Vector2?)
 	for _, l in nameLabels do
 		l.Visible = zoom >= 2.2 or (zoom >= 1.2 and l:GetAttribute("Service") == true)
 	end
+	-- zoomed out, the district names give the overview; zoomed in, the places' names take over
+	for _, l in districtLabels do
+		l.Visible = zoom < 2.2
+	end
 	paintPlots(plotMarks)
 end
 
@@ -621,10 +698,14 @@ end
 local function buildBig()
 	local root = Kit.panel(App.screen, { Name = "Map", Size = UDim2.new(1, -40, 1, -40), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = Theme.panel, Visible = false, ZIndex = 20 })
 	mapRoot = root
-	Kit.label(root, "🗺️ " .. S.t("map_title"), { Size = UDim2.new(1, -80, 0, 40), Position = UDim2.fromOffset(16, 4), FontFace = Theme.heavy, TextSize = 22 })
+	Kit.label(root, "🗺️ " .. S.t("map_title"), { Size = UDim2.new(1, -130, 0, 40), Position = UDim2.fromOffset(16, 4), FontFace = Theme.heavy, TextSize = 22 })
 	Kit.button(root, "✕", function()
 		MapController.close()
 	end, { Size = UDim2.fromOffset(36, 36), Position = UDim2.new(1, -46, 0, 6) })
+	-- the whole city at a glance
+	Kit.button(root, "🌍", function()
+		MapController.overview()
+	end, { Size = UDim2.fromOffset(36, 36), Position = UDim2.new(1, -90, 0, 6) })
 	Kit.label(root, S.t("map_hint"), { Size = UDim2.new(1, -330, 0, 20), Position = UDim2.new(0, 16, 1, -26), TextColor3 = Theme.dim, TextSize = 13 })
 	viewport = Kit.frame(root, { Name = "View", Size = UDim2.new(1, -330, 1, -80), Position = UDim2.fromOffset(12, 48), BackgroundColor3 = Color3.fromRGB(64, 140, 196), ClipsDescendants = true })
 	Kit.corner(viewport, UDim.new(0, 10))
@@ -749,10 +830,24 @@ function MapController.open()
 	end
 	selectPoi(nil)
 	updateBig()
+	-- (toasts move out of the way as they do for any window)
+	Kit.windowChanged:Fire(root)
+end
+
+-- Zoomed all the way out with the whole city in view.
+function MapController.overview()
+	if not mapRoot then
+		return
+	end
+	setZoom(1)
+	centerOn(Vector3.new(minX + W / 2, 0, minZ + H / 2))
 end
 
 function MapController.close()
 	if mapRoot then
+		if mapRoot.Visible then
+			Kit.windowChanged:Fire(nil)
+		end
 		mapRoot.Visible = false
 	end
 end
@@ -771,6 +866,7 @@ function MapController.relabel()
 		mapRoot:Destroy()
 		mapRoot = nil
 		table.clear(nameLabels)
+		table.clear(districtLabels)
 		table.clear(plotMarks)
 		for i = #routeFolders, 1, -1 do
 			if not routeFolders[i]:GetAttribute("Mini") then

@@ -164,6 +164,38 @@ return function(T)
 		T.eq(request("contracts.accept", { poi = "datacenter", key = open.offers[1].key }).err, "contract_desk", "refused")
 	end)
 
+	T.test("business: the outer belt's clients hand out work", function()
+		local p = DataService.get(player)
+		p.level = 10
+		-- (the technopark last: a contract is taken at the counter you stand at)
+		for _, poi in { "osb", "airport", "villa_club", "teknopark" } do
+			local point
+			for _, a in CS:GetTagged("ServicePoint") do
+				if a:GetAttribute("Service") == "contracts" and a:GetAttribute("Poi") == poi then
+					point = a
+				end
+			end
+			T.ok(point ~= nil, poi .. " counter")
+			player.Character:PivotTo(point.CFrame)
+			pps.PromptTriggered:Fire(point:FindFirstChildOfClass("ProximityPrompt"), player)
+			local open = lastPush("contracts.open")
+			T.ok(open and open.poi == poi and not open.locked and #open.offers == 3, poi .. " offers")
+		end
+		-- the technopark's graphics card job: machines that need a new card
+		local r = request("contracts.accept", { poi = "teknopark", key = "tkp_gpu" })
+		T.ok(r.ok and r.count >= 2, "accept: " .. tostring(r.err))
+		local n = 0
+		for _, j in RepairService.jobs(player) do
+			if j.contract then
+				n += 1
+				T.eq(j.requestId, "upgrade_gpu", "a graphics card upgrade")
+				RepairService.removeJob(player, j.id)
+			end
+		end
+		T.eq(n, r.count, "machines")
+		T.ok(ContractService.active(player) == nil, "contract closed once the machines are gone")
+	end)
+
 	T.test("business: daily tasks progress and pay out once", function()
 		local p = DataService.get(player)
 		p.level = 5

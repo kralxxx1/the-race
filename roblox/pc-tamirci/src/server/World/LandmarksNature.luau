@@ -1,6 +1,7 @@
 -- Nature and leisure: Lake Park, the funfair, the container port, the marina, the old pier,
--- the lighthouse, the beach, the northern hills (viewpoint, wind farm, campsite, radio tower),
--- the farm and the forests around the city. Moving parts are tagged for client-side animation.
+-- the lighthouse, the beach, the northern hills (viewpoint, wind farm, campsite, radio tower)
+-- and the forests and countryside around the city (the farmland is in LandmarksOuter). Moving
+-- parts are tagged for client-side animation.
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local B = require(Shared.Util.Builder)
@@ -408,7 +409,7 @@ end
 local function beach(parent, _poi, rng)
 	local m = B.model("Beach", parent)
 	local z0 = CityLayout.BEACH_Z + 10
-	local x0, x1 = CityLayout.XS[3], CityLayout.XS[#CityLayout.XS]
+	local x0, x1 = CityLayout.COAST_X0, CityLayout.COAST_X1
 	local cols = { Color3.fromRGB(230, 60, 60), Color3.fromRGB(40, 120, 200), Color3.fromRGB(250, 200, 40), Color3.fromRGB(240, 240, 236), Color3.fromRGB(40, 170, 120) }
 	local x = x0 + 20
 	while x < x1 - 20 do
@@ -454,7 +455,7 @@ local function beach(parent, _poi, rng)
 end
 
 ----------------------------------------------------------------------------------------------------
--- Northern hills, countryside, farm
+-- Northern hills and the countryside
 ----------------------------------------------------------------------------------------------------
 local function viewpoint(parent, poi, _rng)
 	local p = poi.pos
@@ -570,47 +571,16 @@ local function radioTower(parent, poi, _rng)
 	return m
 end
 
-local function farm(parent, poi, _rng)
-	local p = poi.pos
-	local m = B.model("Farm", parent)
-	local base = CFrame.lookAt(Vector3.new(p.X, 0, p.Z), Vector3.new(p.X - 10, 0, p.Z))
-	-- barn
-	local red = Color3.fromRGB(160, 40, 36)
-	B.box(m, base * CFrame.new(0, 9, 20), Vector3.new(30, 18, 40), red, M.WoodPlanks)
-	B.wedge(m, base * CFrame.new(0, 22, 10), Vector3.new(32, 8, 20.5), Color3.fromRGB(90, 70, 60), M.RoofShingles)
-	B.wedge(m, base * CFrame.new(0, 22, 30) * CFrame.Angles(0, math.pi, 0), Vector3.new(32, 8, 20.5), Color3.fromRGB(90, 70, 60), M.RoofShingles)
-	B.box(m, base * CFrame.new(0, 7, -0.2), Vector3.new(12, 14, 0.4), Color3.fromRGB(240, 240, 236), M.Wood)
-	-- silo
-	B.cylY(m, base * CFrame.new(24, 18, 30), 36, 12, Color3.fromRGB(200, 200, 204), M.Metal)
-	B.ball(m, base * CFrame.new(24, 36, 30), 12, Color3.fromRGB(200, 200, 204), M.Metal)
-	-- crop fields
-	local crops = { Color3.fromRGB(220, 190, 80), Color3.fromRGB(90, 150, 60), Color3.fromRGB(120, 100, 60) }
-	for f = 0, 3 do
-		local field = base * CFrame.new(-60 - (f % 2) * 90, 0.2, -80 + math.floor(f / 2) * 120)
-		local col = crops[(f % 3) + 1]
-		for r = 0, 11 do
-			B.box(m, field * CFrame.new(0, 0.6, -50 + r * 9), Vector3.new(80, 1.2, 4), col, if col == crops[3] then M.Ground else M.LeafyGrass, nc({ CanCollide = true }))
-		end
-	end
-	-- tractor
-	local t = base * CFrame.new(-20, 0, -20)
-	B.box(m, t * CFrame.new(0, 3.5, 0), Vector3.new(5, 3, 8), Color3.fromRGB(40, 140, 60), M.Metal)
-	B.box(m, t * CFrame.new(0, 6.5, 1.5), Vector3.new(4.6, 3.4, 4), Color3.fromRGB(180, 210, 220), M.Glass, { Transparency = 0.4 })
-	for x = -1, 1, 2 do
-		B.cyl(m, t * CFrame.new(x * 3, 3, 2.5), 1.4, 5.6, Color3.fromRGB(26, 26, 26), M.Rubber)
-		B.cyl(m, t * CFrame.new(x * 2.8, 1.6, -3), 1.2, 3, Color3.fromRGB(26, 26, 26), M.Rubber)
-	end
-	Props.fence(m, (base * CFrame.new(-10, 0, -140)).Position, (base * CFrame.new(-10, 0, 140)).Position, "wood", 3.4)
-	return m
-end
-
 -- Forest on the hills and tree belts in the countryside around the city.
 local function forests(parent, rng)
 	local m = B.model("Forests", parent)
 	local placed = 0
-	for _ = 1, 520 do
-		local x = Rand.range(rng, -1520, 1520)
-		local z = Rand.range(rng, -1540, -1120)
+	local b = CityLayout.get().bounds
+	local edgeW = CityLayout.XS[1] - 40
+	local edgeE = CityLayout.XS[#CityLayout.XS] + 40
+	for _ = 1, 760 do
+		local x = Rand.range(rng, b.minX + 30, b.maxX - 30)
+		local z = Rand.range(rng, b.minZ + 10, -1120)
 		local nearViewpoint = (Vector2.new(x, z) - Vector2.new(0, -1340)).Magnitude < 70
 		local nearCamp = (Vector2.new(x, z) - Vector2.new(760, -1280)).Magnitude < 40
 		local nearPath = false
@@ -624,14 +594,19 @@ local function forests(parent, rng)
 			placed += 1
 		end
 	end
-	-- east and west countryside tree belts
-	for i = 1, 160 do
+	-- the countryside beyond the highways: olive groves in the west, vineyards in the east
+	for i = 1, 180 do
 		local side = if i % 2 == 0 then 1 else -1
-		local x = side * Rand.range(rng, 1240, 1520)
-		local z = Rand.range(rng, -1080, 820)
-		if not (side == 1 and math.abs(z - (-350)) < 180) then
-			Props.tree(m, CFrame.new(x, 0, z), Rand.pick(rng, { "oak", "oak", "cypress", "pine", "bush" }), rng)
-			placed += 1
+		local x = if side > 0 then Rand.range(rng, edgeE, b.maxX - 20) else Rand.range(rng, b.minX + 20, edgeW)
+		local z = Rand.range(rng, CityLayout.ZS[1] - 20, CityLayout.BEACH_Z - 30)
+		Props.tree(m, CFrame.new(x, 0, z), Rand.pick(rng, if side < 0 then { "oak", "oak", "cypress", "bush" } else { "cypress", "pine", "bush" }), rng)
+		placed += 1
+	end
+	for k = 0, 5 do
+		local x0 = edgeE + 30 + (k % 2) * 140
+		local z0 = -900 + math.floor(k / 2) * 520
+		for r = 0, 13 do
+			B.box(m, CFrame.new(x0 + 55, 1.2, z0 + r * 9), Vector3.new(110, 2.4, 2), Color3.fromRGB(70, 120, 50), M.LeafyGrass, { Name = "Vines" })
 		end
 	end
 	m:SetAttribute("Trees", placed)
@@ -653,7 +628,6 @@ function Nature.build(parent: Instance, L, yieldFn: (() -> ())?)
 		windfarm = windfarm,
 		camp = camp,
 		radio_tower = radioTower,
-		farm = farm,
 	}
 	for id, fn in builders do
 		local poi = L.poiById[id]

@@ -51,6 +51,45 @@ local CLIENTS = {
 	},
 }
 
+-- the outer districts' clients
+CLIENTS.osb = {
+	name = N("OSB Fabrika Ofisleri", "Industrial Zone Offices"),
+	level = 2,
+	offers = {
+		{ key = "osb_care", kind = "maintenance", tiers = { "office", "budget" }, count = { 3, 5 }, pay = 60, bonus = 120, title = N("Fabrika ofislerinin bakımı", "Factory office maintenance") },
+		{ key = "osb_ssd", kind = "upgrade_ssd", tiers = { "office" }, count = { 3, 4 }, pay = 80, bonus = 130, title = N("Muhasebe bilgisayarlarına SSD", "SSDs for the accounts PCs") },
+		{ key = "osb_fix", kind = "repair", tiers = { "office", "budget" }, count = { 2, 3 }, pay = 110, bonus = 140, title = N("Üretim bandındaki bozuk bilgisayarlar", "Broken PCs on the production line") },
+	},
+}
+CLIENTS.teknopark = {
+	name = N("Teknopark", "Technopark"),
+	level = 4,
+	offers = {
+		{ key = "tkp_ram", kind = "upgrade_ram", tiers = { "mid", "high" }, count = { 3, 4 }, pay = 150, bonus = 300, title = N("Geliştirici bilgisayarlarına bellek", "Memory for the developers' PCs") },
+		{ key = "tkp_gpu", kind = "upgrade_gpu", tiers = { "high", "workstation" }, count = { 2, 3 }, pay = 240, bonus = 420, title = N("Yapay zekâ ekibine ekran kartı", "Graphics cards for the AI team") },
+		{ key = "tkp_fix", kind = "repair", tiers = { "mid", "high" }, count = { 2, 4 }, pay = 170, bonus = 320, title = N("Arızalı test bilgisayarları", "Faulty test machines") },
+	},
+}
+CLIENTS.airport = {
+	name = N("Şehir Havalimanı", "City Airport"),
+	level = 5,
+	offers = {
+		{ key = "air_kiosk", kind = "repair", tiers = { "office", "budget" }, count = { 3, 5 }, pay = 150, bonus = 380, title = N("Check-in kiosklarının arızaları", "Check-in kiosk faults") },
+		{ key = "air_care", kind = "maintenance", tiers = { "mid", "office" }, count = { 4, 5 }, pay = 120, bonus = 340, title = N("Uçuş bilgi ekranlarının bilgisayarları", "Flight-display PCs") },
+		{ key = "air_ssd", kind = "upgrade_ssd", tiers = { "budget", "mid" }, count = { 3, 4 }, pay = 130, bonus = 300, title = N("Kule bilgisayarlarına hızlı disk", "Fast drives for the tower PCs") },
+	},
+}
+CLIENTS.villa_club = {
+	name = N("Villa Tepe Kulübü", "Villa Hill Club"),
+	level = 8,
+	offers = {
+		{ key = "vil_gpu", kind = "upgrade_gpu", tiers = { "enthusiast", "high" }, count = { 2, 3 }, pay = 420, bonus = 900, title = N("Villa sahiplerine en yeni ekran kartı", "The newest graphics cards for the villa owners") },
+		{ key = "vil_care", kind = "maintenance", tiers = { "enthusiast" }, count = { 2, 3 }, pay = 300, bonus = 700, title = N("Oyun odalarının bakımı", "Gaming room maintenance") },
+		{ key = "vil_fix", kind = "repair", tiers = { "enthusiast", "high" }, count = { 2, 3 }, pay = 380, bonus = 820, title = N("Pahalı sistemlerin arızaları", "Faults in expensive rigs") },
+	},
+}
+ContractService.CLIENTS = CLIENTS
+
 local active: { [Player]: { [string]: any } } = {}
 local near: { [Player]: { poi: string, t: number } } = {}
 local nextId = 0

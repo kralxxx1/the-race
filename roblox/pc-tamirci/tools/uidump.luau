@@ -2,7 +2,7 @@
 -- the player's ScreenGui as JSON for tools/render/ui.html (a small Roblox GUI layout renderer).
 --   lune run tools/uidump.luau <scene>
 -- scenes: hud, phone, jobs, inventory, parts, used, tools, shop, staff, dealer, dialog, bench,
---         map, contracts, board
+--         map, map_out, contracts, board
 
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
@@ -284,6 +284,9 @@ elseif scene == "bench" then
 	task.wait(0.2)
 elseif scene == "map" then
 	cmod("Controllers.MapController").open()
+elseif scene == "map_out" then
+	cmod("Controllers.MapController").open()
+	cmod("Controllers.MapController").overview()
 elseif scene == "contracts" then
 	service("contracts", "internet_cafe")
 elseif scene == "parts_gpu" then

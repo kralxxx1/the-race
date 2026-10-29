@@ -17,6 +17,10 @@ local HILLS = {
 	{ 860, -1400, 230, -185 },
 	{ -1260, -1300, 200, -170 },
 	{ 1260, -1320, 210, -175 },
+	{ -1700, -1380, 230, -190 },
+	{ 1700, -1390, 230, -185 },
+	{ -2120, -1330, 220, -175 },
+	{ 2120, -1350, 220, -180 },
 }
 Terrain.Hills = HILLS
 
@@ -147,9 +151,15 @@ function Terrain.build()
 	local seaLen = b.maxZ + 600 - z0
 	terrain:FillBlock(CFrame.new(0, -32, z0 + seaLen / 2), Vector3.new(W, 24, seaLen), M.Sand)
 	terrain:FillBlock(CFrame.new(0, (SEA_LEVEL - 20) / 2, z0 + seaLen / 2), Vector3.new(W, SEA_LEVEL + 20, seaLen), M.Water)
-	-- deep harbour basin in front of the container quay
-	terrain:FillBlock(CFrame.new(-955, (SEA_LEVEL - 20) / 2, 990), Vector3.new(470, SEA_LEVEL + 20, 220), M.Water)
-	terrain:FillBlock(CFrame.new(-955, -6, 868), Vector3.new(470, 12, 24), M.Ground)
+	-- the blocks that run down to the water (the container port, the shipyard): solid ground under
+	-- their quay and a deep basin in front
+	for _, blk in CityLayout.get().blocks do
+		if blk.z1 > CityLayout.BEACH_Z then
+			local cx, w = (blk.x0 + blk.x1) / 2, blk.x1 - blk.x0 + 8
+			terrain:FillBlock(CFrame.new(cx, (SEA_LEVEL - 20) / 2, blk.z1 + 110), Vector3.new(w, SEA_LEVEL + 20, 220), M.Water)
+			terrain:FillBlock(CFrame.new(cx, -6, (CityLayout.BEACH_Z + blk.z1) / 2 + 4), Vector3.new(w, 12, blk.z1 - CityLayout.BEACH_Z + 8), M.Ground)
+		end
+	end
 	-- northern hills
 	for _, hill in HILLS do
 		terrain:FillBall(Vector3.new(hill[1], hill[4], hill[2]), hill[3], M.Grass)

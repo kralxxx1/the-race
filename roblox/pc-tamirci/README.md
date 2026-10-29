@@ -137,6 +137,11 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
    yağmur, gün/gece döngüsü.
 10. **Ulaşım:** bisiklet, scooter, motorlar, Şahin/Doğan tadında klasikler, servis vanı, dolmuş,
    pikap, SUV, elektrikli sedan, süper spor. Harita'dan taksi de çağırabilirsin.
+11. **Genişleyen şehir:** eski şehrin batısında havalimanı (pist, terminal, kule, hangarlar),
+   organize sanayi bölgesi (fabrikalar, silolar, güneş tarlası, tır parkı), tersane ve balıkçı köyü;
+   doğusunda villa tepesi, teknopark, çiftlikler, golf kulübü, karavan parkı ve yazlıklar. Havalimanı,
+   OSB, Teknopark ve Villa Tepe Kulübü kendi sözleşme işlerini verir. Haritadaki 🌍 düğmesi bütün
+   şehri gösterir; uzaklaştıkça semt adları görünür.
 
 ---
 

@@ -324,7 +324,8 @@ end
 
 -- Walk-in hall: open doorway, glass front, interior floor, lit ceiling, sign. Used by every place
 -- the player can enter (stores, dealers, agencies, player shops).
--- opts: name, accent, wall, wallMat, floor, floorMat, glassFront (bool), door (width), doorX, sign (bool)
+-- opts: name, accent, wall, wallMat, floor, floorMat, glassFront (bool), door (width), doorX, sign (bool),
+-- lightStep (studs between ceiling lights, 14 by default; big halls use more)
 -- Returns the model plus a table of useful interior points.
 function Buildings.hall(parent: Instance, cf: CFrame, w: number, d: number, h: number, opts)
 	local o = opts or {}
@@ -396,8 +397,9 @@ function Buildings.hall(parent: Instance, cf: CFrame, w: number, d: number, h: n
 		B.sign(band, Enum.NormalId.Front, o.name or "", { color = Color3.new(1, 1, 1), glow = true, brightness = 1.4, font = o.font or B.Fonts.Heavy })
 	end
 	-- ceiling lights
-	local rows = math.max(1, math.floor(d / 14))
-	local cols = math.max(1, math.floor(w / 14))
+	local step = o.lightStep or 14
+	local rows = math.max(1, math.floor(d / step))
+	local cols = math.max(1, math.floor(w / step))
 	for r = 1, rows do
 		for c = 1, cols do
 			local x = -w / 2 + w * (c - 0.5) / cols

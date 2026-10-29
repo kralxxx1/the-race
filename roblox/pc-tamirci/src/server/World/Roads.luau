@@ -291,7 +291,7 @@ local function promenade(folder: Instance, rng: Random)
 	local m = B.model("Promenade", folder)
 	local zRoad = CityLayout.ZS[#CityLayout.ZS] + CityLayout.roadWidthH(#CityLayout.ZS) / 2
 	local z1 = CityLayout.BEACH_Z + 6
-	local x0, x1 = CityLayout.XS[3] - 20, CityLayout.XS[#CityLayout.XS] + 30
+	local x0, x1 = CityLayout.COAST_X0 - 20, CityLayout.COAST_X1 + 30
 	local depth = z1 - zRoad
 	B.box(m, CFrame.new((x0 + x1) / 2, WALK_Y / 2, zRoad + depth / 2), Vector3.new(x1 - x0, WALK_Y, depth), Color3.fromRGB(222, 212, 192), M.Pavement)
 	-- railing along the beach edge with gaps for stairs

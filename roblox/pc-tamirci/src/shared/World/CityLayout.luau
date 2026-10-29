@@ -13,34 +13,47 @@ CityLayout.ROAD_Y = 0.25 -- asphalt top
 CityLayout.WALK_Y = 0.75 -- sidewalk / block top
 CityLayout.SEA_Z = 905 -- water starts south of here
 CityLayout.BEACH_Z = 846
+-- the open coast (beach, promenade) runs from the harbour's east edge to the eastern highway
+CityLayout.COAST_X0 = -720
+CityLayout.COAST_X1 = 1920
 
-local XS = { -1200, -960, -720, -480, -240, 0, 240, 480, 720, 960, 1200 }
+local XS = { -1920, -1680, -1440, -1200, -960, -720, -480, -240, 0, 240, 480, 720, 960, 1200, 1440, 1680, 1920 }
 local ZS = { -1080, -860, -640, -420, -200, 20, 240, 460, 680, 820 }
 CityLayout.XS = XS
 CityLayout.ZS = ZS
 
--- District of each block [row][col]
+-- District of each block [row][col]. The old town fills columns 4-13; the outer belt west of it
+-- (airport, organised industry, shipyard, fishing village) and east of it (villas, technopark,
+-- farm, golf, caravan park, summer houses) came later.
 local D = {
-	{ "SUB", "SUB", "UNI", "UNI", "PRK", "PRK", "SUB", "SUB", "HOS", "SUB" },
-	{ "SUB", "SCH", "UNI", "UNI", "PRK", "PRK", "SUB", "FIR", "SUB", "SUB" },
-	{ "IND", "IND", "OLD", "DWN", "DWN", "TEC", "TEC", "TEP", "SUB", "DLR" },
-	{ "IND", "SCR", "OLD", "OLD", "PLZ", "TEC", "TEC", "TEC", "DLR", "DLR" },
-	{ "IND", "IND", "OLD", "DWN", "DWN", "TEC", "DWN", "SUB", "SPT", "SUB" },
-	{ "IND", "DAT", "OLD", "DWN", "DWN", "DWN", "SEA", "LUN", "LUN", "SUB" },
-	{ "HAR", "HAR", "SEA", "SEA", "SEA", "SEA", "SEA", "LUN", "LUN", "SUB" },
-	{ "HAR", "HAR", "SEA", "SEA", "SEA", "SEA", "SEA", "MAR", "MAR", "SUB" },
-	{ "HAR", "HAR", "CST", "CST", "CST", "CST", "CST", "CST", "CST", "CST" },
+	{ "HVL", "HVL", "HVL", "SUB", "SUB", "UNI", "UNI", "PRK", "PRK", "SUB", "SUB", "HOS", "SUB", "VIL", "VIL", "VIL" },
+	{ "HVL", "HVL", "HVL", "SUB", "SCH", "UNI", "UNI", "PRK", "PRK", "SUB", "FIR", "SUB", "SUB", "VIL", "VIL", "VIL" },
+	{ "HVL", "HVL", "HVL", "IND", "IND", "OLD", "DWN", "DWN", "TEC", "TEC", "TEP", "SUB", "DLR", "VIL", "VIL", "VIL" },
+	{ "OSB", "OSB", "OSB", "IND", "SCR", "OLD", "OLD", "PLZ", "TEC", "TEC", "TEC", "DLR", "DLR", "TKP", "TKP", "CFT" },
+	{ "OSB", "OSB", "OSB", "IND", "IND", "OLD", "DWN", "DWN", "TEC", "DWN", "SUB", "SPT", "SUB", "TKP", "TKP", "CFT" },
+	{ "OSB", "OSB", "OSB", "IND", "DAT", "OLD", "DWN", "DWN", "DWN", "SEA", "LUN", "LUN", "SUB", "GLF", "GLF", "CFT" },
+	{ "TRS", "TRS", "BLK", "HAR", "HAR", "SEA", "SEA", "SEA", "SEA", "SEA", "LUN", "LUN", "SUB", "GLF", "GLF", "KRV" },
+	{ "TRS", "TRS", "BLK", "HAR", "HAR", "SEA", "SEA", "SEA", "SEA", "SEA", "MAR", "MAR", "SUB", "GLF", "GLF", "KRV" },
+	{ "TRS", "TRS", "BLK", "HAR", "HAR", "CST", "CST", "CST", "CST", "CST", "CST", "CST", "CST", "YZL", "YZL", "YZL" },
 }
 CityLayout.DistrictGrid = D
 
 -- Blocks merged into one big site: { rowFrom, rowTo, colFrom, colTo, id }
 local MERGED = {
-	{ 1, 2, 5, 6, "park" },
-	{ 1, 2, 3, 4, "university" },
-	{ 6, 7, 8, 9, "lunapark" },
-	{ 7, 9, 1, 2, "harbor" },
-	{ 8, 8, 8, 9, "marina" },
+	{ 1, 2, 8, 9, "park" },
+	{ 1, 2, 6, 7, "university" },
+	{ 6, 7, 11, 12, "lunapark" },
+	{ 7, 9, 4, 5, "harbor" },
+	{ 8, 8, 11, 12, "marina" },
+	{ 1, 3, 1, 3, "airport" },
+	{ 7, 9, 1, 2, "shipyard" },
+	{ 4, 5, 14, 15, "teknopark" },
+	{ 4, 6, 16, 16, "farm" },
+	{ 6, 8, 14, 15, "golf" },
+	{ 7, 8, 16, 16, "caravan" },
 }
+-- merged sites that run down to the water (no coastal road in front of them)
+local SEAWARD = { harbor = true, shipyard = true }
 
 CityLayout.Districts = {
 	SUB = { name = { tr = "Banliyö", en = "Suburbs" }, color = { 160, 196, 140 } },
@@ -64,61 +77,82 @@ CityLayout.Districts = {
 	CST = { name = { tr = "Sahil Şeridi", en = "Promenade" }, color = { 230, 220, 180 } },
 	HAR = { name = { tr = "Liman", en = "Harbour" }, color = { 120, 140, 160 } },
 	MAR = { name = { tr = "Yat Limanı", en = "Marina" }, color = { 150, 200, 230 } },
+	HVL = { name = { tr = "Havalimanı", en = "Airport" }, color = { 196, 200, 210 } },
+	OSB = { name = { tr = "Organize Sanayi", en = "Industrial Estate" }, color = { 176, 166, 150 } },
+	TRS = { name = { tr = "Tersane", en = "Shipyard" }, color = { 130, 146, 166 } },
+	BLK = { name = { tr = "Balıkçı Köyü", en = "Fishing Village" }, color = { 200, 222, 236 } },
+	VIL = { name = { tr = "Villa Tepe", en = "Villa Hill" }, color = { 176, 210, 150 } },
+	TKP = { name = { tr = "Teknopark", en = "Technopark" }, color = { 150, 210, 240 } },
+	CFT = { name = { tr = "Çiftlikler", en = "Farmland" }, color = { 200, 200, 120 } },
+	GLF = { name = { tr = "Golf Kulübü", en = "Golf Club" }, color = { 120, 200, 110 } },
+	KRV = { name = { tr = "Karavan Parkı", en = "Caravan Park" }, color = { 170, 200, 130 } },
+	YZL = { name = { tr = "Yazlıklar", en = "Summer Houses" }, color = { 240, 214, 170 } },
 }
 
 -- Blocks that hold player shop plots (6 per block = 66 plots)
 local PLOT_BLOCKS = {
-	{ 3, 6 }, { 3, 7 }, { 4, 6 }, { 4, 7 }, { 4, 8 }, { 5, 6 }, -- Tech Bazaar
-	{ 3, 4 }, { 5, 7 }, -- Downtown
-	{ 5, 3 }, -- Old Bazaar
-	{ 6, 7 }, { 7, 5 }, -- Seaside
+	{ 3, 9 }, { 3, 10 }, { 4, 9 }, { 4, 10 }, { 4, 11 }, { 5, 9 }, -- Tech Bazaar
+	{ 3, 7 }, { 5, 10 }, -- Downtown
+	{ 5, 6 }, -- Old Bazaar
+	{ 6, 10 }, { 7, 8 }, -- Seaside
 }
 
 -- POI sites: { id, row, col, part }  part = "n" | "s" | "full" | "group"
 local POI_SITES = {
-	{ "megastore", 3, 8, "n" },
-	{ "mall", 3, 8, "s" },
-	{ "covered_bazaar", 3, 3, "n" },
-	{ "bazaar_parts", 3, 3, "s" },
-	{ "used_market", 4, 3, "n" },
-	{ "flea_market", 4, 3, "s" },
-	{ "toolshop", 4, 4, "n" },
-	{ "old_han", 4, 4, "s" },
-	{ "teahouse", 6, 3, "n" },
-	{ "market_hall", 6, 3, "s" },
-	{ "scrapyard", 4, 2, "full" },
-	{ "bicycle_shop", 3, 10, "n" },
-	{ "gas_north", 3, 10, "s" },
-	{ "bike_dealer", 4, 9, "full" },
-	{ "car_dealer", 4, 10, "full" },
-	{ "staff_agency", 3, 5, "n" },
-	{ "realty", 3, 5, "s" },
-	{ "police", 5, 4, "n" },
-	{ "internet_cafe", 5, 4, "s" },
-	{ "cinema", 5, 5, "n" },
-	{ "arena", 5, 5, "s" },
-	{ "kebab", 6, 4, "n" },
-	{ "bakery", 6, 4, "s" },
-	{ "pizzeria", 6, 5, "n" },
-	{ "post", 6, 5, "s" },
-	{ "gym", 6, 6, "n" },
-	{ "hotel", 6, 6, "s" },
-	{ "plaza", 4, 5, "full" },
-	{ "datacenter", 6, 2, "full" },
-	{ "cargo", 3, 1, "n" },
-	{ "gas_west", 3, 1, "s" },
-	{ "industrial", 5, 1, "full" },
-	{ "hospital", 1, 9, "full" },
-	{ "school", 2, 2, "full" },
-	{ "fire_station", 2, 8, "full" },
-	{ "university", 1, 3, "group" },
-	{ "park", 1, 5, "group" },
-	{ "lunapark", 6, 8, "group" },
-	{ "harbor", 7, 1, "group" },
-	{ "marina", 8, 8, "group" },
-	{ "stadium", 5, 9, "full" },
-	{ "fish", 9, 4, "full" },
-	{ "icecream", 9, 6, "full" },
+	{ "megastore", 3, 11, "n" },
+	{ "mall", 3, 11, "s" },
+	{ "covered_bazaar", 3, 6, "n" },
+	{ "bazaar_parts", 3, 6, "s" },
+	{ "used_market", 4, 6, "n" },
+	{ "flea_market", 4, 6, "s" },
+	{ "toolshop", 4, 7, "n" },
+	{ "old_han", 4, 7, "s" },
+	{ "teahouse", 6, 6, "n" },
+	{ "market_hall", 6, 6, "s" },
+	{ "scrapyard", 4, 5, "full" },
+	{ "bicycle_shop", 3, 13, "n" },
+	{ "gas_north", 3, 13, "s" },
+	{ "bike_dealer", 4, 12, "full" },
+	{ "car_dealer", 4, 13, "full" },
+	{ "staff_agency", 3, 8, "n" },
+	{ "realty", 3, 8, "s" },
+	{ "police", 5, 7, "n" },
+	{ "internet_cafe", 5, 7, "s" },
+	{ "cinema", 5, 8, "n" },
+	{ "arena", 5, 8, "s" },
+	{ "kebab", 6, 7, "n" },
+	{ "bakery", 6, 7, "s" },
+	{ "pizzeria", 6, 8, "n" },
+	{ "post", 6, 8, "s" },
+	{ "gym", 6, 9, "n" },
+	{ "hotel", 6, 9, "s" },
+	{ "plaza", 4, 8, "full" },
+	{ "datacenter", 6, 5, "full" },
+	{ "cargo", 3, 4, "n" },
+	{ "gas_west", 3, 4, "s" },
+	{ "industrial", 5, 4, "full" },
+	{ "hospital", 1, 12, "full" },
+	{ "school", 2, 5, "full" },
+	{ "fire_station", 2, 11, "full" },
+	{ "university", 1, 6, "group" },
+	{ "park", 1, 8, "group" },
+	{ "lunapark", 6, 11, "group" },
+	{ "harbor", 7, 4, "group" },
+	{ "marina", 8, 11, "group" },
+	{ "stadium", 5, 12, "full" },
+	{ "fish", 9, 7, "full" },
+	{ "icecream", 9, 9, "full" },
+	-- the outer belt
+	{ "airport", 1, 1, "group" },
+	{ "shipyard", 7, 1, "group" },
+	{ "fishing_village", 8, 3, "full" },
+	{ "osb", 5, 2, "full" },
+	{ "teknopark", 4, 14, "group" },
+	{ "farm", 4, 16, "group" },
+	{ "golf", 6, 14, "group" },
+	{ "caravan", 7, 16, "group" },
+	{ "villa_club", 2, 15, "full" },
+	{ "summer_site", 9, 15, "full" },
 }
 
 -- Places outside the grid (absolute positions)
@@ -130,7 +164,6 @@ local FREE_POIS = {
 	{ "radio_tower", Vector3.new(380, 62, -1400) },
 	{ "windfarm", Vector3.new(-620, 0, -1300) },
 	{ "camp", Vector3.new(760, 0, -1280) },
-	{ "farm", Vector3.new(1380, 0, -350) },
 	{ "clocktower", nil },
 	{ "cafe_plaza", nil },
 	{ "cityhall", nil },
@@ -138,11 +171,11 @@ local FREE_POIS = {
 	{ "library", nil },
 }
 
-local VNAMES = { "Batı Çevre Yolu", "Fabrika Caddesi", "Han Sokak", "Kervan Caddesi", "Saray Caddesi", "Cumhuriyet Caddesi", "Teknoloji Caddesi", "Çip Sokak", "Galeri Caddesi", "Lale Sokak", "Doğu Çevre Yolu" }
+local VNAMES = { "Batı Otoyolu", "Pist Caddesi", "Tersane Caddesi", "Batı Çevre Yolu", "Fabrika Caddesi", "Han Sokak", "Kervan Caddesi", "Saray Caddesi", "Cumhuriyet Caddesi", "Teknoloji Caddesi", "Çip Sokak", "Galeri Caddesi", "Lale Sokak", "Doğu Çevre Yolu", "Villa Yolu", "Bağ Yolu", "Doğu Otoyolu" }
 local HNAMES = { "Kuzey Çevre Yolu", "Kampüs Caddesi", "Park Caddesi", "Çarşı Caddesi", "Meydan Caddesi", "İstiklal Bulvarı", "Liman Caddesi", "Martı Sokak", "Kumsal Caddesi", "Sahil Bulvarı" }
 
 local function roadWidthV(i: number): number
-	if i == 1 or i == #XS then
+	if i == 1 or i == #XS or math.abs(XS[i]) == 1200 then
 		return 52
 	elseif XS[i] == 0 then
 		return 60
@@ -185,9 +218,11 @@ local function horizontalOmitted(j: number, c: number): boolean
 			return true
 		end
 	end
-	-- the harbour runs straight into the sea: no coastal boulevard in front of it
-	if j == #ZS and c <= 2 then
-		return true
+	-- the harbour and the shipyard run straight into the sea: no coastal boulevard in front of them
+	for _, m in MERGED do
+		if SEAWARD[m[5]] and j == m[2] + 1 and c >= m[3] and c <= m[4] then
+			return true
+		end
 	end
 	return false
 end
@@ -199,7 +234,7 @@ function CityLayout.get()
 		return cached
 	end
 	local L = {
-		bounds = { minX = -1550, maxX = 1550, minZ = -1550, maxZ = 1300 },
+		bounds = { minX = -2300, maxX = 2300, minZ = -1550, maxZ = 1300 },
 		roads = {},
 		nodes = {},
 		blocks = {},
@@ -270,7 +305,7 @@ function CityLayout.get()
 					local x1 = XS[m[4] + 1] - roadWidthV(m[4] + 1) / 2
 					local z0 = ZS[m[1]] + roadWidthH(m[1]) / 2
 					local z1 = ZS[m[2] + 1] - roadWidthH(m[2] + 1) / 2
-					if m[5] == "harbor" then
+					if SEAWARD[m[5]] then
 						z1 = CityLayout.SEA_Z - 25
 					end
 					local block = { id = #L.blocks + 1, row = m[1], col = m[3], x0 = x0, x1 = x1, z0 = z0, z1 = z1, district = D[m[1]][m[3]], group = m[5] }

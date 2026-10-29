@@ -61,6 +61,39 @@ return function(T)
 		end
 	end)
 
+	T.test("layout: the outer belt has its districts and highways", function()
+		local L = CityLayout.get()
+		local seen = {}
+		for _, b in L.blocks do
+			seen[b.district] = (seen[b.district] or 0) + 1
+			T.ok(b.x0 > L.bounds.minX and b.x1 < L.bounds.maxX and b.z0 > L.bounds.minZ and b.z1 < L.bounds.maxZ, "block " .. b.id .. " out of bounds")
+		end
+		for _, d in { "HVL", "OSB", "TRS", "BLK", "VIL", "TKP", "CFT", "GLF", "KRV", "YZL" } do
+			T.ok((seen[d] or 0) > 0, "district " .. d .. " missing")
+			T.ok(CityLayout.Districts[d] ~= nil, "district " .. d .. " has no name")
+		end
+		local west, east = 0, 0
+		for _, r in L.roads do
+			if r.vertical and r.a.X == CityLayout.XS[1] then
+				west += 1
+			elseif r.vertical and r.a.X == CityLayout.XS[#CityLayout.XS] then
+				east += 1
+			end
+		end
+		T.eq(west, #CityLayout.ZS - 1, "the western highway")
+		T.eq(east, #CityLayout.ZS - 1, "the eastern highway")
+		-- the shipyard and the port reach the water: no coastal road in front of them
+		for _, r in L.roads do
+			if not r.vertical and r.a.Y == CityLayout.ZS[#CityLayout.ZS] then
+				local x = (r.a.X + r.b.X) / 2
+				for _, id in { "shipyard", "harbor" } do
+					local st = L.poiById[id].site
+					T.ok(x < st.x0 or x > st.x1, "a coastal road in front of the " .. id)
+				end
+			end
+		end
+	end)
+
 	T.test("world: builds without errors", function()
 		local WorldBuilder = Engine.mod("ServerScriptService.Server.World.WorldBuilder")
 		local Landmarks = Engine.mod("ServerScriptService.Server.World.Landmarks")
@@ -92,6 +125,61 @@ return function(T)
 			T.ok(not string.find(w, "failed to build"), w)
 		end
 		Engine.world = world
+	end)
+
+	T.test("world: no empty lots and every service has its counter", function()
+		local world = Engine.world
+		local L = CityLayout.get()
+		local blocksFolder = world:FindFirstChild("Blocks")
+		local function parts(root): number
+			local n = 0
+			for _, d in if root then root:GetDescendants() else {} do
+				if d:IsA("BasePart") then
+					n += 1
+				end
+			end
+			return n
+		end
+		-- ordinary blocks are built on
+		for _, b in L.blocks do
+			if b.kind ~= "plots" and not b.pois and not b.group then
+				local n = parts(blocksFolder:FindFirstChild("Block_" .. b.id .. "_" .. b.district))
+				T.ok(n >= 20, string.format("block %d (%s) is nearly empty: %d parts", b.id, b.district, n))
+			end
+		end
+		-- and so is every landmark site
+		local inSite = {}
+		for _, folderName in { "Commerce", "Civic", "Nature", "Outer" } do
+			for _, d in world:FindFirstChild(folderName):GetDescendants() do
+				if d:IsA("BasePart") then
+					local p = d.Position
+					for _, poi in L.pois do
+						local st = poi.site
+						if st and p.X >= st.x0 and p.X <= st.x1 and p.Z >= st.z0 and p.Z <= st.z1 then
+							inSite[poi.id] = (inSite[poi.id] or 0) + 1
+						end
+					end
+				end
+			end
+		end
+		for _, poi in L.pois do
+			if poi.site then
+				T.ok((inSite[poi.id] or 0) >= 8, poi.id .. "'s site is empty: " .. tostring(inSite[poi.id]))
+			end
+		end
+		-- a counter (service anchor) for every place with gameplay
+		local counters = {}
+		for _, d in world:GetDescendants() do
+			local poi, service = d:GetAttribute("Poi"), d:GetAttribute("Service")
+			if typeof(poi) == "string" and typeof(service) == "string" then
+				counters[poi] = service
+			end
+		end
+		for _, loc in Locations.list do
+			if loc.service then
+				T.eq(counters[loc.id], loc.service, loc.id .. "'s counter")
+			end
+		end
 	end)
 
 	T.test("world: real buildings stand on their lots, clear of streets, landmarks and each other", function()
@@ -143,7 +231,7 @@ return function(T)
 		end
 		-- not into a landmark or a shop plot
 		local others = {}
-		for _, folderName in { "Commerce", "Civic", "Nature" } do
+		for _, folderName in { "Commerce", "Civic", "Nature", "Outer" } do
 			for _, m in world:FindFirstChild(folderName):GetChildren() do
 				if m:IsA("Model") then
 					local lo, hi = box(m)
