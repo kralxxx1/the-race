@@ -153,6 +153,18 @@ roblox.implementMethod("Instance", "GetAttributeChangedSignal", function(inst, a
 	end
 	return s
 end)
+-- Lune's native SetAttribute can't fire signals; tests set attributes the code listens to with this.
+function Engine.setAttribute(inst, name: string, value: any)
+	inst:SetAttribute(name, value)
+	local b = bag(inst)
+	local s = b.attrSignals and b.attrSignals[name]
+	if s then
+		s:Fire()
+	end
+	if b.ev_AttributeChanged then
+		b.ev_AttributeChanged:Fire(name)
+	end
+end
 roblox.implementMethod("Instance", "WaitForChild", function(inst, name, timeout)
 	local c = inst:FindFirstChild(name)
 	if not c and timeout == nil then
@@ -777,9 +789,136 @@ local serverStart = os.clock()
 roblox.implementMethod("Workspace", "GetServerTimeNow", function()
 	return 1700000000 + (os.clock() - serverStart) + (Engine.timeOffset or 0)
 end)
-roblox.implementMethod("Workspace", "Raycast", function()
-	return nil
+-- Raycast against part boxes (balls as spheres), honouring CanQuery and the params' filter.
+local function rayBox(origin, dir, part)
+	local cf, half = part.CFrame, part.Size / 2
+	local o = cf:PointToObjectSpace(origin)
+	local d = cf:VectorToObjectSpace(dir)
+	local tmin, tmax, axis, sign = 0, 1, 0, 0
+	for i, k in { "X", "Y", "Z" } do
+		local oo, dd, h = o[k], d[k], half[k]
+		if math.abs(dd) < 1e-9 then
+			if oo < -h or oo > h then
+				return nil
+			end
+		else
+			local t1, t2 = (-h - oo) / dd, (h - oo) / dd
+			local s1 = -1
+			if t1 > t2 then
+				t1, t2, s1 = t2, t1, 1
+			end
+			if t1 > tmin then
+				tmin, axis, sign = t1, i, s1
+			end
+			tmax = math.min(tmax, t2)
+			if tmin > tmax then
+				return nil
+			end
+		end
+	end
+	local n = if axis == 1 then roblox.Vector3.new(sign, 0, 0) elseif axis == 2 then roblox.Vector3.new(0, sign, 0) elseif axis == 3 then roblox.Vector3.new(0, 0, sign) else roblox.Vector3.new(0, 1, 0)
+	return tmin, cf:VectorToWorldSpace(n)
+end
+local function raySphere(origin, dir, part)
+	local c, r = part.CFrame.Position, math.min(part.Size.X, part.Size.Y, part.Size.Z) / 2
+	local oc = origin - c
+	local a = dir:Dot(dir)
+	local b = 2 * oc:Dot(dir)
+	local disc = b * b - 4 * a * (oc:Dot(oc) - r * r)
+	if disc < 0 then
+		return nil
+	end
+	local t = (-b - math.sqrt(disc)) / (2 * a)
+	if t < 0 or t > 1 then
+		return nil
+	end
+	return t, (origin + dir * t - c).Unit
+end
+-- Static geometry is cached for a few seconds (bounding spheres), then tested exactly.
+local rayCache = nil
+local function rayParts(ws)
+	if rayCache and os.clock() - rayCache.t < 5 and rayCache.ws == ws then
+		return rayCache.list
+	end
+	local list = {}
+	for _, d in ws:GetDescendants() do
+		if d:IsA("BasePart") and d.CanQuery then
+			local p, sz = d.CFrame.Position, d.Size
+			table.insert(list, { part = d, x = p.X, y = p.Y, z = p.Z, r = sz.Magnitude / 2 })
+		end
+	end
+	rayCache = { t = os.clock(), ws = ws, list = list }
+	return list
+end
+roblox.implementMethod("Workspace", "Raycast", function(ws, origin, dir, params)
+	local include, excluded = nil, {}
+	if params then
+		local list = params.FilterDescendantsInstances or {}
+		if params.FilterType == roblox.Enum.RaycastFilterType.Include then
+			include = list
+		else
+			for _, inst in list do
+				if inst then
+					table.insert(excluded, inst)
+				end
+			end
+		end
+	end
+	local best, bestT, bestN = nil, math.huge, nil
+	local function exact(part)
+		local t, n
+		if part:IsA("Part") and part.Shape == roblox.Enum.PartType.Ball then
+			t, n = raySphere(origin, dir, part)
+		else
+			t, n = rayBox(origin, dir, part)
+		end
+		if t and t < bestT then
+			best, bestT, bestN = part, t, n
+		end
+	end
+	if include then
+		for _, root in include do
+			if root:IsA("BasePart") and root.CanQuery then
+				exact(root)
+			end
+			for _, d in root:GetDescendants() do
+				if d:IsA("BasePart") and d.CanQuery then
+					exact(d)
+				end
+			end
+		end
+	else
+		local ox, oy, oz = origin.X, origin.Y, origin.Z
+		local dx, dy, dz = dir.X, dir.Y, dir.Z
+		local dd = dx * dx + dy * dy + dz * dz
+		for _, e in rayParts(ws) do
+			-- distance from the sphere centre to the segment
+			local t = ((e.x - ox) * dx + (e.y - oy) * dy + (e.z - oz) * dz) / dd
+			t = if t < 0 then 0 elseif t > 1 then 1 else t
+			local cx, cy, cz = ox + dx * t - e.x, oy + dy * t - e.y, oz + dz * t - e.z
+			if cx * cx + cy * cy + cz * cz <= e.r * e.r and e.part.Parent then
+				local skip = false
+				for _, ex in excluded do
+					if e.part == ex or e.part:IsDescendantOf(ex) then
+						skip = true
+						break
+					end
+				end
+				if not skip then
+					exact(e.part)
+				end
+			end
+		end
+	end
+	if not best then
+		return nil
+	end
+	return { Instance = best, Position = origin + dir * bestT, Normal = bestN, Distance = (dir * bestT).Magnitude, Material = best.Material }
 end)
+-- Tests that add or move geometry call this so the next raycast sees it.
+function Engine.invalidateRaycasts()
+	rayCache = nil
+end
 roblox.implementMethod("Workspace", "Blockcast", function()
 	return nil
 end)

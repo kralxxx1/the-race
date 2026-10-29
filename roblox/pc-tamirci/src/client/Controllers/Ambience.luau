@@ -10,6 +10,7 @@
 
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local Workspace = game:GetService("Workspace")
@@ -155,25 +156,53 @@ local function setupEffects()
 	box.CanQuery = false
 	box.CanTouch = false
 	box.Transparency = 1
-	box.Size = Vector3.new(120, 1, 120)
+	box.Size = Vector3.new(140, 1, 140)
 	box.Parent = Workspace
 	local rain = Instance.new("ParticleEmitter")
 	rain.Name = "Rain"
 	rain.Texture = "rbxasset://textures/particles/smoke_main.dds"
-	rain.Color = ColorSequence.new(Color3.fromRGB(200, 214, 230))
-	rain.LightEmission = 0.2
-	rain.Transparency = NumberSequence.new(0.45)
-	rain.Size = NumberSequence.new(0.09)
-	rain.Squash = NumberSequence.new(3.5)
+	rain.Color = ColorSequence.new(Color3.fromRGB(214, 224, 236))
+	rain.LightEmission = 0.15
+	rain.LightInfluence = 0.6
+	rain.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.55), NumberSequenceKeypoint.new(0.2, 0.25), NumberSequenceKeypoint.new(1, 0.35) })
+	rain.Size = NumberSequence.new(0.16)
+	rain.Squash = NumberSequence.new(5.5)
 	rain.Orientation = Enum.ParticleOrientation.VelocityParallel
-	rain.Speed = NumberRange.new(90, 110)
+	rain.Speed = NumberRange.new(100, 120)
 	rain.EmissionDirection = Enum.NormalId.Bottom
-	rain.Lifetime = NumberRange.new(0.8, 1)
+	rain.Acceleration = Vector3.new(3, 0, 1.5)
+	rain.Lifetime = NumberRange.new(0.6, 0.75)
 	rain.Rate = 0
-	rain.SpreadAngle = Vector2.new(4, 4)
+	rain.SpreadAngle = Vector2.new(3, 3)
 	rain.Parent = box
+	-- little splashes where the drops land
+	local splashBox = Instance.new("Part")
+	splashBox.Name = "RainSplashes"
+	splashBox.Anchored = true
+	splashBox.CanCollide = false
+	splashBox.CanQuery = false
+	splashBox.CanTouch = false
+	splashBox.Transparency = 1
+	splashBox.Size = Vector3.new(70, 0.2, 70)
+	splashBox.Parent = Workspace
+	local splash = Instance.new("ParticleEmitter")
+	splash.Name = "Splash"
+	splash.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	splash.Color = ColorSequence.new(Color3.fromRGB(226, 234, 244))
+	splash.LightInfluence = 0.7
+	splash.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 1) })
+	splash.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 0.45) })
+	splash.Speed = NumberRange.new(1.5, 3)
+	splash.SpreadAngle = Vector2.new(70, 70)
+	splash.EmissionDirection = Enum.NormalId.Top
+	splash.Acceleration = Vector3.new(0, -14, 0)
+	splash.Lifetime = NumberRange.new(0.15, 0.25)
+	splash.Rate = 0
+	splash.Parent = splashBox
 	fx.rainBox = box
 	fx.rain = rain
+	fx.splashBox = splashBox
+	fx.splash = splash
 end
 
 -- Colour keys through the day: { hour, ambient, outdoor, tint, brightness, exposure }
@@ -361,9 +390,19 @@ end
 -- Sound
 ----------------------------------------------------------------------------------------------------
 local loops: { [string]: Sound } = {}
+local gains: { [string]: number } = {}
 
-local function loop(name: string, id: string?): Sound?
-	if not id or id == "" then
+-- A Config.Sounds entry is an id, or { id = ..., volume = ... } (volume evens out quiet recordings).
+local function spec(v: any): (string?, number)
+	if type(v) == "table" then
+		return v.id, v.volume or 1
+	end
+	return v, 1
+end
+
+local function loop(name: string, entry: any): Sound?
+	local id, gain = spec(entry)
+	if type(id) ~= "string" or id == "" then
 		return nil
 	end
 	local s = Instance.new("Sound")
@@ -374,83 +413,144 @@ local function loop(name: string, id: string?): Sound?
 	s.Parent = SoundService
 	s:Play()
 	loops[name] = s
+	gains[name] = gain
 	return s
 end
 
--- background music: one Sound working through a shuffled playlist
-local music = { list = {} :: { string }, i = 0, started = 0 }
+-- Background music: two decks cross-fading through a shuffled playlist, so it never stops. A
+-- track that ends, fails to load or stalls simply hands over to the next one.
+local music = { list = {} :: { string }, gains = {} :: { number }, i = 0, decks = {} :: { Sound }, cur = 1, started = 0 }
+local FADE = 3
 
 local function nextTrack()
-	local s = loops.music
-	if not s or #music.list == 0 then
+	if #music.list == 0 then
 		return
 	end
 	music.i = music.i % #music.list + 1
+	music.cur = 3 - music.cur
+	local s = music.decks[music.cur]
 	s.SoundId = music.list[music.i]
 	s.TimePosition = 0
+	s.Volume = 0
 	s:Play()
 	music.started = os.clock()
 end
 
--- Config.Sounds.Music is one id or a list of ids.
-local function playlist(ids: any)
-	local list = {}
-	if type(ids) == "string" then
-		ids = { ids }
+local function playlist(entries: any)
+	if type(entries) == "string" or (type(entries) == "table" and entries.id) then
+		entries = { entries }
 	end
-	if type(ids) == "table" then
-		for _, id in ids do
-			if type(id) == "string" and id ~= "" then
-				table.insert(list, id)
-			end
-		end
-	end
-	if #list == 0 then
+	if type(entries) ~= "table" then
 		return
 	end
-	for i = #list, 2, -1 do
+	for _, e in entries do
+		local id, gain = spec(e)
+		if type(id) == "string" and id ~= "" then
+			table.insert(music.list, id)
+			table.insert(music.gains, gain)
+		end
+	end
+	local n = #music.list
+	if n == 0 then
+		return
+	end
+	for i = n, 2, -1 do
 		local j = math.random(i)
-		list[i], list[j] = list[j], list[i]
+		music.list[i], music.list[j] = music.list[j], music.list[i]
+		music.gains[i], music.gains[j] = music.gains[j], music.gains[i]
 	end
-	music.list = list
-	music.i = 1
-	music.started = os.clock()
-	local s = loop("music", list[1])
-	if s and #list > 1 then
-		s.Looped = false
-		s.Ended:Connect(nextTrack)
+	for k = 1, 2 do
+		local d = Instance.new("Sound")
+		d.Name = "Amb_music" .. k
+		d.Looped = n == 1
+		d.Volume = 0
+		d.Parent = SoundService
+		music.decks[k] = d
 	end
+	music.cur = 2
+	nextTrack()
 end
 
 local volumes = { music = 0.5, sfx = 0.8 }
 
 -- Player settings from the phone (0..1).
-function Ambience.setVolumes(music: number?, sfx: number?)
-	volumes.music = music or volumes.music
+function Ambience.setVolumes(musicVol: number?, sfx: number?)
+	volumes.music = musicVol or volumes.music
 	volumes.sfx = sfx or volumes.sfx
+end
+
+-- Is the camera under a roof? (rain stays outside; you hear it drumming on the roof instead)
+local indoors, lastRoofCheck, lastGroundCheck = false, 0, 0
+local roofParams = RaycastParams.new()
+roofParams.FilterType = Enum.RaycastFilterType.Exclude
+roofParams.IgnoreWater = true
+local function underRoof(): boolean
+	local now = os.clock()
+	if now - lastRoofCheck < 0.3 then
+		return indoors
+	end
+	lastRoofCheck = now
+	local cam = Workspace.CurrentCamera
+	if not cam then
+		return false
+	end
+	local ignore = { fx.rainBox, fx.splashBox }
+	local char = Players.LocalPlayer and Players.LocalPlayer.Character
+	if char then
+		table.insert(ignore, char)
+	end
+	roofParams.FilterDescendantsInstances = ignore
+	local hit = Workspace:Raycast(cam.CFrame.Position, Vector3.new(0, 80, 0), roofParams)
+	indoors = hit ~= nil
+	return indoors
 end
 
 local function mix(t: number)
 	local function set(name: string, v: number)
 		local s = loops[name]
 		if s then
-			local master = if name == "music" then volumes.music else volumes.sfx
-			s.Volume = lerp(s.Volume, v * master, 0.05)
+			s.Volume = lerp(s.Volume, v * volumes.sfx * (gains[name] or 1), 0.05)
 		end
 	end
+	local inside = underRoof()
 	-- the surf grows louder towards the beach (sand starts at z 846)
 	local seaside = math.clamp((camPos().Z - 640) / 220, 0, 1)
-	set("day", if isNight(t) or raining then 0 else 0.35)
-	set("night", if isNight(t) and not raining then 0.3 else 0)
-	set("rain", if raining then 0.5 else 0)
-	set("sea", seaside * 0.45)
-	set("music", 0.35)
-	-- a track that never loads (removed from the library) is skipped
-	local m = loops.music
-	if m and #music.list > 1 and not m.IsLoaded and os.clock() - music.started > 20 then
-		nextTrack()
+	local quiet = if inside then 0.35 else 1
+	set("day", if isNight(t) or raining then 0 else 0.6 * quiet)
+	set("night", if isNight(t) and not raining then 0.6 * quiet else 0)
+	set("rain", if raining and not inside then 0.8 else 0)
+	set("rainIn", if raining and inside then 0.8 else 0)
+	set("sea", seaside * 0.7 * quiet)
+	-- music decks: the current one fades in, the other fades out
+	local cur = music.decks[music.cur]
+	if cur then
+		local target = 0.3 * volumes.music * (music.gains[music.i] or 1)
+		cur.Volume = lerp(cur.Volume, target, 0.06)
+		local other = music.decks[3 - music.cur]
+		if other.Volume > 0.005 then
+			other.Volume = lerp(other.Volume, 0, 0.06)
+		elseif other.IsPlaying then
+			other:Stop()
+		end
+		local age = os.clock() - music.started
+		local len = cur.TimeLength
+		local finishing = len > FADE * 2 and cur.TimePosition > len - FADE
+		local stalled = age > 4 and not cur.IsPlaying
+		local missing = age > 20 and not cur.IsLoaded
+		if #music.list > 1 and (finishing or stalled or missing) then
+			nextTrack()
+		end
+	end
+	-- rain falls outside only
+	if fx.rain then
+		local rate = if raining and not inside then 520 else 0
+		fx.rain.Rate = rate
+		fx.splash.Rate = if rate > 0 then 160 else 0
 	end
 end
+
+Ambience._music = music
+Ambience._nextTrack = nextTrack
 
 ----------------------------------------------------------------------------------------------------
 function Ambience.init()
@@ -509,6 +609,7 @@ function Ambience.init()
 	loop("day", sounds.AmbienceDay)
 	loop("night", sounds.AmbienceNight)
 	loop("rain", sounds.Rain)
+	loop("rainIn", sounds.RainIndoor)
 	loop("sea", sounds.Sea)
 	playlist(sounds.Music)
 
@@ -530,8 +631,14 @@ function Ambience.init()
 		-- rain follows the camera
 		local cam = Workspace.CurrentCamera
 		if cam and fx.rainBox then
-			fx.rainBox.CFrame = CFrame.new(cam.CFrame.Position + Vector3.new(0, 45, 0))
-			fx.rain.Rate = if raining then 900 else 0
+			local cp = cam.CFrame.Position
+			fx.rainBox.CFrame = CFrame.new(cp + Vector3.new(0, 40, 0))
+			-- splashes on whatever is below the camera (looked up with the roof check)
+			if raining and now - lastGroundCheck > 0.3 then
+				lastGroundCheck = now
+				local hit = Workspace:Raycast(cp, Vector3.new(0, -120, 0), roofParams)
+				fx.splashBox.CFrame = CFrame.new(if hit then hit.Position + Vector3.new(0, 0.1, 0) else Vector3.new(cp.X, 0.8, cp.Z))
+			end
 		end
 		-- continuous movers
 		for wheel, info in ferris do

@@ -61,9 +61,14 @@ local TIMED = Config.HoldActionSeconds
 -- play once when the server confirms the action.
 local HELD_SOUND = { unscrew = true, screw = true, blow_dust = true, brush = true, clean_paste = true, clean_liquid = true, peel = true }
 
-local function benchSound(key: string): string?
+-- (id, gain): an entry is an id or { id = ..., volume = ... }
+local function benchSound(key: string): (string?, number)
 	local b = Config.Sounds and Config.Sounds.Bench
-	return b and b[key]
+	local e = b and b[key]
+	if type(e) == "table" then
+		return e.id, e.volume or 1
+	end
+	return e, 1
 end
 
 local build -- builds the bench UI (defined below)
@@ -445,8 +450,9 @@ local function postBeeps(stage: string)
 		return
 	end
 	local n = if stage == "beeps" then 3 elseif stage == "no_display" then 4 else 1
+	local id, gain = benchSound("beep")
 	for i = 0, n - 1 do
-		task.delay(0.8 + i * 0.6, App.play, benchSound("beep"), 0.35)
+		task.delay(0.8 + i * 0.6, App.play, id, 0.35 * gain)
 	end
 end
 
@@ -462,7 +468,8 @@ local function send(action: string, target: string?, args: { [string]: any }?, t
 	end
 	if r.ok then
 		if not HELD_SOUND[action] then
-			App.play(benchSound(action), 0.5)
+			local id, gain = benchSound(action)
+			App.play(id, 0.5 * gain)
 		end
 		if action == "press_power" and r.eval then
 			postBeeps(r.eval.stage)
@@ -702,7 +709,11 @@ local function perform(id: string, c, tid: string)
 	end
 	local hold = (TIMED[c.action] or 0) / toolSpeed(tid)
 	local stopFx = startFx(c.action, hover and hover.pos, hover and hover.normal)
-	local stopSound = if HELD_SOUND[c.action] then App.loop(benchSound(c.action), 0.45) else function() end
+	local stopSound = function() end
+	if HELD_SOUND[c.action] then
+		local id, gain = benchSound(c.action)
+		stopSound = App.loop(id, 0.45 * gain)
+	end
 	if hold > 0 then
 		local label = S.t("act_" .. c.action) .. " • " .. nodeLabel(view(), id)
 		if not holdFor(hold, label) then

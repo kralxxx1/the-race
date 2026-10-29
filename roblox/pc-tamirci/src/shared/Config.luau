@@ -94,11 +94,13 @@ local Config = {
 	-- (Pro Sound Effects, APM Music, Roblox) — her deneyimde ücretsiz kullanılabilir. Değiştirmek
 	-- için Creator Store > Audio'dan kimlik kopyalayın; boş bırakılan ses çalınmaz.
 	Sounds = {
-		AmbienceDay = "rbxassetid://9112831284", -- gündüz: kuş cıvıltısı (Morning Birds 1)
-		AmbienceNight = "rbxassetid://9112764573", -- gece: cırcır böcekleri (Crickets Night 3)
-		Rain = "rbxassetid://9112857764", -- yağmur: asfalta ve sundurmaya çiseleyen (Rain Splatty Asphalt)
-		Sea = "rbxassetid://9119677305", -- sahilde dalgalar (Surf Ocean Wave, Zuma Beach)
-		-- rahatlatıcı arka plan müziği: liste karışık sırayla çalar (APM "LOFI HIP HOP" albümü)
+		-- ortam sesleri; volume: kısık kayıtları dengeler (ölçülen ses düzeyine göre)
+		AmbienceDay = { id = "rbxassetid://9112831284", volume = 3 }, -- gündüz: kuş cıvıltısı (Morning Birds 1)
+		AmbienceNight = { id = "rbxassetid://9112764573", volume = 6 }, -- gece: cırcır böcekleri (Crickets Night 3)
+		Rain = { id = "rbxassetid://9112794265", volume = 1.6 }, -- dışarıda yağmur (Heavy Rain 1, beton üstüne)
+		RainIndoor = { id = "rbxassetid://9112853554", volume = 8 }, -- içeride: çatıya vuran yağmur (Rain Hitting Roof 1)
+		Sea = { id = "rbxassetid://9119677305", volume = 0.8 }, -- sahilde dalgalar (Surf Ocean Wave, Zuma Beach)
+		-- rahatlatıcı arka plan müziği: liste karışık sırayla, kesintisiz çalar (APM Music)
 		Music = {
 			"rbxassetid://9047104336", -- Sunday In Bed
 			"rbxassetid://9047104411", -- Beach Cushions
@@ -107,31 +109,35 @@ local Config = {
 			"rbxassetid://9047104919", -- Time Goes By
 			"rbxassetid://9047105000", -- I'll Show Ya
 			"rbxassetid://9047105308", -- Dusk To Dawn
+			"rbxassetid://9047105108", -- Moving Round The Block
+			"rbxassetid://9047105702", -- Light Dreamer
+			"rbxassetid://9046862941", -- Sunset Chill (Bed Version)
+			"rbxassetid://9046863253", -- Poolside
 		},
 		Click = "rbxasset://sounds/clickfast.wav",
 		Cash = "rbxasset://sounds/electronicpingshort.wav",
 		-- tezgâhtaki işlerin sesleri (eylem adına göre); tornavida, hava, fırça ve temizlik
 		-- basılı tutulurken döngüde çalar, diğerleri iş bitince bir kez
 		Bench = {
-			unscrew = "rbxassetid://9118855069", -- Screwdriver 2
-			screw = "rbxassetid://9118855273", -- Screwdriver 3
-			blow_dust = "rbxassetid://9113865022", -- Compressed Air Bursts 3
-			brush = "rbxassetid://9113595595", -- Brush Scrub Rubbing On Wood 14
-			clean_paste = "rbxassetid://9116198866", -- bez sürtme (Fast Swipes On Trousers 2)
-			clean_liquid = "rbxassetid://9116198866",
-			peel = "rbxassetid://9113836369", -- bant sökme (Cloth Rip Zippy 5)
+			unscrew = { id = "rbxassetid://9118855069", volume = 6 }, -- Screwdriver 2
+			screw = { id = "rbxassetid://9118855273", volume = 5 }, -- Screwdriver 3
+			blow_dust = { id = "rbxassetid://9113865022", volume = 0.6 }, -- Compressed Air Bursts 3
+			brush = { id = "rbxassetid://9113595595", volume = 0.45 }, -- Brush Scrub Rubbing On Wood 14
+			clean_paste = { id = "rbxassetid://9116198866", volume = 5 }, -- bez sürtme (Fast Swipes On Trousers 2)
+			clean_liquid = { id = "rbxassetid://9116198866", volume = 5 },
+			peel = { id = "rbxassetid://9113836369", volume = 1.2 }, -- bant sökme (Cloth Rip Zippy 5)
 			pry = "rbxasset://sounds/snap.wav", -- plastik klips açılır
 			install = "rbxasset://sounds/switch.wav",
 			plug = "rbxasset://sounds/switch.wav",
 			remove = "rbxasset://sounds/snap.wav",
 			unplug = "rbxasset://sounds/snap.wav",
-			open_latch = "rbxassetid://16480551554", -- küçük metal klik (Roblox)
-			close_latch = "rbxassetid://16480551554",
+			open_latch = { id = "rbxassetid://16480551554", volume = 0.9 }, -- küçük metal klik (Roblox)
+			close_latch = { id = "rbxassetid://16480551554", volume = 0.9 },
 			wear_strap = "rbxasset://sounds/snap.wav",
 			discard = "rbxasset://sounds/swoosh.wav",
-			measure = "rbxassetid://9113880400", -- multimetre bip (Computer Keyboard Beep 1)
+			measure = { id = "rbxassetid://9113880400", volume = 1.2 }, -- multimetre bip (Computer Keyboard Beep 1)
 			press_power = "rbxassetid://16480556621", -- güç düğmesi (Roblox plastik düğme)
-			beep = "rbxassetid://9113880400", -- anakart hoparlörü: POST bip kodları
+			beep = { id = "rbxassetid://9113880400", volume = 1.2 }, -- anakart hoparlörü: POST bip kodları
 		},
 	},
 

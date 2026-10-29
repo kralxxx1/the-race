@@ -247,7 +247,10 @@ return function(T)
 		table.clear(Engine.played)
 		click(benchUi, S.t("bench_power"))
 		task.wait(0.1)
-		T.ok(table.find(Engine.played, BenchSounds.press_power) ~= nil, "the power button clicks")
+		local function sid(e)
+			return if type(e) == "table" then e.id else e
+		end
+		T.ok(table.find(Engine.played, sid(BenchSounds.press_power)) ~= nil, "the power button clicks")
 		local first = if v.kind == "desktop" then "sp_s1" else nil
 		if first then
 			-- the screw whirs while it's held, and stops with it (the engine's hold loop doesn't
@@ -266,7 +269,7 @@ return function(T)
 			local c, ok = Bench._act(first, "hand")
 			App.loop = loop
 			T.ok(c ~= nil and ok, "unscrew the side panel")
-			T.eq(heard[1], BenchSounds[c.action], "tool sound while working")
+			T.eq(heard[1], sid(BenchSounds[c.action]), "tool sound while working")
 			T.eq(stopped, 1, "tool sound stops")
 			T.ok(game:GetService("SoundService"):FindFirstChild("SfxLoop") == nil, "no sound left behind")
 			waitFor(function()
@@ -408,26 +411,59 @@ return function(T)
 		Engine.step(3)
 	end)
 
-	T.test("client: ambience loops and a shuffled music playlist", function()
+	T.test("client: ambience loops and a never-ending music playlist", function()
 		local SoundService = game:GetService("SoundService")
 		local Sounds = Engine.mod("ReplicatedStorage.Shared.Config").Sounds
-		for _, name in { "day", "night", "rain", "sea" } do
+		for _, name in { "day", "night", "rain", "rainIn", "sea" } do
 			local loop = SoundService:FindFirstChild("Amb_" .. name)
 			T.ok(loop ~= nil and loop.Looped and loop.IsPlaying, name .. " loop")
 		end
-		local music = SoundService:FindFirstChild("Amb_music")
-		T.ok(music ~= nil and not music.Looped, "music from a playlist")
-		local seen = { [music.SoundId] = true }
-		for _ = 1, #Sounds.Music - 1 do
-			music.Ended:Fire()
-			T.ok(table.find(Sounds.Music, music.SoundId) ~= nil and music.IsPlaying, "a playlist track")
-			seen[music.SoundId] = true
+		local Ambience = cmod("Controllers.Ambience")
+		local music = Ambience._music
+		local seen = {}
+		for _ = 1, #Sounds.Music do
+			local deck = music.decks[music.cur]
+			T.ok(deck.IsPlaying and table.find(Sounds.Music, deck.SoundId) ~= nil, "a playlist track is playing")
+			seen[deck.SoundId] = true
+			-- the track ends: the watchdog hands over to the other deck
+			deck:Stop()
+			music.started -= 10
+			Engine.step(4, 1 / 10)
 		end
 		local n = 0
 		for _ in seen do
 			n += 1
 		end
 		T.eq(n, #Sounds.Music, "every track once per round")
+		T.ok(music.decks[music.cur].IsPlaying, "still playing after a full round")
+	end)
+
+	T.test("client: rain falls outside and drums on the roof inside", function()
+		local SoundService = game:GetService("SoundService")
+		local ws = game:GetService("Workspace")
+		local cam = ws.CurrentCamera
+		local rain = ws:FindFirstChild("RainBox"):FindFirstChild("Rain")
+		Engine.context = "client"
+		Engine.setAttribute(ws, "Raining", true)
+		-- out in the open, far above everything
+		cam.CFrame = roblox.CFrame.new(0, 400, 0)
+		task.wait(0.35)
+		Engine.step(30, 1 / 10)
+		T.ok(rain.Rate > 0, "rain falls outside")
+		T.ok(SoundService.Amb_rain.Volume > SoundService.Amb_rainIn.Volume, "outdoor rain sound")
+		-- under a roof
+		local roof = roblox.Instance.new("Part")
+		roof.Anchored = true
+		roof.Size = roblox.Vector3.new(40, 1, 40)
+		roof.CFrame = roblox.CFrame.new(0, 420, 0)
+		roof.Parent = ws
+		Engine.invalidateRaycasts()
+		task.wait(0.35)
+		Engine.step(60, 1 / 10)
+		T.eq(rain.Rate, 0, "no rain indoors")
+		T.ok(SoundService.Amb_rainIn.Volume > SoundService.Amb_rain.Volume, "rain on the roof instead")
+		roof:Destroy()
+		Engine.setAttribute(ws, "Raining", false)
 	end)
 	_ = RepairService
 end
