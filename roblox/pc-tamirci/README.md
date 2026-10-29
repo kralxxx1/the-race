@@ -31,21 +31,34 @@ Studio'ya yansır.
 
 ## Yayınlama (herkese açık, 60 kişilik sunucu)
 
-1. Studio'da **Dosya → Roblox'a Yayınla** (File → Publish to Roblox). Yeni bir deneyim oluştur.
-2. **Home → Game Settings**:
-   - **Security → Enable Studio Access to API Services**: açık (Studio'da kayıt/DataStore testi için).
-     Kapalıyken oyun Studio'da kayıtları bellekte tutar, yayındaki oyun etkilenmez.
-   - **Places → Server Size (Sunucu boyutu)**: `60`.
-   - **Avatar**: R15 önerilir (NPC animasyonları R15'tir).
-3. [Creator Dashboard](https://create.roblox.com/) üzerinden deneyimin **Privacy → Public** ayarını yap,
-   tür (Simulation/Tycoon), açıklama, simge ve küçük resimleri ekle.
-4. Sesler hazır gelir: `src/shared/Config.luau` → `Sounds` bölümünde gündüz kuş cıvıltısı, gece cırcır
-   böcekleri, yağmur, sahil dalgaları, 7 parçalık sakin lo-fi müzik listesi ve tezgâh sesleri
-   (tornavida, basınçlı hava, fırça, klips, güç düğmesi, POST bip kodları) var. Hepsi Roblox'un
-   lisanslı kütüphanesinden (Pro Sound Effects, APM Music, Roblox) — her deneyimde ücretsiz
-   kullanılabilir. Değiştirmek istersen Creator Store → Audio'dan kimlik kopyala
-   (`"rbxassetid://123..."`); boş bırakılan ses çalınmaz. Müzik ve efekt seviyesini oyuncular
-   telefondaki **Ayarlar**'dan değiştirir.
+Adım adım rehber: **[YAYINLAMA.md](YAYINLAMA.md)**. Rehber Studio kurulumunu, yüklemeyi, 60 kişilik
+sunucuyu, herkese açmayı, içerik anketini, çocuk hesaplarını, sayfa metinlerini, güncellemeyi ve
+sorun gidermeyi anlatır. Simge ve kapak görselleri `publish/` klasöründe hazır.
+
+Kısaca:
+
+1. `PCTamirci.rbxlx` dosyasını Studio'da aç → **File → Publish**. Simge olarak `publish/icon.png`,
+   kapak olarak `publish/thumbnail_1.jpg` yükle. Adı, türü (Simulation / Tycoon) ve açıklamayı yazıp
+   **Save**'e bas.
+2. [Creator Dashboard](https://create.roblox.com/dashboard/creations) → oyun → **Configurations →
+   Places** → yer → **Access**: **Max Players** değerini `60` yap.
+3. Studio'da tekrar **File → Publish → Continue**. Yaşa kısıtlı içerik sorusuna **No** deyip
+   **Publish**'e bas.
+4. Dashboard → **Publish settings → Manage Audience → Manage access → Public**: **Friends**
+   seçeneğini kapat → **Save Changes**.
+
+Hesabın en az 2 günlük olmalı ve yaş doğrulaması (yüz tahmini ya da kimlik) yapılmış olmalı.
+
+Sesler hazır gelir. `src/shared/Config.luau` → `Sounds` bölümünde şunlar var:
+
+- gündüz kuş cıvıltısı, gece cırcır böcekleri, yağmur ve sahil dalgaları
+- 7 parçalık sakin lo-fi müzik listesi
+- tezgâh sesleri: tornavida, basınçlı hava, fırça, klips, güç düğmesi, POST bip kodları
+
+Hepsi Roblox'un lisanslı kütüphanesinden (Pro Sound Effects, APM Music, Roblox) ve her oyunda
+ücretsiz kullanılabilir. Bir sesi değiştirmek istersen Creator Store → Audio'dan kimliğini kopyala
+(`"rbxassetid://123..."`); boş bırakılan ses çalınmaz. Oyuncular müzik ve efekt seviyesini telefondaki
+**Ayarlar**'dan değiştirir.
 
 ### Şehri Studio'da görünür yapmak (isteğe bağlı)
 
@@ -146,6 +159,8 @@ mekânlar `Data/Locations.luau` içindedir.
 ```
 default.project.json   Rojo projesi (Future ışıklandırma, StreamingEnabled, atmosfer…)
 PCTamirci.rbxlx        Studio'da açılabilen hazır yer dosyası
+YAYINLAMA.md           Studio'dan herkese açık yayına adım adım rehber
+publish/               Oyun sayfası simgesi (512×512) ve kapak görselleri (1920×1080)
 src/shared/            ReplicatedStorage.Shared — veri, şehir düzeni, 3B modeller, tamir kuralları
 src/server/            ServerScriptService.Server — dünya kurucu ve servisler (kayıt, arsa, müşteri,
                        tamir, pazar, çalışan, hırsız, araç, sözleşme, vitrin, zaman)
@@ -196,4 +211,22 @@ lune run tools/uidump.luau bench
 
 ```bash
 node tools/render/shootui.mjs bench
+```
+
+Oyun sayfası görselleri (`publish/`). Önce dünyayı, dükkânı ve cihazı dök, sonra görselleri üret:
+
+```bash
+lune run tools/dump.luau world
+```
+
+```bash
+lune run tools/dump.luau shop 6 showcase
+```
+
+```bash
+lune run tools/dump.luau device desktop 3 high open
+```
+
+```bash
+node tools/render/promo.mjs
 ```

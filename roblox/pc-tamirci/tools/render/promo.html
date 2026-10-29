@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PC Tamircisi store images</title>
+<!-- Store images for the Roblox game page: the icon and thumbnails, laid over renders of the real
+     game models (out/promo_*.png, made by promo.mjs).  ?kind=icon|main|repair|shop|city -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=block" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  #card { position: relative; overflow: hidden; font-family: "Baloo 2", "Inter", sans-serif; color: #fff; }
+  .fill { position: absolute; inset: 0; }
+  .bgimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(1.18) contrast(1.04); }
+  .title { position: absolute; font-weight: 800; line-height: 0.92; letter-spacing: 1px;
+    paint-order: stroke fill; -webkit-text-stroke: 14px #141a2b; text-shadow: 0 10px 0 #141a2b, 0 18px 30px rgba(0,0,0,0.45); }
+  .yellow { color: #ffd23f; }
+  .chips { position: absolute; display: flex; gap: 18px; flex-wrap: wrap; }
+  .chip { font-weight: 800; font-size: 40px; padding: 6px 28px 2px; border-radius: 40px; background: #141a2b; color: #fff;
+    border: 5px solid #ffd23f; box-shadow: 0 8px 0 rgba(0,0,0,0.35); white-space: nowrap; }
+  .chip.blue { border-color: #39c3ff; }
+  .chip.green { border-color: #47e07a; }
+  .list { position: absolute; font-weight: 800; font-size: 50px; line-height: 1.35;
+    paint-order: stroke fill; -webkit-text-stroke: 9px #141a2b; text-shadow: 0 6px 0 #141a2b; }
+</style>
+</head>
+<body>
+<div id="card"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const kind = q.get('kind') || 'main';
+const W = +(q.get('w') || (kind === 'icon' ? 512 : 1920)), H = +(q.get('h') || (kind === 'icon' ? 512 : 1080));
+const card = document.getElementById('card');
+card.style.width = W + 'px';
+card.style.height = H + 'px';
+
+// the shop's mascot: a tower PC with a glass side, a glowing graphics card and a screwdriver
+function pcArt() {
+  return `
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rgb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff3fd8"/><stop offset="0.5" stop-color="#7c5cff"/><stop offset="1" stop-color="#2fe6ff"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2b3346"/><stop offset="1" stop-color="#1a2030"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16203a"/><stop offset="1" stop-color="#0c1224"/>
+    </linearGradient>
+    <linearGradient id="handle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe066"/><stop offset="1" stop-color="#f2a900"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef2f7"/><stop offset="1" stop-color="#9aa4b2"/>
+    </linearGradient>
+    <g id="fan">
+      <circle r="27" fill="#0b0f1a" stroke="#3a4560" stroke-width="3"/>
+      <g fill="#5d6b88">
+        <path d="M0 0 C 6 -10 18 -14 22 -6 C 14 -4 6 0 0 0Z"/>
+        <path d="M0 0 C 6 -10 18 -14 22 -6 C 14 -4 6 0 0 0Z" transform="rotate(72)"/>
+        <path d="M0 0 C 6 -10 18 -14 22 -6 C 14 -4 6 0 0 0Z" transform="rotate(144)"/>
+        <path d="M0 0 C 6 -10 18 -14 22 -6 C 14 -4 6 0 0 0Z" transform="rotate(216)"/>
+        <path d="M0 0 C 6 -10 18 -14 22 -6 C 14 -4 6 0 0 0Z" transform="rotate(288)"/>
+      </g>
+      <circle r="7" fill="#2fe6ff"/>
+    </g>
+  </defs>
+  <!-- wrench behind -->
+  <g transform="translate(372 150) rotate(38)">
+    <rect x="-13" y="-10" width="26" height="190" rx="12" fill="url(#steel)" stroke="#141a2b" stroke-width="7"/>
+    <path d="M-40 -18 a40 40 0 1 1 80 0 l-18 4 l-6 -26 h-32 l-6 26z" fill="url(#steel)" stroke="#141a2b" stroke-width="7" stroke-linejoin="round"/>
+  </g>
+  <!-- tower -->
+  <rect x="128" y="58" width="236" height="352" rx="26" fill="#141a2b"/>
+  <rect x="138" y="66" width="216" height="334" rx="20" fill="url(#body)"/>
+  <rect x="326" y="80" width="18" height="306" rx="8" fill="#323c55"/>
+  <circle cx="335" cy="104" r="8" fill="#2fe6ff"/>
+  <rect x="152" y="80" width="164" height="306" rx="14" fill="url(#glass)" stroke="url(#rgb)" stroke-width="7"/>
+  <!-- inside: board, cooler, memory, graphics card, power supply -->
+  <rect x="166" y="94" width="136" height="186" rx="6" fill="#1b2740"/>
+  <use href="#fan" x="214" y="146"/>
+  <rect x="254" y="110" width="12" height="74" rx="3" fill="#0b0f1a"/><rect x="254" y="110" width="12" height="9" rx="3" fill="#ff3fd8"/>
+  <rect x="272" y="110" width="12" height="74" rx="3" fill="#0b0f1a"/><rect x="272" y="110" width="12" height="9" rx="3" fill="#2fe6ff"/>
+  <rect x="164" y="214" width="146" height="58" rx="9" fill="#c9d0da" stroke="#141a2b" stroke-width="4"/>
+  <rect x="164" y="214" width="146" height="10" rx="4" fill="#ff8a3d"/>
+  <use href="#fan" x="203" y="248" transform="scale(1)"/>
+  <use href="#fan" x="268" y="248"/>
+  <rect x="166" y="306" width="136" height="66" rx="8" fill="#0b0f1a"/>
+  <rect x="176" y="318" width="44" height="42" rx="4" fill="#262f45"/>
+  <path d="M168 300 h132" stroke="url(#rgb)" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+  <!-- glass shine -->
+  <path d="M176 92 l40 0 l-60 260 l0 -60z" fill="#ffffff" opacity="0.08"/>
+  <!-- screwdriver in front -->
+  <g transform="translate(118 404) rotate(-38)">
+    <rect x="0" y="-9" width="168" height="18" rx="6" fill="url(#steel)" stroke="#141a2b" stroke-width="6"/>
+    <path d="M166 -11 l24 7 v8 l-24 7z" fill="#cfd6e0" stroke="#141a2b" stroke-width="6" stroke-linejoin="round"/>
+    <rect x="-118" y="-27" width="124" height="54" rx="24" fill="url(#handle)" stroke="#141a2b" stroke-width="7"/>
+    <rect x="-92" y="-27" width="14" height="54" fill="#141a2b"/>
+    <rect x="-62" y="-27" width="14" height="54" fill="#141a2b"/>
+    <rect x="-32" y="-27" width="14" height="54" fill="#141a2b"/>
+  </g>
+  <!-- sparkles -->
+  <g fill="#fff6c2">
+    <path d="M420 300 l7 18 l18 7 l-18 7 l-7 18 l-7 -18 l-18 -7 l18 -7z"/>
+    <path d="M96 120 l5 13 l13 5 l-13 5 l-5 13 l-5 -13 l-13 -5 l13 -5z"/>
+    <path d="M404 64 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4 l10 -4z"/>
+  </g>
+</svg>`;
+}
+
+function img(src, style) {
+  return `<img class="bgimg" src="out/${src}" style="${style || ''}">`;
+}
+
+const cards = {
+  icon() {
+    card.innerHTML = `
+      <div class="fill" style="background: radial-gradient(circle at 50% 38%, #4cc3ff 0%, #1f6fd6 42%, #12307a 78%, #0b1a46 100%)"></div>
+      <div class="fill" style="background: repeating-conic-gradient(from 0deg at 50% 40%, rgba(255,255,255,0.07) 0deg 9deg, transparent 9deg 18deg)"></div>
+      <div style="position:absolute; left:26px; top:-6px; width:460px; height:460px">${pcArt()}</div>
+      <div class="title yellow" style="left:0; right:0; bottom:20px; text-align:center; font-size:92px; -webkit-text-stroke:12px #141a2b; text-shadow:0 7px 0 #141a2b">PC TAMİRCİ</div>`;
+  },
+  main() {
+    card.innerHTML = `
+      ${img('promo_city.png')}
+      <div class="fill" style="background: linear-gradient(to bottom, rgba(8,18,40,0.62) 0%, rgba(8,18,40,0.25) 34%, transparent 52%, transparent 78%, rgba(8,18,40,0.45) 100%)"></div>
+      <div class="title" style="left:70px; top:60px; font-size:176px">PC TAMİRCİSİ</div>
+      <div class="title yellow" style="left:78px; top:236px; font-size:118px">SİMÜLATÖRÜ</div>
+      <div class="chips" style="left:80px; top:390px"><div class="chip">🔧 Tamir et • 💰 Kazan • 📈 Büyüt</div></div>
+      <div style="position:absolute; right:40px; bottom:10px; width:520px; height:520px; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5))">${pcArt()}</div>
+      <div class="chips" style="left:80px; bottom:60px"><div class="chip blue">👥 60 kişilik sunucu</div><div class="chip green">🧩 300+ gerçek parça</div></div>`;
+  },
+  repair() {
+    card.innerHTML = `
+      <div class="fill" style="background: repeating-linear-gradient(3deg, #8d5b33 0 26px, #96643b 26px 34px, #87552e 34px 70px, #915f37 70px 96px)"></div>
+      <div class="fill" style="left:860px; top:110px; right:40px; bottom:70px; border-radius:36px; transform: rotate(-4deg);
+        background: #1d5b86; background-image: linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px);
+        background-size: 60px 60px; box-shadow: 0 16px 30px rgba(0,0,0,0.35)"></div>
+      <img src="out/promo_pc.png" style="position:absolute; left:440px; top:0; width:1920px">
+      <div class="fill" style="background: linear-gradient(90deg, rgba(10,16,30,0.88) 0%, rgba(10,16,30,0.6) 36%, transparent 52%), radial-gradient(circle at 70% 50%, transparent 55%, rgba(0,0,0,0.35) 100%)"></div>
+      <div class="title" style="left:70px; top:56px; font-size:140px">GERÇEKÇİ</div>
+      <div class="title yellow" style="left:74px; top:190px; font-size:140px">TAMİR</div>
+      <div class="list" style="left:84px; top:400px">🪛 Vidaları sök, kapağı aç<br>🔍 Test et, arızayı bul<br>🧩 Parçayı değiştir, topla<br>🔊 POST bip sesini dinle</div>
+      <div class="chips" style="left:84px; bottom:52px"><div class="chip">30+ arıza</div><div class="chip blue">GPU • RAM • PSU • SSD</div></div>`;
+  },
+  shop() {
+    card.innerHTML = `
+      <div class="fill" style="background: radial-gradient(circle at 60% 55%, #ffd38a 0%, #f39a52 45%, #b4513a 100%)"></div>
+      <div class="fill" style="background: repeating-conic-gradient(from 0deg at 60% 55%, rgba(255,255,255,0.08) 0deg 8deg, transparent 8deg 16deg)"></div>
+      <img src="out/promo_shop.png" style="position:absolute; left:300px; top:90px; width:1700px; filter: drop-shadow(0 30px 40px rgba(60,20,0,0.45))">
+      <div class="title" style="left:70px; top:52px; font-size:150px">DÜKKÂNINI</div>
+      <div class="title yellow" style="left:74px; top:196px; font-size:150px">BÜYÜT</div>
+      <div class="chips" style="left:80px; bottom:60px; flex-direction:column; gap:22px">
+        <div class="chip">🛠️ 8 tezgâha kadar</div>
+        <div class="chip blue">🧑‍🔧 Teknisyen ve müdür tut</div>
+        <div class="chip green">🪴 Dekor, vitrin, güvenlik</div>
+      </div>`;
+  },
+  city() {
+    card.innerHTML = `
+      ${img('promo_fun.png')}
+      <div class="fill" style="background: linear-gradient(to bottom, rgba(8,18,40,0.6) 0%, rgba(8,18,40,0.2) 32%, transparent 50%, transparent 76%, rgba(8,18,40,0.5) 100%)"></div>
+      <div class="title" style="left:70px; top:56px; font-size:150px">KOCAMAN</div>
+      <div class="title yellow" style="left:74px; top:200px; font-size:150px">ŞEHİR</div>
+      <div class="chips" style="left:80px; bottom:60px">
+        <div class="chip">🚗 Araba ve motor al</div>
+        <div class="chip blue">🛒 Parçacı • 2. El • Hurdalık</div>
+        <div class="chip green">🗺️ M: Harita</div>
+      </div>`;
+  },
+};
+
+(cards[kind] || cards.main)();
+Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; }))])
+  .then(() => { window.__ready = true; });
+</script>
+</body>
+</html>
