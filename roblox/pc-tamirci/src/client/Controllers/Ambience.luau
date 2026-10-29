@@ -68,6 +68,12 @@ local function lightsOf(inst: Instance): { Light }
 	for _, d in inst:GetChildren() do
 		if d:IsA("Light") then
 			table.insert(out, d)
+		elseif d:IsA("Attachment") then
+			for _, l in d:GetChildren() do
+				if l:IsA("Light") then
+					table.insert(out, l)
+				end
+			end
 		end
 	end
 	return out

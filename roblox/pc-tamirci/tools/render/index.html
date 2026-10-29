@@ -88,19 +88,70 @@ if (night) {
   // lit windows / lamps only glow at night in the game: show NightWindow-like neon brighter
 }
 
+// Roblox meshes (converted by meshconv.py), normalised to a unit cube so the part size scales them
+const meshGeos = new Map();
+async function meshGeo(id) {
+  if (meshGeos.has(id)) return meshGeos.get(id);
+  let g = null;
+  try {
+    const r = await fetch(`out/meshes/${id}.json`);
+    if (r.ok) {
+      const m = await r.json();
+      const c = [0, 1, 2].map((k) => (m.min[k] + m.max[k]) / 2);
+      const e = [0, 1, 2].map((k) => Math.max(1e-4, m.max[k] - m.min[k]));
+      const pos = new Float32Array(m.p.length);
+      for (let i = 0; i < m.p.length; i++) pos[i] = (m.p[i] - c[i % 3]) / e[i % 3];
+      g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(m.n, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(m.uv, 2));
+      g.setIndex(m.i);
+    }
+  } catch (err) { /* drawn as a box */ }
+  meshGeos.set(id, g);
+  return g;
+}
+const texLoader = new THREE.TextureLoader();
+const texMats = new Map();
+async function texMaterial(id, mk) {
+  const key = id + '|' + mk;
+  if (texMats.has(key)) return texMats.get(key);
+  let mat = null;
+  try {
+    const t = await texLoader.loadAsync(`out/tex/${id}.png`);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    mat = materials[mk].clone();
+    mat.map = t;
+    mat.alphaTest = 0.3;
+    mat.transparent = mk === 'glass';
+  } catch (err) { /* plain colour */ }
+  texMats.set(key, mat);
+  return mat;
+}
+
 const groups = new Map();
 const clip = q.get('clip') ? +q.get('clip') : Infinity; // cutaway: drop parts above this height
 for (const p of data.parts) {
   if (!night && p.m === 'Neon' && p.t > 0.9) continue;
   if (p.p[1] > clip) continue;
-  const key = p.s + '|' + matKey(p);
+  const key = (p.s === 'mesh' && p.mesh ? 'mesh:' + p.mesh + ':' + (p.tex || '') : p.s) + '|' + matKey(p);
   if (!groups.has(key)) groups.set(key, []);
   groups.get(key).push(p);
 }
 const m4 = new THREE.Matrix4(), col = new THREE.Color();
 for (const [key, list] of groups) {
   const [shape, mk] = key.split('|');
-  const mesh = new THREE.InstancedMesh(geos[shape] || box, materials[mk], list.length);
+  let geo = geos[shape] || box, mat = materials[mk], textured = false;
+  if (shape.startsWith('mesh:')) {
+    const [, id, tex] = shape.split(':');
+    geo = (await meshGeo(id)) || box;
+    if (tex) {
+      const tm = await texMaterial(tex, mk);
+      if (tm) { mat = tm; textured = true; }
+    }
+  }
+  const mesh = new THREE.InstancedMesh(geo, mat, list.length);
   list.forEach((p, i) => {
     const [x, y, z] = p.p, r = p.r, s = p.z;
     m4.set(
@@ -109,7 +160,7 @@ for (const [key, list] of groups) {
       r[6] * s[0], r[7] * s[1], r[8] * s[2], z,
       0, 0, 0, 1);
     mesh.setMatrixAt(i, m4);
-    col.set('#' + p.c);
+    col.set(textured ? '#ffffff' : '#' + p.c);
     if (mk === 'glass') col.lerp(new THREE.Color(0x9ec9e0), 0.25);
     mesh.setColorAt(i, col);
   });

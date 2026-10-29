@@ -200,7 +200,18 @@ function Terrain.clearUnder(root: Instance): number
 		if d:IsA("BasePart") and d.Transparency < 1 then
 			local cf, size = d.CFrame, d.Size
 			local p = cf.Position
-			if Terrain.isGrass(p.X, p.Z) then
+			-- on grass if the middle or any corner of the footprint is (parts can straddle a lawn's edge)
+			local onGrass = Terrain.isGrass(p.X, p.Z)
+			if not onGrass then
+				for _, c in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+					local q = cf * Vector3.new(c[1] * size.X / 2, 0, c[2] * size.Z / 2)
+					if Terrain.isGrass(q.X, q.Z) then
+						onGrass = true
+						break
+					end
+				end
+			end
+			if onGrass then
 				local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
 				local halfY = (math.abs(r.Y) * size.X + math.abs(u.Y) * size.Y + math.abs(l.Y) * size.Z) / 2
 				local gy = Terrain.groundHeight(p.X, p.Z)

@@ -200,6 +200,15 @@ roblox.implementMethod("Model", "GetPivot", function(model)
 	if b.pivot then
 		return b.pivot
 	end
+	-- like Roblox: the primary part, else the model's own WorldPivot (set by the asset library)
+	if not model.PrimaryPart then
+		local ok, wp = pcall(function()
+			return model.WorldPivot
+		end)
+		if ok and wp then
+			return wp
+		end
+	end
 	return primaryCFrame(model)
 end)
 roblox.implementMethod("Model", "PivotTo", function(model, cf)
@@ -239,9 +248,23 @@ roblox.implementMethod("Model", "GetExtentsSize", function(model)
 end)
 roblox.implementMethod("Model", "AddPersistentPlayer", function() end)
 roblox.implementMethod("Model", "RemovePersistentPlayer", function() end)
-roblox.implementMethod("Model", "ScaleTo", function() end)
-roblox.implementMethod("Model", "GetScale", function()
-	return 1
+roblox.implementMethod("Model", "ScaleTo", function(model, newScale)
+	local b = bag(model)
+	local f = newScale / (b.scale or 1)
+	local pivot = model:GetPivot()
+	local o = pivot.Position
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local cf = d.CFrame
+			d.Size = d.Size * f
+			d.CFrame = (cf - cf.Position) + (o + (cf.Position - o) * f)
+		end
+	end
+	b.pivot = pivot
+	b.scale = newScale
+end)
+roblox.implementMethod("Model", "GetScale", function(model)
+	return bag(model).scale or 1
 end)
 roblox.implementMethod("BasePart", "SetNetworkOwner", function() end)
 roblox.implementMethod("BasePart", "SetNetworkOwnershipAuto", function() end)

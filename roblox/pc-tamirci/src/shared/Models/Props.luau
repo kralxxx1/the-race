@@ -3,6 +3,7 @@
 
 local B = require(script.Parent.Parent.Util.Builder)
 local Rand = require(script.Parent.Parent.Util.Rand)
+local Assets = require(script.Parent.Parent.Util.Assets)
 
 local Props = {}
 local P = B.Palette
@@ -31,9 +32,37 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Vegetation
 ----------------------------------------------------------------------------------------------------
+-- Real trees from the Forest Pack: names and the height range they're scaled to.
+local TREES = {
+	oak = { { "TreeBroadleaf", "TreeMaple", "TreeDogwood", "TreeBeech" }, 20, 30 },
+	birch = { { "TreeBeechYoung", "TreeDogwood" }, 18, 24 },
+	pine = { { "TreeRedwood" }, 26, 38 },
+	bush = { { "BushLaurel", "BushRhodo", "BushRhodo2", "Fern" }, 2.6, 4.2 },
+	forest = { { "TreeBeechBig", "TreeBeech", "TreeBroadleaf", "TreeMaple", "TreeRedwood" }, 30, 52 },
+}
+
+-- A real (asset) tree standing on cf, turned at random; nil when the asset library is missing.
+local function assetTree(parent: Instance, cf: CFrame, kind: string, r: Random): Model?
+	local spec = TREES[kind]
+	if not spec then
+		return nil
+	end
+	local name = Rand.pick(r, spec[1])
+	local height = Rand.range(r, spec[2], spec[3])
+	local m = Assets.place(parent, "Nature", name, cf * CFrame.Angles(0, r:NextNumber() * math.pi * 2, 0), Assets.scaleFor("Nature", name, height))
+	if m then
+		m.Name = if kind == "bush" then "Bush" else "Tree"
+	end
+	return m
+end
+
 function Props.tree(parent: Instance, cf: CFrame, kind: string?, rng: Random?): Model
 	local r = rng or Random.new()
 	local k = kind or "oak"
+	local real = assetTree(parent, cf, k, r)
+	if real then
+		return real
+	end
 	local m = B.model("Tree", parent)
 	if k == "oak" or k == "birch" then
 		local h = Rand.range(r, 6, 10)
@@ -104,11 +133,23 @@ function Props.tree(parent: Instance, cf: CFrame, kind: string?, rng: Random?): 
 	return m
 end
 
+local FLOWERS = { "FlowersA", "FlowersB", "FlowersC", "Marigold", "Shrub1", "Shrub2", "Shrub3", "Shrub4", "Shrub5", "Shrub6" }
+
 function Props.flowerBed(parent: Instance, cf: CFrame, w: number, d: number, rng: Random?)
 	local r = rng or Random.new()
 	local m = B.model("FlowerBed", parent)
 	B.box(m, cf * CFrame.new(0, 0.5, 0), Vector3.new(w, 1, d), Color3.fromRGB(150, 140, 125), M.Concrete)
 	B.box(m, cf * CFrame.new(0, 0.95, 0), Vector3.new(w - 0.8, 0.2, d - 0.8), P.soil, M.Ground, noCollide())
+	-- real flowers and shrubs when the asset library is there
+	if Assets.get("Garden", "FlowersA") then
+		local n = math.clamp(math.floor(w * d / 7), 2, 14)
+		for _ = 1, n do
+			local name = Rand.pick(r, FLOWERS)
+			local p = cf * CFrame.new(Rand.range(r, -w / 2 + 1, w / 2 - 1), 1.05, Rand.range(r, -d / 2 + 1, d / 2 - 1)) * CFrame.Angles(0, r:NextNumber() * 6.28, 0)
+			Assets.place(m, "Garden", name, p, Assets.scaleFor("Garden", name, Rand.range(r, 1.4, 2.4)))
+		end
+		return m
+	end
 	local cols = { Color3.fromRGB(230, 70, 90), Color3.fromRGB(250, 200, 60), Color3.fromRGB(240, 240, 250), Color3.fromRGB(170, 100, 220), Color3.fromRGB(250, 140, 60) }
 	local n = math.floor(w * d / 6)
 	for _ = 1, math.min(n, 18) do
@@ -122,9 +163,33 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Street furniture
 ----------------------------------------------------------------------------------------------------
+-- The parts of an asset that light up at night (marked "Bulb" by the asset library).
+local function tagBulbs(m: Instance)
+	for _, d in m:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("Bulb") then
+			d.Material = M.Glass
+			B.tag(d, "LampBulb")
+			for _, l in d:GetDescendants() do
+				if l:IsA("Light") then
+					l.Enabled = false
+				end
+			end
+		end
+	end
+end
+
 function Props.streetLamp(parent: Instance, cf: CFrame, style: string?): Model
-	local m = B.model("StreetLamp", parent)
 	local s = style or "modern"
+	if s == "modern" then
+		local real = Assets.place(parent, "CityProps", "StreetLight", cf, 0.62)
+		if real then
+			real.Name = "StreetLamp"
+			tagBulbs(real)
+			B.tag(real, "StreetLamp")
+			return real
+		end
+	end
+	local m = B.model("StreetLamp", parent)
 	local dark = Color3.fromRGB(46, 50, 56)
 	if s == "classic" then
 		B.cylY(m, cf * CFrame.new(0, 0.6, 0), 1.2, 1.4, dark, M.Metal)
@@ -187,6 +252,11 @@ function Props.bin(parent: Instance, cf: CFrame): Model
 end
 
 function Props.hydrant(parent: Instance, cf: CFrame): Model
+	local real = Assets.place(parent, "CityProps", "HydrantRed", cf, 1)
+	if real then
+		real.Name = "Hydrant"
+		return real
+	end
 	local m = B.model("Hydrant", parent)
 	local red = Color3.fromRGB(196, 40, 36)
 	B.cylY(m, cf * CFrame.new(0, 1.1, 0), 2.2, 0.9, red, M.Metal)
@@ -197,6 +267,12 @@ end
 
 function Props.planter(parent: Instance, cf: CFrame, rng: Random?): Model
 	local r = rng or Random.new()
+	local name = Rand.pick(r, { "PlanterSquare", "PlanterRound", "PlanterLong" })
+	local real = Assets.place(parent, "CityProps", name, cf, Assets.scaleFor("CityProps", name, 2.6))
+	if real then
+		real.Name = "Planter"
+		return real
+	end
 	local m = B.model("Planter", parent)
 	B.box(m, cf * CFrame.new(0, 1, 0), Vector3.new(3.4, 2, 3.4), Color3.fromRGB(170, 160, 150), M.Concrete)
 	B.box(m, cf * CFrame.new(0, 2.05, 0), Vector3.new(2.8, 0.2, 2.8), P.soil, M.Ground, noCollide())
@@ -204,7 +280,28 @@ function Props.planter(parent: Instance, cf: CFrame, rng: Random?): Model
 	return m
 end
 
+local LAMP_COLORS = { Red = Color3.fromRGB(255, 50, 40), Amber = Color3.fromRGB(255, 180, 30), Green = Color3.fromRGB(40, 230, 90) }
+
 function Props.trafficLight(parent: Instance, cf: CFrame, axis: string, nodeKey: string): Model
+	local real = Assets.place(parent, "CityProps", "TrafficLightPole", cf, 0.62)
+	if real then
+		real.Name = "TrafficLight"
+		-- the lenses sit at the top of the model as Red / Amber / Green for the signal cycle
+		for _, d in real:GetDescendants() do
+			if d:IsA("BasePart") and (d.Name == "Red" or d.Name == "Yellow" or d.Name == "Green") then
+				d.Name = if d.Name == "Yellow" then "Amber" else d.Name
+				d.Parent = real
+				local on = LAMP_COLORS[d.Name]
+				d:SetAttribute("OnColor", on)
+				d.Color = on:Lerp(Color3.new(0, 0, 0), 0.75)
+				d.Material = M.SmoothPlastic
+			end
+		end
+		real:SetAttribute("Axis", axis)
+		real:SetAttribute("Node", nodeKey)
+		B.tag(real, "TrafficLight")
+		return real
+	end
 	local m = B.model("TrafficLight", parent)
 	local dark = Color3.fromRGB(36, 38, 42)
 	B.cylY(m, cf * CFrame.new(0, 6, 0), 12, 0.5, dark, M.Metal)
@@ -223,8 +320,19 @@ function Props.trafficLight(parent: Instance, cf: CFrame, axis: string, nodeKey:
 end
 
 function Props.busStop(parent: Instance, cf: CFrame, name: string): Model
-	local m = B.model("BusStop", parent)
 	local frame = Color3.fromRGB(60, 70, 84)
+	local real = Assets.place(parent, "CityProps", "BusStop", cf * CFrame.new(0, 0, 1), 0.62)
+	if real then
+		real.Name = "BusStop"
+		-- the stop's name over the shelter and the bus sign on its pole
+		local label = B.box(real, cf * CFrame.new(0, 9.2, -1.2), Vector3.new(8, 1, 0.2), Color3.fromRGB(30, 40, 60), M.SmoothPlastic, noCollide())
+		B.sign(label, Enum.NormalId.Front, "DURAK • " .. name, { color = Color3.fromRGB(255, 255, 255) })
+		local pole = B.cylY(real, cf * CFrame.new(-8.6, 5, -1.5), 10, 0.35, frame, M.Metal)
+		local plate = B.box(real, pole.CFrame * CFrame.new(4.6, 0, 0) * CFrame.Angles(0, 0, -math.pi / 2), Vector3.new(2.6, 0.2, 2.6), Color3.fromRGB(240, 200, 40), M.SmoothPlastic, noCollide())
+		B.sign(plate, Enum.NormalId.Top, "🚌", { color = Color3.fromRGB(30, 30, 30) })
+		return real
+	end
+	local m = B.model("BusStop", parent)
 	B.box(m, cf * CFrame.new(0, 0.15, 0), Vector3.new(12, 0.3, 5), Color3.fromRGB(150, 150, 150), M.Concrete)
 	for _, x in { -5.6, 5.6 } do
 		B.box(m, cf * CFrame.new(x, 4.2, 1.8), Vector3.new(0.4, 8.4, 0.4), frame, M.Metal)
@@ -453,8 +561,22 @@ function Props.chair(parent: Instance, cf: CFrame, color: any?): Model
 	return m
 end
 
+local POTS = { "PotDracaena", "PotRubber", "PotSnake", "PotFern", "PotEvergreen", "PotDoor", "PotTall", "PotBanana" }
+
 function Props.plant(parent: Instance, cf: CFrame, rng: Random?): Model
 	local r = rng or Random.new()
+	local name = Rand.pick(r, POTS)
+	-- as tall as a person's shoulder at most, and no wider than the old pot (1.9 studs)
+	local size = Assets.size("Garden", name)
+	local scale = Assets.scaleFor("Garden", name, Rand.range(r, 3.6, 5.2))
+	if size then
+		scale = math.min(scale, 1.9 / math.max(size.X, size.Z))
+	end
+	local real = Assets.place(parent, "Garden", name, cf * CFrame.Angles(0, r:NextInteger(0, 3) * math.pi / 2, 0), scale)
+	if real then
+		real.Name = "Plant"
+		return real
+	end
 	local m = B.model("Plant", parent)
 	B.cylY(m, cf * CFrame.new(0, 0.9, 0), 1.8, 1.6, Rand.pick(r, { Color3.fromRGB(200, 120, 80), Color3.fromRGB(240, 240, 236), Color3.fromRGB(40, 40, 44) }), M.Slate)
 	for i = 1, 5 do

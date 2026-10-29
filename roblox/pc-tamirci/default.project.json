@@ -6,6 +6,9 @@
       "$className": "ReplicatedStorage",
       "Shared": {
         "$path": "src/shared"
+      },
+      "Assets": {
+        "$path": "assets/shared"
       }
     },
     "ServerScriptService": {
@@ -55,16 +58,32 @@
         "EnvironmentDiffuseScale": 1,
         "EnvironmentSpecularScale": 1,
         "ExposureCompensation": 0.1,
-        "Ambient": [0.16, 0.16, 0.18],
-        "OutdoorAmbient": [0.47, 0.49, 0.53]
+        "Ambient": [
+          0.16,
+          0.16,
+          0.18
+        ],
+        "OutdoorAmbient": [
+          0.47,
+          0.49,
+          0.53
+        ]
       },
       "Atmosphere": {
         "$className": "Atmosphere",
         "$properties": {
           "Density": 0.3,
           "Offset": 0.22,
-          "Color": [0.78, 0.74, 0.66],
-          "Decay": [0.42, 0.44, 0.49],
+          "Color": [
+            0.78,
+            0.74,
+            0.66
+          ],
+          "Decay": [
+            0.42,
+            0.44,
+            0.49
+          ],
           "Glare": 0.35,
           "Haze": 1.4
         }
@@ -92,7 +111,11 @@
           "Contrast": 0.07,
           "Saturation": 0.1,
           "Brightness": 0.01,
-          "TintColor": [1, 0.985, 0.96]
+          "TintColor": [
+            1,
+            0.985,
+            0.96
+          ]
         }
       },
       "SunRays": {
@@ -123,6 +146,12 @@
       "$className": "Players",
       "$properties": {
         "CharacterAutoLoads": true
+      }
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "Assets": {
+        "$path": "assets/server"
       }
     }
   }

@@ -71,6 +71,26 @@ local function dumpParts(root, center: any?, radius: number?)
 						label = { text = tl.Text, face = gui.Face.Name, color = hex(tl.TextColor3), bg = if tl.BackgroundTransparency < 1 then hex(tl.BackgroundColor3) else nil }
 					end
 				end
+				-- MeshParts: the mesh and its texture (ids), drawn by the previewer
+				local meshId, texId = nil, nil
+				if d:IsA("MeshPart") then
+					local okM, mc = pcall(function()
+						return tostring(d.MeshContent)
+					end)
+					meshId = okM and string.match(mc, "(%d+)") or nil
+					local okX, tc = pcall(function()
+						return tostring(d.TextureContent)
+					end)
+					texId = okX and string.match(tc, "(%d+)") or nil
+					local sa = d:FindFirstChildOfClass("SurfaceAppearance")
+					if sa then
+						local okS, cm = pcall(function()
+							return tostring(sa.ColorMapContent)
+						end)
+						texId = (okS and string.match(cm, "(%d+)")) or texId
+					end
+					shape = "mesh"
+				end
 				table.insert(out, {
 					s = shape,
 					p = { r3(x), r3(y), r3(z) },
@@ -80,6 +100,8 @@ local function dumpParts(root, center: any?, radius: number?)
 					m = d.Material.Name,
 					t = r3(transp),
 					l = label,
+					mesh = meshId,
+					tex = texId,
 				})
 			end
 		end
@@ -106,6 +128,61 @@ if what == "world" then
 		beachZ = CityLayout.BEACH_Z,
 		bounds = CityLayout.get().bounds,
 	}
+elseif what == "pack" then
+	-- the items of a downloaded Roblox pack (build/packs/<id>.rbxm) side by side, to look at them
+	local fs = require("@lune/fs")
+	-- a pack id, or the path of a curated library (assets/server/Nature.rbxm)
+	local arg = process.args[2]
+	local file = if string.find(arg, "/", 1, true) then arg else "build/packs/" .. arg .. ".rbxm"
+	local insts = roblox.deserializeModel(fs.readFile(file))
+	local filter = process.args[3]
+	local items = if #insts == 1 then insts[1]:GetChildren() else insts
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	local x, row, rowDepth = 0, 0, 0
+	for _, item in items do
+		if (item:IsA("Model") or item:IsA("BasePart") or item:IsA("Folder")) and item.Name ~= "RobloxBillboard" and (not filter or string.find(item.Name, filter, 1, true)) then
+			local clone = item:Clone()
+			for _, d in clone:GetDescendants() do
+				if d:IsA("LuaSourceContainer") then
+					d:Destroy()
+				end
+			end
+			clone.Parent = folder
+			local lo, hi
+			for _, d in clone:GetDescendants() do
+				if d:IsA("BasePart") then
+					local cf, sz = d.CFrame, d.Size
+					local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+					local e = roblox.Vector3.new(
+						math.abs(r.X) * sz.X + math.abs(u.X) * sz.Y + math.abs(l.X) * sz.Z,
+						math.abs(r.Y) * sz.X + math.abs(u.Y) * sz.Y + math.abs(l.Y) * sz.Z,
+						math.abs(r.Z) * sz.X + math.abs(u.Z) * sz.Y + math.abs(l.Z) * sz.Z
+					) / 2
+					local p = cf.Position
+					lo = if lo then lo:Min(p - e) else p - e
+					hi = if hi then hi:Max(p + e) else p + e
+				end
+			end
+			if lo then
+				local size = hi - lo
+				if x > 0 and x + size.X > 400 then
+					x, row, rowDepth = 0, row + rowDepth + 6, 0
+				end
+				local shift = roblox.Vector3.new(x - lo.X, -lo.Y, row - lo.Z)
+				for _, d in clone:GetDescendants() do
+					if d:IsA("BasePart") then
+						d.CFrame = d.CFrame + shift
+					end
+				end
+				print(string.format("%-40s at (%.0f, %.0f)  size %.1f x %.1f x %.1f", clone.Name, x, row, size.X, size.Y, size.Z))
+				x += size.X + 6
+				rowDepth = math.max(rowDepth, size.Z)
+			end
+		end
+	end
+	result.parts = dumpParts(folder)
+	outName = "pack_" .. (string.match(arg, "([%w_]+)%.rbxm$") or arg)
 elseif what == "shop" then
 	local level = tonumber(process.args[2]) or 1
 	local ShopBuilder = Engine.mod("ReplicatedStorage.Shared.Models.ShopBuilder")
