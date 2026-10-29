@@ -200,7 +200,13 @@ elseif what == "shop" then
 	local folder = roblox.Instance.new("Folder")
 	folder.Parent = Engine.workspace
 	local front = roblox.CFrame.lookAt(roblox.Vector3.new(0, 0.75, 0), roblox.Vector3.new(0, 0.75, -1))
-	local shopModel = ShopBuilder.build(folder, front, { level = level, name = "Kral Bilgisayar", wall = "brick", floor = "parquet", accent = 1, items = { plants = true, tea = true, tv = true, neon = true, sofa = true, aquarium = level >= 4, arcade = level >= 5, rgb_lights = level >= 4, posters = true, coffee = true, camera = true, tool_wall = true, parts_shelves = true, showcase = level >= 4 }, plotWidth = 62, plotDepth = 84 })
+	local items = { plants = true, tea = true, tv = true, neon = true, sofa = true, aquarium = level >= 4, arcade = level >= 5, rgb_lights = level >= 4, posters = true, coffee = true, camera = true, tool_wall = true, parts_shelves = true, showcase = level >= 4 }
+	if process.args[3] == "security" then
+		for _, id in { "alarm", "motion_lights", "steel_door", "smart_lock", "cctv_hd", "guard_dog", "panic_button", "insurance", "safe" } do
+			items[id] = true
+		end
+	end
+	local shopModel = ShopBuilder.build(folder, front, { level = level, name = "Kral Bilgisayar", wall = "brick", floor = "parquet", accent = 1, items = items, plotWidth = 62, plotDepth = 84 })
 	if process.args[3] == "showcase" then
 		-- the same placement ShowcaseService uses
 		local DeviceGen = Engine.mod("ReplicatedStorage.Shared.Repair.DeviceGen")

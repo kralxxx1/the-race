@@ -1,10 +1,15 @@
--- ThiefService: shoplifters. Now and then (more often at night) a thief slips into a shop, grabs
--- cash from the register or a part from the shelves and runs for it. Anyone can catch a runner
--- with the "Catch!" prompt; guards chase them; cameras warn the owner and alarms slow them down.
--- Scammers who bolt with a repaired device use the same chase.
+-- ThiefService: shoplifters and night burglars. Now and then (more often at night) a thief slips
+-- into a shop, grabs cash from the register or a part from the shelves and runs for it. At night,
+-- while the owner is away, a burglar forces the shutter and door instead (floodlights scare most
+-- of them off, a smart lock and a steel door slow them down, the alarm rings). Anyone can catch a
+-- runner with the "Catch!" prompt or a swing of the baseball bat; guards and the guard dog chase
+-- them; the panic button brings the police. If one gets away, the police may trace them from the
+-- camera footage, and the insurance pays back most of the loss. Scammers who bolt with a repaired
+-- device use the same chase.
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
+local CollectionService = game:GetService("CollectionService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -74,8 +79,43 @@ local function finish(model: Model)
 	NpcService.despawn(model)
 end
 
+-- A one-off 3D sound at a part of the shop.
+local function playAt(parent: Instance?, key: string, seconds: number?)
+	local def = Config.Sounds.Security and Config.Sounds.Security[key]
+	if not parent or not def then
+		return
+	end
+	local s = Instance.new("Sound")
+	s.Name = "Security_" .. key
+	s.SoundId = def.id
+	s.Volume = def.volume
+	s.RollOffMaxDistance = 160
+	s.Parent = parent
+	s:Play()
+	task.delay(seconds or 12, function()
+		s:Destroy()
+	end)
+end
+ThiefService._playAt = playAt
+
+local function items(player: Player)
+	local p = DataService.get(player)
+	return p and p.shop.items or {}
+end
+
+-- Value of what a thief took (cash plus the part's new price).
+local function lossOf(t): number
+	local v = t.cash or 0
+	if t.item then
+		local part = Parts.get(t.item.part)
+		v += (part and part.price or 0) * (t.item.cond or 1)
+	end
+	return v
+end
+
 -- The thief is caught: loot goes back to the owner, the catcher gets the bounty.
 local function caught(t, catcher: Player?, byGuard: string?)
+	t.caughtBy = byGuard or (catcher and catcher.DisplayName)
 	if t.done then
 		return
 	end
@@ -133,8 +173,56 @@ local function escaped(t)
 		end
 		Net.push(owner, "toast", { key = "thief_escaped", vars = { cash = t.cash or 0, part = t.item and (Parts.get(t.item.part) or {}).name or "" } })
 		DataService.rep(owner, -1)
+		local it = items(owner)
+		local loss = lossOf(t)
+		-- the police trace them from the footage (HD cameras nearly always) and bring it back...
+		local trace = if it.cctv_hd then 0.85 elseif it.camera then 0.45 else 0
+		if loss > 0 and rng:NextNumber() < trace then
+			task.delay(ThiefService.policeDelay, function()
+				if not owner.Parent then
+					return
+				end
+				if t.cash and t.cash > 0 then
+					DataService.money(owner, t.cash, "recovered")
+				end
+				if t.item then
+					local p2 = DataService.get(owner)
+					if p2 then
+						table.insert(p2.inv, t.item)
+						DataService.touch(owner)
+					end
+				end
+				Net.push(owner, "toast", { key = "police_recovered", vars = { amount = math.floor(loss) } })
+			end)
+		elseif loss > 0 and it.insurance then
+			-- ...or the insurance pays most of it
+			local payout = math.floor(loss * 0.7)
+			DataService.money(owner, payout, "insurance")
+			Net.push(owner, "toast", { key = "insurance_paid", vars = { amount = payout } })
+		end
 	end
 	finish(t.model)
+end
+ThiefService.policeDelay = 25
+
+-- At the door on the way out: the guard dog and the police (panic button) get a last go.
+local function lastChance(t): boolean
+	local it = items(t.owner)
+	if it.guard_dog then
+		playAt(point(t.owner, "Door"), "bark", 3)
+		if rng:NextNumber() < 0.5 then
+			caught(t, nil, "🐕 Karabaş")
+			return true
+		end
+	end
+	if it.panic_button and (it.alarm or t.night) then
+		playAt(point(t.owner, "Outside"), "police", 11)
+		if rng:NextNumber() < 0.6 then
+			caught(t, nil, "🚓 " .. (if DataService.lang(t.owner) == "en" then "Police" else "Polis"))
+			return true
+		end
+	end
+	return false
 end
 
 -- Guards run after the thief; their catch chance grows with skill and the "strong" trait.
@@ -188,7 +276,7 @@ local function visit(player: Player)
 		if t.done then
 			return
 		end
-		if prof.shop.items.camera then
+		if prof.shop.items.camera or prof.shop.items.cctv_hd then
 			Net.push(player, "toast", { key = "camera_alert" })
 		end
 		NpcService.say(model, Rand.pick(rng, LINES[lang].enter), 3)
@@ -208,6 +296,7 @@ local function visit(player: Player)
 			for _, d in shopModel:GetDescendants() do
 				if d:HasTag("AlarmLight") then
 					d:SetAttribute("Alarm", os.clock())
+					playAt(d, "alarm", 11)
 				end
 			end
 			Net.push(player, "toast", { key = "alarm" })
@@ -234,14 +323,180 @@ local function visit(player: Player)
 		if hum then
 			hum.WalkSpeed = if prof.shop.items.alarm then 13 else 16
 		end
-		NpcService.walkPath(model, { door, point(player, "Outside"), exit }, true)
-		if not t.done then
+		NpcService.walkPath(model, { door, point(player, "Outside") }, true)
+		if not t.done and not lastChance(t) then
+			NpcService.walkTo(model, exit.Position, 10)
 			escaped(t)
 		end
 	end)
 end
 
+-- Is the owner away from the shop (so the shop is closed for the night)?
+local function ownerAway(player: Player): boolean
+	local door = point(player, "Door")
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	return not door or not root or (root.Position - door.Position).Magnitude > 70
+end
+ThiefService.ownerAway = ownerAway
+
+-- A night burglary: force the shutter and the door, take the cash (or the dearest part), run.
+local function burgle(player: Player)
+	local shop = PlotService.shopOf(player)
+	local prof = DataService.get(player)
+	if not shop or not prof then
+		return
+	end
+	local street, outside, door, register, exit = point(player, "Street"), point(player, "Outside"), point(player, "Door"), point(player, "Register"), point(player, "ThiefExit")
+	if not street or not outside or not door or not register or not exit then
+		return
+	end
+	local it = prof.shop.items
+	local _, protect = security(player)
+	local lang = DataService.lang(player)
+	local name, gender = Customers.randomName(rng, false, NpcService.pickGender("thief", rng))
+	local model = NpcService.spawn({ look = "thief", gender = gender, name = name, cf = street.CFrame * CFrame.new(Rand.range(rng, -40, 40), 3, 0), speed = 8 })
+	model:SetAttribute("Thief", true)
+	model:SetAttribute("Burglar", true)
+	model:AddTag("Runner")
+	local t = { model = model, owner = player, phase = "sneak", night = true }
+	thieves[model] = t
+	NpcService.tag(model, name)
+	task.spawn(function()
+		NpcService.walkTo(model, outside.Position)
+		if t.done then
+			return
+		end
+		-- floodlights: most of them think again
+		if it.motion_lights then
+			for _, d in shop.model:GetDescendants() do
+				if d:HasTag("Floodlight") then
+					d:SetAttribute("Flash", os.clock())
+				end
+			end
+			if rng:NextNumber() < 0.45 then
+				Net.push(player, "toast", { key = "burglar_scared" })
+				NpcService.walkTo(model, exit.Position, 12)
+				finish(model)
+				return
+			end
+		end
+		if it.camera or it.cctv_hd then
+			Net.push(player, "toast", { key = "burglar_camera" })
+		end
+		-- forcing the shutter and the door
+		t.phase = "break"
+		addCatchPrompt(model, if lang == "en" then "Catch!" else "Yakala!")
+		local breakTime = ThiefService.breakSeconds * (if it.shutter then 3 else 1) * (if it.steel_door then 1.8 else 1) + (if it.smart_lock then ThiefService.breakSeconds * 0.75 else 0)
+		NpcService.say(model, "🔧", breakTime)
+		playAt(door, "forcing", math.min(breakTime, 11))
+		sendGuards(t)
+		local waited = 0
+		while waited < breakTime and not t.done do
+			task.wait(0.5)
+			waited += 0.5
+			if it.alarm and waited >= math.min(2, breakTime) and not t.alarmed then
+				t.alarmed = true
+				for _, d in shop.model:GetDescendants() do
+					if d:HasTag("AlarmLight") then
+						d:SetAttribute("Alarm", os.clock())
+						playAt(d, "alarm", 11)
+					end
+				end
+				Net.push(player, "toast", { key = "alarm" })
+				if rng:NextNumber() < 0.35 then
+					Net.push(player, "toast", { key = "burglar_scared" })
+					NpcService.walkTo(model, exit.Position, 12)
+					finish(model)
+					return
+				end
+			end
+		end
+		if t.done then
+			return
+		end
+		NpcService.walkPath(model, { door, register })
+		if t.done then
+			return
+		end
+		t.phase = "steal"
+		task.wait(Config.ThiefStealSeconds)
+		if t.done then
+			return
+		end
+		-- the till, or the dearest part when the cash is in the safe
+		local amount = math.floor(math.min(prof.money * Config.ThiefMaxStealFraction * 2, Config.ThiefMaxStealCap * 2) * (1 - protect) * Rand.range(rng, 0.6, 1))
+		if amount >= 50 and DataService.money(player, -amount, "theft") then
+			t.cash = amount
+		elseif #prof.inv > 0 then
+			local best, bestV = 1, -1
+			for i, item in prof.inv do
+				local part = Parts.get(item.part)
+				local v = (part and part.price or 0) * (item.cond or 1)
+				if v > bestV then
+					best, bestV = i, v
+				end
+			end
+			t.item = table.remove(prof.inv, best)
+			DataService.touch(player)
+		end
+		t.phase = "run"
+		NpcService.say(model, "🏃", 2)
+		local hum = model:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.WalkSpeed = 15
+		end
+		NpcService.walkPath(model, { door, outside }, true)
+		if not t.done and not lastChance(t) then
+			NpcService.walkTo(model, exit.Position, 10)
+			escaped(t)
+		end
+	end)
+end
+ThiefService.burgle = burgle
+ThiefService.breakSeconds = 8
+
 ThiefService.visit = visit
+
+-- A swing of the baseball bat: the nearest runner (thief or scammer) within reach is caught.
+function ThiefService.batHit(player: Player): boolean
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return false
+	end
+	local best, bestD = nil, ThiefService.batReach
+	for model, t in thieves do
+		local r = model.PrimaryPart
+		if not t.done and r then
+			local d = (r.Position - root.Position).Magnitude
+			if d < bestD then
+				best, bestD = t, d
+			end
+		end
+	end
+	if best then
+		Net.push(best.owner, "toast", { key = "bat_hit", vars = { by = player.DisplayName } })
+		caught(best, player)
+		return true
+	end
+	for _, model in CollectionService:GetTagged("Runner") do
+		local r = model:IsA("Model") and model.PrimaryPart
+		if r and (r.Position - root.Position).Magnitude < ThiefService.batReach then
+			local cust = CustomerService.byModel(model)
+			if cust and CustomerService.caught(cust, player) then
+				return true
+			end
+		end
+	end
+	return false
+end
+ThiefService.batReach = 7
+
+-- (the tests load their own dice)
+function ThiefService._setRng(r)
+	rng = r or Random.new()
+end
 
 function ThiefService.init() end
 
@@ -301,7 +556,12 @@ function ThiefService.start()
 						local sec = security(player)
 						local shutterNight = p.shop.items.shutter and isNight()
 						nextVisit[player] = now + Rand.range(rng, range[1], range[2]) * (1 + sec * 0.15) * (if shutterNight then 1.8 else 1)
-						if rng:NextNumber() < (if shutterNight then 0.35 else 0.8) then
+						if isNight() and ownerAway(player) then
+							-- the shop is shut for the night: a burglar has a go at it
+							if rng:NextNumber() < 0.7 then
+								task.spawn(burgle, player)
+							end
+						elseif rng:NextNumber() < (if shutterNight then 0.35 else 0.8) then
 							task.spawn(visit, player)
 						end
 					end

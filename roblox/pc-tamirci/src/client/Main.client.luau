@@ -67,8 +67,8 @@ end
 -- Messages from the server
 ----------------------------------------------------------------------------------------------------
 local MONEY_VARS = { amount = true, fine = true, bounty = true, cash = true, price = true, bonus = true, reward = true }
-local BILL_KINDS = { utilities = true, rent = true, sgk = true, tax = true, fine = true }
-local GOOD = { power_back = true, quest_done = true, offline_income = true, tech_done = true, caught_scammer = true, thief_caught = true, bounty = true, moved = true, manager_bought = true, contract_machine = true, contract_done = true, showcase_put = true, showcase_sold = true }
+local BILL_KINDS = { utilities = true, rent = true, sgk = true, tax = true, fine = true, insurance = true }
+local GOOD = { power_back = true, burglar_scared = true, police_recovered = true, insurance_paid = true, bat_hit = true, quest_done = true, offline_income = true, tech_done = true, caught_scammer = true, thief_caught = true, bounty = true, moved = true, manager_bought = true, contract_machine = true, contract_done = true, showcase_put = true, showcase_sold = true }
 local BAD = { power_cut = true, police_fine = true, customer_left = true, scammer_escaped = true, thief_escaped = true, alarm = true, staff_quit = true, esd_zap = true, jobs_full = true, contract_machine_bad = true }
 
 Net.on("toast", function(t)
@@ -101,9 +101,9 @@ Net.on("toast", function(t)
 			vars.cash = ""
 		end
 	end
-	local kind = if GOOD[t.key] then "good" elseif BAD[t.key] then "bad" elseif t.key == "camera_alert" or t.key == "scammer_running" then "warn" else "info"
+	local kind = if GOOD[t.key] then "good" elseif BAD[t.key] then "bad" elseif t.key == "camera_alert" or t.key == "scammer_running" or t.key == "burglar_camera" then "warn" else "info"
 	Hud.toast(S.t("t_" .. t.key, vars), kind, if kind == "bad" or kind == "warn" then 6 else 4.5)
-	if t.key == "alarm" or t.key == "camera_alert" or t.key == "scammer_running" then
+	if t.key == "alarm" or t.key == "camera_alert" or t.key == "scammer_running" or t.key == "burglar_camera" then
 		Hud.banner("🚨")
 	end
 end)

@@ -91,6 +91,9 @@ end
 for _, name in { "MouseButton1Click", "MouseButton1Down", "MouseButton1Up", "MouseButton2Click", "Activated", "MouseEnter", "MouseLeave", "InputBegan", "InputEnded", "InputChanged", "MouseWheelForward", "MouseWheelBackward" } do
 	eventProp("GuiObject", name)
 end
+for _, name in { "Activated", "Deactivated", "Equipped", "Unequipped" } do
+	eventProp("Tool", name)
+end
 for _, name in { "FocusLost", "Focused", "ReturnPressedFromOnScreenKeyboard" } do
 	eventProp("TextBox", name)
 end

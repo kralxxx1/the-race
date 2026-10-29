@@ -140,6 +140,19 @@ Tools.byId = {}
 for _, t in Tools.list do
 	Tools.byId[t.id] = t
 end
+
+-- Gear: things you carry instead of using them on the bench (equip with the number keys).
+Tools.gear = {
+	{
+		id = "bat", icon = "🏏", price = 45, level = 2,
+		name = { tr = "Beyzbol Sopası", en = "Baseball Bat" },
+		desc = { tr = "Kaçan hırsıza ya da dolandırıcıya bir tane geçir: yakalanır, ödülü sen alırsın. (Normal müşterilere işlemez.)", en = "Give a running thief or scammer a whack: they're caught and the bounty is yours. (Honest customers are safe.)" },
+	},
+}
+Tools.gearById = {}
+for _, g in Tools.gear do
+	Tools.gearById[g.id] = g
+end
 table.sort(Tools.list, function(a, b)
 	return a.order < b.order
 end)

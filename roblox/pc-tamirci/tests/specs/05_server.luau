@@ -313,6 +313,147 @@ return function(T)
 		T.ok(p.money >= 3000, "nothing lost")
 	end)
 
+	T.test("server: night security — the bat, floodlights, alarm, the dog, police footage, insurance", function()
+		local Config = Engine.mod("ReplicatedStorage.Shared.Config")
+		local CS = game:GetService("CollectionService")
+		local p = DataService.get(player)
+		p.money = 100000
+		p.level = 5
+		-- the bat from the hardware store lands in the backpack
+		for _, a in CS:GetTagged("ServicePoint") do
+			if a:GetAttribute("Service") == "tools" then
+				player.Character:PivotTo(a.CFrame)
+				pps.PromptTriggered:Fire(a:FindFirstChildOfClass("ProximityPrompt"), player)
+				break
+			end
+		end
+		T.ok(request("gear.buy", { id = "bat" }).ok, "buy the bat")
+		local bat = waitFor(function()
+			for _, t in player:FindFirstChildOfClass("Backpack"):GetChildren() do
+				if t:IsA("Tool") and t:GetAttribute("Gear") == "bat" then
+					return t
+				end
+			end
+			return nil
+		end, 3, "the bat in the backpack")
+		T.ok(bat:FindFirstChild("Handle") ~= nil, "bat handle")
+		-- every countermeasure, each one visible in the shop
+		for _, id in { "motion_lights", "alarm", "steel_door", "cctv_hd", "guard_dog", "panic_button", "insurance" } do
+			T.ok(request("shop.buyItem", { id = id }).ok, "buy " .. id)
+		end
+		local found = {}
+		for _, d in PlotService.shopOf(player).model:GetDescendants() do
+			for _, tag in { "Floodlight", "AlarmLight", "GuardDog" } do
+				if d:HasTag(tag) then
+					found[tag] = d
+				end
+			end
+			if d.Name == "CCTVMonitor" or d.Name == "PanicButton" then
+				found[d.Name] = d
+			end
+		end
+		for _, what in { "Floodlight", "AlarmLight", "GuardDog", "CCTVMonitor", "PanicButton" } do
+			T.ok(found[what] ~= nil, what .. " in the shop")
+		end
+		-- loaded dice: `roll` is every chance the thieves and the owner get
+		local roll = 0
+		ThiefService._setRng({
+			NextNumber = function()
+				return roll
+			end,
+			NextInteger = function(_, a)
+				return a
+			end,
+		})
+		local steal, brk, delay = Config.ThiefStealSeconds, ThiefService.breakSeconds, ThiefService.policeDelay
+		Config.ThiefStealSeconds = 0.2
+		ThiefService.policeDelay = 0.2
+		local function toast(key: string)
+			for i = #pushes, 1, -1 do
+				local d = pushes[i]
+				if d.channel == "toast" and d.data.key == key then
+					return d.data
+				end
+			end
+			return nil
+		end
+
+		-- a burglar walks up in the night: the floodlights blaze and he thinks again
+		pushes = {}
+		roll = 0
+		ThiefService.burgle(player)
+		waitFor(function()
+			return toast("burglar_scared")
+		end, 6, "the floodlights scare him off")
+		T.ok(found.Floodlight:GetAttribute("Flash") ~= nil, "the floodlights flash")
+
+		-- one who isn't scared forces the steel door; the alarm goes off; a swing of the bat ends it
+		pushes = {}
+		roll = 0.99
+		ThiefService.breakSeconds = 3
+		local before = {}
+		for _, d in Engine.workspace.NPCs:GetChildren() do
+			before[d] = true
+		end
+		ThiefService.burgle(player)
+		local burglar = waitFor(function()
+			for _, d in Engine.workspace.NPCs:GetChildren() do
+				if not before[d] and d:GetAttribute("Burglar") and d.PrimaryPart and d.PrimaryPart:FindFirstChild("CatchPrompt") then
+					return d
+				end
+			end
+			return nil
+		end, 5, "the burglar at the door")
+		T.ok(toast("burglar_camera") ~= nil, "the cameras see him")
+		waitFor(function()
+			return toast("alarm")
+		end, 4, "the alarm goes off")
+		T.ok(found.AlarmLight:GetAttribute("Alarm") ~= nil, "the alarm lights flash")
+		T.ok(found.AlarmLight:FindFirstChild("Security_alarm") ~= nil, "the siren sounds")
+		local caught0 = p.stats.caught
+		bat.Parent = player.Character
+		player.Character:PivotTo(burglar.PrimaryPart.CFrame * roblox.CFrame.new(0, 0, 3))
+		bat.Activated:Fire()
+		T.ok(toast("bat_hit") ~= nil, "hit with the bat")
+		T.eq(p.stats.caught, caught0 + 1, "caught")
+		bat.Parent = player:FindFirstChildOfClass("Backpack")
+
+		-- one gets away with the till: the insurance pays 70 % of it
+		pushes = {}
+		ThiefService.breakSeconds = 0.2
+		ThiefService.burgle(player)
+		local paid = waitFor(function()
+			return toast("insurance_paid")
+		end, 8, "the insurance pays")
+		local gone = toast("thief_escaped")
+		T.ok(gone and gone.vars.cash > 0, "the till was emptied")
+		T.eq(paid.vars.amount, math.floor(gone.vars.cash * 0.7), "70 % back")
+
+		-- a shoplifter runs out of the door into Karabaş
+		pushes = {}
+		roll = 0
+		ThiefService.visit(player)
+		local dog = waitFor(function()
+			return toast("thief_caught")
+		end, 8, "the dog catches him")
+		T.ok(string.find(dog.vars.by, "Karabaş", 1, true) ~= nil, "caught by Karabaş")
+
+		-- another slips past the dog and the police at the door, but the police find him on the
+		-- HD footage and bring the cash back
+		pushes = {}
+		roll = 0.7
+		ThiefService.visit(player)
+		local back = waitFor(function()
+			return toast("police_recovered")
+		end, 8, "the police bring it back")
+		local ran = toast("thief_escaped")
+		T.ok(ran and ran.vars.cash > 0, "cash taken")
+		T.eq(back.vars.amount, ran.vars.cash, "all of it back")
+
+		ThiefService._setRng(nil)
+		Config.ThiefStealSeconds, ThiefService.breakSeconds, ThiefService.policeDelay = steal, brk, delay
+	end)
+
 	T.test("server: people wear real catalog avatars that match their names", function()
 		local Avatars = Engine.mod("ReplicatedStorage.Shared.Data.Avatars")
 		local Customers = Engine.mod("ReplicatedStorage.Shared.Data.Customers")

@@ -592,6 +592,80 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	if items.shutter then
 		B.box(shop, front * CFrame.new(0, H - 1.6, -1), Vector3.new(W - 2, 2.4, 1.6), Color3.fromRGB(150, 154, 160), M.DiamondPlate)
 	end
+	if items.motion_lights then
+		-- floodlights high on the facade either side of the door (the client lights them up)
+		for side = -1, 1, 2 do
+			local fcf = front * CFrame.new(side * 7, H - 3.2, -0.7)
+			B.box(shop, fcf * CFrame.new(0, 0.5, 0.25), Vector3.new(0.4, 1, 0.5), Color3.fromRGB(40, 40, 44), M.Metal)
+			local lamp = B.box(shop, fcf * CFrame.Angles(math.rad(-35), 0, 0), Vector3.new(1.6, 1, 0.8), Color3.fromRGB(30, 30, 34), M.Metal)
+			local glass = B.box(shop, fcf * CFrame.Angles(math.rad(-35), 0, 0) * CFrame.new(0, 0, -0.42), Vector3.new(1.4, 0.8, 0.05), Color3.fromRGB(240, 240, 220), M.Glass, nc({ Name = "FloodGlass" }))
+			glass:AddTag("Floodlight")
+			local spot = Instance.new("SpotLight")
+			spot.Face = Enum.NormalId.Front
+			spot.Angle = 70
+			spot.Range = 40
+			spot.Brightness = 6
+			spot.Color = Color3.fromRGB(255, 250, 230)
+			spot.Enabled = false
+			spot.Parent = glass
+			_ = lamp
+		end
+		-- the PIR sensor over the door
+		B.box(shop, front * CFrame.new(0, 10.6, -0.4), Vector3.new(0.8, 0.6, 0.4), Color3.fromRGB(236, 236, 236), M.SmoothPlastic)
+	end
+	if items.steel_door then
+		-- a steel frame and a security grille rolled up over the doorway
+		for side = -1, 1, 2 do
+			B.box(shop, front * CFrame.new(side * 4.3, 5, -0.35), Vector3.new(0.5, 10, 0.5), Color3.fromRGB(70, 72, 78), M.DiamondPlate)
+		end
+		B.box(shop, front * CFrame.new(0, 10.1, -0.35), Vector3.new(9.1, 0.6, 0.6), Color3.fromRGB(70, 72, 78), M.DiamondPlate)
+	end
+	if items.smart_lock then
+		local pad = B.box(shop, front * CFrame.new(5.1, 4.2, -0.3), Vector3.new(0.7, 1.1, 0.2), Color3.fromRGB(26, 26, 30), M.SmoothPlastic)
+		pad.Name = "SmartLock"
+		B.box(shop, front * CFrame.new(5.1, 4.55, -0.42), Vector3.new(0.4, 0.15, 0.04), Color3.fromRGB(60, 230, 120), M.Neon, nc())
+	end
+	if items.cctv_hd then
+		-- dome cameras in the corners and the recorder's monitor on the counter
+		for side = -1, 1, 2 do
+			B.ball(shop, at(side * (inner - 1), D - 2, H - 0.9), 1.2, Color3.fromRGB(236, 236, 236), M.SmoothPlastic)
+		end
+		local mon = B.box(shop, counterCf * CFrame.new(-counterW / 2 + 1.4, 4.85, 0.6) * CFrame.Angles(0, math.pi, 0), Vector3.new(2.2, 1.4, 0.15), Color3.fromRGB(20, 20, 22), M.SmoothPlastic)
+		mon.Name = "CCTVMonitor"
+		B.sign(mon, Enum.NormalId.Front, "CAM 1   CAM 2\nCAM 3   CAM 4\n● REC", { color = Color3.fromRGB(120, 255, 140), background = Color3.fromRGB(14, 22, 18), glow = true, brightness = 1.4, font = B.Fonts.Mono })
+		B.box(shop, counterCf * CFrame.new(-counterW / 2 + 1.4, 4.2, 0.6), Vector3.new(0.6, 0.3, 0.6), Color3.fromRGB(30, 30, 32), M.SmoothPlastic)
+	end
+	if items.panic_button then
+		local btn = B.cylY(shop, counterCf * CFrame.new(counterW / 2 - 0.8, 4.12, 0.9), 0.25, 0.7, Color3.fromRGB(220, 30, 30), M.SmoothPlastic)
+		btn.Name = "PanicButton"
+		B.box(shop, counterCf * CFrame.new(counterW / 2 - 0.8, 4.02, 0.9), Vector3.new(1, 0.1, 1), Color3.fromRGB(250, 210, 40), M.SmoothPlastic)
+	end
+	if items.insurance then
+		wallItem({ walls.rightFront, walls.leftFront, walls.back }, 2.4, 0.15, 0.3, function(c)
+			local frame = B.box(shop, c * CFrame.new(0, 6.5, 0), Vector3.new(2.4, 3, 0.2), Color3.fromRGB(150, 110, 60), M.Wood)
+			local paper = B.box(shop, c * CFrame.new(0, 6.5, -0.12), Vector3.new(2.0, 2.6, 0.05), Color3.fromRGB(246, 244, 236), M.SmoothPlastic)
+			B.sign(paper, Enum.NormalId.Front, "İŞYERİ\nSİGORTA\nPOLİÇESİ", { color = Color3.fromRGB(30, 50, 120), font = B.Fonts.Serif })
+			_ = frame
+		end)
+	end
+	if items.guard_dog then
+		-- Karabaş, an Anatolian shepherd, lies on his cushion just inside the door
+		for ring = 0, 10 do
+			local done = false
+			for _, x in { 6.5 + ring, -6.5 - ring } do
+				local r = { x - 1.8, 1.2, x + 1.8, 4.2 }
+				if plan:free(r, "hard") and plan:free(r, "walk") then
+					plan:claim(r, "hard")
+					Props.guardDog(shop, at(x, 2.7, 0.12) * CFrame.Angles(0, if x > 0 then -math.pi / 2 else math.pi / 2, 0))
+					done = true
+					break
+				end
+			end
+			if done then
+				break
+			end
+		end
+	end
 	-- staff spots
 	standSpot("GuardSpot", 6.2, 3.2, { Role = "security" })
 	standSpot("ManagerSpot", 0, fz + 3, { Role = "manager" })

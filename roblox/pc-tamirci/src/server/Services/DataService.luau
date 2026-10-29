@@ -18,6 +18,7 @@ DataService.loaded = Signal.new() -- (player, profile)
 DataService.levelUp = Signal.new() -- (player, level)
 DataService.earned = Signal.new() -- (player, amount, reason) for every income
 DataService.spent = Signal.new() -- (player, amount, reason) for every payment
+DataService.gearChanged = Signal.new() -- (player) after buying gear
 
 local profiles: { [Player]: { [string]: any } } = {}
 local dirty: { [Player]: boolean } = {}
@@ -55,6 +56,7 @@ local function defaults()
 		rep = 50,
 		reviews = {},
 		tools = tools,
+		gear = {},
 		inv = {},
 		stock = stock,
 		shop = { plot = nil, level = 1, name = nil, wall = "white", floor = "tiles", accent = 1, items = {} },

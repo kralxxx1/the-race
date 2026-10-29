@@ -289,6 +289,27 @@ local function buyTool(player: Player, payload)
 	return { ok = true }
 end
 
+local function buyGear(player: Player, payload)
+	if not at(player, { "tools" }) or not V.tbl(payload) or not V.id(payload.id) then
+		return { ok = false, err = "far" }
+	end
+	local g = Tools.gearById[payload.id]
+	local prof = DataService.get(player)
+	if not g or not prof or prof.gear[g.id] then
+		return { ok = false }
+	end
+	if prof.level < (g.level or 1) then
+		return { ok = false, err = "level" }
+	end
+	if not DataService.money(player, -g.price, "tool") then
+		return { ok = false, err = "money" }
+	end
+	prof.gear[g.id] = true
+	DataService.touch(player)
+	DataService.gearChanged:Fire(player)
+	return { ok = true }
+end
+
 ----------------------------------------------------------------------------------------------------
 -- Your shop: levels, items, looks (from the estate agent or anywhere with the phone)
 ----------------------------------------------------------------------------------------------------
@@ -389,6 +410,7 @@ function MarketService.start()
 	Net.handle("market.sell", sell)
 	Net.handle("market.buyJunk", buyJunk)
 	Net.handle("tools.buy", buyTool)
+	Net.handle("gear.buy", buyGear)
 	Net.handle("shop.upgrade", upgradeShop)
 	Net.handle("shop.buyItem", buyItem)
 	Net.handle("shop.style", setStyle)

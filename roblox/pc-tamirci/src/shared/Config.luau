@@ -114,6 +114,15 @@ local Config = {
 			"rbxassetid://9046862941", -- Sunset Chill (Bed Version)
 			"rbxassetid://9046863253", -- Poolside
 		},
+		-- güvenlik: sopa, alarm, polis, bekçi köpeği, kepenk zorlama (Pro Sound Effects)
+		Security = {
+			swing = { id = "rbxassetid://9120972444", volume = 1 }, -- Wood Whoosh Slicing Air Quick Swings 1
+			batHit = { id = "rbxassetid://9125380872", volume = 0.9 }, -- Baseball Wood Bat Hits Hard Ball
+			alarm = { id = "rbxassetid://9119661709", volume = 0.7 }, -- Electronic Siren (alarm)
+			police = { id = "rbxassetid://9117810961", volume = 0.8 }, -- Police Siren Slow Vehicle Away
+			bark = { id = "rbxassetid://9113955372", volume = 1.4 }, -- Gruff Barking
+			forcing = { id = "rbxassetid://9117911320", volume = 1 }, -- Prison Door (metal latch jiggle)
+		},
 		Click = "rbxasset://sounds/clickfast.wav",
 		Cash = "rbxasset://sounds/electronicpingshort.wav",
 		-- tezgâhtaki işlerin sesleri (eylem adına göre); tornavida, hava, fırça ve temizlik

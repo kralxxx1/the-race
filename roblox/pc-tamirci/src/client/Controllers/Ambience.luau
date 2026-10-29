@@ -593,6 +593,13 @@ function Ambience.init()
 	end)
 	local beacons = track("Beacon")
 	local sirens = track("Siren")
+	-- shop security: the alarm box flashes for a while after it goes off, floodlights blaze when
+	-- something moves outside at night
+	local alarms = track("AlarmLight", function(inst)
+		-- (remember the alarm value we found, so an old alarm doesn't flash on joining)
+		return if inst:IsA("BasePart") then { color = inst.Color, material = inst.Material, seen = inst:GetAttribute("Alarm") } else nil
+	end)
+	local floods = track("Floodlight")
 	local leds = track("RackLed")
 	track("Chimney", function(inst)
 		if inst:IsA("BasePart") and not inst:FindFirstChild("Smoke") then
@@ -726,6 +733,39 @@ function Ambience.init()
 		for led in leds do
 			if led:IsA("BasePart") and math.random() < 0.15 then
 				led.Transparency = if led.Transparency > 0.5 then 0 else 0.8
+			end
+		end
+		for a, info in alarms do
+			if type(info) == "table" and a.Parent then
+				local part = a :: BasePart
+				local raised = part:GetAttribute("Alarm")
+				if raised ~= info.seen then
+					-- (the server's clock isn't ours: the flashing starts when the value changes)
+					info.seen = raised
+					info.at = now
+				end
+				if info.at and now - info.at < 14 then
+					part.Material = Enum.Material.Neon
+					part.Color = if flip then Color3.fromRGB(255, 30, 30) else Color3.fromRGB(90, 10, 10)
+				else
+					part.Material = info.material
+					part.Color = info.color
+				end
+			end
+		end
+		for g in floods do
+			if g:IsA("BasePart") then
+				local raised = g:GetAttribute("Flash")
+				local light = g:FindFirstChildOfClass("SpotLight")
+				if raised ~= g:GetAttribute("FlashSeen") then
+					g:SetAttribute("FlashSeen", raised)
+					g:SetAttribute("FlashAt", now)
+				end
+				local on = now - (tonumber(g:GetAttribute("FlashAt")) or -100) < 10 and raised ~= nil
+				if light then
+					light.Enabled = on
+				end
+				g.Material = if on then Enum.Material.Neon else Enum.Material.Glass
 			end
 		end
 	end)

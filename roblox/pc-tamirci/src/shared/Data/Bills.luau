@@ -16,6 +16,7 @@ Bills.kinds = {
 	sgk = { icon = "🧾", name = N("SGK Primleri", "Staff Social Security") },
 	tax = { icon = "🏛️", name = N("Gelir Vergisi", "Income Tax") },
 	fine = { icon = "⚠️", name = N("Vergi Cezası", "Tax Penalty") },
+	insurance = { icon = "📄", name = N("Sigorta Primi", "Insurance Premium") },
 }
 
 Bills.DueDays = 2 -- mornings to pay before it is late
@@ -30,6 +31,7 @@ Bills.Rent = { 250, 450, 900, 1800, 4000, 9000 } -- per week, by shop level
 Bills.ElecBase = { 12, 20, 35, 55, 85, 130 } -- lights, till, router... per day
 Bills.WaterBase = { 4, 6, 9, 12, 16, 22 }
 Bills.Internet = 8
+Bills.InsurancePerLevel = 60 -- weekly premium for each shop level
 Bills.ElecPerBench = 6
 
 -- One day's utility bill for a shop: { elec, water, net, total }. Powered upgrades add to the

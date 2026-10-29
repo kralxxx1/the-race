@@ -400,6 +400,23 @@ local function toolStore()
 		table.sort(sorted, function(a, b)
 			return (a.order or 99) < (b.order or 99)
 		end)
+		-- gear first (carried, not used on the bench)
+		Kit.label(list, "🎒 " .. S.t("store_gear") .. " — " .. S.t("gear_hint"), { Size = UDim2.new(1, 0, 0, 24), TextColor3 = Theme.dim, FontFace = Theme.bold, TextSize = 14, LayoutOrder = -100 })
+		for gi, g in Tools.gear do
+			local _, right = Kit.row(list, g.icon, S.pick(g.name), S.pick(g.desc), { LayoutOrder = -100 + gi })
+			local gear = State.data and State.data.gear or {}
+			if gear[g.id] then
+				Kit.pill(right, "✔ " .. S.t("tool_owned"), Theme.good)
+			else
+				Kit.label(right, S.money(g.price), { Size = UDim2.fromOffset(80, 36), TextColor3 = Theme.money, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Right })
+				local locked = State.level() < (g.level or 1)
+				local b = Kit.button(right, if locked then S.t("needs_level", { n = g.level }) else S.t("buy"), function()
+					local r = Net.request("gear.buy", { id = g.id })
+					App.report(r, S.t("bought", { name = S.pick(g.name) }))
+				end, { Size = UDim2.fromOffset(if locked then 130 else 92, 36), TextSize = if locked then 13 else 16 }, "primary")
+				Kit.setEnabled(b, not locked and State.money() >= g.price)
+			end
+		end
 		for i, t in sorted do
 			if t.id ~= "hand" then
 				local sub = S.pick(t.desc) .. (if t.bits then "  " .. S.t("bits", { list = table.concat(t.bits, ", ") }) else "")

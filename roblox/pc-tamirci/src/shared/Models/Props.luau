@@ -686,6 +686,41 @@ function Props.arcade(parent: Instance, cf: CFrame): Model
 	return m
 end
 
+-- Karabaş, the shop's Anatolian shepherd: fawn coat, black mask and ears, lying on his cushion
+-- with his head up (facing -Z).
+function Props.guardDog(parent: Instance, cf: CFrame): Model
+	local m = B.model("GuardDog", parent)
+	local fawn = Color3.fromRGB(206, 172, 122)
+	local mask = Color3.fromRGB(34, 30, 28)
+	local nc = noCollide()
+	B.box(m, cf * CFrame.new(0, 0.15, 0.2), Vector3.new(2.6, 0.3, 4.0), Color3.fromRGB(150, 40, 46), M.Fabric, noCollide())
+	-- body, haunch and chest
+	B.ellipsoid(m, cf * CFrame.new(0, 0.95, 0.5), Vector3.new(1.5, 1.2, 2.9), fawn, M.Fabric, nc)
+	B.ellipsoid(m, cf * CFrame.new(0.15, 0.9, 1.5), Vector3.new(1.6, 1.15, 1.3), fawn, M.Fabric, noCollide())
+	B.ellipsoid(m, cf * CFrame.new(0, 1.1, -0.7), Vector3.new(1.3, 1.25, 1.1), fawn:Lerp(Color3.new(1, 1, 1), 0.15), M.Fabric, noCollide())
+	-- front legs stretched out in front
+	for side = -1, 1, 2 do
+		B.box(m, cf * CFrame.new(side * 0.38, 0.42, -1.45), Vector3.new(0.34, 0.3, 1.3), fawn, M.Fabric, noCollide())
+		B.ellipsoid(m, cf * CFrame.new(side * 0.38, 0.38, -2.12), Vector3.new(0.42, 0.28, 0.5), fawn:Lerp(Color3.new(1, 1, 1), 0.2), M.Fabric, noCollide())
+	end
+	-- neck, head with the black mask, ears and nose
+	B.ellipsoid(m, cf * CFrame.new(0, 1.55, -1.0), Vector3.new(0.9, 0.9, 0.8), fawn, M.Fabric, noCollide())
+	B.ellipsoid(m, cf * CFrame.new(0, 1.95, -1.35), Vector3.new(0.95, 0.85, 0.95), fawn, M.Fabric, noCollide())
+	B.ellipsoid(m, cf * CFrame.new(0, 1.82, -1.92), Vector3.new(0.6, 0.5, 0.75), mask, M.Fabric, noCollide())
+	B.ball(m, cf * CFrame.new(0, 1.9, -2.27), 0.2, Color3.fromRGB(14, 12, 12), M.SmoothPlastic, noCollide())
+	for side = -1, 1, 2 do
+		B.ellipsoid(m, cf * CFrame.new(side * 0.5, 1.85, -1.25) * CFrame.Angles(0, 0, side * 0.5), Vector3.new(0.22, 0.6, 0.45), mask, M.Fabric, noCollide())
+		B.ball(m, cf * CFrame.new(side * 0.22, 2.12, -1.72), 0.12, Color3.fromRGB(20, 16, 14), M.SmoothPlastic, noCollide())
+	end
+	-- the curled tail
+	B.ellipsoid(m, cf * CFrame.new(0.5, 1.15, 2.15) * CFrame.Angles(0.6, 0, 0.4), Vector3.new(0.35, 0.35, 1.1), fawn, M.Fabric, noCollide())
+	-- his name on the cushion
+	local tag = B.box(m, cf * CFrame.new(0, 0.31, 2.0), Vector3.new(1.6, 0.02, 0.5), Color3.fromRGB(150, 40, 46), M.Fabric, noCollide())
+	B.sign(tag, Enum.NormalId.Top, "KARABAŞ", { color = Color3.fromRGB(250, 220, 120), font = B.Fonts.Heavy })
+	m:AddTag("GuardDog")
+	return m
+end
+
 function Props.tv(parent: Instance, cf: CFrame, text: string): Model
 	local m = B.model("TV", parent)
 	local frame = B.box(m, cf, Vector3.new(7, 4, 0.3), Color3.fromRGB(18, 18, 20), M.SmoothPlastic, noCollide())

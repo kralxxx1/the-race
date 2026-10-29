@@ -173,6 +173,9 @@ function BillsService.morning(player: Player, p, day: number)
 	if b.mornings >= Bills.Week then
 		b.mornings = 0
 		issue(player, p, "rent", Bills.rent(p.shop.level), day)
+		if p.shop.items.insurance then
+			issue(player, p, "insurance", Bills.InsurancePerLevel * p.shop.level, day)
+		end
 		if b.week.wages > 0 then
 			issue(player, p, "sgk", b.week.wages * Bills.SgkRate, day)
 		end

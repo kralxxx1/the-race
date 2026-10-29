@@ -305,14 +305,18 @@ return function(T)
 		T.eq(b.week.income, 5000, "income booked")
 		T.eq(b.week.expense, 1200, "spending booked")
 		T.eq(b.week.wages, 800, "wages booked")
+		local insured = p.shop.items.insurance
+		p.shop.items.insurance = true
 		for d = 2000, 2000 + Bills.Week - 1 do
 			BillsService.morning(player, p, d)
 		end
+		p.shop.items.insurance = insured
 		local kinds = {}
 		for _, bill in b.list do
 			kinds[bill.kind] = bill
 		end
 		T.ok(kinds.rent and kinds.rent.amount == Bills.rent(p.shop.level), "rent")
+		T.ok(kinds.insurance and kinds.insurance.amount == Bills.InsurancePerLevel * p.shop.level, "the insurance premium")
 		T.ok(kinds.sgk and kinds.sgk.amount == math.floor(800 * Bills.SgkRate + 0.5), "SGK on the wages")
 		local profitAtWeek = kinds.tax and kinds.tax.detail.profit
 		T.ok(kinds.tax and profitAtWeek > 0 and kinds.tax.amount <= math.floor(profitAtWeek * Bills.TaxRate + 0.5), "tax on the profit")
