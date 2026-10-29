@@ -815,12 +815,105 @@ valueProp("Workspace", "CurrentCamera", function(ws)
 end)
 valueProp("Workspace", "DistributedGameTime", 0)
 
--- Terrain (records calls)
+-- Terrain: the fills are kept in order so tests can ask which material is at a point (later fills
+-- win, like in Roblox) and the previewer can draw the ground.
 Engine.terrainCalls = 0
-for _, name in { "FillBlock", "FillBall", "FillCylinder", "FillWedge", "FillRegion", "Clear", "ReplaceMaterial", "SetMaterialColor" } do
+Engine.terrainFills = {}
+local terrainIndex = nil -- 128-stud tiles -> fills touching them
+local TILE = 128
+local function addFill(f)
+	Engine.terrainCalls += 1
+	f.order = #Engine.terrainFills + 1
+	table.insert(Engine.terrainFills, f)
+	terrainIndex = nil
+end
+local function boxExtents(cf, half)
+	local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+	return math.abs(r.X) * half.X + math.abs(u.X) * half.Y + math.abs(l.X) * half.Z,
+		math.abs(r.Z) * half.X + math.abs(u.Z) * half.Y + math.abs(l.Z) * half.Z
+end
+roblox.implementMethod("Terrain", "FillBlock", function(_, cf, size, material)
+	local ex, ez = boxExtents(cf, size / 2)
+	addFill({ kind = "block", inv = cf:Inverse(), half = size / 2, material = material.Name, x = cf.Position.X, z = cf.Position.Z, ex = ex, ez = ez })
+end)
+roblox.implementMethod("Terrain", "FillWedge", function(_, cf, size, material)
+	local ex, ez = boxExtents(cf, size / 2)
+	addFill({ kind = "wedge", inv = cf:Inverse(), half = size / 2, material = material.Name, x = cf.Position.X, z = cf.Position.Z, ex = ex, ez = ez })
+end)
+roblox.implementMethod("Terrain", "FillBall", function(_, center, radius, material)
+	addFill({ kind = "ball", center = center, radius = radius, material = material.Name, x = center.X, z = center.Z, ex = radius, ez = radius })
+end)
+roblox.implementMethod("Terrain", "FillCylinder", function(_, cf, height, radius, material)
+	local ex, ez = boxExtents(cf, roblox.Vector3.new(radius, height / 2, radius))
+	addFill({ kind = "cylinder", inv = cf:Inverse(), height = height, radius = radius, material = material.Name, x = cf.Position.X, z = cf.Position.Z, ex = ex, ez = ez })
+end)
+roblox.implementMethod("Terrain", "ReplaceMaterial", function(_, region, _resolution, from, to)
+	local c, sz = region.CFrame.Position, region.Size
+	addFill({ kind = "replace", lo = c - sz / 2, hi = c + sz / 2, from = from.Name, material = to.Name, x = c.X, z = c.Z, ex = sz.X / 2, ez = sz.Z / 2 })
+end)
+for _, name in { "FillRegion", "Clear", "SetMaterialColor" } do
 	roblox.implementMethod("Terrain", name, function()
 		Engine.terrainCalls += 1
 	end)
+end
+
+local function fillHas(f, p): boolean
+	if f.kind == "replace" then
+		return p.X >= f.lo.X and p.X <= f.hi.X and p.Y >= f.lo.Y and p.Y <= f.hi.Y and p.Z >= f.lo.Z and p.Z <= f.hi.Z
+	end
+	if f.kind == "ball" then
+		return (p - f.center).Magnitude <= f.radius
+	end
+	local q = f.inv * p
+	if f.kind == "cylinder" then
+		return math.abs(q.Y) <= f.height / 2 and q.X * q.X + q.Z * q.Z <= f.radius * f.radius
+	end
+	local h = f.half
+	if math.abs(q.X) > h.X or math.abs(q.Y) > h.Y or math.abs(q.Z) > h.Z then
+		return false
+	end
+	if f.kind == "wedge" then
+		-- full height at the back (+Z), sloping down to the front
+		return (q.Y + h.Y) / (2 * h.Y) <= (q.Z + h.Z) / (2 * h.Z)
+	end
+	return true
+end
+
+-- The terrain material at a point ("Air" where nothing was filled).
+function Engine.terrainMaterialAt(p): string
+	if not terrainIndex then
+		terrainIndex = {}
+		for _, f in Engine.terrainFills do
+			for tx = math.floor((f.x - f.ex) / TILE), math.floor((f.x + f.ex) / TILE) do
+				for tz = math.floor((f.z - f.ez) / TILE), math.floor((f.z + f.ez) / TILE) do
+					local key = tx * 100000 + tz
+					local list = terrainIndex[key]
+					if not list then
+						list = {}
+						terrainIndex[key] = list
+					end
+					table.insert(list, f)
+				end
+			end
+		end
+	end
+	local list = terrainIndex[math.floor(p.X / TILE) * 100000 + math.floor(p.Z / TILE)]
+	-- the newest fill holding the point decides; a replace only recolours what was there
+	local function at(i: number): string
+		while i >= 1 do
+			local f = list[i]
+			if fillHas(f, p) then
+				if f.kind ~= "replace" then
+					return f.material
+				end
+				local under = at(i - 1)
+				return if under == f.from then f.material else under
+			end
+			i -= 1
+		end
+		return "Air"
+	end
+	return if list then at(#list) else "Air"
 end
 roblox.implementMethod("Terrain", "GetMaterialColor", function()
 	return roblox.Color3.new(0.5, 0.5, 0.5)

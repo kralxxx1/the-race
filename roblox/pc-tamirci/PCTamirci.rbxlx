@@ -20219,6 +20219,60 @@ local LAKE = { x = -120, z = -820, radius = 70 }
 Terrain.SEA_LEVEL = -1.5
 Terrain.Lake = LAKE
 
+-- The paved city: every block and road plus a margin. Grass terrain grows blades about a stud
+-- tall that poke through roads, pavements and floors, so the city stands on bare ground and only
+-- the lawns (park blocks) and the countryside around it are grass.
+local urban = nil
+function Terrain.urbanRect()
+	if urban then
+		return urban
+	end
+	local L = CityLayout.get()
+	local x0, x1, z0, z1 = math.huge, -math.huge, math.huge, -math.huge
+	for _, b in L.blocks do
+		x0, x1 = math.min(x0, b.x0), math.max(x1, b.x1)
+		z0, z1 = math.min(z0, b.z0), math.max(z1, b.z1)
+	end
+	for _, r in L.roads do
+		local w = r.width / 2
+		x0, x1 = math.min(x0, r.a.X - w, r.b.X - w), math.max(x1, r.a.X + w, r.b.X + w)
+		z0, z1 = math.min(z0, r.a.Y - w, r.b.Y - w), math.max(z1, r.a.Y + w, r.b.Y + w)
+	end
+	urban = { x0 = x0 - 2, x1 = x1 + 2, z0 = z0 - 2, z1 = math.min(z1 + 2, CityLayout.BEACH_Z) }
+	return urban
+end
+
+-- Lawns inside the city (park blocks keep their terrain grass).
+function Terrain.lawns()
+	local out = {}
+	for _, b in CityLayout.get().blocks do
+		if b.district == "PRK" then
+			table.insert(out, { x0 = b.x0, x1 = b.x1, z0 = b.z0, z1 = b.z1 })
+		end
+	end
+	return out
+end
+
+local function inRect(r, x: number, z: number): boolean
+	return x >= r.x0 and x <= r.x1 and z >= r.z0 and z <= r.z1
+end
+
+-- True where the terrain surface is grass (countryside, hills, park lawns).
+function Terrain.isGrass(x: number, z: number): boolean
+	if z >= CityLayout.BEACH_Z then
+		return false
+	end
+	if not inRect(Terrain.urbanRect(), x, z) then
+		return true
+	end
+	for _, lawn in Terrain.lawns() do
+		if inRect(lawn, x, z) then
+			return true
+		end
+	end
+	return false
+end
+
 -- Height of the terrain surface (approximate) at x, z.
 function Terrain.groundHeight(x: number, z: number): number
 	local h = 0
@@ -20263,9 +20317,14 @@ function Terrain.build()
 
 	local b = CityLayout.get().bounds
 	local seaZ = CityLayout.SEA_Z
-	-- land
+	-- land: grass around the city, bare ground under it, lawns in the park
 	local landDepth = seaZ - b.minZ
 	terrain:FillBlock(CFrame.new(0, -6, b.minZ + landDepth / 2), Vector3.new(b.maxX - b.minX, 12, landDepth), M.Grass)
+	local u = Terrain.urbanRect()
+	terrain:FillBlock(CFrame.new((u.x0 + u.x1) / 2, -6, (u.z0 + u.z1) / 2), Vector3.new(u.x1 - u.x0, 12, u.z1 - u.z0), M.Ground)
+	for _, lawn in Terrain.lawns() do
+		terrain:FillBlock(CFrame.new((lawn.x0 + lawn.x1) / 2, -6, (lawn.z0 + lawn.z1) / 2), Vector3.new(lawn.x1 - lawn.x0, 12, lawn.z1 - lawn.z0), M.Grass)
+	end
 	-- beach sand, sloping under the water in 16-stud bands
 	local W = b.maxX - b.minX + 800
 	local SEA_LEVEL = Terrain.SEA_LEVEL
@@ -20285,7 +20344,7 @@ function Terrain.build()
 	terrain:FillBlock(CFrame.new(0, (SEA_LEVEL - 20) / 2, z0 + seaLen / 2), Vector3.new(W, SEA_LEVEL + 20, seaLen), M.Water)
 	-- deep harbour basin in front of the container quay
 	terrain:FillBlock(CFrame.new(-955, (SEA_LEVEL - 20) / 2, 990), Vector3.new(470, SEA_LEVEL + 20, 220), M.Water)
-	terrain:FillBlock(CFrame.new(-955, -6, 868), Vector3.new(470, 12, 24), M.Grass)
+	terrain:FillBlock(CFrame.new(-955, -6, 868), Vector3.new(470, 12, 24), M.Ground)
 	-- northern hills
 	for _, hill in HILLS do
 		terrain:FillBall(Vector3.new(hill[1], hill[4], hill[2]), hill[3], M.Grass)
@@ -20322,6 +20381,49 @@ function Terrain.build()
 	terrain:FillCylinder(CFrame.new(LAKE.x, -3.5, LAKE.z), 7, LAKE.radius, M.Water)
 	terrain:FillCylinder(CFrame.new(LAKE.x, -8, LAKE.z), 3, LAKE.radius, M.Mud)
 	terrain:FillCylinder(CFrame.new(LAKE.x + 40, -3.5, LAKE.z + 30), 7, 38, M.Water)
+end
+
+-- Bare ground under everything thin that lies on grass terrain (park paths, flower beds, bench
+-- legs, the lookout...), so no grass blade pokes through it. Returns how many patches it made.
+function Terrain.clearUnder(root: Instance): number
+	local terrain = Workspace:FindFirstChildOfClass("Terrain")
+	if not terrain then
+		return 0
+	end
+	local n = 0
+	for _, d in root:GetDescendants() do
+		if d:IsA("BasePart") and d.Transparency < 1 then
+			local cf, size = d.CFrame, d.Size
+			local p = cf.Position
+			if Terrain.isGrass(p.X, p.Z) then
+				local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+				local halfY = (math.abs(r.Y) * size.X + math.abs(u.Y) * size.Y + math.abs(l.Y) * size.Z) / 2
+				local gy = Terrain.groundHeight(p.X, p.Z)
+				if p.Y - halfY - gy < 1.5 and halfY < 2 then
+					local ex = math.abs(r.X) * size.X + math.abs(u.X) * size.Y + math.abs(l.X) * size.Z
+					local ez = math.abs(r.Z) * size.X + math.abs(u.Z) * size.Y + math.abs(l.Z) * size.Z
+					local lo, hi = gy, gy
+					for _, c in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+						local h = Terrain.groundHeight(p.X + c[1] * ex / 2, p.Z + c[2] * ez / 2)
+						lo, hi = math.min(lo, h), math.max(hi, h)
+					end
+					if hi - lo > 0.5 then
+						-- on a slope: turn the grass in the footprint's box to ground, keeping the shape
+						local region = Region3.new(Vector3.new(p.X - ex / 2 - 1, lo - 4, p.Z - ez / 2 - 1), Vector3.new(p.X + ex / 2 + 1, hi + 2, p.Z + ez / 2 + 1))
+						terrain:ReplaceMaterial(region:ExpandToGrid(4), 4, Enum.Material.Grass, Enum.Material.Ground)
+					elseif math.abs(u.Y) > 0.95 then
+						-- lying flat: the same footprint, turned with the part
+						local _, yaw = cf:ToOrientation()
+						terrain:FillBlock(CFrame.new(p.X, gy - 2, p.Z) * CFrame.Angles(0, yaw, 0), Vector3.new(size.X + 1, 4, size.Z + 1), Enum.Material.Ground)
+					else
+						terrain:FillBlock(CFrame.new(p.X, gy - 2, p.Z), Vector3.new(ex + 1, 4, ez + 1), Enum.Material.Ground)
+					end
+					n += 1
+				end
+			end
+		end
+	end
+	return n
 end
 
 return Terrain
@@ -20375,6 +20477,7 @@ function WorldBuilder.build(opts: { [string]: any }?)
 	Roads.build(world, yield)
 	Blocks.build(world, yield)
 	Landmarks.build(world, yield)
+	world:SetAttribute("GroundPatches", Terrain.clearUnder(world))
 
 	-- spawn point on the main square
 	local L = CityLayout.get()

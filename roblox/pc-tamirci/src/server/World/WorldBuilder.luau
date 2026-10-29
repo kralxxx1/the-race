@@ -42,6 +42,7 @@ function WorldBuilder.build(opts: { [string]: any }?)
 	Roads.build(world, yield)
 	Blocks.build(world, yield)
 	Landmarks.build(world, yield)
+	world:SetAttribute("GroundPatches", Terrain.clearUnder(world))
 
 	-- spawn point on the main square
 	local L = CityLayout.get()

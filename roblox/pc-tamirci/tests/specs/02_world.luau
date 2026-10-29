@@ -92,4 +92,54 @@ return function(T)
 		end
 		Engine.world = world
 	end)
+
+	T.test("world: nothing thin lies on grass terrain (blades would poke through)", function()
+		local world = Engine.world
+		local TerrainB = Engine.mod("ServerScriptService.Server.World.TerrainBuilder")
+		local bad, checked = {}, 0
+		local abs = math.abs
+		for _, part in world:GetDescendants() do
+			if part:IsA("BasePart") and part.Transparency < 1 then
+				local cf, s = part.CFrame, part.Size
+				local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+				local hy = (abs(r.Y) * s.X + abs(u.Y) * s.Y + abs(l.Y) * s.Z) / 2
+				local p = cf.Position
+				local gy = TerrainB.groundHeight(p.X, p.Z)
+				if p.Y - hy - gy < 1.5 and hy < 2 then
+					checked += 1
+					-- the middle and the corners of the footprint (a little inside the edges)
+					for _, o in { { 0, 0 }, { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+						local q = cf * Vector3.new(o[1] * s.X * 0.4, 0, o[2] * s.Z * 0.4)
+						if abs(u.Y) < 0.95 then
+							q = p + Vector3.new(o[1] * (abs(r.X) * s.X + abs(l.X) * s.Z) * 0.2, 0, o[2] * (abs(r.Z) * s.X + abs(l.Z) * s.Z) * 0.2)
+						end
+						local x, z = q.X, q.Z
+						local m = Engine.terrainMaterialAt(Vector3.new(x, TerrainB.groundHeight(x, z) - 0.5, z))
+						if m == "Grass" then
+							table.insert(bad, part:GetFullName())
+							break
+						end
+					end
+				end
+			end
+		end
+		print(string.format("    ground check: %d thin parts, %d terrain patches", checked, world:GetAttribute("GroundPatches") or 0))
+		T.ok(checked > 1000, "checked " .. checked)
+		if #bad > 0 then
+			local seen = {}
+			for _, b in bad do
+				local k = string.match(b, "^(.-%.[^%.]+%.[^%.]+%.[^%.]+)") or b
+				seen[k] = (seen[k] or 0) + 1
+			end
+			for k, v in seen do
+				print("      on grass:", k, v)
+			end
+		end
+		T.ok(#bad == 0, #bad .. " parts lie on grass terrain, e.g. " .. tostring(bad[1]))
+		-- and the countryside and the park are still green
+		T.eq(Engine.terrainMaterialAt(Vector3.new(-860, TerrainB.groundHeight(-860, -1380) - 1, -1380)), "Grass", "a hill")
+		T.eq(Engine.terrainMaterialAt(Vector3.new(0, -1, 0)), "Ground", "under the city")
+		local lawn = TerrainB.lawns()[1]
+		T.ok(lawn ~= nil, "a park lawn")
+	end)
 end
