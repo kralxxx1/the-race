@@ -332,28 +332,44 @@ function Buildings.hall(parent: Instance, cf: CFrame, w: number, d: number, h: n
 	for side = -1, 1, 2 do
 		B.box(m, cf * CFrame.new(side * (w / 2 - t / 2), h / 2, d / 2), Vector3.new(t, h, d), wall, wallMat).Name = "SideWall"
 	end
-	-- front: glass panels left/right of the doorway, header above
+	-- front: shop windows left/right of the doorway up to a solid fascia under the roof line, a
+	-- transom bar at door height and glass above the door
 	local doorH = math.min(10, h - 2)
 	local leftW = (w / 2 + doorX - doorW / 2)
 	local rightW = (w / 2 - doorX - doorW / 2)
 	local frame = Color3.fromRGB(40, 42, 46)
+	local glassCol = Color3.fromRGB(150, 182, 198)
+	local glassFront = o.glassFront ~= false
+	local fasciaH = if glassFront then math.clamp(h * 0.2, 2, 4) else 0
+	local glassTop = h - fasciaH
 	local function frontPanel(x0: number, width: number)
 		if width <= 0.5 then
 			return
 		end
 		local cx = x0 + width / 2
-		if o.glassFront ~= false then
-			B.box(m, cf * CFrame.new(cx, h * 0.42, t / 2), Vector3.new(width - 0.4, h * 0.8, 0.3), Color3.fromRGB(150, 182, 198), M.Glass, { Transparency = 0.5 })
+		if glassFront then
+			B.box(m, cf * CFrame.new(cx, (1 + glassTop) / 2, t / 2), Vector3.new(width - 0.4, glassTop - 1, 0.3), glassCol, M.Glass, { Transparency = 0.5 })
 			B.box(m, cf * CFrame.new(cx, 0.5, t / 2), Vector3.new(width, 1, t), frame, M.Metal)
-			B.box(m, cf * CFrame.new(x0 + 0.3, h / 2, t / 2), Vector3.new(0.6, h, t), frame, M.Metal)
+			B.box(m, cf * CFrame.new(x0 + 0.3, glassTop / 2, t / 2), Vector3.new(0.6, glassTop, t), frame, M.Metal)
+			if glassTop - doorH > 3 then
+				B.box(m, cf * CFrame.new(cx, doorH + 0.25, t / 2), Vector3.new(width, 0.5, t * 0.6), frame, M.Metal)
+			end
 		else
 			B.box(m, cf * CFrame.new(cx, h / 2, t / 2), Vector3.new(width, h, t), wall, wallMat)
 		end
 	end
 	frontPanel(-w / 2, leftW)
 	frontPanel(doorX + doorW / 2, rightW)
-	B.box(m, cf * CFrame.new(w / 2 - 0.3, h / 2, t / 2), Vector3.new(0.6, h, t), frame, M.Metal)
-	B.box(m, cf * CFrame.new(doorX, (doorH + h) / 2, t / 2), Vector3.new(doorW, h - doorH, t), if o.glassFront ~= false then frame else wall, M.Metal).Name = "DoorHeader"
+	B.box(m, cf * CFrame.new(w / 2 - 0.3, glassTop / 2, t / 2), Vector3.new(0.6, glassTop, t), frame, M.Metal)
+	if glassFront then
+		B.box(m, cf * CFrame.new(0, glassTop + fasciaH / 2, t / 2), Vector3.new(w, fasciaH, t), wall, wallMat).Name = "Fascia"
+		B.box(m, cf * CFrame.new(doorX, doorH + 0.25, t / 2), Vector3.new(doorW, 0.5, t), frame, M.Metal).Name = "DoorHeader"
+		if glassTop - doorH > 1.5 then
+			B.box(m, cf * CFrame.new(doorX, (doorH + 0.5 + glassTop) / 2, t / 2), Vector3.new(doorW - 0.4, glassTop - doorH - 0.5, 0.3), glassCol, M.Glass, { Transparency = 0.5, Name = "Transom" })
+		end
+	else
+		B.box(m, cf * CFrame.new(doorX, (doorH + h) / 2, t / 2), Vector3.new(doorW, h - doorH, t), wall, wallMat).Name = "DoorHeader"
+	end
 	-- sliding door leaves parked beside the opening
 	for side = -1, 1, 2 do
 		local leaf = B.box(m, cf * CFrame.new(doorX + side * (doorW / 2 + doorW / 4 - 0.2), doorH / 2, -0.3), Vector3.new(doorW / 2, doorH - 0.4, 0.2), Color3.fromRGB(160, 196, 210), M.Glass, nc({ Transparency = 0.55, Name = "DoorLeaf" }))

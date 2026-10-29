@@ -41,6 +41,33 @@ local function sidewalkMaterial(district: string)
 	return M.Pavement, P.sidewalk
 end
 
+-- Entrances along the streets (landmark doors and shop plot fronts): lamps, trees and benches keep
+-- out of their way.
+local doorCache
+local function doors(L): { Vector3 }
+	if not doorCache then
+		doorCache = {}
+		for _, poi in L.pois do
+			if poi.door then
+				table.insert(doorCache, poi.door)
+			end
+		end
+		for _, plot in L.plots do
+			table.insert(doorCache, plot.cf.Position)
+		end
+	end
+	return doorCache
+end
+local function nearDoor(L, p: Vector3, radius: number): boolean
+	for _, d in doors(L) do
+		local dx, dz = d.X - p.X, d.Z - p.Z
+		if dx * dx + dz * dz < radius * radius then
+			return true
+		end
+	end
+	return false
+end
+
 -- Draws one road segment between intersections.
 local function segment(folder: Instance, L, road, rng: Random)
 	local a = Vector3.new(road.a.X, 0, road.a.Y)
@@ -109,13 +136,21 @@ local function segment(folder: Instance, L, road, rng: Random)
 			side = 1
 		end
 		local base = mid + dir * t + right * side * (cw / 2 + 1.6)
+		-- step aside from an entrance (the middle of a block is where doors are)
+		for _ = 1, 3 do
+			if not nearDoor(L, base + right * side * sw, 13) then
+				break
+			end
+			t += 14
+			base = mid + dir * t + right * side * (cw / 2 + 1.6)
+		end
 		local face = -right * side
 		Props.streetLamp(m, CFrame.lookAt(base + Vector3.new(0, WALK_Y, 0), base + Vector3.new(0, WALK_Y, 0) + face), if classic then "classic" else "modern")
 		if urban and road.kind ~= "ring" then
 			-- trees in pits between lamps, on both sides
 			for s = -1, 1, 2 do
 				local tp = mid + dir * (t + spacing / 2) + right * s * (cw / 2 + sw / 2)
-				if math.abs(t + spacing / 2) < len / 2 - 8 then
+				if math.abs(t + spacing / 2) < len / 2 - 8 and not nearDoor(L, tp + right * s * (sw / 2), 9) then
 					B.box(m, CFrame.new(tp + Vector3.new(0, WALK_Y + 0.02, 0)), Vector3.new(4, 0.08, 4), P.soil, M.Ground, { CanCollide = false })
 					Props.tree(m, CFrame.new(tp + Vector3.new(0, WALK_Y, 0)), Rand.pick(rng, if districtL == "SEA" or districtL == "CST" then { "palm", "palm", "oak" } else { "oak", "oak", "birch", "cypress" }), rng)
 				end

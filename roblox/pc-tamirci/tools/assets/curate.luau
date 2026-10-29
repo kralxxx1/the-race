@@ -110,12 +110,20 @@ local function bounds(root: Instance)
 end
 
 -- opts: collide (default true), shadow (default true), turn (degrees about Y so the front faces -Z),
+--       noLights (drop light objects: big buildings would bring dozens),
 --       pivotAt (part whose foot becomes the pivot instead of the middle), soft (part names that
 --       don't collide: leaves), bulb (part that lights up at night: gets the "Bulb" attribute)
 local function prepare(item: Instance, name: string, opts): Model
 	opts = opts or {}
 	local src = item:Clone()
 	strip(src)
+	if opts.noLights then
+		for _, d in src:GetDescendants() do
+			if d:IsA("Light") or d:IsA("Seat") then
+				d:Destroy()
+			end
+		end
+	end
 	local model = Instance.new("Model")
 	model.Name = name
 	if src:IsA("BasePart") then
@@ -186,8 +194,41 @@ end
 -- What goes into each library: { packId, itemPath, ourName, opts }
 ----------------------------------------------------------------------------------------------------
 local CITY, FOREST, GARDEN = 6370681139, 6432306802, 10840661513
+local CITY_BUILDINGS, MODULAR_KIT = 6418277837, 13168370735
 
 local LIBRARIES = {
+	{
+		-- whole buildings: the City Building Pack's blocks (Tower01-12, ~1.4x avatar scale, every side
+		-- a facade, lobbies behind the glass) and the Modular Building Kit's prefabs (KitA-L, avatar
+		-- scale, storefront ground floors, front on -Z)
+		name = "CityBuildings",
+		where = "server",
+		items = {
+			{ CITY_BUILDINGS, "building_01", "Tower01", { noLights = true } },
+			{ CITY_BUILDINGS, "building_02", "Tower02", { noLights = true } },
+			{ CITY_BUILDINGS, "building_03", "Tower03", { noLights = true, turn = 180 } },
+			{ CITY_BUILDINGS, "building_04", "Tower04", { noLights = true } },
+			{ CITY_BUILDINGS, "building_05", "Tower05", { noLights = true } },
+			{ CITY_BUILDINGS, "building_06", "Tower06", { noLights = true } },
+			{ CITY_BUILDINGS, "building_07", "Tower07", { noLights = true } },
+			{ CITY_BUILDINGS, "building_08", "Tower08", { noLights = true } },
+			{ CITY_BUILDINGS, "building_09", "Tower09", { noLights = true } },
+			{ CITY_BUILDINGS, "building_10", "Tower10", { noLights = true } },
+			{ CITY_BUILDINGS, "building_11", "Tower11", { noLights = true } },
+			{ CITY_BUILDINGS, "building_12", "Tower12", { noLights = true } },
+			{ MODULAR_KIT, "PrefabBuildings/A", "KitA", { noLights = true } },
+			{ MODULAR_KIT, "PrefabBuildings/B", "KitB", { noLights = true } },
+			{ MODULAR_KIT, "PrefabBuildings/C", "KitC", { noLights = true } },
+			{ MODULAR_KIT, "PrefabBuildings/E", "KitE", { noLights = true } },
+			{ MODULAR_KIT, "PrefabBuildings/F", "KitF", { noLights = true } },
+			{ MODULAR_KIT, "PrefabBuildings/G", "KitG", { noLights = true } },
+			{ MODULAR_KIT, "PrefabBuildings/H", "KitH", { noLights = true } },
+			{ MODULAR_KIT, "PrefabBuildings/I", "KitI", { noLights = true } },
+			{ MODULAR_KIT, "PrefabBuildings/J", "KitJ", { noLights = true } },
+			{ MODULAR_KIT, "PrefabBuildings/K", "KitK", { noLights = true } },
+			{ MODULAR_KIT, "PrefabBuildings/Model", "KitL", { noLights = true } },
+		},
+	},
 	{
 		name = "CityProps",
 		where = "server",

@@ -492,6 +492,34 @@ local function arena(parent, poi, _rng)
 	for i = -2, 2 do
 		B.box(m, stage * CFrame.new(i * 6, 3.4, -2), Vector3.new(4, 0.3, 2), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
 		Props.monitor(m, stage * CFrame.new(i * 6, 3.55, -1.6), "", Color3.fromRGB(80, 10, 50))
+		Props.chair(m, stage * CFrame.new(i * 6, 3, -0.2), { 200, 30, 90 })
+	end
+	-- the audience: rows of seats facing the stage, LED strips along the walls, team banners
+	local hw = math.min(w - 20, 70) / 2
+	for row = 0, 4 do
+		local z = d - 44 - row * 5
+		if z > 8 then
+			for k = -5, 5 do
+				if k ~= 0 then
+					Props.chair(m, cf * CFrame.new(k * 4.2, 0.2 + row * 0.6, z) * CFrame.Angles(0, math.pi, 0), if row % 2 == 0 then { 40, 40, 48 } else { 120, 20, 60 })
+				end
+			end
+			if row > 0 then
+				-- risers left and right of the middle aisle
+				for side = -1, 1, 2 do
+					B.box(m, cf * CFrame.new(side * (hw / 2 + 1), row * 0.3, z), Vector3.new(hw - 4, row * 0.6, 4.6), Color3.fromRGB(34, 34, 42), M.Carpet)
+				end
+			end
+		end
+	end
+	for side = -1, 1, 2 do
+		for _, y in { 4, 12 } do
+			B.box(m, cf * CFrame.new(side * (hw - 1.2), y, d / 2), Vector3.new(0.2, 0.3, d - 6), Color3.fromRGB(230, 40, 120), M.Neon, { CanCollide = false, CastShadow = false, Name = "LedStrip" })
+		end
+		for k = 0, 2 do
+			local banner = B.box(m, cf * CFrame.new(side * (hw - 1.4), 8, 14 + k * 16) * CFrame.Angles(0, -side * math.pi / 2, 0), Vector3.new(7, 5, 0.2), Color3.fromRGB(20, 20, 26), M.Fabric, { CanCollide = false })
+			B.sign(banner, Enum.NormalId.Front, ({ "TAMİRCİLER", "ÇİPLER", "OVERCLOCK", "RGB KURTLARI", "SOĞUTUCULAR", "BIOS BOYS" })[k + 1 + (if side < 0 then 0 else 3)], { glow = true, color = Color3.new(1, 1, 1), background = if k % 2 == 0 then Color3.fromRGB(120, 20, 60) else Color3.fromRGB(20, 40, 120) })
+		end
 	end
 	return m
 end

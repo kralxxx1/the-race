@@ -93,6 +93,79 @@ return function(T)
 		Engine.world = world
 	end)
 
+	T.test("world: real buildings stand on their lots, clear of streets, landmarks and each other", function()
+		local world = Engine.world
+		local L = CityLayout.get()
+		local abs = math.abs
+		local function box(model)
+			local lo, hi
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") and d.Name ~= "Root" then
+					local cf, sz = d.CFrame, d.Size
+					local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+					local e = Vector3.new(abs(r.X) * sz.X + abs(u.X) * sz.Y + abs(l.X) * sz.Z, abs(r.Y) * sz.X + abs(u.Y) * sz.Y + abs(l.Y) * sz.Z, abs(r.Z) * sz.X + abs(u.Z) * sz.Y + abs(l.Z) * sz.Z) / 2
+					local p = cf.Position
+					lo = if lo then lo:Min(p - e) else p - e
+					hi = if hi then hi:Max(p + e) else p + e
+				end
+			end
+			return lo, hi
+		end
+		local real = {}
+		for _, m in world:GetDescendants() do
+			if m:IsA("Model") and m:GetAttribute("Real") then
+				local lo, hi = box(m)
+				table.insert(real, { m = m, lo = lo, hi = hi })
+			end
+		end
+		T.ok(#real >= 80, "real buildings: " .. #real)
+		local function overlaps(a, b, margin)
+			return a.lo.X + margin < b.hi.X and b.lo.X + margin < a.hi.X and a.lo.Z + margin < b.hi.Z and b.lo.Z + margin < a.hi.Z
+		end
+		-- inside a block (awnings may reach a little over the pavement)
+		for _, r in real do
+			local inside = false
+			for _, b in L.blocks do
+				if r.lo.X >= b.x0 - 2.5 and r.hi.X <= b.x1 + 2.5 and r.lo.Z >= b.z0 - 2.5 and r.hi.Z <= b.z1 + 2.5 then
+					inside = true
+					break
+				end
+			end
+			T.ok(inside, string.format("%s at (%.0f, %.0f)..(%.0f, %.0f) leaves its block", r.m:GetFullName(), r.lo.X, r.lo.Z, r.hi.X, r.hi.Z))
+			T.ok(abs(r.lo.Y - CityLayout.WALK_Y) < 0.6, r.m:GetFullName() .. " doesn't stand on the ground: " .. r.lo.Y)
+		end
+		-- not into each other
+		for i = 1, #real do
+			for j = i + 1, #real do
+				T.ok(not overlaps(real[i], real[j], 1), real[i].m.Name .. " overlaps " .. real[j].m.Name .. " at " .. tostring(real[i].lo))
+			end
+		end
+		-- not into a landmark or a shop plot
+		local others = {}
+		for _, folderName in { "Commerce", "Civic", "Nature" } do
+			for _, m in world:FindFirstChild(folderName):GetChildren() do
+				if m:IsA("Model") then
+					local lo, hi = box(m)
+					-- (forests and the like spread over the countryside: only buildings count here)
+					if lo and (hi.X - lo.X) * (hi.Z - lo.Z) < 300 * 300 then
+						table.insert(others, { m = m, lo = lo, hi = hi })
+					end
+				end
+			end
+		end
+		for _, plot in L.plots do
+			local p, look = plot.cf.Position, plot.cf.LookVector
+			local back = p - look * plot.depth
+			local hw = plot.width / 2
+			table.insert(others, { m = { Name = "plot " .. plot.id }, lo = Vector3.new(math.min(p.X, back.X) - hw, 0, math.min(p.Z, back.Z)), hi = Vector3.new(math.max(p.X, back.X) + hw, 0, math.max(p.Z, back.Z)) })
+		end
+		for _, r in real do
+			for _, o in others do
+				T.ok(not overlaps(r, o, 1), r.m:GetFullName() .. " runs into " .. tostring(o.m.Name))
+			end
+		end
+	end)
+
 	T.test("world: nothing thin lies on grass terrain (blades would poke through)", function()
 		local world = Engine.world
 		local TerrainB = Engine.mod("ServerScriptService.Server.World.TerrainBuilder")
