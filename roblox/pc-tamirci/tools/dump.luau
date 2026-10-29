@@ -39,7 +39,8 @@ local function dumpParts(root, center: any?, radius: number?)
 				return d.Transparency
 			end)
 			transp = if okT then transp else 0
-			if transp < 0.98 then
+			-- clear parts still count when they carry text (stickers, logos)
+			if transp < 0.98 or d:FindFirstChildOfClass("SurfaceGui") then
 				local shape = "box"
 				if d:IsA("WedgePart") then
 					shape = "wedge"
@@ -68,7 +69,10 @@ local function dumpParts(root, center: any?, radius: number?)
 					local gui = d:FindFirstChildOfClass("SurfaceGui")
 					local tl = gui:FindFirstChildOfClass("TextLabel")
 					if tl then
-						label = { text = tl.Text, face = gui.Face.Name, color = hex(tl.TextColor3), bg = if tl.BackgroundTransparency < 1 then hex(tl.BackgroundColor3) else nil }
+						local okG, glow = pcall(function()
+							return gui.LightInfluence == 0
+						end)
+						label = { text = tl.Text, face = gui.Face.Name, color = hex(tl.TextColor3), bg = if tl.BackgroundTransparency < 1 then hex(tl.BackgroundColor3) else nil, glow = okG and glow or nil }
 					end
 				end
 				-- MeshParts: the mesh and its texture (ids), drawn by the previewer
@@ -277,6 +281,75 @@ elseif what == "poi" then
 	result.parts = dumpParts(world, poi.pos, tonumber(process.args[3]) or 120)
 	print(string.format("poi %s at (%.0f, %.0f, %.0f), door (%.0f, %.0f, %.0f)", poi.id, poi.pos.X, poi.pos.Y, poi.pos.Z, poi.door.X, poi.door.Y, poi.door.Z))
 	outName = "poi_" .. poi.id
+elseif what == "parts" then
+	-- components side by side, each shown three ways (rows: front, top edge, back):
+	--   lune run tools/dump.luau parts gpu [id|design|all ...]
+	local Parts = Engine.mod("ReplicatedStorage.Shared.Data.Parts")
+	local PCParts = Engine.mod("ReplicatedStorage.Shared.Models.PCParts")
+	local cat = process.args[2] or "gpu"
+	local picks = {}
+	local function best(match)
+		local top
+		for _, p in Parts.byCat[cat] do
+			if match(p) and (not top or (p.perf or p.price) > (top.perf or top.price)) then
+				top = p
+			end
+		end
+		return top
+	end
+	for i = 3, #process.args do
+		local a = process.args[i]
+		if a == "all" then
+			local seen = {}
+			for _, p in Parts.byCat[cat] do
+				local key = p.design or p.id
+				if not seen[key] then
+					seen[key] = true
+					table.insert(picks, best(function(q)
+						return (q.design or q.id) == key
+					end))
+				end
+			end
+		elseif Parts.get(a) then
+			table.insert(picks, Parts.get(a))
+		else
+			local p = best(function(q)
+				return q.design == a
+			end)
+			assert(p, "no " .. cat .. " for " .. a)
+			table.insert(picks, p)
+		end
+	end
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	local poses = {
+		roblox.CFrame.Angles(-math.pi / 2, 0, 0), -- front (fans) up
+		roblox.CFrame.new(), -- top edge up
+		roblox.CFrame.Angles(math.pi / 2, 0, 0), -- back up
+	}
+	-- one row per item (z = (i - 1) * 2.4), its three views side by side at x = 0, 3.2, 6.4
+	for i, p in picks do
+		local z = (i - 1) * 2.4
+		for col, pose in poses do
+			local x = (col - 1) * 3.2
+			local cf
+			if cat == "gpu" then
+				-- centre each view of the card on its spot
+				local L, H, T = PCParts.gpuDims(p)
+				local shift = ({ roblox.Vector3.new(L / 2, 0, H / 2), roblox.Vector3.new(L / 2, 0, -T / 2), roblox.Vector3.new(L / 2, 0, -H / 2) })[col]
+				cf = roblox.CFrame.new(roblox.Vector3.new(x, 0, z) + shift) * pose
+				local m = PCParts.gpu(cf, p, Parts.gpuConnectors(p))
+				m.Parent = folder
+			else
+				cf = roblox.CFrame.new(x, 0, z) * pose
+				local m = (PCParts :: any)[cat](cf, p)
+				m.Parent = folder
+			end
+		end
+		print(string.format("%2d  z=%.1f  %s (%s)", i, z, p.name, tostring(p.design)))
+	end
+	result.parts = dumpParts(folder)
+	outName = "parts_" .. cat
 elseif what == "guide" then
 	-- the tutorial's guide arrow
 	Engine.localPlayer = Engine.addPlayer("Viewer")

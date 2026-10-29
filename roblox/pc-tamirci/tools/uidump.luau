@@ -187,6 +187,23 @@ elseif scene == "map" then
 	cmod("Controllers.MapController").open()
 elseif scene == "contracts" then
 	service("contracts", "internet_cafe")
+elseif scene == "parts_gpu" then
+	-- the parts store on its graphics card tab, filtered to one chip maker
+	service("parts")
+	task.wait(0.3)
+	local gui = Engine.localPlayer:FindFirstChild("PlayerGui")
+	local function press(text: string)
+		for _, d in gui:GetDescendants() do
+			if d:IsA("TextButton") and string.find(d.Text, text, 1, true) then
+				d.Activated:Fire()
+				task.wait(0.1)
+				return
+			end
+		end
+		error("no button " .. text)
+	end
+	press("Ekran Kartı")
+	press("NVIDIA")
 elseif scene ~= "hud" then
 	service(if scene == "dealer" then "cars" elseif scene == "staff" then "staff" else scene)
 end

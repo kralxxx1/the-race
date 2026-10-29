@@ -703,87 +703,18 @@ function PCParts.gpuSockets(gpuPart, connectors: { string }): { CFrame }
 	local L, H, T = PCParts.gpuDims(gpuPart)
 	local frames = {}
 	local n = #connectors
+	-- the Founders Edition's short board ends mid-card, and its socket with it
+	local at = if gpuPart and gpuPart.design == "fe" then 0.56 else 0.72
 	for i = 1, n do
-		local x = -L * 0.72 + (i - (n + 1) / 2) * cm(2.2)
+		local x = -L * at + (i - (n + 1) / 2) * cm(2.2)
 		table.insert(frames, CFrame.new(x, H * 0.97 + cm(0.6), cm(0.3) + T * 0.35))
 	end
 	return frames
 end
 
+-- The card itself is drawn by GpuCard (each maker's own cooler design).
 function PCParts.gpu(cf: CFrame, gpuPart, connectors: { string }): (Model, { CFrame })
-	local m = newModel("GPU", cf)
-	local p = gpuPart or {}
-	local L, H, T = PCParts.gpuDims(p)
-	local shroud, accent
-	if p.workstation then
-		shroud, accent = Color3.fromRGB(24, 24, 26), Color3.fromRGB(196, 160, 60)
-	elseif p.brand == "amd" then
-		shroud, accent = Color3.fromRGB(32, 32, 36), Color3.fromRGB(204, 30, 42)
-	elseif p.brand == "intel" then
-		shroud, accent = Color3.fromRGB(44, 46, 52), Color3.fromRGB(0, 113, 197)
-	elseif (p.year or 2016) >= 2020 and (p.perf or 0) >= 55 then
-		shroud, accent = Color3.fromRGB(150, 152, 158), Color3.fromRGB(30, 30, 32) -- founders style
-	else
-		shroud, accent = Color3.fromRGB(38, 38, 42), Color3.fromRGB(118, 185, 0)
-	end
-	local pcb = Color3.fromRGB(20, 30, 24)
-	-- PCB and edge fingers
-	box(m, cf * CFrame.new(-L / 2, H * 0.47, 0), Vector3.new(L - cm(0.4), H * 0.92, cm(0.16)), pcb, M.SmoothPlastic, { Name = "PCB" })
-	box(m, cf * CFrame.new(-cm(5.95), -cm(0.35), 0), Vector3.new(cm(8.9), cm(0.8), cm(0.12)), GOLD, M.Metal, { Name = "Fingers" })
-	-- I/O bracket with display outputs
-	local bracketW = cm((p.slots or 2) * 2)
-	box(m, cf * CFrame.new(cm(0.35), H * 0.5, bracketW / 2 - cm(0.6)), Vector3.new(cm(0.1), H + cm(0.6), bracketW), STEEL, M.Metal, { Name = "Bracket" })
-	box(m, cf * CFrame.new(cm(0.8), H + cm(0.3), bracketW / 2 - cm(0.6)), Vector3.new(cm(1), cm(0.1), bracketW), STEEL, M.Metal, { Name = "BracketTab" })
-	for k = 0, 2 do
-		box(m, cf * CFrame.new(cm(0.42), cm(1.8) + k * cm(2.2), cm(0.6)), Vector3.new(0.006, cm(1.1), cm(1.6)), Color3.fromRGB(20, 20, 22))
-	end
-	-- backplate
-	box(m, cf * CFrame.new(-L / 2, H * 0.5, -cm(0.35)), Vector3.new(L - cm(0.8), H * 0.9, cm(0.25)), if p.workstation or (p.perf or 0) < 15 then pcb else Color3.fromRGB(30, 30, 34), M.Metal, { Name = "Backplate" })
-	-- cooler shroud
-	local body = box(m, cf * CFrame.new(-L / 2 - cm(0.2), H * 0.52, cm(0.3) + T / 2), Vector3.new(L - cm(0.6), H * 0.9, T - cm(0.3)), shroud, if p.passive then M.Metal else M.SmoothPlastic, { Name = "Shroud" })
-	body:SetAttribute("Detail", "gpu")
-	-- fin edges and heat pipes visible on the top edge
-	local finCol = Color3.fromRGB(70, 72, 78)
-	for k = 0, math.floor(L / cm(1.2)) - 2 do
-		box(m, cf * CFrame.new(-cm(1.6) - k * cm(1.2), H * 0.97 + 0.002, cm(0.3) + T / 2), Vector3.new(0.005, 0.004, T * 0.8), finCol, M.Metal)
-	end
-	for k = 0, (if (p.tdp or 100) > 200 then 3 else 1) do
-		cyl(m, cf * CFrame.new(-L * 0.5, H * 0.96, cm(0.8) + k * cm(0.7)), "X", L * 0.7, cm(0.6), Color3.fromRGB(196, 116, 70), M.Metal)
-	end
-	-- accent and logo on the top edge
-	local strip = box(m, cf * CFrame.new(-L * 0.42, H * 0.97 + 0.003, cm(0.3) + T / 2), Vector3.new(L * 0.4, 0.004, T * 0.6), shroud:Lerp(Color3.new(0, 0, 0), 0.4), M.SmoothPlastic, { Name = "LogoStrip" })
-	local brand = if p.workstation then "NVIDIA RTX" elseif p.brand == "amd" then "RADEON" elseif p.brand == "intel" then "INTEL ARC" else (if string.find(p.name or "", "RTX") then "GEFORCE RTX" else "GEFORCE GTX")
-	label(strip, Enum.NormalId.Top, brand, accent, 300, B.Fonts.Heavy)
-	if (p.perf or 0) >= 40 and not p.workstation then
-		local glow = box(m, cf * CFrame.new(-L * 0.42, H * 0.97 + 0.001, cm(0.3) + T * 0.95), Vector3.new(L * 0.45, 0.004, 0.012), accent, M.Neon, { Name = "GpuRGB", Transparency = 0.4 })
-		glow:SetAttribute("RGB", true)
-	end
-	-- fans on the +Z face
-	local n = p.fans or 2
-	if p.blower then
-		local d = H * 0.62
-		local c = cf * CFrame.new(-L + d / 2 + cm(1), H * 0.5, cm(0.3) + T + 0.003) * CFrame.Angles(math.pi / 2, 0, 0)
-		cyl(m, c, "Y", 0.006, d * 1.04, Color3.fromRGB(10, 10, 12))
-		rotor(m, c * CFrame.new(0, 0.004, 0), d, Color3.fromRGB(30, 30, 34), Color3.fromRGB(30, 30, 34), 13)
-	elseif n > 0 then
-		local span = L - cm(2.4)
-		local d = math.min(H * 0.86, span / n * 0.94)
-		for i = 1, n do
-			local x = -cm(1.6) - span * (i - 0.5) / n
-			local c = cf * CFrame.new(x, H * 0.52, cm(0.3) + T + 0.003) * CFrame.Angles(math.pi / 2, 0, 0)
-			cyl(m, c, "Y", 0.006, d * 1.03, Color3.fromRGB(10, 10, 12))
-			rotor(m, c * CFrame.new(0, 0.004, 0), d, Color3.fromRGB(24, 24, 28), accent, if (p.perf or 0) >= 40 then 11 else 9)
-		end
-	end
-	dustLayer(m, cf * CFrame.new(-L / 2 - cm(0.2), H * 0.52, cm(0.3) + T + 0.01), Vector3.new(L - cm(0.6), H * 0.9, 0.01))
-	-- power sockets on the top edge, 70 % along the card
-	local frames = PCParts.gpuSockets(p, connectors)
-	for i, kind in connectors do
-		local wide = if kind == "12v" then cm(1.9) elseif kind == "6" then cm(1.4) else cm(1.8)
-		box(m, cf * frames[i] * CFrame.new(0, -cm(0.3), 0), Vector3.new(wide, cm(0.6), cm(0.85)), Color3.fromRGB(16, 16, 18), M.SmoothPlastic, { Name = "PowerSocket" })
-	end
-	box(m, cf * CFrame.new(-L / 2, H / 2, T / 2), Vector3.new(L, H, T + cm(0.6)), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
-	return m, frames
+	return require(script.Parent.GpuCard).build(cf, gpuPart, connectors)
 end
 
 ----------------------------------------------------------------------------------------------------

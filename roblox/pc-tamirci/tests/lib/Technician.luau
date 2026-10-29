@@ -299,9 +299,7 @@ function Technician:reassemble()
 		elseif m.why == "empty" then
 			local p = self:partFor(id)
 			self:ensure("install", id, { source = "inv", part = p.id })
-		elseif m.why == "panel" then
-			self:ensure("install", id)
-		elseif m.why == "feet" then
+		elseif m.why == "panel" or m.why == "feet" then
 			self:ensure("install", id)
 		elseif m.why == "screw" then
 			self:ensure("screw", id)

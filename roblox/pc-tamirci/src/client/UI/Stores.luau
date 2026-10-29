@@ -27,7 +27,7 @@ local State = require(UI.Parent.State)
 
 local Stores = {}
 
-local MAX_ROWS = 80
+local MAX_ROWS = 120
 
 -- Opens a window that tells the server we left the counter when it closes, and drops its
 -- state listeners.
@@ -118,12 +118,58 @@ local function partsStore(o)
 			table.insert(tabs, { id = cat, text = (Theme.catIcon[cat] or "") .. " " .. S.t("cat_" .. cat) })
 		end
 	end
-	local list = Kit.list(c, { Size = UDim2.new(1, -200, 1, -36), Position = UDim2.fromOffset(200, 34) })
+	local list = Kit.list(c, { Size = UDim2.new(1, -200, 1, -72), Position = UDim2.fromOffset(200, 70) })
 	local selected = tabs[1] and tabs[1].id or "gpu"
 	local gate = {}
 	local updateGate = moneyGate(win, gate)
+	-- brand filter and sort order for the selected category
+	local brandBar = Kit.frame(c, { BackgroundTransparency = 1, Size = UDim2.new(1, -330, 0, 30), Position = UDim2.fromOffset(200, 36) })
+	Kit.listLayout(brandBar, 5, true)
+	local brand = nil -- nil = all
+	local byPerf = false
+	local fill
+	local sortButton = Kit.button(c, S.t("sort_price"), function()
+		byPerf = not byPerf
+		fill()
+	end, { Size = UDim2.fromOffset(120, 28), Position = UDim2.new(1, -120, 0, 37), TextSize = 13 }, "ghost")
 
-	local function fill()
+	local function brandOf(p): string
+		if p.cat == "gpu" or p.cat == "cpu" then
+			return ({ nvidia = "NVIDIA", amd = "AMD", intel = "Intel" })[p.brand] or "?"
+		end
+		return string.match(p.name, "^(%S+)") or "?"
+	end
+
+	local function brandButtons()
+		Kit.clear(brandBar)
+		local names, seen = {}, {}
+		for _, e in byCat[selected] or {} do
+			local b = brandOf(e.p)
+			if not seen[b] then
+				seen[b] = true
+				table.insert(names, b)
+			end
+		end
+		table.sort(names)
+		brandBar.Visible = #names > 1 and #names <= 9 and selected ~= "deals"
+		if not brandBar.Visible then
+			return
+		end
+		table.insert(names, 1, "")
+		for i, b in names do
+			local on = (brand or "") == b
+			local btn = Kit.button(brandBar, if b == "" then S.t("all") else b, function()
+				brand = if b == "" then nil else b
+				brandButtons()
+				fill()
+			end, { Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = i, TextSize = 13 }, if on then "primary" else "ghost")
+			local pad = Instance.new("UIPadding")
+			pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 10), UDim.new(0, 10)
+			pad.Parent = btn
+		end
+	end
+
+	function fill()
 		Kit.clear(list)
 		table.clear(gate)
 		local q = string.lower(search.Text)
@@ -139,13 +185,22 @@ local function partsStore(o)
 		elseif selected == "deals" then
 			rows = table.clone(deals)
 		else
-			rows = table.clone(byCat[selected] or {})
+			for _, e in byCat[selected] or {} do
+				if not brand or brandOf(e.p) == brand then
+					table.insert(rows, e)
+				end
+			end
 		end
+		sortButton.Text = S.t(if byPerf then "sort_perf" else "sort_price")
 		table.sort(rows, function(a, b)
+			if byPerf and (a.p.perf or 0) ~= (b.p.perf or 0) then
+				return (a.p.perf or 0) > (b.p.perf or 0)
+			end
 			return a.price < b.price
 		end)
 		for i, e in rows do
 			if i > MAX_ROWS then
+				Kit.label(list, S.t("rows_more", { n = #rows - MAX_ROWS }), { TextColor3 = Theme.dim, Size = UDim2.new(1, 0, 0, 36), LayoutOrder = i })
 				break
 			end
 			local p = e.p
@@ -175,9 +230,11 @@ local function partsStore(o)
 	end
 	local side = Kit.sidebar(c, tabs, function(id)
 		selected = id
+		brand = nil
 		if #search.Text > 0 then
 			search.Text = ""
 		end
+		brandButtons()
 		fill()
 	end, { Position = UDim2.fromOffset(0, 34), Size = UDim2.new(0, 190, 1, -36) })
 	local pending = false

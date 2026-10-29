@@ -135,6 +135,110 @@ gpu("rtxa2000", "RTX A2000 12GB", "nvidia", 28, 12, 70, "none", 17, 1, 2, 2021, 
 gpu("rtxa4000", "RTX A4000 16GB", "nvidia", 43, 16, 140, "6", 24, 1, 1, 2021, 1000, { blower = true, workstation = true })
 gpu("rtx6000ada", "RTX 6000 Ada 48GB", "nvidia", 92, 48, 300, "12v", 27, 1, 2, 2023, 6800, { blower = true, workstation = true })
 
+-- Board partners: the same chip from different makers, each with its own cooler (design: the look
+-- GpuCard draws), length, thickness and a small factory overclock. The chip's own entry is the
+-- chip maker's card (NVIDIA Founders Edition, AMD/Intel reference) or, where there was none, a
+-- plain partner card.
+-- fit: "small" = only on chips with up to two fans, "big" = only on three-fan chips; name2: the
+-- line's name when it comes with fewer fans; big: fans on a three-fan chip.
+Parts.GpuPartners = {
+	nvidia = {
+		{ key = "strix", name = "ASUS ROG Strix", design = "strix", fans = 3, len = 4, slots = 3, perf = 1.035, price = 1.24 },
+		{ key = "tuf", name = "ASUS TUF Gaming", design = "tuf", fans = 3, len = 3, slots = 2.7, perf = 1.02, price = 1.12 },
+		{ key = "dual", name = "ASUS Dual", design = "dual", fans = 2, len = -2, perf = 1.0, price = 1.03, fit = "small" },
+		{ key = "trio", name = "MSI Gaming X Trio", name2 = "MSI Gaming X", design = "trio", fans = 3, len = 4, slots = 3, perf = 1.03, price = 1.18 },
+		{ key = "ventus", name = "MSI Ventus 2X", design = "ventus", fans = 2, len = -2, perf = 1.0, price = 1.0, fit = "small" },
+		{ key = "ventus3x", name = "MSI Ventus 3X", design = "ventus", fans = 3, len = 2, perf = 1.0, price = 1.02, fit = "big" },
+		{ key = "aorus", name = "Gigabyte AORUS Master", design = "aorus", fans = 3, len = 5, slots = 3, perf = 1.04, price = 1.27, fit = "big" },
+		{ key = "eagle", name = "Gigabyte Eagle OC", name2 = "Gigabyte Eagle", design = "eagle", fans = 3, len = 2, perf = 1.01, price = 1.05 },
+		{ key = "twinedge", name = "ZOTAC Gaming Twin Edge", design = "twinedge", fans = 2, len = -4, perf = 1.0, price = 0.98, fit = "small" },
+		{ key = "trinity", name = "ZOTAC Gaming Trinity", design = "twinedge", fans = 3, len = 3, perf = 1.0, price = 1.03, fit = "big" },
+		{ key = "amp", name = "ZOTAC Gaming AMP", design = "amp", fans = 3, len = 3, slots = 2.7, perf = 1.02, price = 1.1 },
+		{ key = "gamingpro", name = "Palit GamingPro", name2 = "Palit Dual", design = "gamingpro", fans = 3, len = 2, perf = 1.0, price = 1.0 },
+	},
+	amd = {
+		{ key = "nitro", name = "Sapphire NITRO+", design = "nitro", fans = 3, len = 4, slots = 3, perf = 1.035, price = 1.15 },
+		{ key = "pulse", name = "Sapphire PULSE", design = "pulse", fans = 2, big = 3, len = 0, perf = 1.0, price = 1.0 },
+		{ key = "reddevil", name = "PowerColor Red Devil", design = "reddevil", fans = 3, len = 4, slots = 3, perf = 1.035, price = 1.16 },
+		{ key = "hellhound", name = "PowerColor Hellhound", design = "hellhound", fans = 3, len = 2, perf = 1.01, price = 1.04 },
+		{ key = "merc", name = "XFX Speedster MERC", name2 = "XFX Speedster SWFT", design = "merc", fans = 3, len = 4, slots = 3, perf = 1.025, price = 1.12 },
+		{ key = "tuf", name = "ASUS TUF Gaming", design = "tuf", fans = 3, len = 3, slots = 2.7, perf = 1.02, price = 1.1 },
+		{ key = "gaming", name = "Gigabyte Gaming OC", design = "eagle", fans = 3, len = 2, perf = 1.015, price = 1.05 },
+	},
+	intel = {
+		{ key = "challenger", name = "ASRock Challenger", design = "challenger", fans = 2, len = -1, perf = 1.0, price = 1.0 },
+		{ key = "titan", name = "Sparkle Titan OC", design = "titan", fans = 3, len = 2, perf = 1.02, price = 1.08 },
+	},
+}
+-- NVIDIA's own Founders Edition cards: design, length (cm) and thickness (slots). The other
+-- GeForce chips were only sold by board partners; their base listing is a plain partner card.
+local FOUNDERS = {
+	gtx1060_6 = { "fe10", 25, 2 }, gtx1070 = { "fe10", 26.7, 2 }, gtx1070ti = { "fe10", 26.7, 2 },
+	gtx1080 = { "fe10", 26.7, 2 }, gtx1080ti = { "fe10", 26.7, 2 },
+	rtx2060 = { "fe20", 22.9, 2 }, rtx2060s = { "fe20", 22.9, 2 }, rtx2070 = { "fe20", 22.9, 2 },
+	rtx2070s = { "fe20", 26.7, 2 }, rtx2080 = { "fe20", 26.7, 2 }, rtx2080s = { "fe20", 26.7, 2 }, rtx2080ti = { "fe20", 26.7, 2 },
+	rtx3060ti = { "fe", 24.2, 2 }, rtx3070 = { "fe", 24.2, 2 }, rtx3070ti = { "fe", 27, 2 }, rtx3080 = { "fe", 28.5, 2 },
+	rtx3080ti = { "fe", 28.5, 2 }, rtx3090 = { "fe", 31.3, 3 }, rtx3090ti = { "fe", 31.3, 3 },
+	rtx4060ti = { "fe", 24.4, 2 }, rtx4070 = { "fe", 24.4, 2 }, rtx4070s = { "fe", 24.4, 2 },
+	rtx4080 = { "fe", 31, 3 }, rtx4080s = { "fe", 31, 3 }, rtx4090 = { "fe", 30.4, 3 },
+	rtx5070 = { "fe", 24.2, 2 }, rtx5080 = { "fe", 30.4, 2 }, rtx5090 = { "fe", 30.4, 2 },
+}
+do
+	local chips = {}
+	for _, p in byCat.gpu do
+		if not p.workstation and not p.lowProfile and not p.passive and (p.fans or 0) >= 1 and (p.year or 0) >= 2016 then
+			table.insert(chips, p)
+		end
+	end
+	for i, chip in chips do
+		-- three partner cards per chip, a different trio for neighbouring chips
+		local big = (chip.fans or 2) >= 3
+		local partners = {}
+		for _, pt in Parts.GpuPartners[chip.brand] or {} do
+			if not (pt.fit == "small" and big) and not (pt.fit == "big" and not big) then
+				table.insert(partners, pt)
+			end
+		end
+		local picks = math.min(3, #partners)
+		local stride = math.max(1, math.floor(#partners / 3))
+		for k = 0, picks - 1 do
+			local pt = partners[(i - 1 + k * stride) % #partners + 1]
+			local fans = if chip.perf < 15 then 2 elseif big then (pt.big or pt.fans) else pt.fans
+			add({
+				id = chip.id .. "_" .. pt.key,
+				cat = "gpu",
+				name = (if fans < pt.fans and pt.name2 then pt.name2 else pt.name) .. " " .. chip.name,
+				brand = chip.brand,
+				maker = pt.name,
+				chip = chip.id,
+				design = pt.design,
+				perf = math.floor(chip.perf * pt.perf * 10 + 0.5) / 10,
+				vram = chip.vram,
+				tdp = math.floor(chip.tdp * (1 + (pt.perf - 1) * 2)),
+				power = chip.power,
+				len = chip.len + pt.len,
+				fans = fans,
+				slots = math.max(chip.slots or 2, pt.slots or 0),
+				year = chip.year,
+				price = math.floor(chip.price * pt.price + 0.5),
+			})
+		end
+		-- the chip maker's own card
+		local fe = FOUNDERS[string.sub(chip.id, 5)]
+		if fe then
+			chip.design, chip.len, chip.slots = fe[1], fe[2], fe[3]
+			chip.maker = "NVIDIA"
+			chip.name = (string.gsub(chip.name, " (%d+GB)$", " Founders Edition %1"))
+		elseif chip.brand == "amd" then
+			chip.design = "amdref"
+		elseif chip.brand == "intel" then
+			chip.design = "arcref"
+		else
+			chip.design = "ref"
+		end
+	end
+end
+
 ----------------------------------------------------------------------------------------------------
 -- Processors
 ----------------------------------------------------------------------------------------------------

@@ -133,6 +133,7 @@ async function texMaterial(id, mk) {
 const groups = new Map();
 const clip = q.get('clip') ? +q.get('clip') : Infinity; // cutaway: drop parts above this height
 for (const p of data.parts) {
+  if (p.t >= 0.98) continue; // clear text carriers: only their text is drawn (below)
   if (!night && p.m === 'Neon' && p.t > 0.9) continue;
   if (p.p[1] > clip) continue;
   const key = (p.s === 'mesh' && p.mesh ? 'mesh:' + p.mesh + ':' + (p.tex || '') : p.s) + '|' + matKey(p);
@@ -167,6 +168,55 @@ for (const [key, list] of groups) {
   mesh.castShadow = mk !== 'glass' && mk !== 'neon';
   mesh.receiveShadow = true;
   mesh.instanceMatrix.needsUpdate = true;
+  scene.add(mesh);
+}
+
+// SurfaceGui text (TextScaled) on the face it is set on, oriented as Roblox draws it
+const FACES = {
+  Front: { right: [-1, 0, 0], up: [0, 1, 0], n: [0, 0, -1], w: 0, h: 1, d: 2 },
+  Back: { right: [1, 0, 0], up: [0, 1, 0], n: [0, 0, 1], w: 0, h: 1, d: 2 },
+  Left: { right: [0, 0, 1], up: [0, 1, 0], n: [-1, 0, 0], w: 2, h: 1, d: 0 },
+  Right: { right: [0, 0, -1], up: [0, 1, 0], n: [1, 0, 0], w: 2, h: 1, d: 0 },
+  Top: { right: [1, 0, 0], up: [0, 0, -1], n: [0, 1, 0], w: 0, h: 2, d: 1 },
+  Bottom: { right: [1, 0, 0], up: [0, 0, 1], n: [0, -1, 0], w: 0, h: 2, d: 1 },
+};
+function textTexture(l, w, h) {
+  const cw = 512, ch = Math.max(16, Math.min(1024, Math.round(512 * h / Math.max(w, 1e-4))));
+  const cv = document.createElement('canvas');
+  cv.width = cw; cv.height = ch;
+  const g = cv.getContext('2d');
+  if (l.bg) { g.fillStyle = '#' + l.bg; g.fillRect(0, 0, cw, ch); }
+  const lines = String(l.text).replace(/<[^>]+>/g, '').split('\n');
+  const padX = cw * 0.06, padY = ch * 0.06;
+  let size = ch;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (; size > 4; size *= 0.92) {
+    g.font = `800 ${size}px sans-serif`;
+    const widest = Math.max(...lines.map((t) => g.measureText(t).width));
+    if (widest <= cw - 2 * padX && size * 1.15 * lines.length <= ch - 2 * padY) break;
+  }
+  g.fillStyle = '#' + l.color;
+  lines.forEach((t, i) => g.fillText(t, cw / 2, ch / 2 + (i - (lines.length - 1) / 2) * size * 1.15));
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+for (const p of data.parts) {
+  if (!p.l || !p.l.text || p.p[1] > clip) continue;
+  const f = FACES[p.l.face];
+  if (!f) continue;
+  const s = p.z, w = s[f.w], h = s[f.h];
+  if (w < 1e-4 || h < 1e-4) continue;
+  const mat = new THREE.MeshBasicMaterial({ map: textTexture(p.l, w, h), transparent: !p.l.bg, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+  if (!p.l.glow) mat.color.setScalar(0.85);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+  const basis = new THREE.Matrix4().makeBasis(new THREE.Vector3(...f.right), new THREE.Vector3(...f.up), new THREE.Vector3(...f.n));
+  const off = s[f.d] / 2 + 0.0005;
+  basis.setPosition(f.n[0] * off, f.n[1] * off, f.n[2] * off);
+  const r = p.r;
+  const world = new THREE.Matrix4().set(r[0], r[1], r[2], p.p[0], r[3], r[4], r[5], p.p[1], r[6], r[7], r[8], p.p[2], 0, 0, 0, 1);
+  mesh.matrixAutoUpdate = false;
+  mesh.matrix.multiplyMatrices(world, basis);
   scene.add(mesh);
 }
 
