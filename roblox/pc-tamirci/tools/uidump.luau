@@ -222,6 +222,22 @@ elseif scene == "factory" then
 	task.wait(0.2)
 	cmod("UI.FactoryPanel").open()
 	task.wait(0.3)
+elseif scene == "leaders" then
+	-- a few rivals on the server
+	for i, name in { "Ayşe", "Burak", "Ceren" } do
+		local rival = Engine.addPlayer(name)
+		Engine.spawnCharacter(rival)
+		waitFor(function()
+			return DataService.get(rival)
+		end, 8, "rival")
+		local rp = DataService.get(rival)
+		rp.money = 20000 * i + 3500
+		rp.level = 4 + i * 3
+		rp.stats.repairs = 30 * i
+	end
+	task.wait(0.2)
+	cmod("UI.LeadersPanel").open()
+	task.wait(0.3)
 elseif scene == "jobs" then
 	local cust = customerJob()
 	pps.PromptTriggered:Fire(cust.prompt, player)

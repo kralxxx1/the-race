@@ -21,6 +21,7 @@ local QuestsPanel = require(UI.QuestsPanel)
 local BillsPanel = require(UI.BillsPanel)
 local Stores = require(UI.Stores)
 local FactoryPanel = require(UI.FactoryPanel)
+local LeadersPanel = require(UI.LeadersPanel)
 local S = require(UI.Parent.Strings)
 local State = require(UI.Parent.State)
 
@@ -165,6 +166,7 @@ function Phone.open()
 		{ "🧾", S.t("phone_bills"), BillsPanel.open },
 		{ "🛵", S.t("phone_courier"), Stores.courier },
 		{ "🏭", S.t("phone_factory"), FactoryPanel.open },
+		{ "🏆", S.t("phone_leaders"), LeadersPanel.open },
 		{ "📊", S.t("phone_stats"), function()
 			page(S.t("phone_stats"), statsPage)
 		end },

@@ -208,6 +208,11 @@ local function makeLeaderstats(player: Player, p)
 	money.Name = "Para"
 	money.Value = math.floor(p.money)
 	money.Parent = ls
+	-- (net worth: LeaderService keeps it up to date)
+	local worth = Instance.new("IntValue")
+	worth.Name = "Servet"
+	worth.Value = math.floor(p.money)
+	worth.Parent = ls
 	local level = Instance.new("IntValue")
 	level.Name = "Seviye"
 	level.Value = p.level

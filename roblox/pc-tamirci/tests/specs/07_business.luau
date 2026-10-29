@@ -853,4 +853,45 @@ return function(T)
 		T.eq(#p.inv, inv0 - 5, "the peripherals were sold with it")
 		T.ok(p.setupItems == nil or next(p.setupItems) == nil, "nothing left over")
 	end)
+	T.test("leaders: cash, net worth and more on this server; the board and the player list", function()
+		local Worth = Engine.mod("ReplicatedStorage.Shared.Economy.Worth")
+		local LeaderService = Engine.require(Services.LeaderService)
+		local p = DataService.get(player)
+		p.money = 12345
+		local w = Worth.of(p)
+		T.eq(w.cash, 12345, "cash")
+		T.ok(w.total >= w.cash + w.stock + w.shop - 2, "adds up")
+		-- a second player with more cash but a smaller business
+		local rich = Engine.addPlayer("Zengin")
+		Engine.spawnCharacter(rich)
+		waitFor(function()
+			return DataService.get(rich)
+		end, 8, "second profile")
+		local rp = DataService.get(rich)
+		rp.money = p.money + 5000
+		local money = LeaderService.rows("money")
+		T.eq(money[1].name, "Zengin", "the richest first")
+		p.shop.level = 6
+		p.shop.items.solar = true
+		local worth = LeaderService.rows("worth")
+		T.eq(worth[1].name, player.DisplayName, "the biggest business first")
+		local r = request("leaders.get")
+		for _, c in LeaderService.categories do
+			T.ok(r.ok and r.data.categories[c.id] and #r.data.categories[c.id] >= 2, "table " .. c.id)
+		end
+		-- the player list shows net worth
+		LeaderService.stats(player, p)
+		local ls = player:FindFirstChild("leaderstats")
+		T.ok(ls and ls:FindFirstChild("Servet") and ls.Servet.Value == Worth.of(p).total, "net worth in the player list")
+		-- the board at city hall cycles through the tables
+		local board = CS:GetTagged("Leaderboard")[1]
+		LeaderService.paint("worth")
+		local label = board:FindFirstChild("Leaders"):FindFirstChild("Text")
+		T.ok(string.find(label.Text, "DEĞERLİ", 1, true) and string.find(label.Text, player.DisplayName, 1, true), "worth table on the board")
+		LeaderService.paint("repairs")
+		T.ok(string.find(label.Text, "TAMİR", 1, true) ~= nil, "repairs table on the board")
+		p.shop.level = 1
+		p.shop.items.solar = nil
+		rich:Destroy()
+	end)
 end

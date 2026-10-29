@@ -22,6 +22,7 @@ local Hud = require(UI.Hud)
 local App = require(UI.App)
 local ShopPanel = require(UI.ShopPanel)
 local QuestsPanel = require(UI.QuestsPanel)
+local LeadersPanel = require(UI.LeadersPanel)
 local S = require(UI.Parent.Strings)
 local State = require(UI.Parent.State)
 
@@ -443,24 +444,9 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Leaderboard and police
 ----------------------------------------------------------------------------------------------------
-local function leaders(o, c: Instance)
-	Kit.label(c, S.t("board_cols"), { Size = UDim2.new(1, 0, 0, 22), TextColor3 = Theme.dim, TextSize = 14 })
-	local list = Kit.list(c, { Size = UDim2.new(1, 0, 1, -30), Position = UDim2.fromOffset(0, 28) })
-	local me = game:GetService("Players").LocalPlayer
-	for i, row in o.data.rows or {} do
-		local medal = if i == 1 then "🥇" elseif i == 2 then "🥈" elseif i == 3 then "🥉" else "#" .. i
-		local mine = me and row.name == me.DisplayName
-		local f, right = Kit.row(list, medal, row.name .. (if mine then " " .. S.t("board_you") else ""), S.t("level") .. " " .. row.level .. " • " .. S.t("stat_repairs", { n = row.repairs }) .. " • ★ " .. row.rep, { LayoutOrder = i })
-		if mine then
-			Kit.outline(f, Theme.accent, 2, 0)
-		end
-		Kit.label(right, S.money(row.money), { Size = UDim2.fromOffset(120, 36), TextColor3 = Theme.money, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Right })
-	end
-end
-
 -- City hall: today's tasks and the leaderboard.
 local function board(o)
-	local win = storeWindow("🏛️ " .. S.t("store_board"), Vector2.new(760, 560))
+	local win = storeWindow("🏛️ " .. S.t("store_board"), Vector2.new(920, 600))
 	local c = win.content
 	local area = Kit.frame(c, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, -44), Position = UDim2.fromOffset(0, 44) })
 	local pages = {}
@@ -475,7 +461,7 @@ local function board(o)
 				local refresh = QuestsPanel.render(f)
 				table.insert(win.conns, State.changed:Connect(refresh))
 			else
-				leaders(o, f)
+				LeadersPanel.render(f, o.data.all or { categories = { worth = o.data.rows } })
 			end
 		end
 	end)
