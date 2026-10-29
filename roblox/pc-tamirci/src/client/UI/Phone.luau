@@ -134,6 +134,7 @@ local function claimDaily()
 end
 
 function Phone.open()
+	Phone.lastOpened = os.clock()
 	local w = Kit.window(App.screen :: ScreenGui, "📱 " .. S.t("phone"), Vector2.new(460, 620))
 	win = w
 	local c = w.content

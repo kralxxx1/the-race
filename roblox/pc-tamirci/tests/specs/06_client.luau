@@ -145,6 +145,47 @@ return function(T)
 		T.ok(#errs == 0, what .. ": " .. tostring(errs[1]))
 	end
 
+	T.test("client: the tutorial walks a new player through the opening with an arrow", function()
+		local Tutorial = cmod("Controllers.Tutorial")
+		local Guide = cmod("Controllers.Guide")
+		T.eq(Tutorial.step(), 1, "a new player starts at the opening")
+		local card = gui:FindFirstChild("Tutorial", true)
+		T.ok(card and card.Visible, "tutorial card")
+		-- the arrow points at the ribbon across the shop door
+		local ribbon = waitFor(function()
+			local t = Guide.current()
+			return typeof(t) == "Instance" and t.Name == "Ribbon" and t
+		end, 3, "arrow on the ribbon")
+		Engine.step(1, 1 / 30)
+		local folder = Engine.workspace:FindFirstChild("Guide")
+		T.ok(folder and folder:FindFirstChild("GuideArrow"), "3D arrow in the world")
+		-- far from the shop: an arrow on the screen edge and the home tag
+		local char = player.Character
+		local root = char.HumanoidRootPart
+		local home = root.CFrame
+		root.CFrame = roblox.CFrame.new(ribbon.Position + roblox.Vector3.new(400, 0, 400))
+		-- looking away from the shop, so it is behind the camera
+		Engine.workspace.CurrentCamera.CFrame = roblox.CFrame.lookAt(root.Position + roblox.Vector3.new(0, 10, 0), root.Position + roblox.Vector3.new(50, 10, 400))
+		Engine.step(3, 1 / 30)
+		local edge = gui:FindFirstChild("GuideEdge", true)
+		T.ok(edge and edge.Visible, "edge pointer while the target is off screen")
+		local tag = folder:FindFirstChild("MyShopTag")
+		T.ok(tag and tag.Enabled, "your-shop tag over the shop when far away")
+		root.CFrame = home
+		-- cut the ribbon: the next step points at the counter (then the customer)
+		local prompt = ribbon:FindFirstChild("OpenPrompt")
+		game:GetService("ProximityPromptService").PromptTriggered:Fire(prompt, player)
+		waitFor(function()
+			return Tutorial.step() == 2
+		end, 4, "tutorial moves on after the opening")
+		local t = waitFor(function()
+			local c = Guide.current()
+			return typeof(c) == "Instance" and (c.Name == "Register" or c.Name == "Head") and c
+		end, 3, "arrow on the counter or the customer")
+		T.ok(t ~= nil, "talk step target")
+		T.ok(string.find(gui:FindFirstChild("Tutorial", true):FindFirstChildWhichIsA("TextLabel").Text, "2", 1, true) ~= nil, "step counter")
+	end)
+
 	T.test("client: every window and phone app opens", function()
 		Mock.errors = {}
 		cmod("UI.JobsPanel").open()

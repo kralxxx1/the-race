@@ -416,6 +416,7 @@ end
 ----------------------------------------------------------------------------------------------------
 function Stores.open(o)
 	local service = o.service
+	Stores.lastOpened = { service = service, at = os.clock() }
 	if service == "parts" or service == "parts_bazaar" then
 		partsStore(o)
 	elseif service == "used" then

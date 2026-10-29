@@ -86,6 +86,39 @@ return function(T)
 		T.ok(player:FindFirstChild("leaderstats") ~= nil, "leaderstats")
 	end)
 
+	T.test("server: a new shop opens by cutting the ribbon, then customers come", function()
+		local shop = PlotService.shopOf(player)
+		local p = DataService.get(player)
+		T.ok(p.opened == false, "a new save starts closed")
+		local ceremony = shop.model:FindFirstChild("GrandOpening")
+		T.ok(ceremony ~= nil, "ribbon across the door")
+		-- no customers before the opening
+		CustomerService.ofShop(player).next = 0
+		task.wait(1.5)
+		T.eq(#CustomerService.ofShop(player).list, 0, "nobody comes to a closed shop")
+		local prompt = ceremony:FindFirstChild("OpenPrompt", true)
+		T.ok(prompt and prompt:GetAttribute("Owner") == player.UserId, "owner's prompt")
+		-- someone else can't open it
+		local other = Engine.addPlayer("Nosy")
+		pps.PromptTriggered:Fire(prompt, other)
+		T.ok(p.opened == false, "a stranger can't cut the ribbon")
+		pps.PromptTriggered:Fire(prompt, player)
+		T.ok(p.opened == true, "opened")
+		waitFor(function()
+			return lastPush("opened")
+		end, 2, "opening pushed to the owner")
+		T.ok(CustomerService.ofShop(player).next - os.clock() < 6, "first customer soon")
+		other.Parent = nil
+		game:GetService("Players").PlayerRemoving:Fire(other)
+		-- saves from before the opening existed count as open
+		local migrated = DataService._migrate({ v = 1, tutorial = 4, stats = { repairs = 3 } })
+		T.ok(migrated.opened == true, "old saves are open")
+		T.eq(migrated.tutorial, 5, "tutorial step renumbered")
+		T.eq(DataService._migrate({ v = 1, tutorial = 6 }).tutorial, 99, "a finished tutorial stays finished")
+		local fresh = DataService._migrate({ v = 1, tutorial = 1, stats = { repairs = 0 } })
+		T.ok(fresh.opened == false and fresh.tutorial == 1, "a save that never started begins at the opening")
+	end)
+
 	local job
 	T.test("server: a customer is served, the job repaired at the bench and paid", function()
 		local p = DataService.get(player)

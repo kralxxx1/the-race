@@ -12,12 +12,14 @@ local ShopBuilder = require(Shared.Models.ShopBuilder)
 local Upgrades = require(Shared.Data.Upgrades)
 local Signal = require(Shared.Util.Signal)
 local Net = require(Shared.Net)
+local B = require(Shared.Util.Builder)
 
 local DataService = require(script.Parent.DataService)
 
 local PlotService = {}
 PlotService.built = Signal.new() -- (player, shop) after a shop is (re)built
 PlotService.released = Signal.new() -- (player, plotId)
+PlotService.opened = Signal.new() -- (player) the grand opening: the ribbon across the door was cut
 
 local folder: Folder
 local owners: { [number]: Player } = {}
@@ -46,6 +48,75 @@ local function shopName(player: Player, p): string
 		return p.shop.name
 	end
 	return player.DisplayName .. " Bilgisayar"
+end
+
+-- A new shop opens with a ceremony: a red ribbon on two posts across the doorway, a "grand
+-- opening" board and a prompt (only its owner sees it) that cuts the ribbon.
+local function addRibbon(player: Player, shop)
+	local door = shop.points and shop.points:FindFirstChild("Door")
+	if not door then
+		return
+	end
+	local m = B.model("GrandOpening", shop.model)
+	local base = door.CFrame * CFrame.new(0, -0.5, -4.2) -- on the pavement just outside the doorway
+	for side = -1, 1, 2 do
+		B.cylY(m, base * CFrame.new(side * 5.2, 2, 0), 4, 0.35, Color3.fromRGB(200, 200, 206), Enum.Material.Metal)
+		B.cylY(m, base * CFrame.new(side * 5.2, 0.1, 0), 0.2, 1.2, Color3.fromRGB(60, 60, 66), Enum.Material.Metal)
+	end
+	local ribbon = B.box(m, base * CFrame.new(0, 3.5, 0), Vector3.new(10.4, 0.7, 0.08), Color3.fromRGB(210, 20, 40), Enum.Material.Fabric, { Name = "Ribbon", CanCollide = true })
+	for side = -1, 1, 2 do
+		B.box(m, base * CFrame.new(side * 0.55, 3.5, -0.08) * CFrame.Angles(0, 0, side * 0.5), Vector3.new(1.1, 0.9, 0.12), Color3.fromRGB(230, 30, 50), Enum.Material.Fabric, { CanCollide = false })
+	end
+	local board = B.box(m, base * CFrame.new(7.6, 2.6, 0.6) * CFrame.Angles(math.rad(-8), 0, 0), Vector3.new(3.6, 4.2, 0.2), Color3.fromRGB(250, 246, 236), Enum.Material.Wood, { CanCollide = false })
+	B.sign(board, Enum.NormalId.Front, "🎉\nBÜYÜK\nAÇILIŞ", { color = Color3.fromRGB(200, 20, 40), font = B.Fonts.Heavy })
+	local prompt = B.prompt(ribbon, "Kurdeleyi kes", "Dükkânı Aç", { name = "OpenPrompt", hold = 0.6, distance = 14 })
+	prompt:SetAttribute("Owner", player.UserId)
+	ribbon:AddTag("OpeningRibbon")
+	ribbon:SetAttribute("Owner", player.UserId)
+end
+
+-- The ribbon is cut: the shop is open and customers start to come.
+function PlotService.open(player: Player): boolean
+	local p = DataService.get(player)
+	local shop = shops[player]
+	if not p or p.opened then
+		return false
+	end
+	p.opened = true
+	DataService.touch(player)
+	local ceremony = shop and shop.model:FindFirstChild("GrandOpening")
+	if ceremony then
+		-- confetti over the doorway, then the posts go away
+		local ribbon = ceremony:FindFirstChild("Ribbon")
+		if ribbon then
+			local burst = Instance.new("ParticleEmitter")
+			burst.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			burst.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 80)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 220, 60)), ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 160, 255)) })
+			burst.Lifetime = NumberRange.new(1.2, 2)
+			burst.Speed = NumberRange.new(10, 18)
+			burst.SpreadAngle = Vector2.new(60, 60)
+			burst.Acceleration = Vector3.new(0, -20, 0)
+			burst.Size = NumberSequence.new(0.4)
+			burst.Rate = 0
+			burst.Parent = ribbon
+			burst:Emit(80)
+			ribbon.Transparency = 1
+			ribbon.CanCollide = false
+			-- (other PromptTriggered listeners still look at the prompt: it goes with the posts)
+			local prompt = ribbon:FindFirstChild("OpenPrompt") :: ProximityPrompt?
+			if prompt then
+				prompt.Enabled = false
+			end
+		end
+		task.delay(3, function()
+			if ceremony.Parent then
+				ceremony:Destroy()
+			end
+		end)
+	end
+	Net.push(player, "opened", {})
+	PlotService.opened:Fire(player)
+	return true
 end
 
 -- (Re)builds the player's shop on its plot.
@@ -102,6 +173,9 @@ function PlotService.build(player: Player)
 		points = model:FindFirstChild("Points"),
 	}
 	shops[player] = shop
+	if not p.opened then
+		addRibbon(player, shop)
+	end
 	player:SetAttribute("Plot", id)
 	PlotService.built:Fire(player, shop)
 	Net.push(player, "shop", { plot = id, level = p.shop.level, name = shopName(player, p), benches = #benches })
@@ -209,6 +283,12 @@ function PlotService.start()
 	end)
 	-- renting an empty lot moves your shop there
 	game:GetService("ProximityPromptService").PromptTriggered:Connect(function(prompt, player)
+		if prompt.Name == "OpenPrompt" then
+			if prompt:GetAttribute("Owner") == player.UserId then
+				PlotService.open(player)
+			end
+			return
+		end
 		if prompt.Name ~= "ClaimPrompt" then
 			return
 		end

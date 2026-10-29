@@ -539,12 +539,23 @@ end)
 roblox.implementMethod("Camera", "ScreenPointToRay", function(cam, x, y)
 	return { Origin = cam.CFrame.Position, Direction = cam.CFrame.LookVector }
 end)
-roblox.implementMethod("Camera", "WorldToViewportPoint", function(cam, pos)
-	return roblox.Vector3.new(640, 360, 10), true
-end)
-roblox.implementMethod("Camera", "WorldToScreenPoint", function(cam, pos)
-	return roblox.Vector3.new(640, 360, 10), true
-end)
+-- A real pinhole projection (vertical field of view, looking along -Z): x, y in pixels and the
+-- depth along the view direction (negative behind the camera, where x and y come out mirrored).
+local function project(cam, pos)
+	local rel = cam.CFrame:PointToObjectSpace(pos)
+	local okF, fovDeg = pcall(function()
+		return cam.FieldOfView
+	end)
+	local fov = math.rad(if okF and type(fovDeg) == "number" then fovDeg else 70)
+	local f = (VIEW.Y / 2) / math.tan(fov / 2)
+	local z = -rel.Z
+	local zz = if math.abs(z) < 1e-4 then 1e-4 else z
+	local x = VIEW.X / 2 + rel.X / zz * f
+	local y = VIEW.Y / 2 - rel.Y / zz * f
+	return roblox.Vector3.new(x, y, z), z > 0 and x >= 0 and y >= 0 and x <= VIEW.X and y <= VIEW.Y
+end
+roblox.implementMethod("Camera", "WorldToViewportPoint", project)
+roblox.implementMethod("Camera", "WorldToScreenPoint", project)
 valueProp("Camera", "Focus", roblox.CFrame.new())
 
 ----------------------------------------------------------------------------------------------------

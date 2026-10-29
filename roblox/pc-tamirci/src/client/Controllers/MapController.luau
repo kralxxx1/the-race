@@ -165,6 +165,33 @@ local function drawCity(c: Frame, big: boolean, marks: { [number]: Frame }, onPo
 		key.ZIndex = 5
 		key.Visible = false
 		key.Parent = m
+		-- your own shop: a big house pin (and its name on the big map), shown by paintPlots
+		local home = Instance.new("TextLabel")
+		home.Name = "Home"
+		home.BackgroundTransparency = 1
+		home.Text = "🏠"
+		home.TextScaled = true
+		home.AnchorPoint = Vector2.new(0.5, 1)
+		home.Size = if big then UDim2.fromOffset(34, 34) else UDim2.fromOffset(20, 20)
+		home.Position = UDim2.fromScale(0.5, 0.5)
+		home.ZIndex = 11
+		home.Visible = false
+		home.Parent = m
+		if big then
+			local caption = Kit.label(home, S.t("guide_home"), {
+				Name = "Caption",
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.new(0.5, 0, 1, 0),
+				Size = UDim2.fromOffset(110, 20),
+				TextSize = 14,
+				FontFace = Theme.heavy,
+				TextColor3 = Theme.accent2,
+				TextStrokeTransparency = 0.2,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				ZIndex = 11,
+			})
+			caption.TextScaled = false
+		end
 		marks[p.id] = m
 	end
 	-- places
@@ -239,6 +266,10 @@ local function paintPlots(marks: { [number]: Frame })
 		end
 		if key then
 			key.Visible = who == nil and m.AbsoluteSize.X > 10
+		end
+		local home = m:FindFirstChild("Home")
+		if home then
+			home.Visible = who == player
 		end
 	end
 end

@@ -29,6 +29,7 @@ local BenchController = require(Controllers.BenchController)
 local MapController = require(Controllers.MapController)
 local VehicleController = require(Controllers.VehicleController)
 local Ambience = require(Controllers.Ambience)
+local Guide = require(Controllers.Guide)
 local Tutorial = require(Controllers.Tutorial)
 local Traffic = require(Controllers.Traffic)
 local Sky = require(Controllers.Sky)
@@ -141,7 +142,10 @@ ContractsPanel.init()
 Phone.init({
 	map = MapController.open,
 	home = home,
-	relabel = MapController.relabel,
+	relabel = function()
+		MapController.relabel()
+		Guide.relabel()
+	end,
 })
 BenchViews.init()
 BenchController.init(screen, Hud)
@@ -150,6 +154,7 @@ VehicleController.init()
 Ambience.init()
 Traffic.init()
 Sky.init()
+Guide.init()
 Tutorial.init()
 if State.data then
 	local settings = State.data.settings or {}

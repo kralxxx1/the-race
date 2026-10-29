@@ -60,6 +60,7 @@ return function(T)
 	waitFor(function()
 		return DataService.get(player) and PlotService.shopOf(player)
 	end, 8, "shop")
+	PlotService.open(player)
 	local function request(action: string, payload)
 		return rf.OnServerInvoke(player, action, payload)
 	end

@@ -47,7 +47,7 @@ local function defaults()
 		stock[id] = n * (p and p.uses or 1)
 	end
 	return {
-		v = 1,
+		v = 2,
 		money = Config.StartMoney,
 		xp = 0,
 		level = 1,
@@ -61,6 +61,7 @@ local function defaults()
 		vehicles = {},
 		stats = { repairs = 0, earned = 0, perfect = 0, caught = 0, robbed = 0, failed = 0, customers = 0, days = 0 },
 		tutorial = 1,
+		opened = false, -- the shop's grand opening (cutting the ribbon) is the first thing to do
 		nextUid = 0,
 		last = 0,
 		daily = { day = 0, streak = 0 },
@@ -72,6 +73,16 @@ DataService.defaults = defaults
 
 -- Fills fields added after a save was written.
 local function migrate(data)
+	if data.opened == nil then
+		-- saves from before the grand opening: anyone who has played already has an open shop
+		data.opened = (data.tutorial or 1) > 1 or (data.stats and (data.stats.repairs or 0) > 0) or false
+	end
+	if (data.v or 1) < 2 then
+		-- v2: the tutorial starts with the grand opening and ends with the parts depot, phone and
+		-- map; the old "done" (6) stays done, the rest move one step on
+		local t = data.tutorial or 1
+		data.tutorial = if t >= 6 then 99 elseif t <= 1 and not data.opened then 1 else t + 1
+	end
 	local d = defaults()
 	for k, v in d do
 		if data[k] == nil then
@@ -87,6 +98,7 @@ local function migrate(data)
 	data.v = d.v
 	return data
 end
+DataService._migrate = migrate
 
 local function keyOf(player: Player): string
 	return "u_" .. player.UserId

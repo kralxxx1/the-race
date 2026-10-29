@@ -277,6 +277,22 @@ elseif what == "poi" then
 	result.parts = dumpParts(world, poi.pos, tonumber(process.args[3]) or 120)
 	print(string.format("poi %s at (%.0f, %.0f, %.0f), door (%.0f, %.0f, %.0f)", poi.id, poi.pos.X, poi.pos.Y, poi.pos.Z, poi.door.X, poi.door.Y, poi.door.Z))
 	outName = "poi_" .. poi.id
+elseif what == "guide" then
+	-- the tutorial's guide arrow
+	Engine.localPlayer = Engine.addPlayer("Viewer")
+	Engine.context = "client"
+	local Guide = Engine.require(Engine.find("StarterPlayer.StarterPlayerScripts.Client.Controllers.Guide"), "client")
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	local a = Guide._buildArrow()
+	a.Parent = folder
+	a:PivotTo(roblox.CFrame.new(0, 4, 0))
+	local floor = roblox.Instance.new("Part")
+	floor.Size = roblox.Vector3.new(20, 1, 20)
+	floor.CFrame = roblox.CFrame.new(0, -0.5, 0)
+	floor.Parent = folder
+	result.parts = dumpParts(folder)
+	outName = "guide"
 elseif what == "sky" then
 	Engine.localPlayer = Engine.addPlayer("Viewer")
 	Engine.context = "client"

@@ -377,11 +377,17 @@ local T = {
 	},
 
 	-- tutorial
-	tut_1 = { "👋 Hoş geldin usta! Dükkânına bir müşteri gelecek. Tezgâhın önünde onunla konuş (E).", "👋 Welcome! A customer will come to your shop. Talk to them at the counter (E)." },
-	tut_2 = { "🧰 Harika! Şimdi tezgâha otur (E) ve işi tezgâha al.", "🧰 Great! Now sit at your bench (E) and load the job." },
-	tut_3 = { "🔍 Önce Güç ile cihazı dene, sonra aleti seçip (1-0) parçaların üzerine gel. Sağ tık: tüm seçenekler.", "🔍 Try Power first, then pick a tool (1-0) and hover parts. Right click: every option." },
-	tut_4 = { "✅ Arızayı giderince her şeyi geri tak ve 'İşi Bitir'e bas.", "✅ Once it's fixed, put everything back and press 'Finish Job'." },
-	tut_5 = { "💰 Parayla alet, parça ve araç al; dükkânını büyüt. Harita için M'ye bas. İyi işler!", "💰 Spend on tools, parts and vehicles; grow your shop. Press M for the map. Good luck!" },
+	tut_step = { "EĞİTİM • ADIM {n}/{total}", "TUTORIAL • STEP {n}/{total}" },
+	tut_open = { "🏠 Burası senin dükkânın! Kapıdaki kırmızı kurdeleye git ve E'ye basılı tutarak kes: dükkânın açılsın.", "🏠 This is your shop! Go to the red ribbon at the door and hold E to cut it: your shop opens." },
+	tut_talk = { "👤 İlk müşterin geliyor! Tezgâhın önünde onunla konuş (E) ve işi kabul et.", "👤 Your first customer is coming! Talk to them at the counter (E) and accept the job." },
+	tut_bench = { "🧰 Cihaz sende. Oka doğru git: tamir tezgâhına otur (E) ve cihazı tezgâha al.", "🧰 You have the device. Follow the arrow: sit at the repair bench (E) and load it." },
+	tut_diagnose = { "🔍 Önce Güç ile cihazı dene, sonra aleti seçip (1-0) parçaların üzerine gel. Sağ tık: tüm seçenekler.", "🔍 Try Power first, then pick a tool (1-0) and hover parts. Right click: every option." },
+	tut_finish = { "✅ Arızayı giderince her şeyi geri tak ve 'İşi Bitir'e bas. Müşteri cihazını alıp ödemesini yapacak.", "✅ Once it's fixed, put everything back and press 'Finish Job'. The customer picks it up and pays." },
+	tut_parts = { "🛒 Kazandın! Yedek parça lazım olunca Mega Parça Deposu'na gidersin. Yerdeki sarı yolu ve oku takip et (ya da arabanla git).", "🛒 You got paid! When you need spare parts, go to the Mega Parts Depot. Follow the yellow trail and the arrow (or drive)." },
+	tut_phone = { "📱 Telefonundan dükkânı geliştir, eleman al, görev ve faturalara bak. Telefon düğmesine bas (P).", "📱 Your phone upgrades the shop, hires staff, shows tasks and bills. Press the phone button (P)." },
+	tut_map = { "🗺️ Haritada (M) her yer yazar: dükkânın 🏠, parçacılar, pazarlar, galeriler. Bir yere tıkla, yol tarifi al. İyi işler usta!", "🗺️ The map (M) shows everything: your shop 🏠, parts stores, markets, dealers. Click a place for directions. Good luck!" },
+	guide_dist = { "{m} m", "{m} m" },
+	guide_home = { "DÜKKANIN", "YOUR SHOP" },
 	tut_skip = { "Geç", "Skip" },
 
 	-- misc

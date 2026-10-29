@@ -787,7 +787,8 @@ local function tick()
 			end
 		end
 		local lvl = Upgrades.levels[p.shop.level]
-		if now >= s.next and active < (lvl and lvl.queue or 2) + 1 and total < Config.MaxCustomersPerServer then
+		-- (nobody comes before the grand opening)
+		if p.opened ~= false and now >= s.next and active < (lvl and lvl.queue or 2) + 1 and total < Config.MaxCustomersPerServer then
 			local attract = sumItems(player, "attract")
 			local speed = 1 + attract / 40 + (p.rep - 50) / 100 + (p.shop.level - 1) * 0.08
 			local interval = math.max(Config.CustomerSpawnMin, Config.CustomerSpawnBase / math.max(0.3, speed)) * Rand.range(rng, 0.7, 1.3)
@@ -874,6 +875,10 @@ function CustomerService.start()
 
 	PlotService.built:Connect(function(player)
 		shopState(player)
+	end)
+	-- the first customer turns up right after the ribbon is cut
+	PlotService.opened:Connect(function(player)
+		shopState(player).next = os.clock() + 4
 	end)
 	PlotService.released:Connect(function(player)
 		local s = shops[player]
