@@ -414,7 +414,7 @@ function Props.simitCart(parent: Instance, cf: CFrame): Model
 	for side = -1, 1, 2 do
 		B.cyl(m, cf * CFrame.new(side * 1.6, 0.8, 1.3), 0.3, 1.6, Color3.fromRGB(30, 30, 30), M.Rubber)
 	end
-	local sign = B.box(m, cf * CFrame.new(0, 6.2, 0), Vector3.new(3.6, 1.2, 0.2), Color3.fromRGB(250, 220, 120), M.SmoothPlastic, noCollide())
+	local sign = B.box(m, cf * CFrame.new(0, 6.1, 0), Vector3.new(3.6, 1.2, 0.2), Color3.fromRGB(250, 220, 120), M.SmoothPlastic, noCollide())
 	B.sign(sign, Enum.NormalId.Front, "SİMİT • POĞAÇA", { color = red })
 	return m
 end
@@ -515,7 +515,7 @@ function Props.pallet(parent: Instance, cf: CFrame): Model
 	local m = B.model("Pallet", parent)
 	B.box(m, cf * CFrame.new(0, 0.3, 0), Vector3.new(4, 0.6, 4), Color3.fromRGB(180, 140, 96), M.WoodPlanks)
 	for i = 1, 3 do
-		B.box(m, cf * CFrame.new((i % 2) * 0.4 - 0.2, 0.6 + i * 1.1 - 0.5, ((i + 1) % 2) * 0.4 - 0.2), Vector3.new(2.6, 1, 2.2), Color3.fromRGB(196, 170, 120), M.Cardboard)
+		B.box(m, cf * CFrame.new((i % 2) * 0.4 - 0.2, 0.6 + (i - 0.5) * 1.0, ((i + 1) % 2) * 0.4 - 0.2), Vector3.new(2.6, 1, 2.2), Color3.fromRGB(196, 170, 120), M.Cardboard)
 	end
 	return m
 end

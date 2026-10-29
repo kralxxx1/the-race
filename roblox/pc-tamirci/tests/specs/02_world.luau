@@ -1,6 +1,7 @@
 -- City layout invariants and a full world build in the headless engine.
 
 local Engine = require("../lib/Engine")
+local Geometry = require("../lib/Geometry")
 local Vector3 = require("@lune/roblox").Vector3
 
 return function(T)
@@ -164,6 +165,18 @@ return function(T)
 				T.ok(not overlaps(r, o, 1), r.m:GetFullName() .. " runs into " .. tostring(o.m.Name))
 			end
 		end
+	end)
+
+	T.test("world: nothing hangs in the air (every part rests on the ground or touches another)", function()
+		local TerrainB = Engine.mod("ServerScriptService.Server.World.TerrainBuilder")
+		local floating, checked = Geometry.floating(Engine.world, function(x, z)
+			return math.max(TerrainB.groundHeight(x, z), CityLayout.WALK_Y)
+		end)
+		for k = 1, math.min(#floating, 10) do
+			print("      floating:", floating[k]:GetFullName(), floating[k].Position, floating[k].Size)
+		end
+		T.ok(checked > 20000, "parts checked: " .. checked)
+		T.ok(#floating == 0, #floating .. " parts hang in the air")
 	end)
 
 	T.test("world: nothing thin lies on grass terrain (blades would poke through)", function()

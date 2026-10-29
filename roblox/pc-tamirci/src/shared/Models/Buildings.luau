@@ -132,7 +132,7 @@ function Buildings.shopfront(parent: Instance, cf: CFrame, width: number, height
 		for i = -1, 1, 2 do
 			B.box(parent, cf * CFrame.new(i * width * 0.3, height * 0.4, 6.4), Vector3.new(width * 0.22, height * 0.6, 0.8), Color3.fromRGB(120, 90, 60), M.Wood, nc())
 		end
-		B.box(parent, cf * CFrame.new(0, height * 0.82, 3.5), Vector3.new(width * 0.7, 0.2, 0.4), Color3.fromRGB(255, 244, 220), M.Neon, nc({ CastShadow = false }))
+		B.box(parent, cf * CFrame.new(0, height * 0.84 - 0.4, 6.6), Vector3.new(width * 0.7, 0.2, 0.4), Color3.fromRGB(255, 244, 220), M.Neon, nc({ CastShadow = false }))
 	end
 	if o.awning ~= false and rng:NextNumber() < (o.awningChance or 0.6) then
 		Buildings.awning(parent, cf * CFrame.new(0, height * 0.79, -0.2), width - 1.4, B.color(o.awningColor or Rand.pick(rng, AWNING)), rng)
@@ -163,8 +163,13 @@ local function roofClutter(model: Instance, cf: CFrame, w: number, d: number, y:
 			B.box(model, cf * CFrame.new(x, y + 3, z), Vector3.new(6, 6, 6), Color3.fromRGB(180, 176, 168), M.Concrete)
 		elseif kind == 4 then
 			-- solar panels
+			-- tilted panels on a rack: the low edge sits on the roof, a post holds up the high one
+			local tilt = math.rad(-25)
+			local rise = 2.5 * math.sin(-tilt)
 			for i = 0, 2 do
-				B.box(model, cf * CFrame.new(x + i * 3.2 - 3.2, y + 1.3, z) * CFrame.Angles(math.rad(-25), 0, 0), Vector3.new(3, 0.2, 5), Color3.fromRGB(30, 44, 80), M.Glass, nc({ Reflectance = 0.2 }))
+				local px = x + i * 3.2 - 3.2
+				B.box(model, cf * CFrame.new(px, y + rise + 0.1, z) * CFrame.Angles(tilt, 0, 0), Vector3.new(3, 0.2, 5), Color3.fromRGB(30, 44, 80), M.Glass, nc({ Reflectance = 0.2 }))
+				B.box(model, cf * CFrame.new(px, y + rise, z + 2.2 * math.cos(tilt)), Vector3.new(0.2, rise * 2, 0.2), Color3.fromRGB(150, 150, 156), M.Metal, nc())
 			end
 		else
 			-- antenna mast and dish
@@ -173,7 +178,8 @@ local function roofClutter(model: Instance, cf: CFrame, w: number, d: number, y:
 		end
 	end
 	if style == "modern" and rng:NextNumber() < 0.5 then
-		local beacon = B.ball(model, cf * CFrame.new(w / 2 - 2, y + 2, d - 2), 0.8, Color3.fromRGB(255, 40, 40), M.Neon, nc({ Name = "Beacon" }))
+		B.cylY(model, cf * CFrame.new(w / 2 - 2, y + 0.85, d - 2), 1.7, 0.2, Color3.fromRGB(150, 150, 156), M.Metal, nc())
+		local beacon = B.ball(model, cf * CFrame.new(w / 2 - 2, y + 2.05, d - 2), 0.8, Color3.fromRGB(255, 40, 40), M.Neon, nc({ Name = "Beacon" }))
 		beacon:AddTag("Beacon")
 	end
 end
@@ -228,12 +234,18 @@ function Buildings.building(parent: Instance, cf: CFrame, opts): Model
 		for _, x in { -w / 2 + 0.6, w / 2 - 0.6 } do
 			B.box(m, cf * CFrame.new(x, groundH / 2, 0), Vector3.new(1.2, groundH, 1.2), wall, wallMat)
 		end
-		local canopy = B.box(m, cf * CFrame.new(0, groundH * 0.72, -3), Vector3.new(math.min(16, w - 4), 0.6, 6), Color3.fromRGB(40, 44, 50), M.Metal)
+		local cw = math.min(16, w - 4)
+		local canopy = B.box(m, cf * CFrame.new(0, groundH * 0.72, -3), Vector3.new(cw, 0.6, 6), Color3.fromRGB(40, 44, 50), M.Metal)
+		-- two slim posts carry its front edge
+		for side = -1, 1, 2 do
+			B.cylY(m, cf * CFrame.new(side * (cw / 2 - 0.6), (groundH * 0.72 - 0.3) / 2, -5.4), groundH * 0.72 - 0.3, 0.35, Color3.fromRGB(60, 64, 70), M.Metal)
+		end
 		if opts.name then
 			B.sign(canopy, Enum.NormalId.Front, opts.name, { color = Color3.new(1, 1, 1), glow = true, font = B.Fonts.Bold })
 		end
 		B.box(m, cf * CFrame.new(0, groundH * 0.95, 0), Vector3.new(w, groundH * 0.1, 1.2), wall, wallMat)
-		B.box(m, cf * CFrame.new(0, groundH * 0.6, 6), Vector3.new(w - 4, 0.3, 0.3), Color3.fromRGB(255, 240, 210), M.Neon, nc())
+		-- an LED strip under the canopy's front edge
+		B.box(m, cf * CFrame.new(0, groundH * 0.72 - 0.38, -5.6), Vector3.new(cw - 1.6, 0.16, 0.3), Color3.fromRGB(255, 240, 210), M.Neon, nc({ CastShadow = false }))
 	else
 		facade(m, cf * CFrame.new(0, 0, 0.5), w, 1, fh, { wall = wall, wallMat = wallMat, glass = glass, cols = math.max(1, math.floor(w / 8)), rng = rng, litChance = 0.2, frames = style == "apartment" or style == "historic", arched = style == "historic" })
 	end
@@ -263,7 +275,9 @@ function Buildings.building(parent: Instance, cf: CFrame, opts): Model
 						B.box(m, cf * CFrame.new(x, y + 1.9, -3.5), Vector3.new(ww + 1.4, 3, 0.15), Color3.fromRGB(150, 190, 210), M.Glass, nc({ Transparency = 0.5 }))
 						B.box(m, cf * CFrame.new(x, y + 3.45, -3.5), Vector3.new(ww + 1.4, 0.2, 0.25), Color3.fromRGB(80, 84, 90), M.Metal, nc())
 						if rng:NextNumber() < 0.3 then
-							B.cyl(m, cf * CFrame.new(x + ww / 2 - 0.6, y + 4, -2) * CFrame.Angles(0, math.rad(80), math.rad(15)), 0.25, 1.8, Color3.fromRGB(235, 235, 235), M.SmoothPlastic, nc())
+							-- a satellite dish on a bracket on the wall
+							B.box(m, cf * CFrame.new(x + ww / 2 - 0.6, y + 4, -0.75), Vector3.new(0.2, 0.2, 0.5), Color3.fromRGB(120, 120, 126), M.Metal, nc())
+							B.cyl(m, cf * CFrame.new(x + ww / 2 - 0.6, y + 4, -1.1) * CFrame.Angles(0, math.rad(80), math.rad(15)), 0.25, 1.8, Color3.fromRGB(235, 235, 235), M.SmoothPlastic, nc())
 						end
 						if rng:NextNumber() < 0.35 then
 							Props.plant(m, cf * CFrame.new(x - ww / 2 + 1, y + 0.4, -2.5), rng)

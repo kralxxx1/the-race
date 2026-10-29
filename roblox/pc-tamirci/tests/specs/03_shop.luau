@@ -1,6 +1,7 @@
 -- Player shop: every level builds, exposes the markers gameplay needs, and nothing overlaps.
 
 local Engine = require("../lib/Engine")
+local Geometry = require("../lib/Geometry")
 local roblox = require("@lune/roblox")
 local CFrame, Vector3, Instance = roblox.CFrame, roblox.Vector3, roblox.Instance
 
@@ -106,6 +107,15 @@ return function(T)
 					T.ok(math.abs(dev.X) < L.w / 2 and dev.Z > 0 and dev.Z < L.d, "bench " .. i .. " outside the hall")
 				end
 				T.ok(#shop:GetTags() > 0 and shop:HasTag("PlayerShop"), "tagged PlayerShop")
+				-- nothing in the shop hangs in the air
+				local floating = Geometry.floating(shop, function()
+					return plot.Position.Y
+				end)
+				for k = 1, math.min(#floating, 6) do
+					local f = floating[k]
+					print("      floating:", f:GetFullName(), f.Size, info.front:PointToObjectSpace(f.Position))
+				end
+				T.ok(#floating == 0, "level " .. level .. ": " .. #floating .. " parts hang in the air")
 				folder:Destroy()
 			end
 		end

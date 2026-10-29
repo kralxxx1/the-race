@@ -574,7 +574,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	end
 	if items.rgb_lights then
 		for k = 0, 2 do
-			local strip = B.box(shop, at(0, 6 + k * (D - 12) / 2, H - 0.5), Vector3.new(W - 4, 0.2, 0.4), Color3.fromHSV(k / 3, 0.8, 1), M.Neon, nc({ CastShadow = false, Name = "RGBStrip" }))
+			local strip = B.box(shop, at(0, 6 + k * (D - 12) / 2, H - 0.3), Vector3.new(W - 4, 0.2, 0.4), Color3.fromHSV(k / 3, 0.8, 1), M.Neon, nc({ CastShadow = false, Name = "RGBStrip" }))
 			strip:AddTag("RGBStrip")
 		end
 	end
@@ -615,7 +615,8 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		end
 	end
 	if opts.owner then
-		local ownerTag = B.box(shop, front * CFrame.new(-W / 2 + 4, 6, -0.7), Vector3.new(5, 1.2, 0.2), Color3.fromRGB(240, 240, 236), M.SmoothPlastic, nc())
+		-- the owner's nameplate stuck on the shop window
+		local ownerTag = B.box(shop, front * CFrame.new(-W / 2 + 4, 6, 0.25), Vector3.new(5, 1.2, 0.2), Color3.fromRGB(240, 240, 236), M.SmoothPlastic, nc())
 		B.sign(ownerTag, Enum.NormalId.Front, "Sahibi: " .. opts.owner, { color = Color3.fromRGB(30, 30, 30), font = B.Fonts.Medium })
 	end
 	B.tag(shop, "PlayerShop")

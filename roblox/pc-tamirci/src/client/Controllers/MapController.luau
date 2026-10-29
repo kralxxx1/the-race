@@ -231,6 +231,8 @@ local function drawCity(c: Frame, big: boolean, marks: { [number]: Frame }, onPo
 					ZIndex = 8,
 					Visible = false,
 				})
+				-- places you do business at keep their names when zoomed out
+				name:SetAttribute("Service", poi.def.service ~= nil)
 				table.insert(nameLabels, name)
 				if onPoi then
 					(icon :: TextButton).Activated:Connect(function()
@@ -605,7 +607,7 @@ local function setZoom(z: number, anchor: Vector2?)
 	canvas.Size = UDim2.fromOffset(new.X, new.Y)
 	canvas.Position = UDim2.fromOffset(pivot.X - fx * new.X, pivot.Y - fy * new.Y)
 	for _, l in nameLabels do
-		l.Visible = zoom >= 2.2
+		l.Visible = zoom >= 2.2 or (zoom >= 1.2 and l:GetAttribute("Service") == true)
 	end
 	paintPlots(plotMarks)
 end

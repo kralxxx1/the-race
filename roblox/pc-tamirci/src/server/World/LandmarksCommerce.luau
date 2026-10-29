@@ -74,7 +74,11 @@ local function megastore(parent, poi, rng)
 		for z = 14, hd - 22, 16 do
 			Props.shelf(m, cf * CFrame.new(x, 0.2, z) * CFrame.Angles(0, math.pi / 2, 0), 14, 12, 3, rng, 0.9)
 		end
+		-- aisle sign hung on rods from the ceiling
 		local sign = B.box(m, cf * CFrame.new(x, hh - 4, hd / 2), Vector3.new(0.4, 2.4, 8), Color3.fromRGB(0, 120, 190), M.SmoothPlastic, nc())
+		for k = -1, 1, 2 do
+			B.box(m, cf * CFrame.new(x, (hh - 2.8 + hh - 0.15) / 2, hd / 2 + k * 3), Vector3.new(0.1, 2.75, 0.1), Color3.fromRGB(150, 150, 156), M.Metal, nc())
+		end
 		B.sign(sign, Enum.NormalId.Right, ({ "EKRAN KARTI", "İŞLEMCİ", "ANAKART", "RAM", "SSD / HDD", "GÜÇ KAYNAĞI", "SOĞUTMA", "KASA", "FAN", "AKSESUAR" })[(i % 10) + 1], { color = Color3.new(1, 1, 1) })
 	end
 	-- GPU showcase island near the door
@@ -132,12 +136,17 @@ local function coveredBazaar(parent, poi, rng)
 	B.box(m, cf * CFrame.new(0, hh + 0.5, hd / 2), Vector3.new(hw, 1, hd), Color3.fromRGB(196, 182, 156), M.Limestone)
 	-- lanterns and carpets inside
 	for _ = 1, 6 do
-		local lamp = B.ball(m, cf * CFrame.new(Rand.range(rng, -hw / 2 + 6, hw / 2 - 6), hh - 4, Rand.range(rng, 6, hd - 6)), 1.4, Rand.pick(rng, { Color3.fromRGB(240, 120, 40), Color3.fromRGB(220, 50, 60), Color3.fromRGB(40, 140, 220) }), M.Neon, nc())
+		-- a glass lantern on a chain from the vault
+		local lx, lz = Rand.range(rng, -hw / 2 + 6, hw / 2 - 6), Rand.range(rng, 6, hd - 6)
+		B.cylY(m, cf * CFrame.new(lx, hh - 1.75, lz), 3.1, 0.12, Color3.fromRGB(60, 50, 40), M.Metal, nc())
+		local lamp = B.ball(m, cf * CFrame.new(lx, hh - 4, lz), 1.4, Rand.pick(rng, { Color3.fromRGB(240, 120, 40), Color3.fromRGB(220, 50, 60), Color3.fromRGB(40, 140, 220) }), M.Neon, nc())
 		B.pointLight(lamp, 16, 0.8, lamp.Color, false)
 	end
 	for i = 1, 8 do
 		local x = -hw / 2 + 6 + (i - 1) * (hw - 12) / 7
-		B.box(m, cf * CFrame.new(x, 4, hd - 3), Vector3.new(4, 7, 0.2), Rand.pick(rng, { Color3.fromRGB(170, 40, 40), Color3.fromRGB(40, 60, 140), Color3.fromRGB(180, 120, 40) }), M.Fabric, nc())
+		-- carpets hung on the back wall from a rod
+		B.box(m, cf * CFrame.new(x, 4, hd - 1.12), Vector3.new(4, 7, 0.2), Rand.pick(rng, { Color3.fromRGB(170, 40, 40), Color3.fromRGB(40, 60, 140), Color3.fromRGB(180, 120, 40) }), M.Fabric, nc())
+		B.cyl(m, cf * CFrame.new(x, 7.6, hd - 1.2), 4.6, 0.2, Color3.fromRGB(120, 90, 50), M.Wood, nc())
 	end
 	local sign = B.box(m, cf * CFrame.new(0, hh + 4, -1.4), Vector3.new(26, 3, 0.6), Color3.fromRGB(120, 40, 30), M.Wood)
 	B.sign(sign, Enum.NormalId.Front, "KAPALI ÇARŞI", { color = Color3.fromRGB(250, 220, 140), font = B.Fonts.Serif })
@@ -168,7 +177,9 @@ local function usedMarket(parent, poi, rng)
 		for _ = 1, 6 do
 			B.box(m, cf * CFrame.new(x + Rand.range(rng, -2.6, 2.6), 3.4, 12 + Rand.range(rng, -1.8, 1.8)) * CFrame.Angles(Rand.range(rng, -0.6, 0.6), Rand.range(rng, 0, 3), Rand.range(rng, -0.6, 0.6)), Vector3.new(Rand.range(rng, 1, 2.6), 0.3, Rand.range(rng, 0.6, 1.6)), Rand.pick(rng, { Color3.fromRGB(30, 110, 50), Color3.fromRGB(30, 30, 34), Color3.fromRGB(160, 160, 170) }), M.SmoothPlastic, nc())
 		end
-		local tag = B.box(m, cf * CFrame.new(x, 5, 14.6), Vector3.new(3, 1.2, 0.1), Color3.fromRGB(250, 240, 200), M.SmoothPlastic, nc())
+		-- a price tag on a stick
+		B.box(m, cf * CFrame.new(x, 3.8, 14.3), Vector3.new(0.12, 1.2, 0.12), Color3.fromRGB(120, 90, 60), M.Wood, nc())
+		local tag = B.box(m, cf * CFrame.new(x, 5, 14.41), Vector3.new(3, 1.2, 0.1), Color3.fromRGB(250, 240, 200), M.SmoothPlastic, nc())
 		B.sign(tag, Enum.NormalId.Front, Rand.pick(rng, { "%50 İNDİRİM", "SAĞLAM", "TEST EDİLDİ", "KAPANIŞ", "UCUZ!" }), { color = Color3.fromRGB(200, 30, 30), font = B.Fonts.Hand })
 		bin.Name = "PartsBin"
 	end
@@ -191,11 +202,16 @@ local function fleaMarket(parent, poi, rng)
 		end
 		B.wedge(m, c * CFrame.new(0, 7.8, 0), Vector3.new(11, 1.4, 6), cloth, M.Fabric, nc())
 		for _ = 1, 5 do
-			B.box(m, c * CFrame.new(Rand.range(rng, -4, 4), 2.6, Rand.range(rng, -1.6, 1.6)) * CFrame.Angles(0, Rand.range(rng, 0, 3), 0), Vector3.new(Rand.range(rng, 0.8, 2.4), Rand.range(rng, 0.3, 1.2), Rand.range(rng, 0.6, 1.6)), Rand.pick(rng, { Color3.fromRGB(30, 30, 34), Color3.fromRGB(20, 100, 40), Color3.fromRGB(200, 200, 205), Color3.fromRGB(180, 150, 90) }), M.SmoothPlastic, nc())
+			-- odds and ends lying on the table (top at 2.35)
+			local ih = Rand.range(rng, 0.3, 1.2)
+			B.box(m, c * CFrame.new(Rand.range(rng, -4, 4), 2.35 + ih / 2, Rand.range(rng, -1.6, 1.6)) * CFrame.Angles(0, Rand.range(rng, 0, 3), 0), Vector3.new(Rand.range(rng, 0.8, 2.4), ih, Rand.range(rng, 0.6, 1.6)), Rand.pick(rng, { Color3.fromRGB(30, 30, 34), Color3.fromRGB(20, 100, 40), Color3.fromRGB(200, 200, 205), Color3.fromRGB(180, 150, 90) }), M.SmoothPlastic, nc())
 		end
 	end
 	Commerce.servicePoint(m, cf * CFrame.new(0, 0, 30), "used", poi.id, "Tezgâhlara Bak", "Bit Pazarı", 10)
 	local banner = B.box(m, cf * CFrame.new(0, 12, 4), Vector3.new(30, 3, 0.3), Color3.fromRGB(250, 220, 90), M.Fabric, nc())
+	for side = -1, 1, 2 do
+		B.cylY(m, cf * CFrame.new(side * 15.2, 6.75, 4), 13.5, 0.4, Color3.fromRGB(110, 80, 50), M.Wood)
+	end
 	B.sign(banner, Enum.NormalId.Front, "BİT PAZARI • HER GÜN AÇIK", { color = Color3.fromRGB(120, 30, 20), font = B.Fonts.Hand })
 	return m
 end
@@ -285,6 +301,9 @@ local function marketHall(parent, poi, rng)
 		end
 	end
 	local sign = B.box(m, cf * CFrame.new(0, 10, 3), Vector3.new(24, 3, 0.3), Color3.fromRGB(40, 120, 70), M.SmoothPlastic, nc())
+	for side = -1, 1, 2 do
+		B.cylY(m, cf * CFrame.new(side * 12.2, 5.75, 3), 11.5, 0.4, Color3.fromRGB(90, 90, 96), M.Metal)
+	end
 	B.sign(sign, Enum.NormalId.Front, "SEMT PAZARI • TAZE ÜRÜN", { color = Color3.new(1, 1, 1) })
 	return m
 end
@@ -317,8 +336,9 @@ local function scrapyard(parent, poi, rng)
 	B.box(m, CFrame.new(s.x0 + 20, WALK_Y + 14, s.z1 - 20), Vector3.new(2, 28, 2), Color3.fromRGB(230, 170, 30), M.Metal)
 	B.box(m, CFrame.new(s.x0 + 32, WALK_Y + 27, s.z1 - 20), Vector3.new(26, 2, 2), Color3.fromRGB(230, 170, 30), M.Metal)
 	B.cylY(m, CFrame.new(s.x0 + 42, WALK_Y + 18, s.z1 - 20), 1.4, 7, Color3.fromRGB(60, 60, 64), M.Metal)
+	B.cylY(m, CFrame.new(s.x0 + 42, WALK_Y + 22.35, s.z1 - 20), 7.3, 0.18, Color3.fromRGB(40, 40, 44), M.Metal, nc())
 	for k = 0, 4 do
-		B.box(m, CFrame.new(s.x1 - 22, WALK_Y + 1.6 + k * 3.2, s.z1 - 24), Vector3.new(14, 3, 7), Rand.pick(rng, { Color3.fromRGB(150, 40, 30), Color3.fromRGB(40, 70, 120), Color3.fromRGB(200, 200, 196) }), M.CorrodedMetal)
+		B.box(m, CFrame.new(s.x1 - 22, WALK_Y + 1.5 + k * 3, s.z1 - 24), Vector3.new(14, 3, 7), Rand.pick(rng, { Color3.fromRGB(150, 40, 30), Color3.fromRGB(40, 70, 120), Color3.fromRGB(200, 200, 196) }), M.CorrodedMetal)
 	end
 	-- office cabin with the counter
 	local cabin = CFrame.lookAt(Vector3.new(cx, WALK_Y, s.z0 + 26), Vector3.new(cx, WALK_Y, s.z0))
@@ -471,7 +491,7 @@ local function cinema(parent, poi, _rng)
 	local marquee = B.box(m, cf * CFrame.new(0, 12, -2), Vector3.new(w - 20, 6, 4), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
 	B.sign(marquee, Enum.NormalId.Front, "YILDIZ SİNEMASI  •  VİZYONDA: 'SON TAMİRCİ'", { color = Color3.fromRGB(255, 220, 90), glow = true, brightness = 2 })
 	for i = -3, 3 do
-		local bulb = B.ball(m, cf * CFrame.new(i * (w - 24) / 6, 15.4, -4.1), 0.6, Color3.fromRGB(255, 230, 150), M.Neon, nc())
+		local bulb = B.ball(m, cf * CFrame.new(i * (w - 24) / 6, 15.3, -3.8), 0.6, Color3.fromRGB(255, 230, 150), M.Neon, nc())
 		bulb.Name = "MarqueeBulb"
 	end
 	B.box(m, cf * CFrame.new(0, 4.5, 0.2), Vector3.new(w - 24, 9, 0.4), Color3.fromRGB(160, 180, 196), M.Glass, { Transparency = 0.5 })
@@ -487,7 +507,7 @@ local function arena(parent, poi, _rng)
 	local m = Buildings.hall(parent, cf, math.min(w - 20, 70), d - 14, 18, { name = "E-SPOR ARENASI", accent = { 200, 30, 90 }, wall = { 26, 26, 34 }, wallMat = M.SmoothPlastic, floor = { 30, 30, 40 }, floorMat = M.Carpet, modelName = "Arena" })
 	local stage = cf * CFrame.new(0, 0.2, d - 26)
 	B.box(m, stage * CFrame.new(0, 1.5, 0), Vector3.new(36, 3, 12), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
-	local screen = B.box(m, stage * CFrame.new(0, 11, 6), Vector3.new(30, 12, 0.4), Color3.fromRGB(10, 10, 12), M.SmoothPlastic)
+	local screen = B.box(m, stage * CFrame.new(0, 9, 5.8), Vector3.new(30, 12, 0.4), Color3.fromRGB(10, 10, 12), M.SmoothPlastic)
 	B.sign(screen, Enum.NormalId.Front, "FİNAL • TAMİRCİLER vs ÇİPLER", { glow = true, brightness = 1.6, color = Color3.new(1, 1, 1), background = Color3.fromRGB(80, 10, 50) })
 	for i = -2, 2 do
 		B.box(m, stage * CFrame.new(i * 6, 3.4, -2), Vector3.new(4, 0.3, 2), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
@@ -514,10 +534,10 @@ local function arena(parent, poi, _rng)
 	end
 	for side = -1, 1, 2 do
 		for _, y in { 4, 12 } do
-			B.box(m, cf * CFrame.new(side * (hw - 1.2), y, d / 2), Vector3.new(0.2, 0.3, d - 6), Color3.fromRGB(230, 40, 120), M.Neon, { CanCollide = false, CastShadow = false, Name = "LedStrip" })
+			B.box(m, cf * CFrame.new(side * (hw - 1.1), y, d / 2), Vector3.new(0.2, 0.3, d - 6), Color3.fromRGB(230, 40, 120), M.Neon, { CanCollide = false, CastShadow = false, Name = "LedStrip" })
 		end
 		for k = 0, 2 do
-			local banner = B.box(m, cf * CFrame.new(side * (hw - 1.4), 8, 14 + k * 16) * CFrame.Angles(0, -side * math.pi / 2, 0), Vector3.new(7, 5, 0.2), Color3.fromRGB(20, 20, 26), M.Fabric, { CanCollide = false })
+			local banner = B.box(m, cf * CFrame.new(side * (hw - 1.1), 8, 14 + k * 16) * CFrame.Angles(0, -side * math.pi / 2, 0), Vector3.new(7, 5, 0.2), Color3.fromRGB(20, 20, 26), M.Fabric, { CanCollide = false })
 			B.sign(banner, Enum.NormalId.Front, ({ "TAMİRCİLER", "ÇİPLER", "OVERCLOCK", "RGB KURTLARI", "SOĞUTUCULAR", "BIOS BOYS" })[k + 1 + (if side < 0 then 0 else 3)], { glow = true, color = Color3.new(1, 1, 1), background = if k % 2 == 0 then Color3.fromRGB(120, 20, 60) else Color3.fromRGB(20, 40, 120) })
 		end
 	end

@@ -102,8 +102,15 @@ local function park(parent, poi, rng)
 		B.box(m, pg * CFrame.new(10 + x * 6.8, 4, 0) * CFrame.Angles(0, 0, x * 0.18), Vector3.new(0.5, 8.4, 0.5), Color3.fromRGB(40, 120, 220), M.Metal)
 	end
 	for k = -1, 1, 2 do
-		local seat = B.box(m, pg * CFrame.new(10 + k * 2.5, 2.4, 0), Vector3.new(2, 0.3, 1), Color3.fromRGB(240, 70, 60), M.SmoothPlastic, nc())
-		seat:AddTag("Swing")
+		-- a seat on two chains, hinged at the bar (clients swing the whole thing about the hinge)
+		local swing = B.model("Swing", m)
+		local hinge = B.marker(swing, "Hinge", pg * CFrame.new(10 + k * 2.5, 7.75, 0), Vector3.new(0.2, 0.2, 0.2))
+		swing.PrimaryPart = hinge
+		B.box(swing, pg * CFrame.new(10 + k * 2.5, 2.4, 0), Vector3.new(2, 0.3, 1), Color3.fromRGB(240, 70, 60), M.SmoothPlastic, nc({ Name = "Seat" }))
+		for side = -1, 1, 2 do
+			B.box(swing, pg * CFrame.new(10 + k * 2.5 + side * 0.85, 5.15, 0), Vector3.new(0.08, 5.2, 0.08), Color3.fromRGB(150, 150, 156), M.Metal, nc())
+		end
+		swing:AddTag("Swing")
 	end
 	-- lots of trees, flower beds, picnic tables
 	for _ = 1, 90 do
@@ -121,9 +128,14 @@ local function park(parent, poi, rng)
 	end
 	for _ = 1, 6 do
 		local p = CFrame.new(Rand.range(rng, s.x0 + 30, s.x0 + 120), PARK_Y, Rand.range(rng, s.z1 - 100, s.z1 - 20))
+		-- a picnic table: top and two benches on legs
 		B.box(m, p * CFrame.new(0, 2.4, 0), Vector3.new(8, 0.4, 3), Color3.fromRGB(150, 110, 70), M.WoodPlanks)
 		for side = -1, 1, 2 do
 			B.box(m, p * CFrame.new(0, 1.4, side * 2.6), Vector3.new(8, 0.3, 1.2), Color3.fromRGB(150, 110, 70), M.WoodPlanks)
+			for x = -1, 1, 2 do
+				B.box(m, p * CFrame.new(x * 3.4, 1.1, side * 1.1), Vector3.new(0.3, 2.2, 0.3), Color3.fromRGB(110, 80, 50), M.Wood)
+				B.box(m, p * CFrame.new(x * 3.4, 0.625, side * 2.6), Vector3.new(0.3, 1.25, 0.3), Color3.fromRGB(110, 80, 50), M.Wood)
+			end
 		end
 	end
 	-- duck marker points on the lake for the client
@@ -176,7 +188,10 @@ local function lunapark(parent, poi, rng)
 			local rim = B.box(wheel, CFrame.lookAt((p0 + p1) / 2, p1), Vector3.new(0.7, 0.7, (p1 - p0).Magnitude + 0.4), Color3.fromHSV(i / spokes, 0.6, 1), M.Neon, nc())
 			rim.Name = "Rim"
 		end
-		local cabin = B.box(wheel, hub * CFrame.new(0, p.Y - 3, p.Z), Vector3.new(6, 4, 4), Color3.fromHSV(i / spokes, 0.7, 0.9), M.SmoothPlastic, nc())
+		-- the cabin hangs from an axle across the two rims
+		B.box(wheel, hub * CFrame.new(0, p.Y, p.Z), Vector3.new(10.4, 0.4, 0.4), Color3.fromRGB(200, 200, 206), M.Metal, nc())
+		B.box(wheel, hub * CFrame.new(0, p.Y - 0.6, p.Z), Vector3.new(0.3, 1.2, 0.3), Color3.fromRGB(200, 200, 206), M.Metal, nc())
+		local cabin = B.box(wheel, hub * CFrame.new(0, p.Y - 3.2, p.Z), Vector3.new(6, 4, 4), Color3.fromHSV(i / spokes, 0.7, 0.9), M.SmoothPlastic, nc())
 		cabin.Name = "Cabin"
 	end
 	wheel:AddTag("FerrisWheel")
@@ -275,7 +290,7 @@ local function harbor(parent, poi, rng)
 		B.box(m, c * CFrame.new(0, 53, 20), Vector3.new(4, 4, 100), yellow, M.Metal)
 		B.box(m, c * CFrame.new(0, 48, 0), Vector3.new(28, 3, 28), yellow, M.Metal)
 		B.box(m, c * CFrame.new(0, 56, -10), Vector3.new(10, 8, 12), Color3.fromRGB(240, 240, 240), M.Metal)
-		local cab = B.box(m, c * CFrame.new(0, 47, 30), Vector3.new(6, 4, 6), Color3.fromRGB(60, 60, 64), M.Metal)
+		local cab = B.box(m, c * CFrame.new(0, 49, 30), Vector3.new(6, 4, 6), Color3.fromRGB(60, 60, 64), M.Metal)
 		cab.Name = "Trolley"
 	end
 	-- container ship moored in the basin
@@ -430,6 +445,7 @@ local function beach(parent, _poi, rng)
 		B.box(m, t * CFrame.new(0, 10.2, 0), Vector3.new(6, 0.4, 6), Color3.fromRGB(200, 40, 40), M.Wood)
 		B.box(m, t * CFrame.new(0, 12, 2.8), Vector3.new(6, 3.4, 0.3), Color3.fromRGB(200, 40, 40), M.Wood)
 		B.spire(m, t * CFrame.new(0, 15, 0), 8, 2, Color3.fromRGB(240, 240, 240), M.Fabric, nc())
+		B.cylY(m, t * CFrame.new(3.3, 14.3, 0), 7.8, 0.15, Color3.fromRGB(200, 200, 206), M.Metal, nc())
 		local flag = B.box(m, t * CFrame.new(3.4, 17, 0), Vector3.new(0.1, 1.6, 2.4), Color3.fromRGB(240, 200, 30), M.Fabric, nc())
 		flag.Name = "SafetyFlag"
 	end
@@ -542,11 +558,12 @@ local function radioTower(parent, poi, _rng)
 		B.box(m, base * CFrame.new(0, yy, w / 2), Vector3.new(w, 0.4, 0.4), Color3.fromRGB(240, 240, 240), M.Metal, nc())
 		B.box(m, base * CFrame.new(0, yy, -w / 2), Vector3.new(w, 0.4, 0.4), Color3.fromRGB(240, 240, 240), M.Metal, nc())
 		if i % 4 == 3 then
-			local red = B.ball(m, base * CFrame.new(w / 2, yy + 1, 0), 1, Color3.fromRGB(255, 30, 30), M.Neon, nc())
+			local red = B.ball(m, base * CFrame.new(w / 2, yy + 1, w / 2), 1, Color3.fromRGB(255, 30, 30), M.Neon, nc())
 			red:AddTag("Beacon")
 		end
 	end
-	local top = B.ball(m, base * CFrame.new(0, h + 1, 0), 1.6, Color3.fromRGB(255, 30, 30), M.Neon, nc())
+	B.box(m, base * CFrame.new(0, h + 0.3, 0), Vector3.new(3.8, 0.4, 3.8), Color3.fromRGB(240, 240, 240), M.Metal)
+	local top = B.ball(m, base * CFrame.new(0, h + 1.3, 0), 1.6, Color3.fromRGB(255, 30, 30), M.Neon, nc())
 	top:AddTag("Beacon")
 	B.box(m, base * CFrame.new(16, 4, 0), Vector3.new(12, 8, 10), Color3.fromRGB(200, 200, 196), M.Concrete)
 	return m

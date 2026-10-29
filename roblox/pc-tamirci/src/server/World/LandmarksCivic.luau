@@ -208,9 +208,9 @@ local function hospital(parent, poi, rng)
 	B.cylY(m, roof, 0.4, 30, Color3.fromRGB(80, 84, 90), M.Concrete)
 	B.box(m, roof * CFrame.new(0, 0.25, 0), Vector3.new(4, 0.1, 18), Color3.fromRGB(240, 240, 240), M.SmoothPlastic, nc())
 	B.box(m, roof * CFrame.new(0, 0.25, 0), Vector3.new(14, 0.1, 4), Color3.fromRGB(240, 240, 240), M.SmoothPlastic, nc())
-	local cross = B.box(m, cf * CFrame.new(-(w - 30) / 2 + 10, H - 10, -1), Vector3.new(10, 10, 1), Color3.fromRGB(255, 255, 255), M.SmoothPlastic)
+	local cross = B.box(m, cf * CFrame.new(-(w - 30) / 2 + 10, H - 10, -0.5), Vector3.new(10, 10, 1), Color3.fromRGB(255, 255, 255), M.SmoothPlastic)
 	B.sign(cross, Enum.NormalId.Front, "☾", { color = Color3.fromRGB(220, 20, 30), glow = true })
-	local er = B.box(m, cf * CFrame.new((w - 30) / 2 - 12, 11, -2), Vector3.new(14, 3, 1), Color3.fromRGB(200, 20, 30), M.Neon, nc())
+	local er = B.box(m, cf * CFrame.new((w - 30) / 2 - 12, 11, -0.5), Vector3.new(14, 3, 1), Color3.fromRGB(200, 20, 30), M.Neon, nc())
 	B.sign(er, Enum.NormalId.Front, "ACİL", { color = Color3.new(1, 1, 1) })
 	-- ambulance bay
 	B.box(parent, cf * CFrame.new((w - 30) / 2 - 12, 0.05, -10), Vector3.new(16, 0.1, 14), Color3.fromRGB(240, 200, 40), M.SmoothPlastic, nc({ CanCollide = true }))
@@ -227,7 +227,7 @@ local function school(parent, poi, rng)
 	B.cylY(parent, yard * CFrame.new(0, 0.07, 0), 0.02, 12, Color3.new(1, 1, 1), M.SmoothPlastic, nc())
 	for k = -1, 1, 2 do
 		B.cylY(parent, yard * CFrame.new(k * (w / 2 - 22), 5, 0), 10, 0.5, Color3.fromRGB(60, 60, 64), M.Metal)
-		B.box(parent, yard * CFrame.new(k * (w / 2 - 22.6), 10, 0), Vector3.new(0.3, 3, 4.6), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
+		B.box(parent, yard * CFrame.new(k * (w / 2 - 22.4), 10, 0), Vector3.new(0.3, 3, 4.6), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
 	end
 	Props.flag(parent, cf * CFrame.new(-w / 2 + 14, 0, 6), 24)
 	Props.fence(parent, (cf * CFrame.new(-w / 2 + 4, 0, 2)).Position, (cf * CFrame.new(-6, 0, 2)).Position, "metal", 6)
@@ -242,13 +242,13 @@ local function fireStation(parent, poi, _rng)
 	local bw, bd, bh = w - 40, 50, 22
 	B.box(m, cf * CFrame.new(0, bh / 2, bd / 2 + 4), Vector3.new(bw, bh, bd), brick, M.Brick)
 	for i = -1, 1 do
-		local door = B.box(m, cf * CFrame.new(i * 22, 7.5, 3.6), Vector3.new(16, 15, 0.4), Color3.fromRGB(200, 40, 30), M.DiamondPlate)
+		local door = B.box(m, cf * CFrame.new(i * 22, 7.5, 3.8), Vector3.new(16, 15, 0.4), Color3.fromRGB(200, 40, 30), M.DiamondPlate)
 		door.Name = "GarageDoor"
 		for k = 0, 2 do
-			B.box(m, cf * CFrame.new(i * 22, 9 + k * 2, 3.3), Vector3.new(14, 0.8, 0.2), Color3.fromRGB(180, 210, 230), M.Glass, nc({ Transparency = 0.3 }))
+			B.box(m, cf * CFrame.new(i * 22, 9 + k * 2, 3.5), Vector3.new(14, 0.8, 0.2), Color3.fromRGB(180, 210, 230), M.Glass, nc({ Transparency = 0.3 }))
 		end
 	end
-	local sign = B.box(m, cf * CFrame.new(0, bh - 3, 3.4), Vector3.new(30, 3, 0.4), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
+	local sign = B.box(m, cf * CFrame.new(0, bh - 3, 3.8), Vector3.new(30, 3, 0.4), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
 	B.sign(sign, Enum.NormalId.Front, "İTFAİYE 112", { color = Color3.fromRGB(200, 30, 30) })
 	-- drill tower
 	B.box(m, cf * CFrame.new(bw / 2 + 10, 25, 20), Vector3.new(12, 50, 12), brick, M.Brick)
@@ -256,7 +256,7 @@ local function fireStation(parent, poi, _rng)
 	local truck = cf * CFrame.new(-22, 0, -14)
 	B.box(m, truck * CFrame.new(0, 4, 0), Vector3.new(9, 6, 26), Color3.fromRGB(200, 30, 30), M.Metal)
 	B.box(m, truck * CFrame.new(0, 6.6, -10.5), Vector3.new(8.6, 3.4, 4.6), Color3.fromRGB(150, 190, 220), M.Glass, { Transparency = 0.4 })
-	B.box(m, truck * CFrame.new(0, 7.6, 3), Vector3.new(2, 1, 20), Color3.fromRGB(200, 200, 205), M.Metal)
+	B.box(m, truck * CFrame.new(0, 7.5, 3), Vector3.new(2, 1, 20), Color3.fromRGB(200, 200, 205), M.Metal)
 	for _, z in { -8, 0, 8 } do
 		for x = -1, 1, 2 do
 			B.cyl(m, truck * CFrame.new(x * 4.4, 1.8, z), 1.4, 3.6, Color3.fromRGB(26, 26, 26), M.Rubber)
@@ -315,6 +315,9 @@ local function stadium(parent, poi, _rng)
 		end
 	end
 	local board = B.box(m, center * CFrame.new(0, 20, -(pd / 2 + 30)), Vector3.new(30, 10, 1), Color3.fromRGB(10, 10, 12), M.SmoothPlastic)
+	for side = -1, 1, 2 do
+		B.box(m, center * CFrame.new(side * 11, 7.5, -(pd / 2 + 30)), Vector3.new(1.2, 15, 1.2), Color3.fromRGB(70, 70, 76), M.Metal)
+	end
 	B.sign(board, Enum.NormalId.Back, "TAMİRSPOR 2 - 1 ÇİPSPOR", { glow = true, color = Color3.fromRGB(255, 200, 40), font = B.Fonts.Mono })
 	return m
 end

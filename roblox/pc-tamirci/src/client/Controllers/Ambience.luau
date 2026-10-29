@@ -576,7 +576,8 @@ function Ambience.init()
 	local beams = track("LighthouseBeam")
 	local hands = track("ClockHand", clockInfo)
 	local swings = track("Swing", function(inst)
-		return if inst:IsA("BasePart") then { cf = inst.CFrame, phase = math.random() * 6 } else nil
+		-- a model hinged at its pivot (the bar)
+		return if inst:IsA("Model") then { cf = inst:GetPivot(), phase = math.random() * 6 } else nil
 	end)
 	local boats = track("Boat", function(inst)
 		return if inst:IsA("Model") then { cf = inst:GetPivot(), phase = math.random() * 6 } else nil
@@ -698,11 +699,9 @@ function Ambience.init()
 				stepClock(hand :: BasePart, info)
 			end
 		end
-		for seat, info in swings do
-			if type(info) == "table" and seat.Parent and near(seat, 300) then
-				local pivot = info.cf * CFrame.new(0, 2.6, 0)
-				local part = seat :: BasePart
-				part.CFrame = pivot * CFrame.Angles(math.sin(now * 1.6 + info.phase) * 0.45, 0, 0) * CFrame.new(0, -2.6, 0)
+		for swing, info in swings do
+			if type(info) == "table" and swing.Parent and near(swing, 300) then
+				(swing :: Model):PivotTo(info.cf * CFrame.Angles(math.sin(now * 1.6 + info.phase) * 0.45, 0, 0))
 			end
 		end
 		for boat, info in boats do
