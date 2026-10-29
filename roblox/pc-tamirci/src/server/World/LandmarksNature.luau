@@ -300,9 +300,10 @@ local function harbor(parent, poi, rng)
 	B.box(m, ship * CFrame.new(130, 20, 0), Vector3.new(24, 22, 40), Color3.fromRGB(240, 240, 240), M.Metal)
 	B.box(m, ship * CFrame.new(130, 32, 0), Vector3.new(18, 2, 44), Color3.fromRGB(240, 240, 240), M.Metal)
 	B.box(m, ship * CFrame.new(140, 36, 0), Vector3.new(6, 10, 6), Color3.fromRGB(30, 30, 30), M.Metal)
-	for k = 0, 9 do
+	-- containers on deck, end to end (each is 34 long)
+	for k = 0, 6 do
 		for j = 0, 1 do
-			Props.container(m, CFrame.new(ship.X - 120 + k * 24, ship.Y + 10 + j * 8.6, ship.Z) * CFrame.Angles(0, math.pi / 2, 0), rng)
+			Props.container(m, CFrame.new(ship.X - 120 + k * 35, ship.Y + 10 + j * 8.6, ship.Z) * CFrame.Angles(0, math.pi / 2, 0), rng)
 		end
 	end
 	local name = B.box(m, ship * CFrame.new(0, 6, 23.1), Vector3.new(60, 6, 0.2), Color3.fromRGB(30, 60, 110), M.SmoothPlastic, nc())

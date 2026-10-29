@@ -108,7 +108,8 @@ local function pocketGarden(parent: Instance, cf: CFrame, w: number, rng: Random
 		return
 	end
 	B.box(parent, cf * CFrame.new(0, 0.3, 0), Vector3.new(math.min(w - 2, 10), 0.6, 8), Color3.fromRGB(96, 74, 52), M.Ground, { Name = "GardenBed" })
-	Props.tree(parent, cf * CFrame.new(0, 0.6, 0), "oak", rng)
+	-- a tree that fits between the walls (a shrub in a narrow gap)
+	Props.tree(parent, cf * CFrame.new(0, 0.6, 0), if w >= 16 then "street" else "bush", rng)
 	if w >= 12 then
 		Props.bench(parent, cf * CFrame.new(0, 0, -5.5))
 	end
@@ -266,8 +267,9 @@ Blocks.half = half
 function Blocks.plotAlley(parent: Instance, block, rng: Random)
 	local zMid = (block.z0 + block.z1) / 2
 	B.box(parent, CFrame.new((block.x0 + block.x1) / 2, WALK_Y + 0.02, zMid), Vector3.new(block.x1 - block.x0 - 2, 0.06, 7), P.asphaltLight, M.Asphalt, { CanCollide = false })
-	for _ = 1, 3 do
-		local x = Rand.range(rng, block.x0 + 10, block.x1 - 10)
+	-- three dumpsters spread along the alley (never in each other)
+	for k = 1, 3 do
+		local x = block.x0 + (block.x1 - block.x0) * (k - 0.5) / 3 + Rand.range(rng, -12, 12)
 		local d = B.box(parent, CFrame.new(x, WALK_Y + 2.2, zMid), Vector3.new(6, 4.4, 3.4), Rand.pick(rng, { Color3.fromRGB(40, 110, 60), Color3.fromRGB(60, 60, 70), Color3.fromRGB(150, 60, 40) }), M.Metal)
 		d.Name = "Dumpster"
 	end

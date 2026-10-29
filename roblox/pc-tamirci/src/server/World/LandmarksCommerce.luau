@@ -148,7 +148,8 @@ local function coveredBazaar(parent, poi, rng)
 		B.box(m, cf * CFrame.new(x, 4, hd - 1.12), Vector3.new(4, 7, 0.2), Rand.pick(rng, { Color3.fromRGB(170, 40, 40), Color3.fromRGB(40, 60, 140), Color3.fromRGB(180, 120, 40) }), M.Fabric, nc())
 		B.cyl(m, cf * CFrame.new(x, 7.6, hd - 1.2), 4.6, 0.2, Color3.fromRGB(120, 90, 50), M.Wood, nc())
 	end
-	local sign = B.box(m, cf * CFrame.new(0, hh + 4, -1.4), Vector3.new(26, 3, 0.6), Color3.fromRGB(120, 40, 30), M.Wood)
+	-- the name board stands on the arcade's top beam
+	local sign = B.box(m, cf * CFrame.new(0, hh + 1.5, -0.9), Vector3.new(26, 3, 0.6), Color3.fromRGB(120, 40, 30), M.Wood)
 	B.sign(sign, Enum.NormalId.Front, "KAPALI ÇARŞI", { color = Color3.fromRGB(250, 220, 140), font = B.Fonts.Serif })
 	return m
 end
@@ -381,7 +382,7 @@ local function fuelStation(parent, poi, rng)
 	local m = B.model("FuelStation", parent)
 	local canopy = cf * CFrame.new(0, 0, 22)
 	B.box(m, canopy * CFrame.new(0, 14, 0), Vector3.new(40, 1.6, 22), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
-	local band = B.box(m, canopy * CFrame.new(0, 14, -11), Vector3.new(40, 1.6, 0.4), Color3.fromRGB(20, 120, 60), M.SmoothPlastic)
+	local band = B.box(m, canopy * CFrame.new(0, 14, -11), Vector3.new(40, 1.8, 0.4), Color3.fromRGB(20, 120, 60), M.SmoothPlastic)
 	B.sign(band, Enum.NormalId.Front, "YEŞİL PETROL", { color = Color3.new(1, 1, 1) })
 	for k = -1, 1, 2 do
 		B.box(m, canopy * CFrame.new(k * 14, 7, 0), Vector3.new(1.2, 14, 1.2), Color3.fromRGB(200, 200, 200), M.Metal)

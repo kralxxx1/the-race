@@ -230,7 +230,7 @@ function Buildings.building(parent: Instance, cf: CFrame, opts): Model
 			Buildings.shopfront(m, cf * CFrame.new(-w / 2 + sw * (i + 0.5), 0, 0), sw, groundH, { rng = rng, name = if i == 0 then opts.name else nil, accent = opts.accent })
 		end
 	elseif ground == "lobby" then
-		B.box(m, cf * CFrame.new(0, groundH / 2, 0.4), Vector3.new(w - 2, groundH, 0.3), glass, M.Glass, { Transparency = 0.45 })
+		B.box(m, cf * CFrame.new(0, groundH / 2 - 0.05, 0.4), Vector3.new(w - 2, groundH - 0.1, 0.3), glass, M.Glass, { Transparency = 0.45 })
 		for _, x in { -w / 2 + 0.6, w / 2 - 0.6 } do
 			B.box(m, cf * CFrame.new(x, groundH / 2, 0), Vector3.new(1.2, groundH, 1.2), wall, wallMat)
 		end
@@ -291,7 +291,7 @@ function Buildings.building(parent: Instance, cf: CFrame, opts): Model
 			end
 		elseif style == "historic" then
 			-- cornice and pilasters
-			B.box(m, cf * CFrame.new(0, H - 0.6, -0.6), Vector3.new(w + 1.2, 1.2, 2.2), Color3.fromRGB(236, 230, 214), M.Limestone)
+			B.box(m, cf * CFrame.new(0, H - 0.56, -0.6), Vector3.new(w + 1.2, 1.2, 2.2), Color3.fromRGB(236, 230, 214), M.Limestone)
 			B.box(m, cf * CFrame.new(0, fh, -0.4), Vector3.new(w + 0.6, 0.8, 1.6), Color3.fromRGB(236, 230, 214), M.Limestone)
 			for _, x in { -w / 2 + 0.7, w / 2 - 0.7 } do
 				B.box(m, cf * CFrame.new(x, H / 2, -0.4), Vector3.new(1.6, H, 1.4), Color3.fromRGB(226, 220, 204), M.Limestone)

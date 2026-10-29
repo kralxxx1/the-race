@@ -152,7 +152,7 @@ local function segment(folder: Instance, L, road, rng: Random)
 				local tp = mid + dir * (t + spacing / 2) + right * s * (cw / 2 + sw / 2)
 				if math.abs(t + spacing / 2) < len / 2 - 8 and not nearDoor(L, tp + right * s * (sw / 2), 9) then
 					B.box(m, CFrame.new(tp + Vector3.new(0, WALK_Y + 0.02, 0)), Vector3.new(4, 0.08, 4), P.soil, M.Ground, { CanCollide = false })
-					Props.tree(m, CFrame.new(tp + Vector3.new(0, WALK_Y, 0)), Rand.pick(rng, if districtL == "SEA" or districtL == "CST" then { "palm", "palm", "oak" } else { "oak", "oak", "birch", "cypress" }), rng)
+					Props.tree(m, CFrame.new(tp + Vector3.new(0, WALK_Y, 0)), Rand.pick(rng, if districtL == "SEA" or districtL == "CST" then { "palm", "palm", "street" } else { "street", "street", "street", "cypress" }), rng)
 				end
 			end
 			if rng:NextNumber() < 0.3 then
@@ -161,7 +161,7 @@ local function segment(folder: Instance, L, road, rng: Random)
 				Props.bin(m, CFrame.new(bp + dir * 4.5 + Vector3.new(0, WALK_Y, 0)))
 			end
 		elseif rng:NextNumber() < 0.25 and road.kind ~= "ring" then
-			Props.tree(m, CFrame.new(mid + dir * (t + spacing / 2) + right * side * (cw / 2 + sw / 2) + Vector3.new(0, WALK_Y, 0)), "oak", rng)
+			Props.tree(m, CFrame.new(mid + dir * (t + spacing / 2) + right * side * (cw / 2 + sw / 2) + Vector3.new(0, WALK_Y, 0)), "street", rng)
 		end
 	end
 	if urban and rng:NextNumber() < 0.25 then

@@ -38,6 +38,8 @@ local TREES = {
 	birch = { { "TreeBeechYoung", "TreeDogwood" }, 18, 24 },
 	pine = { { "TreeRedwood" }, 26, 38 },
 	bush = { { "BushLaurel", "BushRhodo", "BushRhodo2", "Fern" }, 2.6, 4.2 },
+	-- street trees: younger and narrower so the crowns stay clear of the facades (max width 13)
+	street = { { "TreeBeechYoung", "TreeDogwood", "TreeMaple", "TreeBroadleaf" }, 13, 17, 13 },
 	forest = { { "TreeBeechBig", "TreeBeech", "TreeBroadleaf", "TreeMaple", "TreeRedwood" }, 30, 52 },
 }
 
@@ -49,7 +51,12 @@ local function assetTree(parent: Instance, cf: CFrame, kind: string, r: Random):
 	end
 	local name = Rand.pick(r, spec[1])
 	local height = Rand.range(r, spec[2], spec[3])
-	local m = Assets.place(parent, "Nature", name, cf * CFrame.Angles(0, r:NextNumber() * math.pi * 2, 0), Assets.scaleFor("Nature", name, height))
+	local scale = Assets.scaleFor("Nature", name, height)
+	local size = Assets.size("Nature", name)
+	if spec[4] and size then
+		scale = math.min(scale, spec[4] / math.max(size.X, size.Z))
+	end
+	local m = Assets.place(parent, "Nature", name, cf * CFrame.Angles(0, r:NextNumber() * math.pi * 2, 0), scale)
 	if m then
 		m.Name = if kind == "bush" then "Bush" else "Tree"
 	end
