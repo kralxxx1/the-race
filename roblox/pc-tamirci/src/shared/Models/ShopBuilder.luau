@@ -360,6 +360,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	point("CounterFront", at(xc, zc - 3, 0.5))
 	point("CounterBack", at(xc, zc + 2.6, 0.5), { Role = "receptionist" })
 	point("Register", counterCf * CFrame.new(counterW / 2 - 2, 4.5, 0.3))
+	point("CashierSpot", at(xc + counterW / 2 - 2, zc + 2.6, 0.5), { Role = "cashier" })
 	if items.trophy then
 		-- glass trophy cabinet on the wall nearest the counter
 		wallItem({ walls.rightFront, walls.leftFront, walls.back, walls.rightWork, walls.leftWork }, 6, 1.15, 2.3, function(c)
@@ -529,6 +530,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		end)
 	end
 	-- showroom displays with PCs for sale behind the front glass
+	local showSpot = nil
 	if items.showcase and level >= 4 then
 		for i = 1, 3 do
 			local d = wallItem({ walls.frontLeft, walls.frontRight }, 5, 1.8, 3.6, function(c)
@@ -540,6 +542,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 				break
 			end
 			point("Showcase_" .. i, d * CFrame.new(0, 3.3, 0), { Showcase = i })
+			showSpot = showSpot or d * CFrame.new(2.4, 0, -3.6)
 		end
 	end
 	if items.plants then
@@ -670,6 +673,16 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	standSpot("GuardSpot", 6.2, 3.2, { Role = "security" })
 	standSpot("ManagerSpot", 0, fz + 3, { Role = "manager" })
 	standSpot("CleanerSpot", 0, (fz + D) / 2 - 2, { Role = "cleaner" })
+	standSpot("QASpot", 0, fz + 4, { Role = "engineer" })
+	standSpot("TeaSpot", -5.8, fz - 1.6, { Role = "tea_maker" })
+	if showSpot then
+		local sx, sz = local2(showSpot)
+		standSpot("SalesSpot", sx, sz, { Role = "salesperson" })
+	else
+		standSpot("SalesSpot", inner - 6, 6, { Role = "salesperson" })
+	end
+	-- the night watchman's post outside, beside the door
+	point("NightGuardSpot", front * CFrame.new(-6.5, 0.5, -2.6), { Role = "night_guard" })
 	point("ThiefExit", cf * CFrame.new(if rng:NextNumber() < 0.5 then -plotW / 2 - 20 else plotW / 2 + 20, 0.5, -10))
 	-- outside: pylon sign, bench, parking marker
 	local pylon = cf * CFrame.new(plotW / 2 - 4, 0.12, 2)

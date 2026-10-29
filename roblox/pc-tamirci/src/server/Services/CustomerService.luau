@@ -18,6 +18,7 @@ local Parts = require(Shared.Data.Parts)
 local Faults = require(Shared.Data.Faults)
 local Customers = require(Shared.Data.Customers)
 local Upgrades = require(Shared.Data.Upgrades)
+local Employees = require(Shared.Data.Employees)
 local DeviceGen = require(Shared.Repair.DeviceGen)
 
 local DataService = require(script.Parent.DataService)
@@ -153,11 +154,16 @@ local function pickArchetype(level: number)
 	return Rand.weighted(rng, pool)
 end
 
+-- Comfort of the shop: its furniture and its staff (cleaner, tea maker, friendly faces).
+local function comfortOf(player: Player): number
+	local p = DataService.get(player)
+	return sumItems(player, "comfort") + Employees.effect(p and p.staff, "comfort")
+end
+
 local function patienceSeconds(cust, player: Player): number
 	local r = Config.CustomerPatienceMinutes
 	local base = Rand.range(rng, r[1], r[2]) * 60 * (cust.arch.patience or 1)
-	local comfort = sumItems(player, "comfort")
-	return base * (1 + comfort / 120)
+	return base * (1 + math.max(-20, comfortOf(player)) / 120)
 end
 
 local function removeCustomer(cust)
@@ -590,7 +596,8 @@ local function pay(player: Player, cust, job)
 		end
 		stars = math.clamp(stars, 1, 5)
 		local tip = 0
-		if stars >= 4 and rng:NextNumber() < (cust.arch.tip or 0.2) * (1 + sumItems(player, "comfort") / 100) then
+		local staffList = (DataService.get(player) or {}).staff
+		if stars >= 4 and rng:NextNumber() < (cust.arch.tip or 0.2) * (1 + math.max(-20, comfortOf(player)) / 100) * math.max(0.3, 1 + Employees.effect(staffList, "tips")) then
 			tip = math.floor(job.price * Rand.range(rng, 0.08, 0.22))
 		end
 		-- the scammer bolts instead of paying, half of the time
@@ -790,7 +797,7 @@ local function tick()
 		-- (nobody comes before the grand opening)
 		if p.opened ~= false and not player:GetAttribute("PowerCut") and now >= s.next and active < (lvl and lvl.queue or 2) + 1 and total < Config.MaxCustomersPerServer then
 			local attract = sumItems(player, "attract")
-			local speed = 1 + attract / 40 + (p.rep - 50) / 100 + (p.shop.level - 1) * 0.08
+			local speed = (1 + attract / 40 + (p.rep - 50) / 100 + (p.shop.level - 1) * 0.08) * (1 + Employees.effect(p.staff, "customers"))
 			local interval = math.max(Config.CustomerSpawnMin, Config.CustomerSpawnBase / math.max(0.3, speed)) * Rand.range(rng, 0.7, 1.3)
 			s.next = now + interval
 			task.spawn(spawnCustomer, player)

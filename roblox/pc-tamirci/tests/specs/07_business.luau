@@ -348,4 +348,314 @@ return function(T)
 		local ac = Bills.utilities(3, 3, { ac = true })
 		T.ok(ac.elec > plain.elec, "air conditioning uses power")
 	end)
+	----------------------------------------------------------------------------------------------
+	-- Staff
+	----------------------------------------------------------------------------------------------
+	local Employees = Engine.mod("ReplicatedStorage.Shared.Data.Employees")
+	local function dice(roll: number)
+		return {
+			NextNumber = function()
+				return roll
+			end,
+			NextInteger = function(_, a)
+				return a
+			end,
+		}
+	end
+	local function staffRec(role: string, extra)
+		local r = { uid = role .. "_t", role = role, name = role, gender = "m", skill = 3, wage = 100, trait = "calm", trait2 = "punctual", edu = "highschool", morale = 70, days = 0, xp = 0 }
+		for k, v in extra or {} do
+			r[k] = v
+		end
+		return r
+	end
+
+	T.test("staff: 22 roles, 50 traits, schooling and six places to look", function()
+		local Avatars = Engine.mod("ReplicatedStorage.Shared.Data.Avatars")
+		T.eq(#Employees.roleOrder, 22, "roles")
+		local groups = {}
+		for _, g in Employees.groups do
+			groups[g.id] = true
+		end
+		for _, id in Employees.roleOrder do
+			local r = Employees.roles[id]
+			T.ok(r and r.name.tr and r.name.en and r.desc.tr and r.desc.en and r.icon and r.wage > 0, "role " .. id)
+			T.ok(groups[r.group], id .. " in a group")
+			T.ok(Avatars.OUTFITS[r.look] ~= nil, id .. " look " .. tostring(r.look))
+		end
+		T.ok(#Employees.traits >= 48, "traits: " .. #Employees.traits)
+		local seen = {}
+		for _, t in Employees.traits do
+			T.ok(not seen[t.id], "unique trait " .. t.id)
+			seen[t.id] = true
+			T.ok(t.name.tr and t.name.en and t.say and t.say.tr and t.say.en, "trait text " .. t.id)
+		end
+		T.eq(#Employees.channels, 6, "places to look")
+		local rolesSeen = {}
+		for _, ch in Employees.channels do
+			for seed = 1, 12 do
+				local list = Employees.candidates(seed * 7919, nil, ch.id)
+				T.eq(#list, ch.count, ch.id .. " count")
+				for _, c in list do
+					rolesSeen[c.role] = true
+					T.ok(c.channel == ch.id and string.sub(c.uid, 1, 2) == string.sub(ch.id, 1, 2), "uid " .. c.uid)
+					if ch.roles then
+						T.ok(table.find(ch.roles, c.role) ~= nil, ch.id .. " offers " .. c.role)
+					end
+					T.ok(c.skill >= 1 and c.skill <= 5 and c.cvSkill >= c.skill, "skill " .. c.skill .. "/" .. c.cvSkill)
+					local edu = Employees.eduById[c.edu]
+					T.ok(edu ~= nil and (not ch.uni or edu.uni), "schooling " .. tostring(c.edu))
+					T.ok(c.age >= 16 and c.age <= 64, "age " .. c.age)
+					T.ok(c.wage >= 5 and c.hireCost >= 0, "pay")
+					T.ok(c.trait ~= c.trait2 and not Employees.traitById[c.trait].hidden, "traits")
+					local share = Avatars.OUTFITS[Employees.roles[c.role].look].female
+					T.ok((c.gender == "f" and share > 0) or (c.gender == "m" and share < 1), "an avatar for " .. c.gender)
+				end
+			end
+		end
+		for _, id in Employees.roleOrder do
+			T.ok(rolesSeen[id], "candidates for " .. id)
+		end
+		-- the CV hides the truth until the interview
+		local c = Employees.candidates(5, nil, "listing")[1]
+		local cv = Employees.public(c, false)
+		T.ok(cv.skill == nil and cv.trait2 == nil and cv.cvSkill ~= nil, "CV only")
+		local met = Employees.public(c, true)
+		T.ok(met.skill == c.skill and met.trait2 == c.trait2 and met.interviewed, "after the interview")
+	end)
+
+	T.test("staff: interviews, hiring from each place, raises and severance", function()
+		local p = DataService.get(player)
+		p.money = 1e6
+		p.level = 20
+		p.shop.level = 2
+		p.staff = {}
+		local function easy(list)
+			for _, c in list do
+				local role = Employees.roles[c.role]
+				if role.minShop <= 2 and Employees.count(p.staff, c.role) < role.max then
+					return c
+				end
+			end
+			error("no candidate a small shop can hire")
+		end
+		pushes = {}
+		-- a listings site: CVs only until you interview
+		EmployeeService.openAgency(player, "listing")
+		local open = lastPush("staff.open")
+		T.eq(open.channel, "listing", "channel")
+		T.eq(#open.candidates, 12, "a dozen applicants")
+		T.ok(open.candidates[1].skill == nil and open.candidates[1].trait2 == nil, "the truth is hidden")
+		local pick = easy(open.candidates)
+		local r = request("staff.interview", { uid = pick.uid })
+		T.ok(r.ok and r.cand.skill ~= nil and r.cand.trait2 ~= nil, "interviewed")
+		EmployeeService.openAgency(player, "listing")
+		for _, c in lastPush("staff.open").candidates do
+			if c.uid == pick.uid then
+				T.ok(c.interviewed and c.skill == r.cand.skill, "remembered")
+			end
+		end
+		local money0 = p.money
+		local h = request("staff.hire", { uid = pick.uid })
+		T.ok(h.ok, "hired: " .. tostring(h.err))
+		T.eq(p.money, money0 - pick.hireCost, "the fee")
+		local first = p.staff[1]
+		T.ok(first.known and first.morale == 70 and first.days == 0 and first.skill == r.cand.skill, "the record")
+		T.eq(request("staff.hire", { uid = pick.uid }).err, "already", "only once")
+		-- the headhunter only works with a proper shop; referrals need someone to refer them
+		EmployeeService.openAgency(player, "headhunter")
+		T.eq(request("staff.hire", { uid = lastPush("staff.open").candidates[1].uid }).err, "shop_level", "the headhunter wants a bigger shop")
+		EmployeeService.openAgency(player, "referral")
+		local friend = easy(lastPush("staff.open").candidates)
+		p.staff = {}
+		T.eq(request("staff.hire", { uid = friend.uid }).err, "need_staff", "nobody to refer them")
+		p.staff = { first }
+		money0 = p.money
+		T.ok(request("staff.hire", { uid = friend.uid }).ok, "a friend of the team")
+		T.eq(p.money, money0 - friend.hireCost, "half the usual fee")
+		T.ok(friend.hireCost <= friend.wage, "half the usual fee: " .. friend.hireCost)
+		T.eq(p.staff[2].morale, 82, "referrals start in good spirits")
+		-- the state employment office charges nothing
+		EmployeeService.openAgency(player, "iskur")
+		local free = easy(lastPush("staff.open").candidates)
+		money0 = p.money
+		local fh = request("staff.hire", { uid = free.uid })
+		T.ok(fh.ok and p.money == money0, "hired for free: " .. tostring(fh.err))
+		EmployeeService.openAgency(player, "iskur")
+		local more = nil
+		for _, c in lastPush("staff.open").candidates do
+			if c.uid ~= free.uid and Employees.roles[c.role].minShop <= 2 then
+				more = c
+			end
+		end
+		T.eq(request("staff.hire", { uid = more.uid }).err, "capacity", "the shop is full")
+		-- a raise lifts morale, once a day
+		local e = p.staff[1]
+		local w0 = e.wage
+		T.ok(request("staff.raise", { uid = e.uid }).ok, "a raise")
+		T.eq(e.wage, math.floor(w0 * 1.1 / 5 + 0.5) * 5, "10 % more")
+		T.eq(e.morale, 85, "happier")
+		T.eq(request("staff.raise", { uid = e.uid }).err, "raised_today", "one a day")
+		-- severance: nothing in the first week, then two days' wages a week
+		money0 = p.money
+		T.ok(request("staff.fire", { uid = e.uid }).ok, "let go")
+		T.eq(p.money, money0, "no severance in the first week")
+		local e2 = p.staff[1]
+		e2.days = 15
+		money0 = p.money
+		local fr = request("staff.fire", { uid = e2.uid })
+		T.ok(fr.ok and fr.severance == 4 * e2.wage, "two weeks: four days' wages")
+		T.eq(p.money, money0 - 4 * e2.wage, "paid")
+		p.staff = {}
+	end)
+
+	T.test("staff: a day at work — stars, morale, quitting and the office's jobs", function()
+		local p = DataService.get(player)
+		p.money = 100000
+		p.shop.level = 5
+		p.staff = {
+			staffRec("apprentice", { uid = "a1", name = "Çırak Ali", skill = 1, wage = 55 }),
+			staffRec("foreman", { uid = "f1", skill = 4, wage = 240 }),
+			staffRec("support", { uid = "s1" }),
+			staffRec("marketer", { uid = "m1", wage = 140 }),
+			staffRec("storekeeper", { uid = "k1" }),
+			staffRec("cleaner", { uid = "c1", name = "Mutsuz", morale = 5, trait = "grumpy", trait2 = "greedy" }),
+		}
+		for id in table.clone(p.stock) do
+			if string.find(id, "paste", 1, true) then
+				p.stock[id] = nil
+			end
+		end
+		local rep0 = p.rep
+		pushes = {}
+		EmployeeService._setRng(dice(0.99))
+		EmployeeService.payday()
+		T.ok(lastPush("toast", "wages_paid") ~= nil, "wages paid")
+		local quit = lastPush("toast", "staff_quit_morale")
+		T.ok(quit and quit.vars.name == "Mutsuz", "the unhappy one quit")
+		T.eq(#p.staff, 5, "five left")
+		local sup = lastPush("toast", "support_income")
+		T.ok(sup and sup.vars.amount > 100, "remote support income")
+		T.ok(p.rep > rep0, "the marketer's posts")
+		T.ok((p.stock.paste_arctic_mx4 or 0) >= 5, "the storekeeper bought paste")
+		T.ok(lastPush("toast", "staff_restock") ~= nil, "restock toast")
+		local app = p.staff[1]
+		T.ok(app.xp > 0 and app.days == 1, "experience")
+		-- taught by the foreman, the apprentice earns stars and becomes a technician
+		for _ = 1, 3 do
+			EmployeeService.payday()
+		end
+		T.ok(lastPush("toast", "staff_levelup") ~= nil, "a star")
+		T.ok(app.role == "technician" and app.skill >= 3 and lastPush("toast", "staff_promoted") ~= nil, "promoted: " .. app.role .. " " .. app.skill)
+		-- a day without wages: everyone loses heart and the unhappiest walks out
+		p.money = 0
+		EmployeeService.payday()
+		T.ok(lastPush("toast", "staff_quit") ~= nil, "one walked out")
+		T.eq(#p.staff, 4, "four left")
+		for _, e in p.staff do
+			T.ok(e.morale < 70, "morale fell: " .. e.morale)
+		end
+		-- light fingers
+		p.money = 100000
+		p.staff = { staffRec("cleaner", { uid = "x1", name = "Şüpheli", trait2 = "sticky" }) }
+		DataService.addPart(player, "cmos_cr2032", 1, "new")
+		local inv0 = #p.inv
+		EmployeeService._setRng(dice(0.05))
+		EmployeeService.payday()
+		T.eq(#p.inv, inv0 - 1, "a part went missing")
+		T.ok(lastPush("toast", "staff_sticky") ~= nil, "and you notice")
+		EmployeeService._setRng(nil)
+		p.staff = {}
+	end)
+
+	T.test("staff: specialists take the jobs that suit them; QA catches mistakes", function()
+		local laptop = staffRec("laptop_tech")
+		local s, b, special = Employees.fit(laptop, "laptop", { "lap_screen" })
+		T.ok(s >= 1.5 and b > 0 and special, "laptops")
+		T.ok(not select(3, Employees.fit(laptop, "desktop", { "psu_dead" })), "a desktop is just a job")
+		T.ok(select(3, Employees.fit(staffRec("board_tech"), "desktop", { "mobo_dead" })), "boards")
+		T.ok(select(3, Employees.fit(staffRec("data_recovery"), "laptop", { "virus" })), "malware")
+		T.ok(select(3, Employees.fit(staffRec("builder"), "desktop", {}, "build")), "builds")
+		T.ok(Employees.fit(staffRec("technician", { trait = "solderer" }), "desktop", { "cap_bulged" }) > 1.2, "a soldering pro")
+		T.ok(not Employees.canTake(staffRec("apprentice"), { "mobo_dead" }), "apprentices stay off the hard ones")
+		T.ok(Employees.canTake(staffRec("apprentice"), { "dust" }), "but clean the dust")
+		T.ok(not Employees.canTake(staffRec("cashier"), { "dust" }), "a cashier doesn't repair")
+		-- the laptop technician goes for the laptop even when a desktop came first
+		for id in table.clone(RepairService.jobs(player)) do
+			RepairService.removeJob(player, id)
+		end
+		local desk = DeviceGen.desktop(Mock.Random.new(11), "mid")
+		DeviceGen.applyFault(desk, "dust", Mock.Random.new(12))
+		local deskJob = RepairService.createJob(player, { device = desk, faults = { "dust" }, kind = "repair", price = 60 })
+		task.wait(0.02)
+		local lap = DeviceGen.laptop(Mock.Random.new(13))
+		DeviceGen.applyFault(lap, "lap_screen", Mock.Random.new(14))
+		local lapJob = RepairService.createJob(player, { device = lap, faults = { "lap_screen" }, kind = "repair", price = 120 })
+		T.eq(EmployeeService.pickJob(player, laptop).id, lapJob.id, "laptop first")
+		T.eq(EmployeeService.pickJob(player, staffRec("technician")).id, deskJob.id, "the oldest first")
+		T.eq(EmployeeService.pickJob(player, staffRec("apprentice")).id, deskJob.id, "an easy one for the apprentice")
+		RepairService.removeJob(player, deskJob.id)
+		T.eq(EmployeeService.pickJob(player, staffRec("apprentice")), nil, "nothing easy left")
+		RepairService.removeJob(player, lapJob.id)
+		-- a forgotten cable: the QA engineer checks the work
+		local p = DataService.get(player)
+		p.staff = { staffRec("engineer", { name = "Selin", skill = 5, morale = 90 }) }
+		EmployeeService._setRng(dice(0.5))
+		T.eq(EmployeeService._qaCatch(player, staffRec("technician")), "Selin", "the engineer catches it")
+		p.staff = {}
+		T.eq(EmployeeService._qaCatch(player, staffRec("technician")), nil, "nobody checks")
+		EmployeeService._setRng(nil)
+	end)
+
+	T.test("staff: the team changes the shop — till, room, courier, bills, the night watchman", function()
+		local Market = Engine.mod("ReplicatedStorage.Shared.Economy.Market")
+		local Parts = Engine.mod("ReplicatedStorage.Shared.Data.Parts")
+		local p = DataService.get(player)
+		p.money = 100000
+		p.level = 20
+		T.ok(Employees.effect({ staffRec("cashier") }, "till") >= 0.3, "a cashier guards the till")
+		T.ok(Employees.effect({ staffRec("marketer") }, "customers") > 0.15, "a marketer brings people in")
+		T.ok(Employees.effect({ staffRec("tea_maker"), staffRec("cleaner") }, "comfort") > 10, "tea and a clean shop")
+		T.ok(Employees.effect({ staffRec("salesperson") }, "sales") > 0.3, "a sales consultant sells the showcase")
+		-- the storekeeper makes room
+		p.staff = {}
+		local cap0 = DataService.capacityOf(p)
+		p.staff = { staffRec("storekeeper") }
+		T.ok(DataService.capacityOf(p) >= math.floor(cap0 * 1.25), "more room")
+		-- the courier: phone orders with a delivery charge
+		p.staff = {}
+		T.eq(request("market.buy", { id = "gpu_rtx3060", delivery = true }).err, "no_courier", "no courier, no delivery")
+		T.eq(request("market.catalog").err, "no_courier", "no catalogue")
+		p.staff = { staffRec("courier") }
+		local cat = request("market.catalog")
+		T.ok(cat.ok and #cat.catalog > 100, "the depot's catalogue on the phone")
+		local m0, inv0 = p.money, #p.inv
+		T.ok(request("market.buy", { id = "gpu_rtx3060", delivery = true }).ok, "ordered")
+		T.eq(#p.inv, inv0 + 1, "delivered")
+		T.eq(m0 - p.money, math.ceil(Market.price(Parts.get("gpu_rtx3060")) * 1.08), "8 % for the delivery")
+		-- the network technician runs the line, the accountant pays the bills
+		p.staff = { staffRec("network_tech") }
+		p.bills = nil
+		local b = BillsService.state(p)
+		BillsService.morning(player, p, 3000)
+		T.ok(b.list[1] and b.list[1].detail.net == 0, "free internet")
+		p.staff = { staffRec("accountant") }
+		BillsService.morning(player, p, 3001)
+		T.eq(#b.list, 0, "the accountant paid everything")
+		-- the night watchman comes on at night only
+		local Lighting = game:GetService("Lighting")
+		Lighting.ClockTime = 22
+		p.staff = { staffRec("night_guard") }
+		PlotService.build(player)
+		waitFor(function()
+			return EmployeeService.watchman(player)
+		end, 3, "the watchman on duty")
+		T.eq(#EmployeeService.guards(player), 1, "a guard at night")
+		Lighting.ClockTime = 12
+		PlotService.build(player)
+		task.wait(0.1)
+		T.ok(not EmployeeService.watchman(player), "home by day")
+		p.staff = {}
+		PlotService.build(player)
+	end)
 end

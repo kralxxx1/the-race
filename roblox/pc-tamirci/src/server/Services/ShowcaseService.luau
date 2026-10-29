@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Net)
+local Employees = require(Shared.Data.Employees)
 local Rules = require(Shared.Repair.RepairRules)
 local PCModel = require(Shared.Models.PCModel)
 local DeviceGen = require(Shared.Repair.DeviceGen)
@@ -143,14 +144,19 @@ local function setup(player: Player, shop)
 	end
 end
 
+local function staffOf(player: Player)
+	local p = DataService.get(player)
+	return p and p.staff
+end
+
 local function sellRound()
 	for player, list in models do
 		for slot in table.clone(list) do
 			local job = jobOn(player, slot)
 			if not job then
 				clearModel(player, slot)
-			elseif rng:NextNumber() < SALE_CHANCE then
-				local price = math.floor(RepairService.resale(job) * PRICE_FACTOR)
+			elseif rng:NextNumber() < SALE_CHANCE * (1 + Employees.effect(staffOf(player), "sales")) then
+				local price = math.floor(RepairService.resale(job) * PRICE_FACTOR * (1 + Employees.effect(staffOf(player), "salesPrice")))
 				clearModel(player, slot)
 				RepairService.removeJob(player, job.id)
 				DataService.money(player, price, "showcase")

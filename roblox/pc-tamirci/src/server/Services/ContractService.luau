@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Net)
 local Faults = require(Shared.Data.Faults)
+local Employees = require(Shared.Data.Employees)
 local DeviceGen = require(Shared.Repair.DeviceGen)
 local Rules = require(Shared.Repair.RepairRules)
 local Market = require(Shared.Economy.Market)
@@ -187,9 +188,11 @@ local function finished(player: Player, job)
 	c.done += 1
 	local fixed = job.verdict and job.verdict.fixed
 	local p = DataService.get(player)
+	-- (a network technician on the staff gets more out of the client)
+	local extra = 1 + Employees.effect(p and p.staff, "contracts")
 	if fixed then
 		c.fixed += 1
-		DataService.money(player, c.pay, "contract")
+		DataService.money(player, math.floor(c.pay * extra), "contract")
 		QuestService.bump(player, "contract")
 		DataService.addXp(player, 22)
 		if p then
@@ -206,7 +209,7 @@ local function finished(player: Player, job)
 	if c.done >= c.total then
 		active[player] = nil
 		if c.fixed == c.total then
-			DataService.money(player, c.bonus, "contract")
+			DataService.money(player, math.floor(c.bonus * extra), "contract")
 			DataService.addXp(player, 80)
 			DataService.rep(player, 3)
 			Net.push(player, "toast", { key = "contract_done", vars = { bonus = c.bonus } })

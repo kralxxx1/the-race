@@ -87,12 +87,13 @@ end
 ----------------------------------------------------------------------------------------------------
 local function partsStore(o)
 	local bazaar = o.service == "parts_bazaar"
-	local win = storeWindow((if bazaar then "🔌 " .. S.t("store_bazaar") else "🏬 " .. S.t("store_parts")), Vector2.new(940, 600))
+	local delivery = o.delivery == true
+	local win = storeWindow((if delivery then "🛵 " .. S.t("store_courier") elseif bazaar then "🔌 " .. S.t("store_bazaar") else "🏬 " .. S.t("store_parts")), Vector2.new(940, 600))
 	local c = win.content
 	local info = Kit.label(c, "", { Size = UDim2.new(1, -270, 0, 24), TextColor3 = Theme.dim, TextSize = 14 })
 	local search = Kit.input(c, "🔍 " .. S.t("search"), { Size = UDim2.fromOffset(250, 30), Position = UDim2.new(1, -250, 0, -3) })
 	local function refreshInfo()
-		info.Text = Kit.esc(storageText() .. (if bazaar then "   •   " .. S.t("store_bazaar_hint") else ""))
+		info.Text = Kit.esc(storageText() .. (if bazaar then "   •   " .. S.t("store_bazaar_hint") elseif delivery then "   •   " .. S.t("store_courier_hint") else ""))
 	end
 	refreshInfo()
 	table.insert(win.conns, State.changed:Connect(refreshInfo))
@@ -214,7 +215,7 @@ local function partsStore(o)
 			end
 			Kit.label(right, S.money(e.price), { Size = UDim2.fromOffset(84, 36), TextColor3 = Theme.money, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Right, LayoutOrder = 1 })
 			local b = Kit.button(right, S.t("buy"), function()
-				local r = Net.request("market.buy", { id = p.id, qty = 1 })
+				local r = Net.request("market.buy", { id = p.id, qty = 1, delivery = if delivery then true else nil })
 				if r.ok then
 					Hud.toast(if r.job then S.t("project_added") else S.t("bought", { name = p.name }), "good")
 				else
@@ -485,6 +486,16 @@ local function police()
 	local win = storeWindow("🚓 " .. S.t("store_police"), Vector2.new(520, 300))
 	local st = State.data and State.data.stats or {}
 	Kit.label(win.content, S.t("store_police_text", { caught = st.caught or 0, robbed = st.robbed or 0 }), { Size = UDim2.fromScale(1, 1), TextSize = 18, TextYAlignment = Enum.TextYAlignment.Top })
+end
+
+-- The depot's catalogue on the phone, brought round by the courier.
+function Stores.courier()
+	local r = Net.request("market.catalog")
+	if not r.ok then
+		App.report(r)
+		return
+	end
+	partsStore({ service = "parts", delivery = true, data = { catalog = r.catalog } })
 end
 
 ----------------------------------------------------------------------------------------------------

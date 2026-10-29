@@ -230,8 +230,7 @@ local function sendGuards(t)
 	for _, g in EmployeeService.guards(t.owner) do
 		task.spawn(function()
 			local rec = g.rec
-			local trait = Employees.traitById[rec.trait]
-			local chance = 0.45 + rec.skill * 0.08 + (trait and trait.catch or 0)
+			local chance = 0.45 + (rec.skill or 1) * 0.08 + Employees.traitSum(rec, "catch")
 			for _ = 1, 12 do
 				if t.done or not g.model or not t.model.Parent then
 					return
@@ -307,7 +306,9 @@ local function visit(player: Player)
 			return
 		end
 		if target == register then
-			local amount = math.min(prof.money * Config.ThiefMaxStealFraction, Config.ThiefMaxStealCap) * (1 - protect)
+			-- (a cashier at the till keeps most of it out of reach)
+			local guard = math.min(0.9, protect + Employees.effect(prof.staff, "till"))
+			local amount = math.min(prof.money * Config.ThiefMaxStealFraction, Config.ThiefMaxStealCap) * (1 - guard)
 			amount = math.floor(amount * Rand.range(rng, 0.5, 1))
 			if amount > 0 and DataService.money(player, -amount, "theft") then
 				t.cash = amount
@@ -557,8 +558,9 @@ function ThiefService.start()
 						local shutterNight = p.shop.items.shutter and isNight()
 						nextVisit[player] = now + Rand.range(rng, range[1], range[2]) * (1 + sec * 0.15) * (if shutterNight then 1.8 else 1)
 						if isNight() and ownerAway(player) then
-							-- the shop is shut for the night: a burglar has a go at it
-							if rng:NextNumber() < 0.7 then
+							-- the shop is shut for the night: a burglar has a go at it (most
+							-- of them pass by a shop with a watchman outside)
+							if rng:NextNumber() < (if EmployeeService.watchman(player) then 0.25 else 0.7) then
 								task.spawn(burgle, player)
 							end
 						elseif rng:NextNumber() < (if shutterNight then 0.35 else 0.8) then

@@ -12,10 +12,10 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Net)
 local Bills = require(Shared.Data.Bills)
 local Upgrades = require(Shared.Data.Upgrades)
+local Employees = require(Shared.Data.Employees)
 
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
-local EmployeeService = require(script.Parent.EmployeeService)
 
 local BillsService = {}
 
@@ -34,8 +34,8 @@ local function state(p)
 end
 BillsService.state = state
 
-local function autopay(player: Player, p): boolean
-	return (p.shop.items.autopay == true) or EmployeeService.has(player, "accountant")
+local function autopay(p): boolean
+	return (p.shop.items.autopay == true) or Employees.has(p.staff, "accountant")
 end
 
 -- Lights in the shop go out while the power is cut (and come back when it's paid).
@@ -169,6 +169,11 @@ function BillsService.morning(player: Player, p, day: number)
 	b.mornings = (b.mornings or 0) + 1
 	local lvl = Upgrades.level(p.shop.level)
 	local u = Bills.utilities(p.shop.level, lvl.benches, p.shop.items, p.factory and p.factory.elec or 0)
+	if Employees.has(p.staff, "network_tech") then
+		-- (the network technician runs the line for free)
+		u.total -= u.net
+		u.net = 0
+	end
 	issue(player, p, "utilities", u.total, day, { elec = u.elec, water = u.water, net = u.net })
 	if b.mornings >= Bills.Week then
 		b.mornings = 0
@@ -181,13 +186,13 @@ function BillsService.morning(player: Player, p, day: number)
 		end
 		local profit = b.week.income - b.week.expense
 		if profit > 0 then
-			local relief = math.clamp(Upgrades.total(p.shop.items, "taxRelief") + (if EmployeeService.has(player, "accountant") then 0.25 else 0), 0, 0.6)
+			local relief = math.clamp(Upgrades.total(p.shop.items, "taxRelief") + (if Employees.has(p.staff, "accountant") then 0.25 else 0), 0, 0.6)
 			issue(player, p, "tax", profit * Bills.TaxRate * (1 - relief), day, { profit = math.floor(profit) })
 		end
 		b.lastWeek = b.week
 		b.week = { income = 0, expense = 0, wages = 0 }
 	end
-	if autopay(player, p) then
+	if autopay(p) then
 		BillsService.pay(player, "all")
 	end
 	review(player, p, day)

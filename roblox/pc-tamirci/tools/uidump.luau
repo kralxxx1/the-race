@@ -154,6 +154,38 @@ elseif scene == "bills" then
 	DataService.touch(player)
 	task.wait(0.3)
 	cmod("UI.BillsPanel").open()
+elseif scene == "staff_full" or scene == "team" then
+	-- a team at work and the listings site with one candidate interviewed
+	local EmployeeService = Engine.require(game:GetService("ServerScriptService").Server.Services.EmployeeService)
+	local p = DataService.get(player)
+	p.shop.level = 4
+	p.money = 250000
+	local function rec(role, name, extra)
+		local r = { uid = role .. "_d", role = role, name = name, gender = "m", skill = 3, wage = 120, trait = "calm", trait2 = "punctual", edu = "vocational", morale = 74, days = 9, xp = 30 }
+		for k, v in extra or {} do
+			r[k] = v
+		end
+		return r
+	end
+	p.staff = {
+		rec("foreman", "Hasan Usta", { skill = 5, wage = 260, trait = "veteran", morale = 88, days = 40 }),
+		rec("apprentice", "Emre Kaya", { skill = 1, wage = 55, trait = "quick_learner", morale = 66, days = 2, xp = 20 }),
+		rec("tea_maker", "Ramazan Abi", { wage = 60, trait = "funny", morale = 92 }),
+		rec("accountant", "Zeynep Arslan", { gender = "f", wage = 150, trait = "careful", morale = 58 }),
+	}
+	DataService.touch(player)
+	task.wait(0.2)
+	if scene == "team" then
+		cmod("UI.StaffPanel").team()
+	else
+		-- interview the first applicant on the listings site, then open it
+		local rf = game:GetService("ReplicatedStorage").Remotes.Request
+		service("staff")
+		task.wait(0.3)
+		rf.OnServerInvoke(player, "staff.interview", { uid = EmployeeService.candidates(player, "listing")[2].uid })
+		EmployeeService.openAgency(player, "listing")
+		task.wait(0.3)
+	end
 elseif scene == "jobs" then
 	local cust = customerJob()
 	pps.PromptTriggered:Fire(cust.prompt, player)

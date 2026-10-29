@@ -12,6 +12,7 @@ local Net = require(Shared.Net)
 local Signal = require(Shared.Util.Signal)
 local Parts = require(Shared.Data.Parts)
 local Upgrades = require(Shared.Data.Upgrades)
+local Employees = require(Shared.Data.Employees)
 
 local DataService = {}
 DataService.loaded = Signal.new() -- (player, profile)
@@ -402,7 +403,7 @@ function DataService.capacityOf(p): number
 			cap += item.storage
 		end
 	end
-	return cap
+	return math.floor(cap * (1 + math.max(0, Employees.effect(p.staff, "storage"))))
 end
 
 function DataService.newUid(player: Player): string

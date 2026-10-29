@@ -13,6 +13,7 @@ local Signal = require(Shared.Util.Signal)
 local Parts = require(Shared.Data.Parts)
 local Tools = require(Shared.Data.Tools)
 local Upgrades = require(Shared.Data.Upgrades)
+local Employees = require(Shared.Data.Employees)
 local Market = require(Shared.Economy.Market)
 local DeviceGen = require(Shared.Repair.DeviceGen)
 local Builder = require(Shared.Util.Builder)
@@ -129,15 +130,23 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Buying parts and consumables
 ----------------------------------------------------------------------------------------------------
+-- A courier on the staff fetches what you order from the phone, for a delivery charge.
+local DELIVERY = 1.08
+local function courier(player: Player): boolean
+	local p = DataService.get(player)
+	return p ~= nil and Employees.has(p.staff, "courier")
+end
+
 local function buyPart(player: Player, payload)
-	if not at(player, { "parts", "parts_bazaar" }) then
-		return { ok = false, err = "far" }
+	local delivery = V.tbl(payload) and payload.delivery == true and courier(player)
+	if not delivery and not at(player, { "parts", "parts_bazaar" }) then
+		return { ok = false, err = if V.tbl(payload) and payload.delivery then "no_courier" else "far" }
 	end
 	if not V.tbl(payload) or not V.id(payload.id) then
 		return { ok = false }
 	end
 	local qty = if V.int(payload.qty, 1, 20) then payload.qty else 1
-	local service = nearService[player].service
+	local service = if delivery then "parts" else nearService[player].service
 	local p = Parts.get(payload.id)
 	if not p then
 		return { ok = false }
@@ -151,6 +160,9 @@ local function buyPart(player: Player, payload)
 	local unit = Market.price(p)
 	if service == "parts_bazaar" then
 		unit = math.max(1, math.floor(unit * 0.72))
+	end
+	if delivery then
+		unit = math.ceil(unit * DELIVERY)
 	end
 	local cost = unit * qty
 	local prof = DataService.get(player)
@@ -406,6 +418,19 @@ function MarketService.start()
 		MarketService.open(player, service, poi, (anchor :: BasePart).Position)
 	end)
 	Net.handle("market.buy", buyPart)
+	-- the depot's catalogue for a phone order, delivery included
+	Net.handle("market.catalog", function(player)
+		if not courier(player) then
+			return { ok = false, err = "no_courier" }
+		end
+		local list = {}
+		for _, e in Market.catalog("parts", Market.day()) do
+			local copy = table.clone(e)
+			copy.price = math.ceil(e.price * DELIVERY)
+			table.insert(list, copy)
+		end
+		return { ok = true, catalog = list }
+	end)
 	Net.handle("market.buyUsed", buyUsed)
 	Net.handle("market.sell", sell)
 	Net.handle("market.buyJunk", buyJunk)
