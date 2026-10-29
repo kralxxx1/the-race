@@ -311,6 +311,8 @@ function RepairService.ctx(player: Player, job, toolId: string, owned: { [string
 end
 
 local TIMED = Config.HoldActionSeconds
+-- bench actions that need mains power (refused while the power company has cut the shop off)
+local POWERED = { press_power = true, stress = true, software = true, psu_test = true, post_code = true, thermal_view = true, solder = true, desolder = true }
 
 -- Runs one repair action on bench i for `player`'s shop. Returns the client result.
 function RepairService.act(player: Player, i: number, action: string, target: string?, args, toolId: string, worker: any?)
@@ -318,6 +320,9 @@ function RepairService.act(player: Player, i: number, action: string, target: st
 	local job = st.job and jobList(player)[st.job]
 	if not job then
 		return { ok = false, err = "no_job" }
+	end
+	if POWERED[action] and player:GetAttribute("PowerCut") then
+		return { ok = false, err = "power_cut" }
 	end
 	-- pacing: timed actions can't be spammed
 	local now = os.clock()

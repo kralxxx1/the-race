@@ -788,7 +788,7 @@ local function tick()
 		end
 		local lvl = Upgrades.levels[p.shop.level]
 		-- (nobody comes before the grand opening)
-		if p.opened ~= false and now >= s.next and active < (lvl and lvl.queue or 2) + 1 and total < Config.MaxCustomersPerServer then
+		if p.opened ~= false and not player:GetAttribute("PowerCut") and now >= s.next and active < (lvl and lvl.queue or 2) + 1 and total < Config.MaxCustomersPerServer then
 			local attract = sumItems(player, "attract")
 			local speed = 1 + attract / 40 + (p.rep - 50) / 100 + (p.shop.level - 1) * 0.08
 			local interval = math.max(Config.CustomerSpawnMin, Config.CustomerSpawnBase / math.max(0.3, speed)) * Rand.range(rng, 0.7, 1.3)

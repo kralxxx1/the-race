@@ -49,6 +49,8 @@ return function(T)
 	local ShowcaseService = Engine.require(Services.ShowcaseService)
 	local QuestService = Engine.require(Services.QuestService)
 	local EmployeeService = Engine.require(Services.EmployeeService)
+	local BillsService = Engine.require(Services.BillsService)
+	local Bills = Engine.mod("ReplicatedStorage.Shared.Data.Bills")
 	local DeviceGen = Engine.mod("ReplicatedStorage.Shared.Repair.DeviceGen")
 	local TechBot = Engine.mod("ReplicatedStorage.Shared.Repair.TechBot")
 	local rf = game:GetService("ReplicatedStorage").Remotes.Request
@@ -249,5 +251,97 @@ return function(T)
 		T.ok(RepairService.job(player, job.id) == nil, "sold")
 		T.ok(p.money > money0, "paid")
 		T.ok(shop.model:FindFirstChild("ShowcasePC_1") == nil, "stand empty again")
+	end)
+
+	T.test("business: bills arrive, grow when late, cut the power and get paid", function()
+		local p = DataService.get(player)
+		p.money = 100000
+		p.staff = {}
+		p.bills = nil
+		local b = BillsService.state(p)
+		local day0 = 1000
+		-- a morning brings yesterday's utility bill
+		BillsService.morning(player, p, day0)
+		T.eq(#b.list, 1, "one bill")
+		local bill = b.list[1]
+		T.eq(bill.kind, "utilities", "utilities")
+		local Upgrades = Engine.mod("ReplicatedStorage.Shared.Data.Upgrades")
+		local u = Bills.utilities(p.shop.level, Upgrades.level(p.shop.level).benches, p.shop.items)
+		T.eq(bill.amount, u.total, "amount from the shop's equipment")
+		T.eq(bill.due, day0 + Bills.DueDays, "due date")
+		-- the same morning twice changes nothing
+		BillsService.morning(player, p, day0)
+		T.eq(#b.list, 1, "no double bill")
+		-- late: +10 % a day, and three days overdue the power goes
+		T.eq(Bills.amountDue(bill, bill.due + 2), math.floor(bill.amount * 1.2 + 0.5), "late fee")
+		for d = day0 + 1, bill.due + Bills.CutAfter do
+			BillsService.morning(player, p, d)
+		end
+		T.ok(b.cut == true and player:GetAttribute("PowerCut") == true, "power cut")
+		local job = RepairService.createJob(player, { device = DeviceGen.desktop(Mock.Random.new(3), "mid"), faults = {}, kind = "repair", price = 100 })
+		RepairService.load(player, 1, job.id)
+		T.eq(RepairService.act(player, 1, "press_power", nil, {}, "hand").err, "power_cut", "no power tests in the dark")
+		-- paying everything brings it back
+		local before = p.money
+		local r = request("bills.pay", { id = "all" })
+		T.ok(r.ok and r.paid >= 1, "paid")
+		T.eq(#b.list, 0, "nothing left")
+		T.ok(p.money < before, "money taken")
+		T.ok(b.cut == false and not player:GetAttribute("PowerCut"), "power back")
+		T.ok(#b.paid >= 1 and b.paid[1].amount > 0, "history")
+		RepairService.clearBench(player, 1)
+		RepairService.removeJob(player, job.id)
+	end)
+
+	T.test("business: rent, social security and tax every seventh morning", function()
+		local p = DataService.get(player)
+		p.money = 100000
+		p.bills = nil
+		local b = BillsService.state(p)
+		-- a week of business: 5000 in, 1200 out (of which 800 wages)
+		DataService.money(player, 5000, "repair")
+		DataService.money(player, -400, "parts")
+		DataService.money(player, -800, "wages")
+		T.eq(b.week.income, 5000, "income booked")
+		T.eq(b.week.expense, 1200, "spending booked")
+		T.eq(b.week.wages, 800, "wages booked")
+		for d = 2000, 2000 + Bills.Week - 1 do
+			BillsService.morning(player, p, d)
+		end
+		local kinds = {}
+		for _, bill in b.list do
+			kinds[bill.kind] = bill
+		end
+		T.ok(kinds.rent and kinds.rent.amount == Bills.rent(p.shop.level), "rent")
+		T.ok(kinds.sgk and kinds.sgk.amount == math.floor(800 * Bills.SgkRate + 0.5), "SGK on the wages")
+		local profitAtWeek = kinds.tax and kinds.tax.detail.profit
+		T.ok(kinds.tax and profitAtWeek > 0 and kinds.tax.amount <= math.floor(profitAtWeek * Bills.TaxRate + 0.5), "tax on the profit")
+		T.eq(b.week.income, 0, "a new week")
+		-- an unpaid tax bill turns into a penalty and costs reputation
+		local rep0 = p.rep
+		for d = kinds.tax.due + 1, kinds.tax.due + Bills.FineAfter do
+			BillsService.morning(player, p, d)
+		end
+		local fined = false
+		for _, bill in b.list do
+			if bill.kind == "fine" then
+				fined = true
+			end
+		end
+		T.ok(fined, "tax penalty")
+		T.ok(p.rep < rep0, "reputation hit")
+		-- with the bank's auto-pay order everything is paid in the morning
+		p.shop.items.autopay = true
+		BillsService.morning(player, p, kinds.tax.due + Bills.FineAfter + 1)
+		T.eq(#b.list, 0, "auto-paid")
+		p.shop.items.autopay = nil
+	end)
+
+	T.test("business: energy upgrades cut the electricity", function()
+		local plain = Bills.utilities(3, 3, {})
+		local green = Bills.utilities(3, 3, { solar = true, led_lighting = true })
+		T.ok(green.elec < plain.elec * 0.6, "solar + LED: " .. green.elec .. " vs " .. plain.elec)
+		local ac = Bills.utilities(3, 3, { ac = true })
+		T.ok(ac.elec > plain.elec, "air conditioning uses power")
 	end)
 end

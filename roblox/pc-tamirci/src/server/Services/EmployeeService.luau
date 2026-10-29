@@ -242,7 +242,8 @@ local function techLoop(player: Player, s)
 			continue
 		end
 		local shop = PlotService.shopOf(player)
-		if not shop or not s.model then
+		if not shop or not s.model or player:GetAttribute("PowerCut") then
+			-- (no work without electricity)
 			continue
 		end
 		-- the oldest waiting customer job nobody is stuck on

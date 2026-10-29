@@ -31,8 +31,9 @@ local TimeService = require(Services.TimeService)
 local ContractService = require(Services.ContractService)
 local ShowcaseService = require(Services.ShowcaseService)
 local QuestService = require(Services.QuestService)
+local BillsService = require(Services.BillsService)
 
-local order = { DataService, PlotService, NpcService, RepairService, QuestService, CustomerService, MarketService, EmployeeService, ThiefService, VehicleService, ContractService, ShowcaseService, TimeService }
+local order = { DataService, PlotService, NpcService, RepairService, QuestService, CustomerService, MarketService, EmployeeService, BillsService, ThiefService, VehicleService, ContractService, ShowcaseService, TimeService }
 for _, s in order do
 	s.init()
 end
@@ -40,8 +41,9 @@ for _, s in order do
 	s.start()
 end
 
-TimeService.newDay:Connect(function()
+TimeService.newDay:Connect(function(day)
 	EmployeeService.payday()
+	BillsService.newDay(day)
 end)
 
 ----------------------------------------------------------------------------------------------------

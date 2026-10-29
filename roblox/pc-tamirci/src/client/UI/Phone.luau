@@ -18,6 +18,7 @@ local Garage = require(UI.Garage)
 local JobsPanel = require(UI.JobsPanel)
 local Inventory = require(UI.Inventory)
 local QuestsPanel = require(UI.QuestsPanel)
+local BillsPanel = require(UI.BillsPanel)
 local S = require(UI.Parent.Strings)
 local State = require(UI.Parent.State)
 
@@ -159,6 +160,7 @@ function Phone.open()
 		end },
 		{ "🎁", S.t("phone_daily"), claimDaily },
 		{ "📜", S.t("phone_quests"), QuestsPanel.open },
+		{ "🧾", S.t("phone_bills"), BillsPanel.open },
 		{ "📊", S.t("phone_stats"), function()
 			page(S.t("phone_stats"), statsPage)
 		end },

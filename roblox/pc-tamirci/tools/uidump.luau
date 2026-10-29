@@ -139,6 +139,21 @@ Hud.toast("🎉 Seviye atladın! Seviye 7", "good")
 Hud.toast("🏢 Sözleşme: makine 2/3 teslim edildi (+$75)", "info")
 if scene == "phone" then
 	cmod("UI.Phone").open()
+elseif scene == "bills" then
+	-- a week of business and a late electricity bill
+	local BillsService = Engine.require(game:GetService("ServerScriptService").Server.Services.BillsService)
+	local p = DataService.get(player)
+	DataService.money(player, 4200, "repair")
+	DataService.money(player, -900, "parts")
+	DataService.money(player, -600, "wages")
+	for d = 1, 8 do
+		BillsService.morning(player, p, 100 + d)
+	end
+	BillsService.pay(player, p.bills.list[#p.bills.list].id)
+	game:GetService("Workspace"):SetAttribute("Day", 106)
+	DataService.touch(player)
+	task.wait(0.3)
+	cmod("UI.BillsPanel").open()
 elseif scene == "jobs" then
 	local cust = customerJob()
 	pps.PromptTriggered:Fire(cust.prompt, player)

@@ -27,6 +27,7 @@ local levelLabel: TextLabel
 local xpBar
 local repLabel: TextLabel
 local clockLabel: TextLabel
+local billsButton: TextButton
 local shown = 0
 
 local function fmtClock(t: number): string
@@ -106,6 +107,17 @@ local function refresh(d, prev)
 	xpBar:set(d.xp / math.max(1, d.xpNext or 100), prev ~= nil)
 	local stars = math.floor(d.rep / 20 + 0.5)
 	repLabel.Text = S.stars(stars) .. "  " .. math.floor(d.rep)
+	-- unpaid bills (and a power cut) under the clock
+	local b = d.bills
+	local n = b and b.list and #b.list or 0
+	billsButton.Visible = n > 0 or (b ~= nil and b.cut == true)
+	if b and b.cut then
+		billsButton.Text = S.t("bills_powercut")
+		Kit.setColor(billsButton, Theme.bad)
+	else
+		billsButton.Text = "🧾 " .. S.t("hud_bills", { n = n })
+		Kit.setColor(billsButton, Theme.card)
+	end
 	if prev then
 		moneyPop(d.money - prev.money)
 	end
@@ -127,6 +139,8 @@ function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
 	local clock = Kit.panel(gui, { Name = "Clock", Size = UDim2.fromOffset(176, 40), Position = UDim2.new(1, -192, 0, 9), BackgroundTransparency = 0.12 })
 	Hud.register(clock)
 	clockLabel = Kit.label(clock, "", { Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 18, FontFace = Theme.bold })
+	billsButton = Kit.button(gui, "", actions.bills, { Name = "Bills", Size = UDim2.fromOffset(176, 30), Position = UDim2.new(1, -192, 0, 54), TextSize = 13, Visible = false })
+	Hud.register(billsButton)
 	task.spawn(function()
 		while gui.Parent do
 			local t = Lighting.ClockTime

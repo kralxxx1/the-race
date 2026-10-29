@@ -17,6 +17,7 @@ local DataService = {}
 DataService.loaded = Signal.new() -- (player, profile)
 DataService.levelUp = Signal.new() -- (player, level)
 DataService.earned = Signal.new() -- (player, amount, reason) for every income
+DataService.spent = Signal.new() -- (player, amount, reason) for every payment
 
 local profiles: { [Player]: { [string]: any } } = {}
 local dirty: { [Player]: boolean } = {}
@@ -67,6 +68,8 @@ local function defaults()
 		daily = { day = 0, streak = 0 },
 		quests = { day = 0, list = {} },
 		settings = { music = 0.5, sfx = 0.8 },
+		-- bills waiting to be paid, the week's books (BillsService)
+		bills = { list = {}, nextId = 0, paid = {}, week = { income = 0, expense = 0, wages = 0 }, mornings = 0, lastDay = 0, cut = false },
 	}
 end
 DataService.defaults = defaults
@@ -337,6 +340,8 @@ function DataService.money(player: Player, delta: number, reason: string?): bool
 	if delta > 0 then
 		p.stats.earned += delta
 		DataService.earned:Fire(player, delta, reason)
+	elseif delta < 0 then
+		DataService.spent:Fire(player, -delta, reason)
 	end
 	DataService.touch(player)
 	return true
