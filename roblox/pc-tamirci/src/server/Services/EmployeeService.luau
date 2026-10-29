@@ -224,7 +224,7 @@ local function pickPart(player: Player, dev, id: string, filter, canBuy: boolean
 	end
 	local cheapest, price = nil, math.huge
 	for _, part in Parts.byCat[tn.cat] or {} do
-		if Rules.compatible(dev, id, part, "en") and (not filter or filter(part)) then
+		if not part.own and Rules.compatible(dev, id, part, "en") and (not filter or filter(part)) then
 			local pr = Market.price(part)
 			if pr < price then
 				cheapest, price = part, pr

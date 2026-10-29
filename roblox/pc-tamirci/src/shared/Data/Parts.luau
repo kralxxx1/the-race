@@ -777,6 +777,107 @@ for _, cls in LAPTOP_CLASSES do
 end
 
 ----------------------------------------------------------------------------------------------------
+-- Your own brand: "Atölye" parts only your factory makes (Data/Factory). own = true keeps them
+-- out of the depot's catalogue, the second-hand markets and the technicians' shopping.
+----------------------------------------------------------------------------------------------------
+local function own(p: Part): Part
+	p.own = true
+	return p
+end
+own(ram("atl_ddr4_8", "Atölye DDR4 8GB 3200", "DDR4", "DIMM", 8, 3200, false, 15, "black", "lpx"))
+own(ram("atl_ddr4_16", "Atölye Gaming RGB 16GB DDR4 3600", "DDR4", "DIMM", 16, 3600, true, 38, "black", "vrgb"))
+own(ram("atl_ddr4_32", "Atölye Pro 32GB DDR4 3200", "DDR4", "DIMM", 32, 3200, false, 62, "black", "lpx"))
+own(ram("atl_ddr5_16", "Atölye 16GB DDR5 6000", "DDR5", "DIMM", 16, 6000, false, 46, "black", "fury"))
+own(ram("atl_ddr5_32", "Atölye Gaming RGB 32GB DDR5 6000", "DDR5", "DIMM", 32, 6000, true, 98, "white", "vrgb"))
+own(storage("atl_ssd1t", "Atölye 1TB SATA SSD", "ssd25", 1000, 550, 46))
+own(storage("atl_nv1t", "Atölye 1TB NVMe Gen4", "nvme", 1000, 5000, 48, { gen = 4 }))
+own(storage("atl_nv2t", "Atölye 2TB NVMe Gen4 (Soğutuculu)", "nvme", 2000, 7000, 105, { gen = 4, heatsink = true }))
+own(psu("atl550", "Atölye 550W 80+ Bronze", 550, "Bronze", "none", 0.64, 36))
+own(psu("atl750", "Atölye 750W 80+ Gold", 750, "Gold", "full", 0.82, 76))
+own(psu("atl1000", "Atölye 1000W 80+ Gold ATX 3.0", 1000, "Gold", "full", 0.86, 128, { v12 = true }))
+own(cooler("atl_tower", "Atölye Frost 120 ARGB", "air", 200, "all", true, 27, { style = "idcool" }))
+own(cooler("atl_aio240", "Atölye Liquid 240 ARGB", "aio", 255, "all", true, 72, { radiator = 240, style = "arctic" }))
+own(fan("atl_rgb120", "Atölye 120mm ARGB Fan", 120, true, 6))
+own(case("atl_mid", "Atölye Vortex Mid Tower", "airflow", { "ATX", "mATX", "ITX" }, "black", true, 38, 6, 52, { rgb = true }))
+own(case("atl_white", "Atölye Vortex Mid Tower (Beyaz)", "airflow", { "ATX", "mATX", "ITX" }, "white", true, 38, 6, 56, { rgb = true }))
+
+----------------------------------------------------------------------------------------------------
+-- Peripherals: what goes with a PC on a desk. They make a build a "setup" in the showcase.
+-- kind: monitor (size, hz), keyboard, mouse, headset, pad, speakers, webcam, chair, desk.
+----------------------------------------------------------------------------------------------------
+local function peripheral(id, kind, name, price, extra)
+	local p = { id = "per_" .. id, cat = "peripheral", sub = kind, kind = kind, name = name, price = price }
+	for k, v in extra or {} do
+		p[k] = v
+	end
+	return add(p)
+end
+-- monitors
+peripheral("mon_22", "monitor", "Philips 22\" 1080p 75Hz Monitör", 85, { size = 22, hz = 75 })
+peripheral("mon_24ips", "monitor", "LG 24\" IPS 1080p 100Hz Monitör", 115, { size = 24, hz = 100 })
+peripheral("mon_24g", "monitor", "AOC 24G2 24\" 144Hz Oyuncu Monitörü", 150, { size = 24, hz = 144 })
+peripheral("mon_27g", "monitor", "MSI G27C4 27\" 170Hz Kavisli Monitör", 190, { size = 27, hz = 170, curved = true })
+peripheral("mon_27qhd", "monitor", "Dell S2721DGF 27\" QHD 165Hz Monitör", 280, { size = 27, hz = 165 })
+peripheral("mon_27ips", "monitor", "LG UltraGear 27GP850 27\" QHD 180Hz", 300, { size = 27, hz = 180 })
+peripheral("mon_27oled", "monitor", "ASUS ROG Swift 27\" QD-OLED 360Hz", 750, { size = 27, hz = 360, oled = true })
+peripheral("mon_32_4k", "monitor", "Samsung Odyssey G7 32\" 4K 144Hz", 650, { size = 32, hz = 144 })
+peripheral("mon_34uw", "monitor", "Xiaomi 34\" Ultrawide 180Hz Monitör", 380, { size = 34, hz = 180, curved = true })
+peripheral("mon_49", "monitor", "Samsung Odyssey G9 49\" Süper Ultrawide", 1100, { size = 49, hz = 240, curved = true })
+peripheral("mon_office", "monitor", "Lenovo 23.8\" Ofis Monitörü", 95, { size = 24, hz = 60 })
+peripheral("mon_4kpro", "monitor", "BenQ 27\" 4K Tasarım Monitörü", 520, { size = 27, hz = 60 })
+-- keyboards
+peripheral("kb_office", "keyboard", "Logitech K120 Klavye", 12)
+peripheral("kb_wireless", "keyboard", "Logitech MK270 Kablosuz Set", 30)
+peripheral("kb_membrane", "keyboard", "Rampage RGB Oyuncu Klavyesi", 22, { rgb = true })
+peripheral("kb_k552", "keyboard", "Redragon K552 Mekanik Klavye", 38, { rgb = true })
+peripheral("kb_apex", "keyboard", "SteelSeries Apex 3 TKL", 55, { rgb = true })
+peripheral("kb_k70", "keyboard", "Corsair K70 RGB Pro Mekanik", 140, { rgb = true })
+peripheral("kb_huntsman", "keyboard", "Razer Huntsman V2 TKL", 150, { rgb = true })
+peripheral("kb_gpro", "keyboard", "Logitech G Pro X TKL", 170, { rgb = true })
+peripheral("kb_wooting", "keyboard", "Wooting 60HE+ Analog Klavye", 175, { rgb = true })
+peripheral("kb_keychron", "keyboard", "Keychron K8 Pro Mekanik", 110)
+-- mice
+peripheral("ms_office", "mouse", "Logitech M90 Mouse", 6)
+peripheral("ms_g102", "mouse", "Logitech G102 Lightsync", 22, { rgb = true })
+peripheral("ms_deathadder", "mouse", "Razer DeathAdder Essential", 28)
+peripheral("ms_m65", "mouse", "Corsair M65 RGB Ultra", 70, { rgb = true })
+peripheral("ms_viper", "mouse", "Razer Viper V3 Pro Kablosuz", 160)
+peripheral("ms_gpro", "mouse", "Logitech G Pro X Superlight 2", 150)
+peripheral("ms_rival", "mouse", "SteelSeries Rival 3", 30, { rgb = true })
+peripheral("ms_mx", "mouse", "Logitech MX Master 3S", 95)
+-- headsets
+peripheral("hs_basic", "headset", "Rampage Oyuncu Kulaklığı", 15)
+peripheral("hs_cloud2", "headset", "HyperX Cloud II", 80)
+peripheral("hs_arctis", "headset", "SteelSeries Arctis Nova 1", 60)
+peripheral("hs_blackshark", "headset", "Razer BlackShark V2 X", 50)
+peripheral("hs_gprox", "headset", "Logitech G Pro X 2 Kablosuz", 230)
+peripheral("hs_virtuoso", "headset", "Corsair Virtuoso RGB Kablosuz XT", 220, { rgb = true })
+-- mouse pads, speakers, webcams
+peripheral("pad_basic", "pad", "Standart Mouse Pad", 4)
+peripheral("pad_xl", "pad", "SteelSeries QcK XXL Mouse Pad", 30)
+peripheral("pad_rgb", "pad", "Corsair MM700 RGB Mouse Pad", 60, { rgb = true })
+peripheral("spk_basic", "speakers", "Creative Pebble 2.0 Hoparlör", 25)
+peripheral("spk_21", "speakers", "Logitech Z333 2.1 Hoparlör", 70)
+peripheral("spk_studio", "speakers", "Edifier R1280T Stüdyo Hoparlör", 110)
+peripheral("cam_c270", "webcam", "Logitech C270 HD Webcam", 25)
+peripheral("cam_c920", "webcam", "Logitech C920 Full HD Webcam", 70)
+peripheral("cam_kiyo", "webcam", "Razer Kiyo Pro Webcam", 130)
+-- chairs and desks
+peripheral("chair_basic", "chair", "Rampage Oyuncu Koltuğu", 120)
+peripheral("chair_dxr", "chair", "DXRacer Formula Oyuncu Koltuğu", 260)
+peripheral("chair_secret", "chair", "Secretlab Titan Evo Koltuk", 480)
+peripheral("chair_ergo", "chair", "Ergonomik File Ofis Koltuğu", 180)
+peripheral("desk_basic", "desk", "120cm Bilgisayar Masası", 90)
+peripheral("desk_l", "desk", "L Tipi Oyuncu Masası (RGB)", 210, { rgb = true })
+peripheral("desk_standing", "desk", "Elektrikli Ayarlanabilir Masa", 330)
+-- your own brand's peripherals
+own(peripheral("atl_kb", "keyboard", "Atölye Mekanik RGB Klavye", 34, { rgb = true }))
+own(peripheral("atl_ms", "mouse", "Atölye Pro RGB Mouse", 18, { rgb = true }))
+own(peripheral("atl_hs", "headset", "Atölye 7.1 Oyuncu Kulaklığı", 36))
+own(peripheral("atl_pad", "pad", "Atölye XXL Mouse Pad", 12))
+own(peripheral("atl_mon", "monitor", "Atölye 27\" 165Hz Oyuncu Monitörü", 175, { size = 27, hz = 165 }))
+
+----------------------------------------------------------------------------------------------------
 -- Lookup and helpers
 ----------------------------------------------------------------------------------------------------
 
@@ -784,7 +885,7 @@ Parts.list = list
 Parts.byId = byId
 Parts.byCat = byCat
 
-Parts.Categories = { "gpu", "cpu", "mobo", "ram", "storage", "psu", "cooler", "fan", "case", "misc", "laptop" }
+Parts.Categories = { "gpu", "cpu", "mobo", "ram", "storage", "psu", "cooler", "fan", "case", "misc", "laptop", "peripheral" }
 
 function Parts.get(id: string): Part?
 	return byId[id]

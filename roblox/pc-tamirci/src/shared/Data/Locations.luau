@@ -79,7 +79,7 @@ Locations.list = {
 	{ id = "camp", cat = "nature", icon = "🏕️", name = N("Kamp Alanı", "Campsite"), desc = N("Çadırlar ve kamp ateşi.", "Tents and a campfire.") },
 	{ id = "radio_tower", cat = "nature", icon = "📡", name = N("Radyo Kulesi", "Radio Tower"), desc = N("Tepedeki kırmızı ışıklı kule.", "The hilltop tower with red lights.") },
 	{ id = "farm", cat = "nature", icon = "🚜", name = N("Çiftlik", "Farm"), desc = N("Tarlalar ve ahır.", "Fields and a barn.") },
-	{ id = "industrial", cat = "business", icon = "🏭", name = N("Sanayi Sitesi", "Industrial Estate"), desc = N("Atölyeler ve fabrikalar.", "Workshops and factories.") },
+	{ id = "industrial", cat = "business", icon = "🏭", service = "factory", name = N("Sanayi Sitesi ve Fabrika", "Industrial Estate and Factory"), desc = N("Kendi fabrikanı kur: RAM, SSD, PSU, kasa ve çevre birimi üret.", "Set up your own factory: make RAM, SSDs, PSUs, cases and peripherals.") },
 }
 
 Locations.byId = {}

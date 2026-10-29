@@ -1178,7 +1178,7 @@ local MAKERS = {
 	Samsung = "SAMSUNG", WD = "WD", Kingston = "KINGSTON", Crucial = "Crucial", Seagate = "SEAGATE", SK = "SK hynix",
 	TeamGroup = "T-FORCE", Lexar = "Lexar", SanDisk = "SanDisk", Toshiba = "TOSHIBA", Lian = "LIAN LI",
 	Fractal = "FRACTAL", Phanteks = "PHANTEKS", Montech = "MONTECH", HYTE = "HYTE", Jonsbo = "JONSBO", Arctic = "ARCTIC",
-	Noctua = "noctua", Thermalright = "Thermalright", Dell = "DELL", HP = "hp", Turbox = "TURBOX",
+	Noctua = "noctua", Thermalright = "Thermalright", Dell = "DELL", HP = "hp", Turbox = "TURBOX", ["Atölye"] = "ATÖLYE",
 }
 function PCParts.makerOf(part): string?
 	local first = string.match(part and part.name or "", "^(%S+)")

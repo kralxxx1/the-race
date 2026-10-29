@@ -342,7 +342,7 @@ return function(T)
 		p.shop.level = 3
 		DataService.touch(player)
 		task.wait(0.05)
-		for _, service in { "parts", "parts_bazaar", "used", "scrap", "tools", "realty", "board", "police", "staff", "bicycles", "bikes", "cars" } do
+		for _, service in { "parts", "parts_bazaar", "used", "scrap", "tools", "realty", "board", "police", "staff", "factory", "bicycles", "bikes", "cars" } do
 			Kit.closeWindow()
 			openService(service)
 			local w = waitFor(window, 3, service .. " window")

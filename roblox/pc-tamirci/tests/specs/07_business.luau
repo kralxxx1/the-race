@@ -738,4 +738,119 @@ return function(T)
 		p.shop.items, p.shop.level = savedItems, savedLevel
 		p.bills = nil
 	end)
+	T.test("factory: buy, run a line, warehouse, ship and sell wholesale; your brand stays off the shelves", function()
+		local Factory = Engine.mod("ReplicatedStorage.Shared.Data.Factory")
+		local Parts = Engine.mod("ReplicatedStorage.Shared.Data.Parts")
+		local Market = Engine.mod("ReplicatedStorage.Shared.Economy.Market")
+		local FactoryService = Engine.require(Services.FactoryService)
+		for _, pr in Factory.products do
+			T.ok(Parts.get(pr.part) and Parts.get(pr.part).own, pr.part .. " is your own brand")
+		end
+		for _, e in Market.catalog("parts") do
+			T.ok(not Parts.get(e.id).own, e.id .. " isn't sold at the depot")
+		end
+		local peripherals = 0
+		for _, part in Parts.byCat.peripheral do
+			peripherals += 1
+			T.ok(part.kind ~= nil, "a kind of peripheral: " .. part.id)
+		end
+		T.ok(peripherals >= 50, "peripherals: " .. peripherals)
+
+		local p = DataService.get(player)
+		p.factory = nil
+		p.money = 200000
+		p.level = 3
+		T.eq(request("factory.buy").err, "level", "a factory needs some experience")
+		p.level = 25
+		local m0 = p.money
+		T.ok(request("factory.buy").ok, "bought")
+		T.eq(p.money, m0 - Factory.levels[1].cost, "paid")
+		T.eq(request("factory.buy").err, "already", "once")
+		local clock = os.time() + 100000
+		FactoryService.clock = function()
+			return clock
+		end
+		local pr = Factory.byPart.ram_atl_ddr4_8
+		m0 = p.money
+		T.ok(request("factory.start", { line = 1, part = pr.part, rep = false }).ok, "line 1 runs")
+		T.eq(p.money, m0 - Factory.materials(pr), "materials bought")
+		T.eq(request("factory.start", { line = 1, part = pr.part }).err, "busy", "one batch at a time")
+		T.eq(request("factory.start", { line = 1, part = "st_atl_nv2t" }).err, "factory_level", "a bigger factory makes that")
+		T.eq(request("factory.start", { line = 2, part = pr.part }).err, "bad_request", "only one line yet")
+		clock += Factory.batchSeconds(pr, 1) + 1
+		FactoryService.tick(player, p)
+		T.eq(p.factory.stock[pr.part], pr.batch, "a batch in the warehouse")
+		-- on repeat the line starts the next batch by itself
+		T.ok(request("factory.start", { line = 1, part = pr.part, rep = true }).ok, "repeat")
+		clock += Factory.batchSeconds(pr, 1) + 1
+		FactoryService.tick(player, p)
+		T.eq(p.factory.stock[pr.part], pr.batch * 2, "two batches")
+		T.ok(type(p.factory.lines[1]) == "table" and p.factory.lines[1].endsAt > clock, "running again")
+		T.ok(request("factory.stop", { line = 1 }).ok and p.factory.lines[1].rep == false, "stopped after this one")
+		-- ship some to the shop, sell the rest to the distributors
+		local inv0 = #p.inv
+		local sh = request("factory.ship", { part = pr.part, n = 5 })
+		T.ok(sh.ok and sh.n == 5 and #p.inv == inv0 + 5, "shipped")
+		T.eq(p.inv[#p.inv].origin, "factory", "made in your factory")
+		m0 = p.money
+		local left = p.factory.stock[pr.part]
+		local sl = request("factory.sell", { part = pr.part, n = left })
+		T.ok(sl.ok and sl.total == Factory.wholesale(pr.part) * left, "wholesale")
+		T.eq(p.money, m0 + sl.total, "paid")
+		T.eq(p.factory.stock[pr.part], nil, "warehouse empty")
+		-- a bigger factory: another line and a bigger electricity bill
+		T.ok(request("factory.upgrade").ok and p.factory.level == 2, "upgraded")
+		T.eq(p.factory.elec, Factory.levels[2].elec, "its electricity")
+		T.ok(Bills.utilities(p.shop.level, 1, {}, p.factory.elec).elec > Bills.utilities(p.shop.level, 1, {}, 0).elec, "on the utility bill")
+		FactoryService.clock = os.time
+		for i = #p.inv, inv0 + 1, -1 do
+			table.remove(p.inv, i)
+		end
+		p.factory = nil
+	end)
+
+	T.test("setup: a PC with a monitor, keyboard and mouse goes on display as a set and sells for more", function()
+		local p = DataService.get(player)
+		p.money = 500
+		p.shop.level = 4
+		p.shop.items.showcase = true
+		PlotService.build(player)
+		local shop = PlotService.shopOf(player)
+		local prompt = shop.points:FindFirstChild("Showcase_1"):FindFirstChild("ShowcasePrompt")
+		local dev = DeviceGen.desktop(Mock.Random.new(21), "high")
+		local job = RepairService.createJob(player, { device = dev, faults = {}, kind = "refurb", own = true, price = 0 })
+		T.ok(RepairService.finish(player, job.id), "a finished PC")
+		for _, id in { "per_mon_27g", "per_kb_k552", "per_ms_g102", "per_hs_cloud2", "per_chair_basic" } do
+			DataService.addPart(player, id, 1, "new")
+		end
+		local inv0 = #p.inv
+		pushes = {}
+		pps.PromptTriggered:Fire(prompt, player)
+		T.eq(job.status, "showcase", "on display")
+		T.ok(job.setup and #job.setup == 5, "bundled as a set")
+		T.eq(#p.inv, inv0 - 5, "the peripherals went with it")
+		local put = lastPush("toast", "showcase_setup")
+		T.ok(put ~= nil and put.vars.n == 5, "told")
+		local alone = math.floor(RepairService.resale(job) * 1.35)
+		T.ok(ShowcaseService.priceOf(player, job) > alone + 300, "a set sells for more")
+		T.ok(shop.model:FindFirstChild("ShowcasePC_1"):FindFirstChild("PriceCard") ~= nil, "a price card")
+		-- taking it back returns the peripherals
+		pps.PromptTriggered:Fire(prompt, player)
+		T.eq(job.status, "ready", "back")
+		T.eq(#p.inv, inv0, "peripherals back in the inventory")
+		-- on display again, and sold
+		pps.PromptTriggered:Fire(prompt, player)
+		local money0 = p.money
+		local price = ShowcaseService.priceOf(player, job)
+		for _ = 1, 300 do
+			ShowcaseService._sellRound()
+			if not RepairService.job(player, job.id) then
+				break
+			end
+		end
+		T.ok(RepairService.job(player, job.id) == nil, "sold")
+		T.ok(p.money >= money0 + price * 0.95, "paid for the set")
+		T.eq(#p.inv, inv0 - 5, "the peripherals were sold with it")
+		T.ok(p.setupItems == nil or next(p.setupItems) == nil, "nothing left over")
+	end)
 end

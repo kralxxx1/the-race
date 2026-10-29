@@ -41,7 +41,7 @@ Theme.cat = {
 }
 
 Theme.catIcon = {
-	gpu = "🎮", cpu = "🧠", mobo = "🟩", ram = "📏", storage = "💽", psu = "🔌", cooler = "❄️", fan = "🌀", case = "🖥️", misc = "🧴", laptop = "💻",
+	gpu = "🎮", cpu = "🧠", mobo = "🟩", ram = "📏", storage = "💽", psu = "🔌", cooler = "❄️", fan = "🌀", case = "🖥️", misc = "🧴", laptop = "💻", peripheral = "🎧",
 }
 
 return Theme

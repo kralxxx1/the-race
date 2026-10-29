@@ -54,7 +54,7 @@ function Market.catalog(service: string, day: number?)
 	local out = {}
 	for _, p in Parts.list do
 		local ok = true
-		if p.cat == "case" and service ~= "parts" then
+		if (p.cat == "case" and service ~= "parts") or p.own then
 			ok = false
 		end
 		if service == "parts_bazaar" then
@@ -80,6 +80,9 @@ function Market.used(poi: string, day: number?)
 	for i = 1, 14 do
 		local list = Parts.byCat[Rand.pick(rng, cats)]
 		local p = list[rng:NextInteger(1, #list)]
+		while p.own do
+			p = list[rng:NextInteger(1, #list)]
+		end
 		local cond = math.floor(Rand.range(rng, 0.35, 0.95) * 100) / 100
 		local price = math.max(2, math.floor(p.price * Config.UsedSellRate * cond * 1.35 + 0.5))
 		table.insert(out, { id = poi .. "_" .. d .. "_" .. i, part = p.id, cond = cond, price = price, risk = math.floor((1 - cond) * 40) })

@@ -175,6 +175,23 @@ function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
 	-- (above windows and the map, so purchases and alarms are always seen)
 	toastHolder = Kit.frame(gui, { Name = "Toasts", BackgroundTransparency = 1, Size = UDim2.fromOffset(500, 300), Position = UDim2.new(0.5, 0, 0, 62), AnchorPoint = Vector2.new(0.5, 0), ZIndex = 50 })
 	Kit.listLayout(toastHolder, 6, false, Enum.HorizontalAlignment.Center)
+	-- while a window is open the toasts drop to the bottom of the screen, clear of its header
+	local layout = toastHolder:FindFirstChildOfClass("UIListLayout")
+	Kit.windowChanged.Event:Connect(function(win)
+		if win then
+			toastHolder.AnchorPoint = Vector2.new(0.5, 1)
+			toastHolder.Position = UDim2.new(0.5, 0, 1, -8)
+			if layout then
+				layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+			end
+		else
+			toastHolder.AnchorPoint = Vector2.new(0.5, 0)
+			toastHolder.Position = UDim2.new(0.5, 0, 0, 62)
+			if layout then
+				layout.VerticalAlignment = Enum.VerticalAlignment.Top
+			end
+		end
+	end)
 
 	State.changed:Connect(refresh)
 	if State.data then

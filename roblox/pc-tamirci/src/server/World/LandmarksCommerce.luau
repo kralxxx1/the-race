@@ -597,7 +597,13 @@ function Commerce.build(parent: Instance, L, yieldFn: (() -> ())?)
 				local z = if k == 0 then s.z0 else s.z1
 				local look = if k == 0 then Vector3.new(0, 0, -1) else Vector3.new(0, 0, 1)
 				local pos = Vector3.new((s.x0 + s.x1) / 2, WALK_Y, z - look.Z * 8)
-				Buildings.warehouse(m, CFrame.lookAt(pos, pos + look), s.x1 - s.x0 - 20, (s.z1 - s.z0) / 2 - 20, r, { sign = Rand.pick(r, { "SANAYİ SİTESİ OTO TAMİR", "ÇELİK KONSTRÜKSİYON", "MOBİLYA ATÖLYESİ" }), chimney = k == 0 })
+				local sign = if k == 0 then "ATÖLYE ELEKTRONİK FABRİKASI" else Rand.pick(r, { "SANAYİ SİTESİ OTO TAMİR", "ÇELİK KONSTRÜKSİYON", "MOBİLYA ATÖLYESİ" })
+				Buildings.warehouse(m, CFrame.lookAt(pos, pos + look), s.x1 - s.x0 - 20, (s.z1 - s.z0) / 2 - 20, r, { sign = sign, chimney = k == 0 })
+				if k == 0 then
+					-- the factory office: buy a production line, run it, ship and sell what it makes
+					local counterPos = pos + look * 4
+					Commerce.servicePoint(m, CFrame.lookAt(counterPos, counterPos + look), "factory", poi.id, "Fabrika", "Üretim Ofisi", 10)
+				end
 			end
 			return m
 		end,

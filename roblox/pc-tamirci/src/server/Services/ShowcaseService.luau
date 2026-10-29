@@ -1,6 +1,9 @@
 -- ShowcaseService: the PC showcase in the shop window (a shop item from level 4). Put a finished
 -- build of your own on a stand; walk-in buyers pay more for it than the second-hand dealer.
--- The prompt on a stand puts your best finished project on it, or takes the PC back.
+-- The prompt on a stand puts your best finished project on it, or takes the PC back. With a
+-- monitor, a keyboard and a mouse in the inventory the PC goes out as a setup: the best
+-- peripherals of each kind (headset, mouse pad, speakers, webcam, chair, desk too) are bundled
+-- with it, sold together for more, and come back to the inventory if you take the PC back.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -9,6 +12,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Net)
 local Employees = require(Shared.Data.Employees)
+local Parts = require(Shared.Data.Parts)
+local Market = require(Shared.Economy.Market)
+local B = require(Shared.Util.Builder)
 local Rules = require(Shared.Repair.RepairRules)
 local PCModel = require(Shared.Models.PCModel)
 local DeviceGen = require(Shared.Repair.DeviceGen)
@@ -23,6 +29,9 @@ local rng = Random.new()
 local SALE_EVERY = 40 -- seconds between buyer visits
 local SALE_CHANCE = 0.22 -- per PC on display per visit
 local PRICE_FACTOR = 1.35 -- on top of what the second-hand dealer pays
+local SETUP_MARKUP = 1.3 -- the bundled peripherals sell for more than their shop price
+local SETUP_KINDS = { "monitor", "keyboard", "mouse", "headset", "pad", "speakers", "webcam", "chair", "desk" }
+local SETUP_NEEDS = { monitor = true, keyboard = true, mouse = true }
 
 local models: { [Player]: { [number]: Model } } = {}
 
@@ -39,6 +48,85 @@ local function jobOn(player: Player, slot: number)
 		end
 	end
 	return nil
+end
+
+local function staffOf(player: Player)
+	local p = DataService.get(player)
+	return p and p.staff
+end
+
+-- What the bundled peripherals are worth.
+local function setupValue(job): number
+	local v = 0
+	for _, item in job.setup or {} do
+		local part = Parts.get(item.part)
+		if part then
+			v += Market.price(part) * (item.cond or 1)
+		end
+	end
+	return v
+end
+
+-- The price on the stand: the PC, plus the setup's peripherals, plus a sales consultant's pitch.
+function ShowcaseService.priceOf(player: Player, job): number
+	local base = RepairService.resale(job) * PRICE_FACTOR + setupValue(job) * SETUP_MARKUP
+	return math.floor(base * (1 + Employees.effect(staffOf(player), "salesPrice")))
+end
+
+-- Takes the best monitor, keyboard and mouse (and whatever else goes on a desk) out of the
+-- inventory for a setup. Nothing is taken unless the three essentials are there.
+local function bundle(player: Player, job): boolean
+	local p = DataService.get(player)
+	if not p then
+		return false
+	end
+	local best = {}
+	for _, item in p.inv do
+		local part = Parts.get(item.part)
+		if part and part.cat == "peripheral" and not item.broken then
+			local cur = best[part.kind]
+			if not cur or part.price * (item.cond or 1) > cur.v then
+				best[part.kind] = { item = item, v = part.price * (item.cond or 1) }
+			end
+		end
+	end
+	for kind in SETUP_NEEDS do
+		if not best[kind] then
+			return false
+		end
+	end
+	job.setup = {}
+	-- (kept in the save as well: projects live only as long as the session, peripherals don't)
+	p.setupItems = p.setupItems or {}
+	p.setupItems[job.id] = job.setup
+	for _, kind in SETUP_KINDS do
+		local b = best[kind]
+		if b then
+			local i = table.find(p.inv, b.item)
+			if i then
+				table.remove(p.inv, i)
+				table.insert(job.setup, b.item)
+			end
+		end
+	end
+	DataService.touch(player)
+	return true
+end
+ShowcaseService._bundle = bundle
+
+-- Back from the stand: the peripherals return to the inventory.
+local function unbundle(player: Player, job)
+	local p = DataService.get(player)
+	if p and job.setup then
+		for _, item in job.setup do
+			table.insert(p.inv, item)
+		end
+		if p.setupItems then
+			p.setupItems[job.id] = nil
+		end
+		DataService.touch(player)
+	end
+	job.setup = nil
 end
 
 local function clearModel(player: Player, slot: number)
@@ -70,6 +158,17 @@ local function showModel(player: Player, slot: number, job)
 			d.CanCollide = false
 		end
 	end
+	-- a price card on the stand (a setup lists what comes with it)
+	local card = B.box(h.model, part.CFrame * CFrame.new(-1.75, 0.42, -1.35) * CFrame.Angles(math.rad(-15), 0, 0), Vector3.new(1.3, 0.75, 0.06), Color3.new(1, 1, 1), Enum.Material.SmoothPlastic, { CanCollide = false, CanQuery = false, CanTouch = false, Name = "PriceCard" })
+	local kinds = {}
+	for _, item in job.setup or {} do
+		local pp = Parts.get(item.part)
+		if pp then
+			table.insert(kinds, pp.kind)
+		end
+	end
+	local head = if #kinds > 0 then "🖥️ SET (" .. #kinds + 1 .. " parça)" else "🖥️ PC"
+	B.sign(card, Enum.NormalId.Front, head .. "\n$" .. ShowcaseService.priceOf(player, job), { color = Color3.fromRGB(20, 20, 24), font = B.Fonts.Bold })
 	models[player] = models[player] or {}
 	models[player][slot] = h.model
 end
@@ -93,6 +192,7 @@ local function onPrompt(player: Player, slot: number)
 	if job then
 		job.status = "ready"
 		job.showcase = nil
+		unbundle(player, job)
 		clearModel(player, slot)
 		RepairService.pushJobs(player)
 		Net.push(player, "toast", { key = "showcase_back", vars = { name = job.name } })
@@ -105,9 +205,10 @@ local function onPrompt(player: Player, slot: number)
 	end
 	pick.status = "showcase"
 	pick.showcase = slot
+	local setup = bundle(player, pick)
 	showModel(player, slot, pick)
 	RepairService.pushJobs(player)
-	Net.push(player, "toast", { key = "showcase_put", vars = { name = pick.name, price = math.floor(RepairService.resale(pick) * PRICE_FACTOR) } })
+	Net.push(player, "toast", { key = if setup then "showcase_setup" else "showcase_put", vars = { name = pick.name, price = ShowcaseService.priceOf(player, pick), n = if pick.setup then #pick.setup else 0 } })
 end
 
 -- Prompts on the stands and the PCs back on them after the shop was rebuilt.
@@ -144,19 +245,20 @@ local function setup(player: Player, shop)
 	end
 end
 
-local function staffOf(player: Player)
-	local p = DataService.get(player)
-	return p and p.staff
-end
-
 local function sellRound()
 	for player, list in models do
 		for slot in table.clone(list) do
 			local job = jobOn(player, slot)
 			if not job then
 				clearModel(player, slot)
-			elseif rng:NextNumber() < SALE_CHANCE * (1 + Employees.effect(staffOf(player), "sales")) then
-				local price = math.floor(RepairService.resale(job) * PRICE_FACTOR * (1 + Employees.effect(staffOf(player), "salesPrice")))
+			elseif rng:NextNumber() < SALE_CHANCE * (1 + Employees.effect(staffOf(player), "sales")) * (if job.setup then 1.25 else 1) then
+				local price = ShowcaseService.priceOf(player, job)
+				-- (the setup's peripherals go with the PC)
+				local p = DataService.get(player)
+				if p and p.setupItems then
+					p.setupItems[job.id] = nil
+				end
+				job.setup = nil
 				clearModel(player, slot)
 				RepairService.removeJob(player, job.id)
 				DataService.money(player, price, "showcase")
@@ -171,6 +273,16 @@ end
 function ShowcaseService.init() end
 
 function ShowcaseService.start()
+	-- peripherals left in a setup when the last session ended come back to the inventory
+	DataService.loaded:Connect(function(player, p)
+		for _, items in p.setupItems or {} do
+			for _, item in items do
+				table.insert(p.inv, item)
+			end
+		end
+		p.setupItems = nil
+		DataService.touch(player)
+	end)
 	PlotService.built:Connect(setup)
 	PlotService.released:Connect(function(player)
 		models[player] = nil

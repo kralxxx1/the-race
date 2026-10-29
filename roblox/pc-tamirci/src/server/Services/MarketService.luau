@@ -31,7 +31,7 @@ local rng = Random.new()
 local bought: { [string]: boolean } = {} -- used/junk listings sold today (per server)
 local nearService: { [Player]: { service: string, poi: string, t: number, pos: Vector3 } } = {}
 
-local OTHER = { cars = true, bikes = true, bicycles = true, staff = true, contracts = true }
+local OTHER = { cars = true, bikes = true, bicycles = true, staff = true, contracts = true, factory = true }
 
 -- the player must still be close to the counter they opened
 local function at(player: Player, services: { string }): boolean
@@ -151,7 +151,7 @@ local function buyPart(player: Player, payload)
 	if not p then
 		return { ok = false }
 	end
-	if service == "parts_bazaar" and (p.cat == "misc" or (p.year or 2030) > 2019) then
+	if (service == "parts_bazaar" and (p.cat == "misc" or (p.year or 2030) > 2019)) or p.own then
 		return { ok = false, err = "not_sold_here" }
 	end
 	if p.cat == "case" and service ~= "parts" then

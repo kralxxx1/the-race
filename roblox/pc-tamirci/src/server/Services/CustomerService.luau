@@ -397,7 +397,7 @@ local function makeSale(cust)
 	local list = Parts.byCat[Rand.pick(rng, cats)]
 	local good = {}
 	for _, p in list do
-		if p.price >= 150 and not p.workstation then
+		if p.price >= 150 and not p.workstation and not p.own then
 			table.insert(good, p)
 		end
 	end

@@ -218,7 +218,7 @@ function TechBot:catalogPart(id: string, filter): string?
 	local tn = Rules.tnode(self.dev, id)
 	local cands = {}
 	for _, p in Parts.byCat[tn.cat] or {} do
-		if Rules.compatible(self.dev, id, p, "en") and (not filter or filter(p)) then
+		if not p.own and Rules.compatible(self.dev, id, p, "en") and (not filter or filter(p)) then
 			table.insert(cands, p)
 		end
 	end

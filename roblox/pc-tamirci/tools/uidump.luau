@@ -208,6 +208,20 @@ elseif scene == "shop_items" then
 	task.wait(0.1)
 	press("İş Güvenliği")
 	task.wait(0.2)
+elseif scene == "factory" then
+	-- a level-2 factory: one line running, stock in the warehouse
+	local p = DataService.get(player)
+	p.level = 12
+	p.money = 90000
+	local now = os.time()
+	p.factory = { level = 2, elec = 45, made = 60, stock = { ram_atl_ddr4_8 = 40, case_atl_mid = 10, per_atl_ms = 20 }, lines = {
+		{ part = "st_atl_ssd1t", n = 15, started = now - 40, endsAt = now + 60, rep = true },
+		false,
+	} }
+	DataService.touch(player)
+	task.wait(0.2)
+	cmod("UI.FactoryPanel").open()
+	task.wait(0.3)
 elseif scene == "jobs" then
 	local cust = customerJob()
 	pps.PromptTriggered:Fire(cust.prompt, player)
