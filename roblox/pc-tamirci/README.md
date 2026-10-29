@@ -12,11 +12,11 @@ Oyun Türkçe ve İngilizce'dir (oyuncunun diline göre otomatik, telefondaki Ay
 
 ## Hızlı başlangıç (Rojo kurmadan)
 
-1. **`PCTamirci.rbxlx`** dosyasını Roblox Studio ile aç (Dosya → Aç).
+1. **`PCTamirci.rbxl`** dosyasını Roblox Studio ile aç (Dosya → Aç).
 2. Üstteki **Play** (F5) ile dene. Sunucu açılışta şehri koddan kurar (birkaç saniye sürer).
 3. Yayınlamak için aşağıdaki **Yayınlama** adımlarını uygula.
 
-> Dosyayı kaynak koddan yeniden üretmek için: `rojo build default.project.json -o PCTamirci.rbxlx`
+> Dosyayı kaynak koddan yeniden üretmek için: `rojo build default.project.json -o PCTamirci.rbxl`
 
 ### Rojo ile çalışmak (geliştiriciler için)
 
@@ -37,7 +37,7 @@ sorun gidermeyi anlatır. Simge ve kapak görselleri `publish/` klasöründe haz
 
 Kısaca:
 
-1. `PCTamirci.rbxlx` dosyasını Studio'da aç → **File → Publish**. Simge olarak `publish/icon.png`,
+1. `PCTamirci.rbxl` dosyasını Studio'da aç → **File → Publish**. Simge olarak `publish/icon.png`,
    kapak olarak `publish/thumbnail_1.jpg` yükle. Adı, türü (Simulation / Tycoon) ve açıklamayı yazıp
    **Save**'e bas.
 2. [Creator Dashboard](https://create.roblox.com/dashboard/creations) → oyun → **Configurations →
@@ -158,7 +158,7 @@ mekânlar `Data/Locations.luau` içindedir.
 
 ```
 default.project.json   Rojo projesi (Future ışıklandırma, StreamingEnabled, atmosfer…)
-PCTamirci.rbxlx        Studio'da açılabilen hazır yer dosyası
+PCTamirci.rbxl        Studio'da açılabilen hazır yer dosyası
 YAYINLAMA.md           Studio'dan herkese açık yayına adım adım rehber
 publish/               Oyun sayfası simgesi (512×512) ve kapak görselleri (1920×1080)
 src/shared/            ReplicatedStorage.Shared — veri, şehir düzeni, 3B modeller, tamir kuralları

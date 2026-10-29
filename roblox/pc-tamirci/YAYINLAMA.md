@@ -29,7 +29,7 @@ Toplam süre yaklaşık 20–30 dakika (yaş doğrulaması hariç).
 | Windows 10/11 veya macOS bilgisayar | Roblox Studio telefonda ve tablette çalışmaz. |
 | Roblox hesabı | En az **2 günlük** olmalı ve hesapta yaptırım bulunmamalı. |
 | Yaş doğrulaması | Oyunu 16 yaş ve üstü herkese açmak için gerekli: yüz ile yaş tahmini ya da kimlik. |
-| `PCTamirci.rbxlx` | Oyunun tamamı: şehir, kodlar, arayüz, sesler. |
+| `PCTamirci.rbxl` | Oyunun tamamı: şehir, kodlar, arayüz, sesler. |
 | `publish/` klasörü | `icon.png` (512×512) ve `thumbnail_1.jpg` … `thumbnail_4.jpg` (1920×1080). |
 
 ---
@@ -42,7 +42,7 @@ Toplam süre yaklaşık 20–30 dakika (yaş doğrulaması hariç).
 
 ## 2. Oyunu Studio'da aç
 
-1. `PCTamirci.rbxlx` dosyasına çift tıkla. Olmazsa Studio'da **File → Open from File…** ile seç.
+1. `PCTamirci.rbxl` dosyasına çift tıkla. Olmazsa Studio'da **File → Open from File…** ile seç.
 2. Düzenleme modunda **boş bir zemin** görürsün. Bu normal: şehir, oyun başlarken koddan kurulur.
    - İstersen şehri düzenleme modunda da görebilirsin. **View → Command Bar**'ı aç, aşağıdaki
      satırı yapıştırıp Enter'a bas ve dosyayı kaydet:
