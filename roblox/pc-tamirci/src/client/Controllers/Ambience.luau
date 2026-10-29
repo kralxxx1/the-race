@@ -6,7 +6,7 @@
 --   * the ferris wheel (cabins hang level), carousel, wind turbines, lighthouse beam, the clock
 --     tower's hands, swings, bobbing boats, aquarium fish, ducks on the lake, blinking beacons,
 --     police lights, server-rack LEDs, chimney smoke
---   * ambient sound loops (if their asset ids are set in Config.Sounds)
+--   * ambient sound loops and a shuffled music playlist (ids in Config.Sounds)
 
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
@@ -377,6 +377,51 @@ local function loop(name: string, id: string?): Sound?
 	return s
 end
 
+-- background music: one Sound working through a shuffled playlist
+local music = { list = {} :: { string }, i = 0, started = 0 }
+
+local function nextTrack()
+	local s = loops.music
+	if not s or #music.list == 0 then
+		return
+	end
+	music.i = music.i % #music.list + 1
+	s.SoundId = music.list[music.i]
+	s.TimePosition = 0
+	s:Play()
+	music.started = os.clock()
+end
+
+-- Config.Sounds.Music is one id or a list of ids.
+local function playlist(ids: any)
+	local list = {}
+	if type(ids) == "string" then
+		ids = { ids }
+	end
+	if type(ids) == "table" then
+		for _, id in ids do
+			if type(id) == "string" and id ~= "" then
+				table.insert(list, id)
+			end
+		end
+	end
+	if #list == 0 then
+		return
+	end
+	for i = #list, 2, -1 do
+		local j = math.random(i)
+		list[i], list[j] = list[j], list[i]
+	end
+	music.list = list
+	music.i = 1
+	music.started = os.clock()
+	local s = loop("music", list[1])
+	if s and #list > 1 then
+		s.Looped = false
+		s.Ended:Connect(nextTrack)
+	end
+end
+
 local volumes = { music = 0.5, sfx = 0.8 }
 
 -- Player settings from the phone (0..1).
@@ -393,12 +438,18 @@ local function mix(t: number)
 			s.Volume = lerp(s.Volume, v * master, 0.05)
 		end
 	end
-	local nearSea = camPos().Z > 700
+	-- the surf grows louder towards the beach (sand starts at z 846)
+	local seaside = math.clamp((camPos().Z - 640) / 220, 0, 1)
 	set("day", if isNight(t) or raining then 0 else 0.35)
 	set("night", if isNight(t) and not raining then 0.3 else 0)
 	set("rain", if raining then 0.5 else 0)
-	set("sea", if nearSea then 0.4 else 0)
+	set("sea", seaside * 0.45)
 	set("music", 0.35)
+	-- a track that never loads (removed from the library) is skipped
+	local m = loops.music
+	if m and #music.list > 1 and not m.IsLoaded and os.clock() - music.started > 20 then
+		nextTrack()
+	end
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -459,7 +510,7 @@ function Ambience.init()
 	loop("night", sounds.AmbienceNight)
 	loop("rain", sounds.Rain)
 	loop("sea", sounds.Sea)
-	loop("music", sounds.Music)
+	playlist(sounds.Music)
 
 	raining = Workspace:GetAttribute("Raining") == true
 	Workspace:GetAttributeChangedSignal("Raining"):Connect(function()

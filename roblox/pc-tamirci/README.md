@@ -39,9 +39,13 @@ Studio'ya yansır.
    - **Avatar**: R15 önerilir (NPC animasyonları R15'tir).
 3. [Creator Dashboard](https://create.roblox.com/) üzerinden deneyimin **Privacy → Public** ayarını yap,
    tür (Simulation/Tycoon), açıklama, simge ve küçük resimleri ekle.
-4. (İsteğe bağlı) Ses ekle: `src/shared/Config.luau` içindeki `Sounds` bölümüne Creator Store'dan
-   seçtiğin ses kimliklerini (`"rbxassetid://123..."`) yaz — gündüz/gece ortam sesi, yağmur, dalga,
-   arka plan müziği. Boş bırakılanlar çalınmaz.
+4. Sesler hazır gelir: `src/shared/Config.luau` → `Sounds` bölümünde gündüz kuş cıvıltısı, gece cırcır
+   böcekleri, yağmur, sahil dalgaları, 7 parçalık sakin lo-fi müzik listesi ve tezgâh sesleri
+   (tornavida, basınçlı hava, fırça, klips, güç düğmesi, POST bip kodları) var. Hepsi Roblox'un
+   lisanslı kütüphanesinden (Pro Sound Effects, APM Music, Roblox) — her deneyimde ücretsiz
+   kullanılabilir. Değiştirmek istersen Creator Store → Audio'dan kimlik kopyala
+   (`"rbxassetid://123..."`); boş bırakılan ses çalınmaz. Müzik ve efekt seviyesini oyuncular
+   telefondaki **Ayarlar**'dan değiştirir.
 
 ### Şehri Studio'da görünür yapmak (isteğe bağlı)
 
@@ -88,6 +92,8 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
    dolandırıcı…). Şikâyetini dinle, teklifini kabul et ya da pazarlık et (fazla zorlarsan gider).
 2. **Tezgâhta tamir:** vidaları uygun uçla sök, kabloları çıkar, mandalları aç; arızayı test ve
    ölçümle bul (güç, stres, POST kodu, multimetre, termal kamera, MemTest, S.M.A.R.T., antivirüs…).
+   Kulak da ipucu verir: tek kısa bip = POST tamam, üç bip = bellek (ya da eğik soket pini),
+   dört bip = ekran kartı, hiç ses yok = güç, anakart ya da işlemci.
    30'dan fazla arıza: ölü PSU/GPU, bozuk RAM, kuruyup bitmiş termal macun, toz, ölü fan, ölen disk,
    bozuk Windows, virüs, CMOS pili, şişmiş kondansatör, eğik soket pini, gevşek kablo, laptop batarya
    şişmesi, kırık ekran, sıvı teması, menteşe, şarj soketi… Ayrıca RAM/SSD/ekran kartı yükseltme,
@@ -111,7 +117,8 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
 8. **Şehir hayatı:** sağdan akan trafik (kırmızıda durur, yaya geçidini bekler), kaldırımlarda
    yürüyen yayalar, martı ve güvercin sürüleri, gökyüzünden geçen uçaklar, sıcak hava balonları,
    dönen dönme dolap ve rüzgâr türbinleri, deniz feneri, saat kulesi, gece yanan pencereler ve
-   sokak lambaları, yağmur.
+   sokak lambaları, yağmur; gündüz kuşlar, gece cırcır böcekleri, sahile yaklaştıkça artan dalga
+   sesi ve arka planda sakin lo-fi müzik.
 9. **Olaylar:** gece artan hırsızlık (kamera/alarm uyarır, F ile yakala, ödül al), parayı vermeden
    kaçan dolandırıcı, "kutusu yok faturası yok" çalıntı parça satan şüpheli tip (polis gelebilir!),
    yağmur, gün/gece döngüsü.

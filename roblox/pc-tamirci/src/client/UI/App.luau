@@ -13,22 +13,44 @@ App.sfxVolume = 0.8
 
 local sounds: { [string]: Sound } = {}
 
--- Plays one of Config.Sounds (Click, Cash, ...) for this player only.
-function App.sound(name: string, volume: number?)
-	local id = Config.Sounds and Config.Sounds[name]
+-- Plays a sound id once, for this player only.
+function App.play(id: string?, volume: number?)
 	if type(id) ~= "string" or id == "" then
 		return
 	end
-	local s = sounds[name]
+	local s = sounds[id]
 	if not s then
 		s = Instance.new("Sound")
-		s.Name = "Ui_" .. name
+		s.Name = "Sfx"
 		s.SoundId = id
 		s.Parent = SoundService
-		sounds[name] = s
+		sounds[id] = s
 	end
 	s.Volume = (volume or 0.5) * App.sfxVolume
 	SoundService:PlayLocalSound(s)
+end
+
+-- Plays one of Config.Sounds (Click, Cash, ...) for this player only.
+function App.sound(name: string, volume: number?)
+	App.play(Config.Sounds and Config.Sounds[name], volume)
+end
+
+-- Keeps a sound id playing until the returned function is called.
+function App.loop(id: string?, volume: number?): () -> ()
+	if type(id) ~= "string" or id == "" then
+		return function() end
+	end
+	local s = Instance.new("Sound")
+	s.Name = "SfxLoop"
+	s.SoundId = id
+	s.Looped = true
+	s.Volume = (volume or 0.5) * App.sfxVolume
+	s.Parent = SoundService
+	s:Play()
+	return function()
+		s:Stop()
+		s:Destroy()
+	end
 end
 
 -- Shows the server's error (or `okText` on success). Returns r.ok.

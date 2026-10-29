@@ -198,16 +198,49 @@ local Config = {
 	UsedSellRate = 0.42, -- 2. ele satarken yeni fiyatın oranı (durumla çarpılır)
 	DailyPriceSwing = 0.12,
 
-	-- Sesler: Creator Store'dan bulduğunuz ses kimliklerini "rbxassetid://123" biçiminde yazın.
-	-- Boş bırakılan ses çalınmaz. (Ortam sesleri döngü halinde çalar.)
+	-- Sesler: "rbxassetid://123" biçiminde. Hazır gelenler Roblox'un lisanslı kütüphanesinden
+	-- (Pro Sound Effects, APM Music, Roblox) — her deneyimde ücretsiz kullanılabilir. Değiştirmek
+	-- için Creator Store > Audio'dan kimlik kopyalayın; boş bırakılan ses çalınmaz.
 	Sounds = {
-		AmbienceDay = "", -- gündüz: kuş cıvıltısı, uzak şehir uğultusu
-		AmbienceNight = "", -- gece: cırcır böcekleri
-		Rain = "", -- yağmur
-		Sea = "", -- dalga sesi (sahilde)
-		Music = "", -- rahatlatıcı arka plan müziği
+		AmbienceDay = "rbxassetid://9112831284", -- gündüz: kuş cıvıltısı (Morning Birds 1)
+		AmbienceNight = "rbxassetid://9112764573", -- gece: cırcır böcekleri (Crickets Night 3)
+		Rain = "rbxassetid://9112857764", -- yağmur: asfalta ve sundurmaya çiseleyen (Rain Splatty Asphalt)
+		Sea = "rbxassetid://9119677305", -- sahilde dalgalar (Surf Ocean Wave, Zuma Beach)
+		-- rahatlatıcı arka plan müziği: liste karışık sırayla çalar (APM "LOFI HIP HOP" albümü)
+		Music = {
+			"rbxassetid://9047104336", -- Sunday In Bed
+			"rbxassetid://9047104411", -- Beach Cushions
+			"rbxassetid://9047104571", -- Home Town Easy
+			"rbxassetid://9047104650", -- Decompression
+			"rbxassetid://9047104919", -- Time Goes By
+			"rbxassetid://9047105000", -- I'll Show Ya
+			"rbxassetid://9047105308", -- Dusk To Dawn
+		},
 		Click = "rbxasset://sounds/clickfast.wav",
 		Cash = "rbxasset://sounds/electronicpingshort.wav",
+		-- tezgâhtaki işlerin sesleri (eylem adına göre); tornavida, hava, fırça ve temizlik
+		-- basılı tutulurken döngüde çalar, diğerleri iş bitince bir kez
+		Bench = {
+			unscrew = "rbxassetid://9118855069", -- Screwdriver 2
+			screw = "rbxassetid://9118855273", -- Screwdriver 3
+			blow_dust = "rbxassetid://9113865022", -- Compressed Air Bursts 3
+			brush = "rbxassetid://9113595595", -- Brush Scrub Rubbing On Wood 14
+			clean_paste = "rbxassetid://9116198866", -- bez sürtme (Fast Swipes On Trousers 2)
+			clean_liquid = "rbxassetid://9116198866",
+			peel = "rbxassetid://9113836369", -- bant sökme (Cloth Rip Zippy 5)
+			pry = "rbxasset://sounds/snap.wav", -- plastik klips açılır
+			install = "rbxasset://sounds/switch.wav",
+			plug = "rbxasset://sounds/switch.wav",
+			remove = "rbxasset://sounds/snap.wav",
+			unplug = "rbxasset://sounds/snap.wav",
+			open_latch = "rbxassetid://16480551554", -- küçük metal klik (Roblox)
+			close_latch = "rbxassetid://16480551554",
+			wear_strap = "rbxasset://sounds/snap.wav",
+			discard = "rbxasset://sounds/swoosh.wav",
+			measure = "rbxassetid://9113880400", -- multimetre bip (Computer Keyboard Beep 1)
+			press_power = "rbxassetid://16480556621", -- güç düğmesi (Roblox plastik düğme)
+			beep = "rbxassetid://9113880400", -- anakart hoparlörü: POST bip kodları
+		},
 	},
 
 	-- Hata ayıklama: Studio'da her şeyi açık başlat
@@ -15812,6 +15845,16 @@ local function dress(model: Model, extras: { string }, hair: Color3, gender: str
 end
 
 -- Creates an NPC. opts: look, gender, name, seed, cf, tag
+-- Standing NPCs are anchored so dozens of idle customers and staff cost the server nothing;
+-- they are released while walking or sitting down.
+local function setAnchored(model: Model, on: boolean)
+	local root = model.PrimaryPart
+	if root then
+		root.Anchored = on
+	end
+end
+NpcService.setAnchored = setAnchored
+
 function NpcService.spawn(opts: { [string]: any }): Model
 	local rng = Random.new(opts.seed or math.random(1, 1e9))
 	local look = LOOKS[opts.look or "casual"] or LOOKS.casual
@@ -15877,6 +15920,7 @@ function NpcService.spawn(opts: { [string]: any }): Model
 	pcall(function()
 		root:SetNetworkOwner(nil)
 	end)
+	setAnchored(model, true)
 	NpcService.play(model, "idle")
 	return model
 end
@@ -15917,6 +15961,7 @@ function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: bo
 	if not hum or not root or not model.Parent then
 		return false
 	end
+	setAnchored(model, false)
 	if hum.SeatPart then
 		hum.Sit = false
 		hum.Jump = true
@@ -15945,6 +15990,9 @@ function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: bo
 	end
 	if model.Parent then
 		NpcService.play(model, "idle")
+		if not hum.SeatPart then
+			setAnchored(model, true)
+		end
 	end
 	return reached
 end
@@ -15972,6 +16020,7 @@ end
 function NpcService.sit(model: Model, seat: Seat?)
 	local hum = model:FindFirstChildOfClass("Humanoid")
 	if hum and seat and not seat.Occupant then
+		setAnchored(model, false)
 		seat:Sit(hum)
 		NpcService.play(model, "sit")
 		return true
@@ -20395,7 +20444,7 @@ return WorldBuilder
 --   * the ferris wheel (cabins hang level), carousel, wind turbines, lighthouse beam, the clock
 --     tower's hands, swings, bobbing boats, aquarium fish, ducks on the lake, blinking beacons,
 --     police lights, server-rack LEDs, chimney smoke
---   * ambient sound loops (if their asset ids are set in Config.Sounds)
+--   * ambient sound loops and a shuffled music playlist (ids in Config.Sounds)
 
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
@@ -20766,6 +20815,51 @@ local function loop(name: string, id: string?): Sound?
 	return s
 end
 
+-- background music: one Sound working through a shuffled playlist
+local music = { list = {} :: { string }, i = 0, started = 0 }
+
+local function nextTrack()
+	local s = loops.music
+	if not s or #music.list == 0 then
+		return
+	end
+	music.i = music.i % #music.list + 1
+	s.SoundId = music.list[music.i]
+	s.TimePosition = 0
+	s:Play()
+	music.started = os.clock()
+end
+
+-- Config.Sounds.Music is one id or a list of ids.
+local function playlist(ids: any)
+	local list = {}
+	if type(ids) == "string" then
+		ids = { ids }
+	end
+	if type(ids) == "table" then
+		for _, id in ids do
+			if type(id) == "string" and id ~= "" then
+				table.insert(list, id)
+			end
+		end
+	end
+	if #list == 0 then
+		return
+	end
+	for i = #list, 2, -1 do
+		local j = math.random(i)
+		list[i], list[j] = list[j], list[i]
+	end
+	music.list = list
+	music.i = 1
+	music.started = os.clock()
+	local s = loop("music", list[1])
+	if s and #list > 1 then
+		s.Looped = false
+		s.Ended:Connect(nextTrack)
+	end
+end
+
 local volumes = { music = 0.5, sfx = 0.8 }
 
 -- Player settings from the phone (0..1).
@@ -20782,12 +20876,18 @@ local function mix(t: number)
 			s.Volume = lerp(s.Volume, v * master, 0.05)
 		end
 	end
-	local nearSea = camPos().Z > 700
+	-- the surf grows louder towards the beach (sand starts at z 846)
+	local seaside = math.clamp((camPos().Z - 640) / 220, 0, 1)
 	set("day", if isNight(t) or raining then 0 else 0.35)
 	set("night", if isNight(t) and not raining then 0.3 else 0)
 	set("rain", if raining then 0.5 else 0)
-	set("sea", if nearSea then 0.4 else 0)
+	set("sea", seaside * 0.45)
 	set("music", 0.35)
+	-- a track that never loads (removed from the library) is skipped
+	local m = loops.music
+	if m and #music.list > 1 and not m.IsLoaded and os.clock() - music.started > 20 then
+		nextTrack()
+	end
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -20848,7 +20948,7 @@ function Ambience.init()
 	loop("night", sounds.AmbienceNight)
 	loop("rain", sounds.Rain)
 	loop("sea", sounds.Sea)
-	loop("music", sounds.Music)
+	playlist(sounds.Music)
 
 	raining = Workspace:GetAttribute("Raining") == true
 	Workspace:GetAttributeChangedSignal("Raining"):Connect(function()
@@ -21001,6 +21101,7 @@ local S = require(Client.Strings)
 local State = require(Client.State)
 local Kit = require(Client.UI.Kit)
 local Theme = require(Client.UI.Theme)
+local App = require(Client.UI.App)
 local BenchViews = require(script.Parent.BenchViews)
 
 local BenchController = {}
@@ -21025,6 +21126,15 @@ local touchStart: Vector2? = nil
 local conns = {}
 
 local TIMED = Config.HoldActionSeconds
+
+-- What the work sounds like (Config.Sounds.Bench): these loop while the action is held, the rest
+-- play once when the server confirms the action.
+local HELD_SOUND = { unscrew = true, screw = true, blow_dust = true, brush = true, clean_paste = true, clean_liquid = true, peel = true }
+
+local function benchSound(key: string): string?
+	local b = Config.Sounds and Config.Sounds.Bench
+	return b and b[key]
+end
 
 local build -- builds the bench UI (defined below)
 
@@ -21398,6 +21508,18 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Doing things
 ----------------------------------------------------------------------------------------------------
+-- The motherboard speaker after pressing power: one short beep is a good POST, three are memory
+-- (or bent socket pins), four the graphics card; no power or no POST stays silent.
+local function postBeeps(stage: string)
+	if stage == "no_power" or stage == "no_post" then
+		return
+	end
+	local n = if stage == "beeps" then 3 elseif stage == "no_display" then 4 else 1
+	for i = 0, n - 1 do
+		task.delay(0.8 + i * 0.6, App.play, benchSound("beep"), 0.35)
+	end
+end
+
 local function send(action: string, target: string?, args: { [string]: any }?, tid: string?)
 	if busy or not active then
 		return nil
@@ -21409,6 +21531,12 @@ local function send(action: string, target: string?, args: { [string]: any }?, t
 		BenchViews.apply(active.model, r.view, r.rev)
 	end
 	if r.ok then
+		if not HELD_SOUND[action] then
+			App.play(benchSound(action), 0.5)
+		end
+		if action == "press_power" and r.eval then
+			postBeeps(r.eval.stage)
+		end
 		showResult(r)
 		refreshDiag()
 		BenchController.acted:Fire(action, r)
@@ -21644,10 +21772,12 @@ local function perform(id: string, c, tid: string)
 	end
 	local hold = (TIMED[c.action] or 0) / toolSpeed(tid)
 	local stopFx = startFx(c.action, hover and hover.pos, hover and hover.normal)
+	local stopSound = if HELD_SOUND[c.action] then App.loop(benchSound(c.action), 0.45) else function() end
 	if hold > 0 then
 		local label = S.t("act_" .. c.action) .. " • " .. nodeLabel(view(), id)
 		if not holdFor(hold, label) then
 			stopFx()
+			stopSound()
 			return
 		end
 	end
@@ -21666,6 +21796,7 @@ local function perform(id: string, c, tid: string)
 	end
 	send(c.action, id, c.args, tid)
 	stopFx()
+	stopSound()
 end
 
 local function nodeMenu(id: string)
@@ -23685,6 +23816,7 @@ return Sky
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -23704,6 +23836,10 @@ local rng = Random.new()
 
 local MAX_CARS = 20
 local MAX_PEDS = 26
+if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+	-- phones: lighter streets
+	MAX_CARS, MAX_PEDS = 10, 14
+end
 local SPAWN_MIN, SPAWN_MAX, DESPAWN = 80, 320, 430
 local CAR_GAP = 10
 
@@ -25301,22 +25437,44 @@ App.sfxVolume = 0.8
 
 local sounds: { [string]: Sound } = {}
 
--- Plays one of Config.Sounds (Click, Cash, ...) for this player only.
-function App.sound(name: string, volume: number?)
-	local id = Config.Sounds and Config.Sounds[name]
+-- Plays a sound id once, for this player only.
+function App.play(id: string?, volume: number?)
 	if type(id) ~= "string" or id == "" then
 		return
 	end
-	local s = sounds[name]
+	local s = sounds[id]
 	if not s then
 		s = Instance.new("Sound")
-		s.Name = "Ui_" .. name
+		s.Name = "Sfx"
 		s.SoundId = id
 		s.Parent = SoundService
-		sounds[name] = s
+		sounds[id] = s
 	end
 	s.Volume = (volume or 0.5) * App.sfxVolume
 	SoundService:PlayLocalSound(s)
+end
+
+-- Plays one of Config.Sounds (Click, Cash, ...) for this player only.
+function App.sound(name: string, volume: number?)
+	App.play(Config.Sounds and Config.Sounds[name], volume)
+end
+
+-- Keeps a sound id playing until the returned function is called.
+function App.loop(id: string?, volume: number?): () -> ()
+	if type(id) ~= "string" or id == "" then
+		return function() end
+	end
+	local s = Instance.new("Sound")
+	s.Name = "SfxLoop"
+	s.SoundId = id
+	s.Looped = true
+	s.Volume = (volume or 0.5) * App.sfxVolume
+	s.Parent = SoundService
+	s:Play()
+	return function()
+		s:Stop()
+		s:Destroy()
+	end
 end
 
 -- Shows the server's error (or `okText` on success). Returns r.ok.

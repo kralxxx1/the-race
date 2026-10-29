@@ -2,12 +2,11 @@
 -- the player's ScreenGui as JSON for tools/render/ui.html (a small Roblox GUI layout renderer).
 --   lune run tools/uidump.luau <scene>
 -- scenes: hud, phone, jobs, inventory, parts, used, tools, shop, staff, dealer, dialog, bench,
---         map, contracts
+--         map, contracts, board
 
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
 local process = require("@lune/process")
-local roblox = require("@lune/roblox")
 local task = require("@lune/task")
 
 local Engine = require("../tests/lib/Engine")

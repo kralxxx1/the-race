@@ -685,7 +685,10 @@ roblox.implementMethod("BadgeService", "AwardBadge", function() end)
 roblox.implementMethod("BadgeService", "UserHasBadgeAsync", function()
 	return false
 end)
-roblox.implementMethod("SoundService", "PlayLocalSound", function() end)
+Engine.played = {} -- SoundIds passed to SoundService:PlayLocalSound, in order
+roblox.implementMethod("SoundService", "PlayLocalSound", function(_, s)
+	table.insert(Engine.played, s.SoundId)
+end)
 roblox.implementMethod("SoundService", "SetListener", function() end)
 roblox.implementMethod("Debris", "AddItem", function(_, inst, t)
 	task.delay(t or 10, function()

@@ -31,6 +31,7 @@ local S = require(Client.Strings)
 local State = require(Client.State)
 local Kit = require(Client.UI.Kit)
 local Theme = require(Client.UI.Theme)
+local App = require(Client.UI.App)
 local BenchViews = require(script.Parent.BenchViews)
 
 local BenchController = {}
@@ -55,6 +56,15 @@ local touchStart: Vector2? = nil
 local conns = {}
 
 local TIMED = Config.HoldActionSeconds
+
+-- What the work sounds like (Config.Sounds.Bench): these loop while the action is held, the rest
+-- play once when the server confirms the action.
+local HELD_SOUND = { unscrew = true, screw = true, blow_dust = true, brush = true, clean_paste = true, clean_liquid = true, peel = true }
+
+local function benchSound(key: string): string?
+	local b = Config.Sounds and Config.Sounds.Bench
+	return b and b[key]
+end
 
 local build -- builds the bench UI (defined below)
 
@@ -428,6 +438,18 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Doing things
 ----------------------------------------------------------------------------------------------------
+-- The motherboard speaker after pressing power: one short beep is a good POST, three are memory
+-- (or bent socket pins), four the graphics card; no power or no POST stays silent.
+local function postBeeps(stage: string)
+	if stage == "no_power" or stage == "no_post" then
+		return
+	end
+	local n = if stage == "beeps" then 3 elseif stage == "no_display" then 4 else 1
+	for i = 0, n - 1 do
+		task.delay(0.8 + i * 0.6, App.play, benchSound("beep"), 0.35)
+	end
+end
+
 local function send(action: string, target: string?, args: { [string]: any }?, tid: string?)
 	if busy or not active then
 		return nil
@@ -439,6 +461,12 @@ local function send(action: string, target: string?, args: { [string]: any }?, t
 		BenchViews.apply(active.model, r.view, r.rev)
 	end
 	if r.ok then
+		if not HELD_SOUND[action] then
+			App.play(benchSound(action), 0.5)
+		end
+		if action == "press_power" and r.eval then
+			postBeeps(r.eval.stage)
+		end
 		showResult(r)
 		refreshDiag()
 		BenchController.acted:Fire(action, r)
@@ -674,10 +702,12 @@ local function perform(id: string, c, tid: string)
 	end
 	local hold = (TIMED[c.action] or 0) / toolSpeed(tid)
 	local stopFx = startFx(c.action, hover and hover.pos, hover and hover.normal)
+	local stopSound = if HELD_SOUND[c.action] then App.loop(benchSound(c.action), 0.45) else function() end
 	if hold > 0 then
 		local label = S.t("act_" .. c.action) .. " • " .. nodeLabel(view(), id)
 		if not holdFor(hold, label) then
 			stopFx()
+			stopSound()
 			return
 		end
 	end
@@ -696,6 +726,7 @@ local function perform(id: string, c, tid: string)
 	end
 	send(c.action, id, c.args, tid)
 	stopFx()
+	stopSound()
 end
 
 local function nodeMenu(id: string)

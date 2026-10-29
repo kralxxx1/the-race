@@ -243,12 +243,32 @@ return function(T)
 			end
 		end
 		T.ok(tested > 30, "resolved " .. tested)
+		local BenchSounds = Engine.mod("ReplicatedStorage.Shared.Config").Sounds.Bench
+		table.clear(Engine.played)
 		click(benchUi, S.t("bench_power"))
 		task.wait(0.1)
+		T.ok(table.find(Engine.played, BenchSounds.press_power) ~= nil, "the power button clicks")
 		local first = if v.kind == "desktop" then "sp_s1" else nil
 		if first then
+			-- the screw whirs while it's held, and stops with it (the engine's hold loop doesn't
+			-- yield, so listen through App.loop)
+			local App = cmod("UI.App")
+			local loop = App.loop
+			local heard, stopped = {}, 0
+			App.loop = function(id, volume)
+				table.insert(heard, id)
+				local stop = loop(id, volume)
+				return function()
+					stopped += 1
+					stop()
+				end
+			end
 			local c, ok = Bench._act(first, "hand")
+			App.loop = loop
 			T.ok(c ~= nil and ok, "unscrew the side panel")
+			T.eq(heard[1], BenchSounds[c.action], "tool sound while working")
+			T.eq(stopped, 1, "tool sound stops")
+			T.ok(game:GetService("SoundService"):FindFirstChild("SfxLoop") == nil, "no sound left behind")
 			waitFor(function()
 				local nv = Bench._view()
 				return nv.nodes[first].st ~= "in"
@@ -386,6 +406,28 @@ return function(T)
 		T.ok(windows > 50, "lit windows: " .. windows)
 		Lighting.ClockTime = 12
 		Engine.step(3)
+	end)
+
+	T.test("client: ambience loops and a shuffled music playlist", function()
+		local SoundService = game:GetService("SoundService")
+		local Sounds = Engine.mod("ReplicatedStorage.Shared.Config").Sounds
+		for _, name in { "day", "night", "rain", "sea" } do
+			local loop = SoundService:FindFirstChild("Amb_" .. name)
+			T.ok(loop ~= nil and loop.Looped and loop.IsPlaying, name .. " loop")
+		end
+		local music = SoundService:FindFirstChild("Amb_music")
+		T.ok(music ~= nil and not music.Looped, "music from a playlist")
+		local seen = { [music.SoundId] = true }
+		for _ = 1, #Sounds.Music - 1 do
+			music.Ended:Fire()
+			T.ok(table.find(Sounds.Music, music.SoundId) ~= nil and music.IsPlaying, "a playlist track")
+			seen[music.SoundId] = true
+		end
+		local n = 0
+		for _ in seen do
+			n += 1
+		end
+		T.eq(n, #Sounds.Music, "every track once per round")
 	end)
 	_ = RepairService
 end

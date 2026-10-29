@@ -90,16 +90,49 @@ local Config = {
 	UsedSellRate = 0.42, -- 2. ele satarken yeni fiyatın oranı (durumla çarpılır)
 	DailyPriceSwing = 0.12,
 
-	-- Sesler: Creator Store'dan bulduğunuz ses kimliklerini "rbxassetid://123" biçiminde yazın.
-	-- Boş bırakılan ses çalınmaz. (Ortam sesleri döngü halinde çalar.)
+	-- Sesler: "rbxassetid://123" biçiminde. Hazır gelenler Roblox'un lisanslı kütüphanesinden
+	-- (Pro Sound Effects, APM Music, Roblox) — her deneyimde ücretsiz kullanılabilir. Değiştirmek
+	-- için Creator Store > Audio'dan kimlik kopyalayın; boş bırakılan ses çalınmaz.
 	Sounds = {
-		AmbienceDay = "", -- gündüz: kuş cıvıltısı, uzak şehir uğultusu
-		AmbienceNight = "", -- gece: cırcır böcekleri
-		Rain = "", -- yağmur
-		Sea = "", -- dalga sesi (sahilde)
-		Music = "", -- rahatlatıcı arka plan müziği
+		AmbienceDay = "rbxassetid://9112831284", -- gündüz: kuş cıvıltısı (Morning Birds 1)
+		AmbienceNight = "rbxassetid://9112764573", -- gece: cırcır böcekleri (Crickets Night 3)
+		Rain = "rbxassetid://9112857764", -- yağmur: asfalta ve sundurmaya çiseleyen (Rain Splatty Asphalt)
+		Sea = "rbxassetid://9119677305", -- sahilde dalgalar (Surf Ocean Wave, Zuma Beach)
+		-- rahatlatıcı arka plan müziği: liste karışık sırayla çalar (APM "LOFI HIP HOP" albümü)
+		Music = {
+			"rbxassetid://9047104336", -- Sunday In Bed
+			"rbxassetid://9047104411", -- Beach Cushions
+			"rbxassetid://9047104571", -- Home Town Easy
+			"rbxassetid://9047104650", -- Decompression
+			"rbxassetid://9047104919", -- Time Goes By
+			"rbxassetid://9047105000", -- I'll Show Ya
+			"rbxassetid://9047105308", -- Dusk To Dawn
+		},
 		Click = "rbxasset://sounds/clickfast.wav",
 		Cash = "rbxasset://sounds/electronicpingshort.wav",
+		-- tezgâhtaki işlerin sesleri (eylem adına göre); tornavida, hava, fırça ve temizlik
+		-- basılı tutulurken döngüde çalar, diğerleri iş bitince bir kez
+		Bench = {
+			unscrew = "rbxassetid://9118855069", -- Screwdriver 2
+			screw = "rbxassetid://9118855273", -- Screwdriver 3
+			blow_dust = "rbxassetid://9113865022", -- Compressed Air Bursts 3
+			brush = "rbxassetid://9113595595", -- Brush Scrub Rubbing On Wood 14
+			clean_paste = "rbxassetid://9116198866", -- bez sürtme (Fast Swipes On Trousers 2)
+			clean_liquid = "rbxassetid://9116198866",
+			peel = "rbxassetid://9113836369", -- bant sökme (Cloth Rip Zippy 5)
+			pry = "rbxasset://sounds/snap.wav", -- plastik klips açılır
+			install = "rbxasset://sounds/switch.wav",
+			plug = "rbxasset://sounds/switch.wav",
+			remove = "rbxasset://sounds/snap.wav",
+			unplug = "rbxasset://sounds/snap.wav",
+			open_latch = "rbxassetid://16480551554", -- küçük metal klik (Roblox)
+			close_latch = "rbxassetid://16480551554",
+			wear_strap = "rbxasset://sounds/snap.wav",
+			discard = "rbxasset://sounds/swoosh.wav",
+			measure = "rbxassetid://9113880400", -- multimetre bip (Computer Keyboard Beep 1)
+			press_power = "rbxassetid://16480556621", -- güç düğmesi (Roblox plastik düğme)
+			beep = "rbxassetid://9113880400", -- anakart hoparlörü: POST bip kodları
+		},
 	},
 
 	-- Hata ayıklama: Studio'da her şeyi açık başlat
