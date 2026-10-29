@@ -6,6 +6,7 @@
 -- Local frame: origin on the ground under the middle of the vehicle, forward = -Z.
 
 local B = require(script.Parent.Parent.Util.Builder)
+local Assets = require(script.Parent.Parent.Util.Assets)
 
 local VehicleModels = {}
 local M = Enum.Material
@@ -266,6 +267,68 @@ local function buildBike(m: Model, cf: CFrame, def, color: Color3, plateText: st
 end
 
 ----------------------------------------------------------------------------------------------------
+-- Real cars (Roblox's official vehicles, assets/shared/Vehicles.rbxm): body shape -> model, scale
+----------------------------------------------------------------------------------------------------
+local OFFICIAL = {
+	classic = { "Sedan", 0.66 },
+	wagon = { "SUV", 0.62 },
+	hatch = { "Sedan", 0.6 },
+	sedan = { "Sedan", 0.68 },
+	electric = { "Sedan", 0.68 },
+	van = { "Van", 0.62 },
+	minibus = { "Van", 0.7 },
+	pickup = { "Pickup", 0.6 },
+	suv = { "SUV", 0.68 },
+	coupe = { "Sports", 0.68 },
+	super = { "Sports", 0.74 },
+	police = { "Police", 0.68 },
+	offroad = { "Offroad", 0.72 },
+}
+
+-- Puts the official car's body and wheels into `m` on `cf`, painted `color`; returns its sizes
+-- (nil when the asset library is missing, so the parts-built car is used).
+local function buildOfficial(m: Model, cf: CFrame, def, color: Color3, plateText: string)
+	local spec = OFFICIAL[def.body]
+	if not spec then
+		return nil
+	end
+	local template = Assets.get("Vehicles", spec[1] .. "_white") or Assets.get("Vehicles", spec[1] .. "_std")
+	if not template then
+		return nil
+	end
+	local scale = spec[2]
+	local kit = template:Clone()
+	kit:ScaleTo(scale)
+	kit:PivotTo(cf)
+	for _, d in kit:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("Paint") then
+			d.Color = color
+			d:AddTag("CarPaint")
+		end
+	end
+	for _, c in kit:GetChildren() do
+		if c.Name ~= "Root" then
+			c.Parent = m
+		end
+	end
+	local size = template:GetAttribute("Size") * scale
+	local seat = template:GetAttribute("Seat") * scale
+	local front, back = template:GetAttribute("Front") * scale, template:GetAttribute("Back") * scale
+	-- number plates on the bumpers
+	plate(m, cf * CFrame.new(0, 1.1 * scale / 0.68, front - 0.04) * CFrame.Angles(0, 0, 0), plateText)
+	plate(m, cf * CFrame.new(0, 1.3 * scale / 0.68, back + 0.04) * CFrame.Angles(0, math.pi, 0), plateText)
+	kit:Destroy()
+	return {
+		wr = template:GetAttribute("Radius") * scale,
+		wb = template:GetAttribute("WheelBase") * scale,
+		track = template:GetAttribute("Track") * scale,
+		W = size.X,
+		L = size.Z,
+		seat = seat,
+	}
+end
+
+----------------------------------------------------------------------------------------------------
 -- build
 ----------------------------------------------------------------------------------------------------
 -- opts: color (index or {r,g,b}), plate (text), static (display only), owner (UserId)
@@ -277,12 +340,15 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 	local color = if typeof(o.color) == "number" then c3(def.colors[o.color] or def.colors[1]) elseif o.color then c3(o.color) else c3(def.colors[1])
 	local plateText = o.plate or "34 PC 001"
 	local isBike = def.kind ~= "car"
-	local S = if isBike then buildBike(m, cf, def, color, plateText) else buildCar(m, cf, def, color, plateText)
+	local real = if isBike then nil else buildOfficial(m, cf, def, color, plateText)
+	local S = real or (if isBike then buildBike(m, cf, def, color, plateText) else buildCar(m, cf, def, color, plateText))
 	local wr = S.wr
 	local wb = S.wb
-	local width = if isBike then 0.9 else (CARS[def.body] or CARS.sedan).W
+	local width = if isBike then 0.9 elseif real then real.track + 0.9 else (CARS[def.body] or CARS.sedan).W
 	-- wheels
-	if isBike then
+	if real then
+		-- the real car brings its own (Wheel1-4 with their rims)
+	elseif isBike then
 		wheel(m, cf * CFrame.new(0, wr, -wb / 2), wr, if def.body == "bicycle" then 0.18 else 0.5, true, "WheelF")
 		wheel(m, cf * CFrame.new(0, wr, wb / 2), wr, if def.body == "bicycle" then 0.18 else 0.55, false, "WheelR")
 	else
@@ -298,6 +364,8 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 	local seatCf
 	if isBike then
 		seatCf = cf * CFrame.new(0, S.seat + 0.15, 0.6)
+	elseif real then
+		seatCf = cf * CFrame.new(real.seat)
 	else
 		local CS = CARS[def.body] or CARS.sedan
 		seatCf = cf * CFrame.new(-CS.W * 0.22, CS.g + CS.hb * 0.55, -CS.L / 2 + CS.hood + 1.4)
@@ -326,7 +394,9 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 					local ps = Instance.new("Seat")
 					ps.Name = "Passenger"
 					ps.Size = Vector3.new(1.6, 0.3, 1.6)
-					ps.CFrame = cf * CFrame.new(s * CS.W * 0.22, CS.g + CS.hb * 0.55, -CS.L / 2 + CS.hood + 1.4 + r * 2.6)
+					ps.CFrame = if real
+						then cf * CFrame.new(-s * real.seat.X, real.seat.Y, real.seat.Z + r * 2.6 * real.L / 14)
+						else cf * CFrame.new(s * CS.W * 0.22, CS.g + CS.hb * 0.55, -CS.L / 2 + CS.hood + 1.4 + r * 2.6)
 					ps.Transparency = 1
 					ps.CanCollide = false
 					ps.Anchored = o.static == true
@@ -367,11 +437,15 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 				d.CanCollide = false
 			end
 			if d:GetAttribute("Wheel") then
+				-- spin and steer about the chassis' axes at the wheel's centre, whatever way the
+				-- tire mesh itself is turned
+				local rel = chassis.CFrame:ToObjectSpace(d.CFrame)
 				local motor = Instance.new("Motor6D")
 				motor.Name = d.Name .. "Motor"
 				motor.Part0 = chassis
 				motor.Part1 = d
-				motor.C0 = chassis.CFrame:ToObjectSpace(d.CFrame)
+				motor.C0 = CFrame.new(rel.Position)
+				motor.C1 = (rel - rel.Position):Inverse()
 				motor.Parent = d
 			elseif d:GetAttribute("RimOf") then
 				local tire = m:FindFirstChild(d:GetAttribute("RimOf"))

@@ -9,6 +9,7 @@ Textures are written as tools/render/out/tex/<id>.png.
 """
 import io
 import json
+import math
 import os
 import struct
 import subprocess
@@ -108,11 +109,15 @@ def convert_mesh(mid):
     except Exception as e:
         open(dst + '.err', 'w').write(str(e))
         return 'error'
+    # degenerate vertices can carry NaN normals or UVs, which JSON (and the browser) can't take
+    def clean(vals, nd):
+        return [round(v, nd) if math.isfinite(v) else 0.0 for v in vals]
+    pos, nor, uv = clean(pos, 4), clean(nor, 3), clean(uv, 4)
     xs, ys, zs = pos[0::3], pos[1::3], pos[2::3]
     out = {
-        'p': [round(v, 4) for v in pos],
-        'n': [round(v, 3) for v in nor],
-        'uv': [round(v, 4) for v in uv],
+        'p': pos,
+        'n': nor,
+        'uv': uv,
         'i': faces,
         'min': [min(xs), min(ys), min(zs)],
         'max': [max(xs), max(ys), max(zs)],

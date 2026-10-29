@@ -299,6 +299,141 @@ local LIBRARIES = {
 	},
 }
 
+----------------------------------------------------------------------------------------------------
+-- Vehicles: the official cars become visual kits for VehicleModels — Body (every panel, door,
+-- light and the interior) plus four tires (Wheel1 front-left, Wheel2 front-right, Wheel3
+-- rear-left, Wheel4 rear-right) whose rims are marked RimOf. Origin on the ground between the
+-- axles, forward -Z; attributes give the wheelbase, track, wheel radius and the driver's seat.
+-- Parts painted in the variant's colour carry Paint=true so any colour can be applied.
+----------------------------------------------------------------------------------------------------
+local VEHICLES = {
+	{ 6418239833, "Sedan", { "roof_hood" } },
+	{ 6418234850, "SUV", { "roof", "hood" } },
+	{ 6418225759, "Pickup", { "body", "roof" } },
+	{ 6433316269, "Van", { "roof_hood", "sides" } },
+	{ 6433323089, "Sports", { "hood", "roof" } },
+	{ 6418230807, "Police", { "hood", "roof" } },
+	{ 6418221666, "Offroad", { "hood" } },
+}
+local WHEELS = { { "FL", 1 }, { "FR", 2 }, { "RL", 3 }, { "RR", 4 } }
+
+local function vehicle(car: Instance, kind: string, paintNames: { string }): Model
+	local body = car:FindFirstChild("Body")
+	if not body then
+		error(car.Name .. ": no Body")
+	end
+	body = body:Clone()
+	strip(body)
+	local m = Instance.new("Model")
+	local variant = string.match(car.Name, "%((.-)%)") or "std"
+	m.Name = kind .. "_" .. string.gsub(variant, "%s+", "")
+	-- wheel centres and radius from the tires
+	local centers, radius = {}, 0
+	for _, w in WHEELS do
+		local wm = body:FindFirstChild(w[1])
+		local tire = wm and wm:FindFirstChild("tire")
+		if not tire then
+			error(car.Name .. ": no tire in " .. w[1])
+		end
+		centers[w[2]] = tire.CFrame.Position
+		radius = math.max(radius, math.max(tire.Size.Y, tire.Size.Z) / 2)
+	end
+	local mid = (centers[1] + centers[2] + centers[3] + centers[4]) / 4
+	local origin = Vector3.new(mid.X, mid.Y - radius, mid.Z)
+	-- the paint colour of this variant
+	local paint = nil
+	for _, n in paintNames do
+		local p = body:FindFirstChild(n, true)
+		if p and p:IsA("BasePart") then
+			paint = p.Color
+			break
+		end
+	end
+	local function move(part: BasePart, parent: Instance)
+		part.CFrame = part.CFrame - origin
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.Parent = parent
+	end
+	local bodyModel = Instance.new("Model")
+	bodyModel.Name = "Body"
+	bodyModel.Parent = m
+	for _, w in WHEELS do
+		local wm = body:FindFirstChild(w[1])
+		local name = "Wheel" .. w[2]
+		local tire = wm:FindFirstChild("tire")
+		for _, d in wm:GetDescendants() do
+			if d:IsA("BasePart") and d ~= tire then
+				d:SetAttribute("RimOf", name)
+				d.Name = name .. "Rim"
+				move(d, m)
+			end
+		end
+		tire.Name = name
+		tire:SetAttribute("Wheel", true)
+		tire:SetAttribute("Front", w[2] <= 2)
+		tire:SetAttribute("Radius", radius)
+		move(tire, m)
+		wm:Destroy()
+	end
+	for _, d in body:GetDescendants() do
+		if d:IsA("BasePart") then
+			if paint and d.Color == paint and not d.Name:match("light") and not d.Name:match("glass") then
+				d:SetAttribute("Paint", true)
+			end
+			move(d, bodyModel)
+		end
+	end
+	local lo, hi = bounds(m)
+	local root = Instance.new("Part")
+	root.Name = "Root"
+	root.Size = Vector3.new(0.2, 0.2, 0.2)
+	root.CFrame = CFrame.new()
+	root.Anchored = true
+	root.CanCollide = false
+	root.CanQuery = false
+	root.CanTouch = false
+	root.Transparency = 1
+	root.Parent = m
+	m.PrimaryPart = root
+	m.WorldPivot = CFrame.new()
+	local seat = car:FindFirstChild("VehicleSeat", true)
+	local seatPos = if seat then seat.CFrame.Position - origin else Vector3.new(-1, radius * 1.4, -2)
+	m:SetAttribute("Size", hi - lo)
+	m:SetAttribute("Front", lo.Z)
+	m:SetAttribute("Back", hi.Z)
+	m:SetAttribute("WheelBase", math.abs(centers[3].Z - centers[1].Z))
+	m:SetAttribute("Track", math.abs(centers[2].X - centers[1].X))
+	m:SetAttribute("Radius", radius)
+	m:SetAttribute("Seat", seatPos)
+	m:SetAttribute("Kind", kind)
+	m:SetAttribute("Source", "vehicle:" .. car.Name)
+	return m
+end
+
+local function buildVehicles()
+	local folder = Instance.new("Folder")
+	folder.Name = "Vehicles"
+	local count, parts = 0, 0
+	for _, v in VEHICLES do
+		for _, car in pack(v[1]) do
+			local m = vehicle(car, v[2], v[3])
+			m.Parent = folder
+			count += 1
+			for _, d in m:GetDescendants() do
+				if d:IsA("BasePart") then
+					parts += 1
+				end
+			end
+		end
+	end
+	fs.writeDir("assets/shared")
+	fs.writeFile("assets/shared/Vehicles.rbxm", roblox.serializeModel({ folder }))
+	print(string.format("%-12s %3d items, %5d parts -> assets/shared/Vehicles.rbxm", "Vehicles", count, parts))
+end
+
 -- Lists every item of a pack (to pick names from): lune run tools/assets/curate.luau list <packId>
 if process.args[1] == "list" then
 	local id = tonumber(process.args[2])
@@ -317,6 +452,9 @@ if process.args[1] == "list" then
 end
 
 local only = process.args[1]
+if not only or only == "Vehicles" then
+	buildVehicles()
+end
 for _, lib in LIBRARIES do
 	if not only or only == lib.name then
 		local folder = Instance.new("Folder")

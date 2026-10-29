@@ -74,14 +74,21 @@ local function dumpParts(root, center: any?, radius: number?)
 				-- MeshParts: the mesh and its texture (ids), drawn by the previewer
 				local meshId, texId = nil, nil
 				if d:IsA("MeshPart") then
-					local okM, mc = pcall(function()
-						return tostring(d.MeshContent)
-					end)
-					meshId = okM and string.match(mc, "(%d+)") or nil
-					local okX, tc = pcall(function()
-						return tostring(d.TextureContent)
-					end)
-					texId = okX and string.match(tc, "(%d+)") or nil
+					-- newer files keep MeshContent/TextureContent, older ones MeshId/TextureID
+					local function idOf(props)
+						for _, prop in props do
+							local ok, v = pcall(function()
+								return tostring(d[prop])
+							end)
+							local id = ok and string.match(v, "(%d+)")
+							if id then
+								return id
+							end
+						end
+						return nil
+					end
+					meshId = idOf({ "MeshContent", "MeshId" })
+					texId = idOf({ "TextureContent", "TextureID" })
 					local sa = d:FindFirstChildOfClass("SurfaceAppearance")
 					if sa then
 						local okS, cm = pcall(function()
