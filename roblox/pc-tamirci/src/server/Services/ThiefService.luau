@@ -175,8 +175,9 @@ local function visit(player: Player)
 	end
 	local _, protect = security(player)
 	local lang = DataService.lang(player)
-	local name = Customers.randomName(rng, false)
-	local model = NpcService.spawn({ look = if rng:NextNumber() < 0.5 then "thief" else "shady", name = name, cf = street.CFrame * CFrame.new(Rand.range(rng, -40, 40), 3, 0), speed = 9 })
+	local look = if rng:NextNumber() < 0.5 then "thief" else "shady"
+	local name, gender = Customers.randomName(rng, false, NpcService.pickGender(look, rng))
+	local model = NpcService.spawn({ look = look, gender = gender, name = name, cf = street.CFrame * CFrame.new(Rand.range(rng, -40, 40), 3, 0), speed = 9 })
 	model:SetAttribute("Thief", true)
 	model:AddTag("Runner")
 	local t = { model = model, owner = player, phase = "sneak" }

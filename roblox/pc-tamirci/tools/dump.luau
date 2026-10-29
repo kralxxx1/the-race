@@ -267,6 +267,16 @@ elseif what == "street" then
 	local cars, peds = Traffic.counts()
 	print(string.format("traffic: %d cars, %d pedestrians", cars, peds))
 	outName = "street"
+elseif what == "poi" then
+	-- the city around one landmark (no traffic): lune run tools/dump.luau poi <id> [radius]
+	local WorldBuilder = Engine.mod("ServerScriptService.Server.World.WorldBuilder")
+	local L = Engine.mod("ReplicatedStorage.Shared.World.CityLayout").get()
+	local poi = L.poiById[process.args[2] or "plaza"]
+	assert(poi, "unknown poi " .. tostring(process.args[2]))
+	local world = WorldBuilder.build({ bake = true })
+	result.parts = dumpParts(world, poi.pos, tonumber(process.args[3]) or 120)
+	print(string.format("poi %s at (%.0f, %.0f, %.0f), door (%.0f, %.0f, %.0f)", poi.id, poi.pos.X, poi.pos.Y, poi.pos.Z, poi.door.X, poi.door.Y, poi.door.Z))
+	outName = "poi_" .. poi.id
 elseif what == "sky" then
 	Engine.localPlayer = Engine.addPlayer("Viewer")
 	Engine.context = "client"

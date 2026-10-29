@@ -1,6 +1,9 @@
--- NpcService: people in the city — customers, staff, thieves. Builds an R15 body from a base rig,
--- dresses it from a "look" (clothes colours plus hair, hats, glasses, bags made of parts), plays
--- the default R15 animations and shows speech bubbles.
+-- NpcService: people in the city — customers, staff, thieves.
+-- Each look is dressed by Avatars (Roblox's realistic Base Body bodies and heads, the modern hair
+-- series, layered 3D clothing and shoes). The avatars are built once in the background as
+-- templates and cloned per NPC; until a look's template is ready (or if the catalog can't be
+-- reached) a plain R15 rig dressed with part-made hair and accessories stands in.
+-- A pool of street avatars goes to ReplicatedStorage.Avatars for the clients' pedestrians.
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -10,13 +13,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local B = require(Shared.Util.Builder)
 local Rand = require(Shared.Util.Rand)
+local Avatars = require(Shared.Data.Avatars)
 
 local NpcService = {}
 
 local ANIMS = {
-	idle = "rbxassetid://507766666",
-	walk = "rbxassetid://507777826",
-	run = "rbxassetid://507767714",
+	idle = Avatars.ANIMS.idle,
+	walk = Avatars.ANIMS.walk,
+	run = Avatars.ANIMS.run,
 	sit = "rbxassetid://2506281703",
 	wave = "rbxassetid://507770239",
 	point = "rbxassetid://507770453",
@@ -92,6 +96,182 @@ local function makeBase(kind: string): Model
 	end
 	rig.Parent = ServerStorage
 	return rig
+end
+
+----------------------------------------------------------------------------------------------------
+-- Realistic avatars: templates built from Avatars outfits
+----------------------------------------------------------------------------------------------------
+local templateFolder: Folder
+local streetFolder: Folder
+local templates: { [string]: { Model } } = {} -- "look:gender" -> avatars
+local STREET_COUNT = 24
+
+local function describe(o: Avatars.Outfit): HumanoidDescription
+	local d = Instance.new("HumanoidDescription")
+	d.Torso = o.body.torso
+	d.LeftArm = o.body.la
+	d.RightArm = o.body.ra
+	d.LeftLeg = o.body.ll
+	d.RightLeg = o.body.rl
+	d.Head = o.head
+	d.MoodAnimation = Avatars.MOOD
+	d.Pants = o.pants or 0
+	local skin = c3(o.skin)
+	d.HeadColor = skin
+	d.TorsoColor = skin
+	d.LeftArmColor = skin
+	d.RightArmColor = skin
+	d.LeftLegColor = skin
+	d.RightLegColor = skin
+	d.HeightScale = o.scale.height
+	d.WidthScale = o.scale.width
+	d.DepthScale = o.scale.depth
+	d.HeadScale = o.scale.head
+	d.BodyTypeScale = 0
+	d.ProportionScale = 0
+	local list = {}
+	if o.hair then
+		table.insert(list, { AssetId = o.hair, AccessoryType = Enum.AccessoryType.Hair })
+	end
+	for _, it in o.items do
+		local entry: { [string]: any } = { AssetId = it.id, AccessoryType = (Enum.AccessoryType :: any)[it.type] }
+		if it.order then
+			entry.IsLayered = true
+			entry.Order = it.order
+		end
+		table.insert(list, entry)
+	end
+	d:SetAccessories(list, true)
+	return d
+end
+NpcService.describe = describe
+
+-- Turns a freshly built avatar into a template: no Animate script, nothing collides but the root,
+-- only the root answers raycasts.
+local function prepareTemplate(model: Model, o: Avatars.Outfit)
+	local animate = model:FindFirstChild("Animate")
+	if animate then
+		animate:Destroy()
+	end
+	local hum = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
+	model.PrimaryPart = root
+	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	hum.BreakJointsOnDeath = false
+	if not hum:FindFirstChildOfClass("Animator") then
+		Instance.new("Animator").Parent = hum
+	end
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CanQuery = d == root
+			d.CanTouch = false
+			if d ~= root then
+				d.CanCollide = false
+				d.Massless = true
+			end
+		end
+	end
+	model:SetAttribute("Look", o.look)
+	model:SetAttribute("Gender", o.gender)
+	model:SetAttribute("Avatar", true)
+	-- how high the root sits above the feet, for clients posing copies without physics
+	model:SetAttribute("Hip", hum.HipHeight + root.Size.Y / 2)
+end
+
+local function createAvatar(o: Avatars.Outfit): Model?
+	local ok, model = pcall(function()
+		return Players:CreateHumanoidModelFromDescription(describe(o), Enum.HumanoidRigType.R15)
+	end)
+	if not ok or not model then
+		warn("[NpcService] avatar for " .. o.look .. " failed: " .. tostring(model))
+		return nil
+	end
+	if not model:FindFirstChildOfClass("Humanoid") or not model:FindFirstChild("HumanoidRootPart") then
+		model:Destroy()
+		return nil
+	end
+	prepareTemplate(model, o)
+	return model
+end
+
+local function addTemplate(look: string, gender: string, rng: Random): Model?
+	local o = Avatars.outfit(look, rng, gender)
+	local model = createAvatar(o)
+	if model then
+		model.Name = look .. "_" .. gender
+		model.Parent = templateFolder
+		local key = look .. ":" .. gender
+		templates[key] = templates[key] or {}
+		table.insert(templates[key], model)
+	end
+	return model
+end
+
+-- Builds the avatars one after another so the server never stalls: one of every look first
+-- (customers soon look real), then the street crowd for the clients, then more variety.
+local function buildTemplates()
+	local rng = Random.new(20261029)
+	local jobs = {}
+	for look, def in Avatars.OUTFITS do
+		if def.female < 1 then
+			table.insert(jobs, { look, "m", 1 - def.female })
+		end
+		if def.female > 0 then
+			table.insert(jobs, { look, "f", def.female })
+		end
+	end
+	table.sort(jobs, function(a, b)
+		return a[1] .. a[2] < b[1] .. b[2]
+	end)
+	for _, j in jobs do
+		addTemplate(j[1], j[2], rng)
+		task.wait()
+	end
+	for i = 1, STREET_COUNT do
+		local look = Avatars.STREET[(i - 1) % #Avatars.STREET + 1]
+		local o = Avatars.outfit(look, rng)
+		local model = createAvatar(o)
+		if model then
+			model.Name = "Street" .. i
+			model.Parent = streetFolder
+		end
+		task.wait()
+	end
+	for _, j in jobs do
+		if j[3] >= 0.3 then
+			addTemplate(j[1], j[2], rng)
+			task.wait()
+		end
+	end
+	templateFolder:SetAttribute("Ready", true)
+end
+
+function NpcService.templateCount(): number
+	local n = 0
+	for _, list in templates do
+		n += #list
+	end
+	return n
+end
+
+local function pickGender(lookName: string, rng: Random): string
+	local def = Avatars.OUTFITS[lookName] or Avatars.OUTFITS.casual
+	return if rng:NextNumber() < def.female then "f" else "m"
+end
+NpcService.pickGender = pickGender
+
+-- Gives a copy of a template its own skin tone (the clothes stay the template's).
+local function reskin(model: Model, rng: Random)
+	local bc = model:FindFirstChildOfClass("BodyColors")
+	if bc then
+		local skin = c3(Rand.pick(rng, Avatars.SKIN))
+		bc.HeadColor3 = skin
+		bc.TorsoColor3 = skin
+		bc.LeftArmColor3 = skin
+		bc.RightArmColor3 = skin
+		bc.LeftLegColor3 = skin
+		bc.RightLegColor3 = skin
+	end
 end
 
 local function part(body: BasePart, offset: CFrame, size: Vector3, color: Color3, mat: Enum.Material?, shape: string?): BasePart
@@ -261,10 +441,52 @@ NpcService.setAnchored = setAnchored
 
 function NpcService.spawn(opts: { [string]: any }): Model
 	local rng = Random.new(opts.seed or math.random(1, 1e9))
-	local look = LOOKS[opts.look or "casual"] or LOOKS.casual
+	local lookName = if opts.look and LOOKS[opts.look] then opts.look else "casual"
+	local gender = if opts.gender == "m" or opts.gender == "f" then opts.gender else pickGender(lookName, rng)
+	local list = templates[lookName .. ":" .. gender]
+	local model: Model
+	local real = list ~= nil and #list > 0
+	if real then
+		model = (list :: { Model })[rng:NextInteger(1, #(list :: { Model }))]:Clone()
+		reskin(model, rng)
+	else
+		model = NpcService.plain(lookName, gender, rng)
+	end
+	model.Name = opts.name or "NPC"
+	local hum = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	hum.WalkSpeed = opts.speed or 10
+	hum.BreakJointsOnDeath = false
+	for _, s in { Enum.HumanoidStateType.Climbing, Enum.HumanoidStateType.Swimming, Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Ragdoll, Enum.HumanoidStateType.Dead, Enum.HumanoidStateType.Flying } do
+		hum:SetStateEnabled(s, false)
+	end
+	if not hum:FindFirstChildOfClass("Animator") then
+		Instance.new("Animator").Parent = hum
+	end
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
+	model.PrimaryPart = root
+	if opts.cf then
+		model:PivotTo(opts.cf)
+	end
+	if opts.tag then
+		model:AddTag(opts.tag)
+	end
+	model:SetAttribute("Npc", true)
+	model:SetAttribute("Gender", gender)
+	model.Parent = opts.parent or folder
+	pcall(function()
+		root:SetNetworkOwner(nil)
+	end)
+	setAnchored(model, true)
+	NpcService.play(model, "idle")
+	return model
+end
+
+-- The stand-in: a plain R15 rig in the look's colours with part-made hair and accessories.
+function NpcService.plain(lookName: string, gender: string, rng: Random): Model
+	local look = LOOKS[lookName] or LOOKS.casual
 	local base = baseRigs[if look.kid then "kid" else "adult"]
 	local model = base:Clone()
-	model.Name = opts.name or "NPC"
 	local skin = c3(Rand.pick(rng, SKIN))
 	local shirt = c3(Rand.pick(rng, look.shirt))
 	local pants = c3(Rand.pick(rng, look.pants))
@@ -292,22 +514,9 @@ function NpcService.spawn(opts: { [string]: any }): Model
 			f.Color = Color3.fromRGB(30, 30, 32)
 		end
 	end
-	local hum = model:FindFirstChildOfClass("Humanoid") :: Humanoid
-	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-	hum.WalkSpeed = opts.speed or 10
-	hum.BreakJointsOnDeath = false
-	for _, s in { Enum.HumanoidStateType.Climbing, Enum.HumanoidStateType.Swimming, Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Ragdoll, Enum.HumanoidStateType.Dead, Enum.HumanoidStateType.Flying } do
-		hum:SetStateEnabled(s, false)
-	end
-	if not hum:FindFirstChildOfClass("Animator") then
-		Instance.new("Animator").Parent = hum
-	end
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
 	model.PrimaryPart = root
-	if opts.cf then
-		model:PivotTo(opts.cf)
-	end
-	dress(model, look.extras or {}, c3(Rand.pick(rng, HAIR)), opts.gender or "m", rng)
+	dress(model, look.extras or {}, c3(Rand.pick(rng, HAIR)), gender, rng)
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
 			d.CanQuery = d == root
@@ -316,16 +525,6 @@ function NpcService.spawn(opts: { [string]: any }): Model
 			end
 		end
 	end
-	if opts.tag then
-		model:AddTag(opts.tag)
-	end
-	model:SetAttribute("Npc", true)
-	model.Parent = opts.parent or folder
-	pcall(function()
-		root:SetNetworkOwner(nil)
-	end)
-	setAnchored(model, true)
-	NpcService.play(model, "idle")
 	return model
 end
 
@@ -525,6 +724,13 @@ function NpcService.init()
 	folder.Parent = Workspace
 	baseRigs.adult = makeBase("adult")
 	baseRigs.kid = makeBase("kid")
+	templateFolder = Instance.new("Folder")
+	templateFolder.Name = "NpcTemplates"
+	templateFolder.Parent = ServerStorage
+	streetFolder = Instance.new("Folder")
+	streetFolder.Name = "Avatars"
+	streetFolder.Parent = ReplicatedStorage
+	task.spawn(buildTemplates)
 end
 
 function NpcService.start() end

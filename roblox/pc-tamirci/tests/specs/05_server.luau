@@ -280,6 +280,82 @@ return function(T)
 		T.ok(p.money >= 3000, "nothing lost")
 	end)
 
+	T.test("server: people wear real catalog avatars that match their names", function()
+		local Avatars = Engine.mod("ReplicatedStorage.Shared.Data.Avatars")
+		local Customers = Engine.mod("ReplicatedStorage.Shared.Data.Customers")
+		local NpcService = Engine.require(Services.NpcService)
+		local templates = game:GetService("ServerStorage"):FindFirstChild("NpcTemplates")
+		waitFor(function()
+			return templates and templates:GetAttribute("Ready")
+		end, 30, "avatar templates")
+		-- every look has an avatar for each gender it can have
+		for look, def in Avatars.OUTFITS do
+			for _, g in { "m", "f" } do
+				local share = if g == "f" then def.female else 1 - def.female
+				if share > 0 then
+					T.ok(templates:FindFirstChild(look .. "_" .. g) ~= nil, "template " .. look .. "_" .. g)
+				end
+			end
+		end
+		local street = game:GetService("ReplicatedStorage"):FindFirstChild("Avatars")
+		T.ok(street and #street:GetChildren() == 24, "street avatars for the clients")
+		for _, m in street:GetChildren() do
+			T.ok(m:FindFirstChildOfClass("Humanoid") and m:FindFirstChild("HumanoidRootPart"), "street avatar rig " .. m.Name)
+			T.ok(type(m:GetAttribute("Hip")) == "number", "hip height for posing " .. m.Name)
+		end
+		-- every description only uses the curated catalog items, with a sensible layer order
+		local known = {}
+		for _, id in Avatars.allIds() do
+			known[id] = true
+		end
+		known[Avatars.MOOD] = true
+		local dressed = {}
+		for _, d in Engine.descriptions do
+			if #d:GetAccessories(true) > 0 then -- (the plain stand-in rigs have none)
+				table.insert(dressed, d)
+			end
+		end
+		T.ok(#dressed >= 80, "avatars built: " .. #dressed)
+		for _, d in dressed do
+			for _, prop in { "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg", "Head" } do
+				T.ok(known[d[prop]], prop .. " " .. tostring(d[prop]))
+			end
+			local shoes, top = 0, 0
+			for _, a in d:GetAccessories(true) do
+				T.ok(known[a.AssetId], "item " .. a.AssetId)
+				local t = a.AccessoryType.Name
+				if t == "LeftShoe" or t == "RightShoe" then
+					shoes += 1
+				elseif t == "TShirt" or t == "Shirt" or t == "Sweater" or t == "Jacket" then
+					top += 1
+				end
+			end
+			T.ok(shoes == 2 and top >= 1, "dressed: shoes " .. shoes .. ", tops " .. top)
+		end
+		-- a spawned customer is a copy of a real avatar of the right gender
+		local npc = NpcService.spawn({ look = "aunt", gender = "f", name = "Ayşe Teyze", cf = roblox.CFrame.new(0, 10, 0) })
+		T.ok(npc:GetAttribute("Look") == "aunt" and npc:GetAttribute("Gender") == "f", "aunt avatar")
+		T.ok(npc:FindFirstChildWhichIsA("Accessory") ~= nil, "wears catalog items")
+		NpcService.despawn(npc)
+		-- names follow the archetype's gender (an auntie is a woman, an uncle a man)
+		local rng = Mock.Random.new(5)
+		local women = {}
+		for _, n in Customers.firstNames.f do
+			women[n] = true
+		end
+		for _ = 1, 40 do
+			local name, g = Customers.randomName(rng, false, Customers.byId.aunt.gender)
+			T.ok(g == "f" and women[string.match(name, "^(%S+)")], "aunt name " .. name)
+			local fname, fg = Customers.randomName(rng, true, "m")
+			T.ok(fg == "m" and table.find(Customers.foreignNames.first.m, string.match(fname, "^(%S+)")) ~= nil, "foreign man " .. fname)
+		end
+		T.ok(Customers.byId.uncle.gender == "m" and Customers.byId.grandpa.gender == "m", "uncle and grandpa are men")
+		-- outfits are reproducible from a seed
+		local a1 = Avatars.outfit("business", Mock.Random.new(9))
+		local a2 = Avatars.outfit("business", Mock.Random.new(9))
+		T.ok(a1.head == a2.head and a1.hair == a2.hair and #a1.items == #a2.items, "seeded outfit")
+	end)
+
 	T.test("server: leaving frees the plot", function()
 		local id = PlotService.shopOf(player).plotId
 		player.Parent = nil

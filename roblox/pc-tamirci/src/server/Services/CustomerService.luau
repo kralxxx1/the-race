@@ -270,7 +270,7 @@ local function spawnCustomer(player: Player)
 	local s = shopState(player)
 	local arch = pickArchetype(p.level)
 	nextId += 1
-	local name, gender = Customers.randomName(rng, arch.id == "tourist")
+	local name, gender = Customers.randomName(rng, arch.id == "tourist", arch.gender)
 	local cust = {
 		id = "C" .. nextId,
 		owner = player,

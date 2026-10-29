@@ -345,6 +345,19 @@ roblox.implementMethod("Humanoid", "GetState", function(hum)
 	return bag(hum).state or roblox.Enum.HumanoidStateType.Running
 end)
 roblox.implementMethod("Humanoid", "ApplyDescription", function() end)
+roblox.implementMethod("HumanoidDescription", "SetAccessories", function(desc, list, includeRigid)
+	assert(type(list) == "table", "SetAccessories expects a table")
+	for _, a in list do
+		assert(type(a.AssetId) == "number" and a.AssetId > 0, "accessory AssetId")
+		assert(typeof(a.AccessoryType) == "EnumItem", "accessory AccessoryType")
+		assert(not a.IsLayered or type(a.Order) == "number", "layered accessories need an Order")
+	end
+	bag(desc).accessories = list
+	bag(desc).includeRigid = includeRigid
+end)
+roblox.implementMethod("HumanoidDescription", "GetAccessories", function(desc)
+	return bag(desc).accessories or {}
+end)
 roblox.implementMethod("Humanoid", "GetAppliedDescription", function()
 	return Instance.new("HumanoidDescription")
 end)
@@ -1175,8 +1188,27 @@ function Engine.makeRig(name: string?)
 	bc.Parent = model
 	return model
 end
+-- Records every description it is given (Engine.descriptions) and hangs one Accessory per
+-- catalog item on the rig, like the real avatar would have.
+Engine.descriptions = {}
 roblox.implementMethod("Players", "CreateHumanoidModelFromDescription", function(_, desc, rigType)
-	return Engine.makeRig("NPC")
+	table.insert(Engine.descriptions, desc)
+	local rig = Engine.makeRig("NPC")
+	local head = rig:FindFirstChild("Head")
+	for _, a in bag(desc).accessories or {} do
+		local acc = Instance.new("Accessory")
+		acc.Name = "Item" .. a.AssetId
+		local handle = Instance.new("MeshPart")
+		handle.Name = "Handle"
+		handle.Size = roblox.Vector3.new(0.6, 0.6, 0.6)
+		handle.CFrame = head.CFrame
+		handle.Parent = acc
+		acc.Parent = rig
+	end
+	local hum = rig:FindFirstChildOfClass("Humanoid")
+	desc:Clone().Parent = hum
+	hum.HipHeight = 2
+	return rig
 end)
 roblox.implementMethod("Players", "CreateHumanoidModelFromUserId", function()
 	return Engine.makeRig("NPC")

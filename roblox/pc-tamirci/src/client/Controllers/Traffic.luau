@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CityLayout = require(Shared.World.CityLayout)
 local Vehicles = require(Shared.Data.Vehicles)
+local Avatars = require(Shared.Data.Avatars)
 local VehicleModels = require(Shared.Models.VehicleModels)
 
 local Ambience = require(script.Parent.Ambience)
@@ -102,37 +103,68 @@ local function roadsNear(p: Vector3, lo: number, hi: number)
 end
 
 ----------------------------------------------------------------------------------------------------
--- People (pedestrians and drivers): blocky figures made of a few parts
+-- People (pedestrians and drivers): local copies of the server's street avatars
+-- (ReplicatedStorage.Avatars), posed by their own Animator; the root is anchored and moved by code
 ----------------------------------------------------------------------------------------------------
-local SKIN = { { 255, 220, 190 }, { 234, 190, 150 }, { 200, 150, 110 }, { 150, 105, 75 }, { 110, 75, 50 } }
-local SHIRT = { { 220, 60, 60 }, { 40, 110, 200 }, { 240, 240, 236 }, { 30, 30, 34 }, { 250, 200, 60 }, { 60, 160, 90 }, { 150, 90, 200 }, { 240, 140, 60 }, { 110, 120, 140 } }
-local PANTS = { { 40, 50, 80 }, { 30, 30, 34 }, { 120, 100, 80 }, { 70, 80, 90 }, { 180, 170, 150 } }
-local HAIR = { { 30, 24, 20 }, { 80, 50, 30 }, { 200, 160, 90 }, { 140, 140, 140 }, { 160, 60, 30 } }
-
 local function c3(t): Color3
 	return Color3.fromRGB(t[1], t[2], t[3])
 end
 
-local function part(size: Vector3, color: Color3, shape: Enum.PartType?): Part
-	local p = Instance.new("Part")
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.Size = size
-	p.Color = color
-	p.Material = Enum.Material.SmoothPlastic
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	if shape then
-		p.Shape = shape
-	end
-	p.Parent = folder
-	return p
+local function animation(id: string): Animation
+	local a = Instance.new("Animation")
+	a.AnimationId = id
+	return a
 end
+local WALK = animation(Avatars.ANIMS.walk)
+local IDLE = animation(Avatars.ANIMS.idle)
+local SIT = animation("rbxassetid://2506281703")
 
 local function pick(list)
 	return list[rng:NextInteger(1, #list)]
+end
+
+-- A copy of a random street avatar with its own skin tone: anchored root, no physics, no
+-- collisions. Returns nil until the server has published the avatars.
+local function person(): (Model?, BasePart?, Animator?, number)
+	local avatars = ReplicatedStorage:FindFirstChild("Avatars")
+	local list = if avatars then avatars:GetChildren() else {}
+	if #list == 0 then
+		return nil, nil, nil, 0
+	end
+	local m = pick(list):Clone() :: Model
+	local hum = m:FindFirstChildOfClass("Humanoid")
+	local root = m:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not hum or not root then
+		m:Destroy()
+		return nil, nil, nil, 0
+	end
+	hum.EvaluateStateMachine = false
+	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	root.Anchored = true
+	local bc = m:FindFirstChildOfClass("BodyColors")
+	if bc then
+		local skin = c3(pick(Avatars.SKIN))
+		bc.HeadColor3 = skin
+		bc.TorsoColor3 = skin
+		bc.LeftArmColor3 = skin
+		bc.RightArmColor3 = skin
+		bc.LeftLegColor3 = skin
+		bc.RightLegColor3 = skin
+	end
+	for _, d in m:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CanCollide = false
+			d.CanQuery = false
+			d.CanTouch = false
+		end
+	end
+	local animator = hum:FindFirstChildOfClass("Animator")
+	if not animator then
+		animator = Instance.new("Animator")
+		animator.Parent = hum
+	end
+	local hip = m:GetAttribute("Hip")
+	return m, root, animator, if type(hip) == "number" then hip else 3
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -229,13 +261,16 @@ local function spawnCar(): boolean
 	end
 	-- someone at the wheel
 	local seat = m:FindFirstChild("Driver") :: BasePart?
-	if seat then
-		local body = part(Vector3.new(1.4, 1.3, 0.8), c3(pick(SHIRT)))
-		body.CFrame = seat.CFrame * CFrame.new(0, 0.8, 0.15)
-		body.Parent = m
-		local head = part(Vector3.new(0.85, 0.85, 0.85), c3(pick(SKIN)))
-		head.CFrame = seat.CFrame * CFrame.new(0, 1.9, 0.15)
-		head.Parent = m
+	local driver, droot, danim = person()
+	if seat and driver and droot and danim then
+		droot.CFrame = seat.CFrame * CFrame.new(0, seat.Size.Y / 2 + droot.Size.Y / 2 + 0.2, 0)
+		driver.Name = "DriverAvatar"
+		driver.Parent = m
+		local sit = danim:LoadAnimation(SIT)
+		sit.Looped = true
+		sit:Play(0)
+	elseif driver then
+		driver:Destroy()
 	end
 	for _, d in m:GetDescendants() do
 		if d:IsA("BasePart") then
@@ -345,36 +380,58 @@ local function spawnPed(): boolean
 	if #near == 0 then
 		return false
 	end
+	local m, root, animator, hip = person()
+	if not m or not root or not animator then
+		return false
+	end
 	local road = near[rng:NextInteger(1, #near)]
 	local g = sidewalkLeg(road, if rng:NextNumber() < 0.5 then road.from else road.to, if rng:NextNumber() < 0.5 then 1 else -1)
-	local skin, shirt, pants = c3(pick(SKIN)), c3(pick(SHIRT)), c3(pick(PANTS))
-	local p = {
+	local speed = rng:NextNumber(4.5, 6.5)
+	m.Parent = folder
+	local walk = animator:LoadAnimation(WALK)
+	walk.Looped = true
+	local idle = animator:LoadAnimation(IDLE)
+	idle.Looped = true
+	walk:Play(0)
+	walk:AdjustSpeed(speed / Avatars.WALK_STRIDE)
+	table.insert(peds, {
 		leg = g,
 		t = rng:NextNumber() * g.len,
-		speed = rng:NextNumber(5.5, 8),
-		phase = rng:NextNumber() * 6,
+		speed = speed,
 		pause = 0,
-		parts = {
-			torso = part(Vector3.new(1.9, 2, 1), shirt),
-			head = part(Vector3.new(1.15, 1.15, 1.15), skin),
-			hair = part(Vector3.new(1.2, 0.35, 1.2), c3(pick(HAIR))),
-			armL = part(Vector3.new(0.9, 1.9, 0.9), if rng:NextNumber() < 0.5 then skin else shirt),
-			armR = part(Vector3.new(0.9, 1.9, 0.9), if rng:NextNumber() < 0.5 then skin else shirt),
-			legL = part(Vector3.new(0.95, 2, 0.95), pants),
-			legR = part(Vector3.new(0.95, 2, 0.95), pants),
-		},
-	}
-	table.insert(peds, p)
+		model = m,
+		root = root,
+		hip = hip,
+		walkTrack = walk,
+		idleTrack = idle,
+		walking = true,
+	})
 	return true
+end
+
+-- walk or stand still (a look at the phone, a shop window...)
+local function setWalking(p, on: boolean)
+	if p.walking == on then
+		return
+	end
+	p.walking = on
+	if on then
+		p.idleTrack:Stop(0.3)
+		p.walkTrack:Play(0.3)
+		p.walkTrack:AdjustSpeed(p.speed / Avatars.WALK_STRIDE)
+	else
+		p.walkTrack:Stop(0.3)
+		p.idleTrack:Play(0.3)
+	end
 end
 
 local function stepPed(p, dt: number)
 	if p.pause > 0 then
 		p.pause -= dt
+		setWalking(p, p.pause <= 0)
 		return
 	end
 	p.t += p.speed * dt
-	p.phase += dt * p.speed * 1.25
 	if p.t >= p.leg.len then
 		-- carry on across the junction if the street continues, otherwise turn back
 		local g = p.leg
@@ -397,37 +454,20 @@ local function stepPed(p, dt: number)
 			p.t = 0
 		end
 	elseif rng:NextNumber() < dt * 0.04 then
-		p.pause = rng:NextNumber(2, 6) -- a look at the phone, a shop window...
+		p.pause = rng:NextNumber(2, 6)
+		setWalking(p, false)
 	end
 end
 
-local function pedCFrames(p, out: { BasePart }, cfs: { CFrame })
+local function pedCFrame(p): CFrame
 	local g = p.leg
 	local pos = g.start + g.dir * p.t + g.right * g.lateral
-	pos = Vector3.new(pos.X, CityLayout.WALK_Y, pos.Z)
-	local base = CFrame.lookAt(pos, pos + g.dir)
-	local walking = p.pause <= 0
-	local swing = if walking then math.sin(p.phase) * 0.6 else 0
-	local bob = if walking then math.abs(math.sin(p.phase)) * 0.12 else 0
-	local hip = base * CFrame.new(0, 2 + bob, 0)
-	local parts = p.parts
-	local function put(bp: BasePart, cf: CFrame)
-		table.insert(out, bp)
-		table.insert(cfs, cf)
-	end
-	put(parts.torso, hip * CFrame.new(0, 1, 0))
-	put(parts.head, hip * CFrame.new(0, 2.6, 0))
-	put(parts.hair, hip * CFrame.new(0, 3.25, 0.05))
-	put(parts.armL, hip * CFrame.new(-1.42, 1.95, 0) * CFrame.Angles(swing, 0, 0) * CFrame.new(0, -0.95, 0))
-	put(parts.armR, hip * CFrame.new(1.42, 1.95, 0) * CFrame.Angles(-swing, 0, 0) * CFrame.new(0, -0.95, 0))
-	put(parts.legL, hip * CFrame.new(-0.48, 0, 0) * CFrame.Angles(-swing, 0, 0) * CFrame.new(0, -1, 0))
-	put(parts.legR, hip * CFrame.new(0.48, 0, 0) * CFrame.Angles(swing, 0, 0) * CFrame.new(0, -1, 0))
+	pos = Vector3.new(pos.X, CityLayout.WALK_Y + p.hip, pos.Z)
+	return CFrame.lookAt(pos, pos + g.dir)
 end
 
 local function removePed(i: number)
-	for _, bp in peds[i].parts do
-		bp:Destroy()
-	end
+	peds[i].model:Destroy()
 	table.remove(peds, i)
 end
 
@@ -482,7 +522,8 @@ function Traffic.init()
 			if d > DESPAWN * 0.75 then
 				removePed(i)
 			elseif d < 260 then
-				pedCFrames(p, moved, cfs)
+				table.insert(moved, p.root)
+				table.insert(cfs, pedCFrame(p))
 			end
 		end
 		if #moved > 0 then

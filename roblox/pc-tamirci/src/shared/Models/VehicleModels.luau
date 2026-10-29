@@ -345,9 +345,9 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 	local wr = S.wr
 	local wb = S.wb
 	local width = if isBike then 0.9 elseif real then real.track + 0.9 else (CARS[def.body] or CARS.sedan).W
-	-- wheels
+	-- wheels (a real car brings its own: Wheel1-4 with their rims)
 	if real then
-		-- the real car brings its own (Wheel1-4 with their rims)
+		wr = real.wr
 	elseif isBike then
 		wheel(m, cf * CFrame.new(0, wr, -wb / 2), wr, if def.body == "bicycle" then 0.18 else 0.5, true, "WheelF")
 		wheel(m, cf * CFrame.new(0, wr, wb / 2), wr, if def.body == "bicycle" then 0.18 else 0.55, false, "WheelR")

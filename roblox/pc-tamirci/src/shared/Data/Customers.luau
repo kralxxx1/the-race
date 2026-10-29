@@ -56,7 +56,7 @@ Customers.archetypes = {
 		},
 	},
 	{
-		id = "aunt", weight = 10, level = 1, name = { tr = "Teyze", en = "Auntie" },
+		id = "aunt", weight = 10, level = 1, name = { tr = "Teyze", en = "Auntie" }, gender = "f",
 		device = { laptopChance = 0.55, tiers = { "office", "retro" }, classes = { "budget15" } },
 		budget = 0.95, patience = 1.6, haggle = 0.3, tip = 0.4, harsh = 0.2, look = "aunt",
 		lines = {
@@ -69,7 +69,7 @@ Customers.archetypes = {
 		},
 	},
 	{
-		id = "uncle", weight = 10, level = 1, name = { tr = "Pazarlıkçı Amca", en = "Haggling Uncle" },
+		id = "uncle", weight = 10, level = 1, name = { tr = "Pazarlıkçı Amca", en = "Haggling Uncle" }, gender = "m",
 		device = { laptopChance = 0.25, tiers = { "retro", "office", "budget" }, classes = { "budget15", "business14" } },
 		budget = 0.8, patience = 1.1, haggle = 0.9, tip = 0.1, harsh = 0.45, look = "uncle",
 		lines = {
@@ -82,7 +82,7 @@ Customers.archetypes = {
 		},
 	},
 	{
-		id = "grandpa", weight = 7, level = 1, name = { tr = "Dede", en = "Grandpa" },
+		id = "grandpa", weight = 7, level = 1, name = { tr = "Dede", en = "Grandpa" }, gender = "m",
 		device = { laptopChance = 0.2, tiers = { "retro", "office" }, classes = { "budget15" } },
 		budget = 1.0, patience = 2.0, haggle = 0.15, tip = 0.5, harsh = 0.15, look = "grandpa",
 		lines = {
@@ -412,7 +412,10 @@ Customers.lastNames = {
 }
 
 Customers.foreignNames = {
-	first = { "John", "Emma", "Liam", "Olivia", "Noah", "Ava", "Lucas", "Mia", "Hans", "Greta", "Pierre", "Chloé", "Marco", "Giulia", "Yuki", "Kenji", "Ivan", "Olga", "Carlos", "Sofia", "Ahmed", "Layla", "Raj", "Priya", "Chen", "Mei", "Kwame", "Amara", "Sven", "Ingrid", "Mateo", "Lena" },
+	first = {
+		m = { "John", "Liam", "Noah", "Lucas", "Hans", "Pierre", "Marco", "Kenji", "Ivan", "Carlos", "Ahmed", "Raj", "Chen", "Kwame", "Sven", "Mateo" },
+		f = { "Emma", "Olivia", "Ava", "Mia", "Greta", "Chloé", "Giulia", "Yuki", "Olga", "Sofia", "Layla", "Priya", "Mei", "Amara", "Ingrid", "Lena" },
+	},
 	last = { "Smith", "Johnson", "Müller", "Schmidt", "Dubois", "Rossi", "Tanaka", "Ivanov", "García", "Silva", "Khan", "Patel", "Wang", "Kim", "Andersson", "Novak", "O'Brien", "Kowalski", "Jensen", "Moreau", "Becker", "Costa" },
 }
 
@@ -448,15 +451,17 @@ function Customers.line(arch, kind: string, lang: string, rng: Random?, vars: { 
 	return s
 end
 
--- "Ayşe Yılmaz" / "Hans Müller"
-function Customers.randomName(rng: Random, foreign: boolean?): (string, string)
+-- "Ayşe Yılmaz" / "Hans Müller", and the gender that goes with the first name.
+-- gender ("m"/"f") is kept when given (an auntie is always a woman).
+function Customers.randomName(rng: Random, foreign: boolean?, gender: string?): (string, string)
+	local g = if gender == "m" or gender == "f" then gender else (if rng:NextNumber() < 0.5 then "m" else "f")
 	if foreign then
 		local f = Customers.foreignNames
-		return f.first[rng:NextInteger(1, #f.first)] .. " " .. f.last[rng:NextInteger(1, #f.last)], if rng:NextNumber() < 0.5 then "m" else "f"
+		local first = f.first[g]
+		return first[rng:NextInteger(1, #first)] .. " " .. f.last[rng:NextInteger(1, #f.last)], g
 	end
-	local gender = if rng:NextNumber() < 0.5 then "m" else "f"
-	local list = Customers.firstNames[gender]
-	return list[rng:NextInteger(1, #list)] .. " " .. Customers.lastNames[rng:NextInteger(1, #Customers.lastNames)], gender
+	local list = Customers.firstNames[g]
+	return list[rng:NextInteger(1, #list)] .. " " .. Customers.lastNames[rng:NextInteger(1, #Customers.lastNames)], g
 end
 
 return Customers

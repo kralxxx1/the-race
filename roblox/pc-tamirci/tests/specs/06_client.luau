@@ -381,6 +381,18 @@ return function(T)
 		end
 		local folder = Engine.workspace:FindFirstChild("ClientTraffic")
 		T.ok(folder and #folder:GetChildren() > 20, "traffic models")
+		-- pedestrians and drivers are copies of the server's catalog avatars
+		local walkers, drivers = 0, 0
+		for _, m in folder:GetChildren() do
+			if m:FindFirstChildOfClass("Humanoid") and m:GetAttribute("Avatar") then
+				walkers += 1
+				T.ok(m.HumanoidRootPart.Anchored, "posed by code, no physics")
+			elseif m:FindFirstChild("DriverAvatar") then
+				drivers += 1
+			end
+		end
+		T.ok(walkers >= 5, "avatar pedestrians: " .. walkers)
+		T.ok(drivers >= 3, "avatar drivers: " .. drivers)
 		local sky = Engine.workspace:FindFirstChild("Sky")
 		T.ok(sky and #sky:GetChildren() > 40, "birds and balloons")
 		noErrors("traffic")
