@@ -59,8 +59,43 @@ local function upgradePage(page: Frame)
 	return fill
 end
 
+-- What an item does, in short: "😊 +4  👥 +5%  ⚡ +4%..."
+local function perksOf(it): string
+	local perks = {}
+	local function add(v, text: string)
+		if v and v ~= 0 then
+			table.insert(perks, text)
+		end
+	end
+	local function pct(v): string
+		return (if v > 0 then "+" else "") .. math.floor(v * 100 + 0.5) .. "%"
+	end
+	add(it.comfort, "😊 +" .. tostring(it.comfort))
+	add(it.attract, "👥 +" .. tostring(it.attract) .. "%")
+	add(it.patience, "⏳ " .. pct(it.patience or 0))
+	add(it.tips, "💵 " .. pct(it.tips or 0))
+	add(it.security, "🛡️ +" .. tostring(it.security))
+	add(it.speed, "⚡ " .. pct(it.speed or 0))
+	add(it.quality, "🎯 " .. pct(it.quality or 0))
+	add(it.storage, "📦 +" .. tostring(it.storage))
+	add(it.staffMorale, "🧑‍🔧😊 +" .. tostring(it.staffMorale))
+	add(it.staffSpeed, "🧑‍🔧⚡ " .. pct(it.staffSpeed or 0))
+	add(it.staffLearn, "🎓 " .. pct(it.staffLearn or 0))
+	add(it.rep, "⭐ +" .. tostring(it.rep) .. "/" .. S.t("day_short"))
+	add(it.xp, "✨ XP " .. pct(it.xp or 0))
+	add(it.elecSave, "🔌 -" .. math.floor((it.elecSave or 0) * 100 + 0.5) .. "%")
+	add(it.taxRelief, "🏛️ -" .. math.floor((it.taxRelief or 0) * 100 + 0.5) .. "%")
+	if it.water and it.water < 0 then
+		table.insert(perks, "💧 " .. S.money(it.water) .. "/" .. S.t("day_short"))
+	end
+	if it.elec and it.elec > 0 then
+		table.insert(perks, "⚡ " .. S.money(it.elec) .. "/" .. S.t("day_short"))
+	end
+	return table.concat(perks, "  ")
+end
+
 local function itemsPage(page: Frame)
-	local area = Kit.frame(page, { BackgroundTransparency = 1, Size = UDim2.new(1, -200, 1, 0), Position = UDim2.fromOffset(200, 0) })
+	local area = Kit.frame(page, { BackgroundTransparency = 1, Size = UDim2.new(1, -248, 1, 0), Position = UDim2.fromOffset(248, 0) })
 	local list = Kit.list(area)
 	local selected = Upgrades.categories[1].id
 	local function fill()
@@ -73,24 +108,24 @@ local function itemsPage(page: Frame)
 		for _, it in Upgrades.items do
 			if it.cat == selected then
 				n += 1
-				local perks = {}
-				if it.comfort then
-					table.insert(perks, "😊 +" .. it.comfort)
+				local sub = perksOf(it)
+				if it.required then
+					sub = S.t("shop_required", { n = it.required }) .. "  " .. sub
 				end
-				if it.attract then
-					table.insert(perks, "👥 +" .. it.attract .. "%")
+				if it.desc then
+					sub ..= "  " .. S.pick(it.desc)
 				end
-				if it.security then
-					table.insert(perks, "🛡️ +" .. it.security)
+				local f, right = Kit.row(list, it.icon or "🛒", S.pick(it.name), sub, { LayoutOrder = n })
+				local subLabel = f:FindFirstChild("Sub") :: TextLabel?
+				if subLabel then
+					-- (long descriptions wrap onto a second line)
+					f.Size = UDim2.new(1, 0, 0, 72)
+					subLabel.Size = UDim2.new(subLabel.Size.X.Scale, subLabel.Size.X.Offset, 0, 36)
+					subLabel.TextWrapped = true
+					subLabel.TextTruncate = Enum.TextTruncate.AtEnd
+					subLabel.TextYAlignment = Enum.TextYAlignment.Top
+					subLabel.TextSize = 13
 				end
-				if it.speed then
-					table.insert(perks, "⚡ +" .. math.floor(it.speed * 100) .. "%")
-				end
-				if it.storage then
-					table.insert(perks, "📦 +" .. it.storage)
-				end
-				local sub = table.concat(perks, "  ") .. (if it.desc then "  " .. S.pick(it.desc) else "")
-				local _, right = Kit.row(list, it.icon or "🛒", S.pick(it.name), sub, { LayoutOrder = n })
 				if d.shop.items[it.id] then
 					Kit.pill(right, "✔ " .. S.t("owned"), Theme.good)
 				else
@@ -105,13 +140,26 @@ local function itemsPage(page: Frame)
 		end
 	end
 	local tabs = {}
+	local d = State.data
 	for _, c in Upgrades.categories do
-		table.insert(tabs, { id = c.id, text = S.pick(c.name) })
+		local owned, total = 0, 0
+		for _, it in Upgrades.items do
+			if it.cat == c.id then
+				total += 1
+				if d and d.shop.items[it.id] then
+					owned += 1
+				end
+			end
+		end
+		table.insert(tabs, { id = c.id, text = (c.icon or "") .. " " .. S.pick(c.name) .. "  " .. owned .. "/" .. total })
 	end
 	local side = Kit.sidebar(page, tabs, function(id)
 		selected = id
 		fill()
-	end)
+	end, { Size = UDim2.new(0, 240, 1, 0) })
+	for _, b in side.buttons do
+		b.TextSize = 14
+	end
 	side.select(selected)
 	return fill
 end
@@ -157,6 +205,26 @@ local function looksPage(page: Frame)
 			return e == shop.accent
 		end, function(_, i)
 			App.report(Net.request("shop.style", { accent = i }))
+		end)
+		swatches("🛎️ " .. S.t("look_counter"), 7, Upgrades.counterStyles, function(e)
+			return type(e) == "table" and e.id == (shop.counter or "classic")
+		end, function(e)
+			App.report(Net.request("shop.style", { counter = e.id }))
+		end)
+		swatches("🛠️ " .. S.t("look_bench"), 9, Upgrades.benchStyles, function(e)
+			return type(e) == "table" and e.id == (shop.bench or "steel")
+		end, function(e)
+			App.report(Net.request("shop.style", { bench = e.id }))
+		end)
+		local accent = Upgrades.accentColors[shop.accent or 1] or Upgrades.accentColors[1]
+		local awnings = {}
+		for _, a in Upgrades.awningStyles do
+			table.insert(awnings, { id = a.id, name = a.name, color = a.a or accent })
+		end
+		swatches("⛱️ " .. S.t("look_awning"), 11, awnings, function(e)
+			return type(e) == "table" and e.id == (shop.awning or "stripes")
+		end, function(e)
+			App.report(Net.request("shop.style", { awning = e.id }))
 		end)
 	end
 	fill()

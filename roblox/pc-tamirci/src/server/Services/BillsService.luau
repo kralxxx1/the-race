@@ -191,6 +191,19 @@ function BillsService.morning(player: Player, p, day: number)
 		end
 		b.lastWeek = b.week
 		b.week = { income = 0, expense = 0, wages = 0 }
+		-- the municipal inspection: a fine for every licence or safety item missing
+		local missing = Bills.missing(p.shop.level, p.shop.items)
+		if #missing > 0 then
+			issue(player, p, "inspection", Bills.InspectionFine * p.shop.level * #missing, day, { missing = missing })
+			Net.push(player, "toast", { key = "inspection_fail", vars = { n = #missing } })
+		elseif p.shop.level >= 2 then
+			Net.push(player, "toast", { key = "inspection_ok" })
+		end
+	end
+	-- the shop's good name grows a little every day (reviews, a website people find...)
+	local rep = Upgrades.total(p.shop.items, "rep")
+	if rep > 0 then
+		DataService.rep(player, rep)
 	end
 	if autopay(p) then
 		BillsService.pay(player, "all")

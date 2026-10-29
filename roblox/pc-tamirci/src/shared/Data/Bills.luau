@@ -17,6 +17,7 @@ Bills.kinds = {
 	tax = { icon = "🏛️", name = N("Gelir Vergisi", "Income Tax") },
 	fine = { icon = "⚠️", name = N("Vergi Cezası", "Tax Penalty") },
 	insurance = { icon = "📄", name = N("Sigorta Primi", "Insurance Premium") },
+	inspection = { icon = "👮", name = N("Zabıta Cezası", "Municipal Inspection Fine") },
 }
 
 Bills.DueDays = 2 -- mornings to pay before it is late
@@ -33,6 +34,7 @@ Bills.WaterBase = { 4, 6, 9, 12, 16, 22 }
 Bills.Internet = 8
 Bills.InsurancePerLevel = 60 -- weekly premium for each shop level
 Bills.ElecPerBench = 6
+Bills.InspectionFine = 120 -- for each missing item, times the shop level
 
 -- One day's utility bill for a shop: { elec, water, net, total }. Powered upgrades add to the
 -- electricity (field elec), energy upgrades take a share off it (elecSave).
@@ -41,9 +43,20 @@ function Bills.utilities(level: number, benches: number, items: { [string]: bool
 	local elec = Bills.ElecBase[l] + benches * Bills.ElecPerBench + Upgrades.total(items, "elec") + (extraElec or 0)
 	local save = math.clamp(Upgrades.total(items, "elecSave"), 0, 0.8)
 	elec = math.floor(elec * (1 - save) + 0.5)
-	local water = Bills.WaterBase[l] + Upgrades.total(items, "water")
-	local net = Bills.Internet + Upgrades.total(items, "net")
+	local water = math.max(1, Bills.WaterBase[l] + Upgrades.total(items, "water"))
+	local net = math.max(0, Bills.Internet + Upgrades.total(items, "net"))
 	return { elec = elec, water = water, net = net, total = elec + water + net }
+end
+
+-- What the municipal inspection would find missing in a shop of this level.
+function Bills.missing(level: number, items: { [string]: boolean }?): { string }
+	local out = {}
+	for _, it in Upgrades.items do
+		if it.required and level >= it.required and not (items and items[it.id]) then
+			table.insert(out, it.id)
+		end
+	end
+	return out
 end
 
 function Bills.rent(level: number): number

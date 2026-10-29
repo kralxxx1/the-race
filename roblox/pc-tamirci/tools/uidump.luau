@@ -186,6 +186,28 @@ elseif scene == "staff_full" or scene == "team" then
 		EmployeeService.openAgency(player, "listing")
 		task.wait(0.3)
 	end
+elseif scene == "shop_items" then
+	-- the items tab, on the safety & licences shelf
+	DataService.get(player).shop.items.fire_extinguisher = true
+	DataService.get(player).shop.items.license = true
+	DataService.touch(player)
+	task.wait(0.2)
+	cmod("UI.ShopPanel").open()
+	task.wait(0.2)
+	local win = cmod("UI.Kit").currentWindow()
+	local function press(text: string)
+		for _, d in win.root:GetDescendants() do
+			if d:IsA("TextButton") and string.find(d.Text, text, 1, true) then
+				d.Activated:Fire()
+				return
+			end
+		end
+		error("no button " .. text)
+	end
+	press("Eşyalar")
+	task.wait(0.1)
+	press("İş Güvenliği")
+	task.wait(0.2)
 elseif scene == "jobs" then
 	local cust = customerJob()
 	pps.PromptTriggered:Fire(cust.prompt, player)

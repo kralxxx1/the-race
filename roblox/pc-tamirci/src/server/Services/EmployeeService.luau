@@ -246,7 +246,7 @@ function EmployeeService.workRate(player: Player, rec, job): number
 	local p = DataService.get(player)
 	local fit = Employees.fit(rec, job.device and job.device.kind, job.faults, job.requestId)
 	local night = if isNight() then Employees.traitSum(rec, "nightSpeed") else 0
-	return Employees.speed(rec) * fit * (1 + night) * RepairService.workSpeed(player) * (1 + Employees.effect(p and p.staff, "teamSpeed"))
+	return Employees.speed(rec) * fit * (1 + night) * RepairService.workSpeed(player) * (1 + Employees.effect(p and p.staff, "teamSpeed") + Upgrades.total(p and p.shop.items, "staffSpeed"))
 end
 
 -- A forgotten fan cable: does someone catch it before the customer does?
@@ -308,7 +308,9 @@ local function techWork(player: Player, s, bench: number, job)
 		end
 		bot:reassemble()
 		-- careless hands: a forgotten fan cable now and then (unless someone checks the work)
-		if rng:NextNumber() > math.min(0.99, Employees.success(rec) + bonus) and job.device.kind == "desktop" then
+		local p = DataService.get(player)
+		local quality = Upgrades.total(p and p.shop.items, "quality")
+		if rng:NextNumber() > math.min(0.99, Employees.success(rec) + bonus + quality) and job.device.kind == "desktop" then
 			local checker = qaCatch(player, rec)
 			if checker then
 				Net.push(player, "toast", { key = "qa_caught", vars = { name = checker, tech = rec.name } })
@@ -651,7 +653,8 @@ function EmployeeService.payday()
 		local ctx = {
 			paid = paid,
 			teach = Employees.has(p.staff, "foreman"),
-			teamMorale = Employees.effect(p.staff, "teamMorale"),
+			teamMorale = Employees.effect(p.staff, "teamMorale") + Upgrades.total(p.shop.items, "staffMorale"),
+			learn = Upgrades.total(p.shop.items, "staffLearn"),
 			comfort = Upgrades.total(p.shop.items, "comfort") + Employees.effect(p.staff, "comfort"),
 			rng = rng,
 		}

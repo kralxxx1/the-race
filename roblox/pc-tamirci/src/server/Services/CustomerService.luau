@@ -163,7 +163,7 @@ end
 local function patienceSeconds(cust, player: Player): number
 	local r = Config.CustomerPatienceMinutes
 	local base = Rand.range(rng, r[1], r[2]) * 60 * (cust.arch.patience or 1)
-	return base * (1 + math.max(-20, comfortOf(player)) / 120)
+	return base * (1 + math.max(-20, comfortOf(player)) / 120) * (1 + sumItems(player, "patience"))
 end
 
 local function removeCustomer(cust)
@@ -597,7 +597,7 @@ local function pay(player: Player, cust, job)
 		stars = math.clamp(stars, 1, 5)
 		local tip = 0
 		local staffList = (DataService.get(player) or {}).staff
-		if stars >= 4 and rng:NextNumber() < (cust.arch.tip or 0.2) * (1 + math.max(-20, comfortOf(player)) / 100) * math.max(0.3, 1 + Employees.effect(staffList, "tips")) then
+		if stars >= 4 and rng:NextNumber() < (cust.arch.tip or 0.2) * (1 + math.max(-20, comfortOf(player)) / 100) * math.max(0.3, 1 + Employees.effect(staffList, "tips") + sumItems(player, "tips")) then
 			tip = math.floor(job.price * Rand.range(rng, 0.08, 0.22))
 		end
 		-- the scammer bolts instead of paying, half of the time
@@ -615,7 +615,7 @@ local function pay(player: Player, cust, job)
 			local f = Faults.get(fid)
 			diff = math.max(diff, f and f.difficulty or 1)
 		end
-		DataService.addXp(player, 15 + diff * 12 + stars * 3)
+		DataService.addXp(player, math.floor((15 + diff * 12 + stars * 3) * (1 + sumItems(player, "xp"))))
 		DataService.rep(player, (stars - 2.5) * 1.2)
 		p.stats.repairs += 1
 		if stars == 5 then

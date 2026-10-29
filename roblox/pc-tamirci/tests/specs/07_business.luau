@@ -658,4 +658,84 @@ return function(T)
 		p.staff = {}
 		PlotService.build(player)
 	end)
+	T.test("shop items: two hundred of them, the inspection, daily reputation, the staff room", function()
+		local Upgrades = Engine.mod("ReplicatedStorage.Shared.Data.Upgrades")
+		T.ok(#Upgrades.items >= 200, "items: " .. #Upgrades.items)
+		local cats, seen = {}, {}
+		for _, c in Upgrades.categories do
+			cats[c.id] = 0
+		end
+		for _, it in Upgrades.items do
+			T.ok(not seen[it.id], "unique " .. it.id)
+			seen[it.id] = true
+			T.ok(cats[it.cat] ~= nil, it.id .. " in a category")
+			cats[it.cat] = (cats[it.cat] or 0) + 1
+			T.ok(it.name.tr and it.name.en and it.cost > 0 and it.icon, "item " .. it.id)
+		end
+		for id, n in cats do
+			T.ok(n >= 8, "category " .. id .. " has " .. n)
+		end
+		T.ok(#Upgrades.wallStyles >= 24 and #Upgrades.floorStyles >= 16 and #Upgrades.accentColors >= 16, "looks")
+		T.ok(#Upgrades.counterStyles >= 8 and #Upgrades.benchStyles >= 6 and #Upgrades.awningStyles >= 8, "counter, bench and awning looks")
+		-- water savings never make the bill negative
+		T.ok(Bills.utilities(1, 1, { rainwater = true, water_tank = true }).water >= 1, "water")
+
+		local p = DataService.get(player)
+		local savedItems, savedLevel = p.shop.items, p.shop.level
+		p.money = 100000
+		p.rep = 50
+		p.shop.level = 3
+		p.shop.items = {}
+		T.eq(#Bills.missing(1, {}), 0, "a new shop isn't inspected yet")
+		local missing = Bills.missing(3, {})
+		T.ok(#missing >= 5, "licence, extinguisher, first aid, price list, exit sign, register")
+		-- a week without the licence and the safety gear: the inspector fines each one
+		p.bills = nil
+		local b = BillsService.state(p)
+		pushes = {}
+		for d = 4000, 4000 + Bills.Week - 1 do
+			BillsService.morning(player, p, d)
+		end
+		local fine = nil
+		for _, bill in b.list do
+			if bill.kind == "inspection" then
+				fine = bill
+			end
+		end
+		T.ok(fine and fine.amount == Bills.InspectionFine * 3 * #missing, "a fine for every missing item")
+		T.ok(fine and #fine.detail.missing == #missing, "the bill says what was missing")
+		T.ok(lastPush("toast", "inspection_fail") ~= nil, "told")
+		-- in order, with a reviews screen: no fine, and the shop's name grows every day
+		for _, id in missing do
+			p.shop.items[id] = true
+		end
+		p.shop.items.reviews_screen = true
+		p.bills = nil
+		b = BillsService.state(p)
+		local rep0 = p.rep
+		pushes = {}
+		for d = 5000, 5000 + Bills.Week - 1 do
+			BillsService.morning(player, p, d)
+		end
+		for _, bill in b.list do
+			T.ok(bill.kind ~= "inspection", "no fine")
+		end
+		T.ok(lastPush("toast", "inspection_ok") ~= nil, "a clean inspection")
+		T.ok(p.rep >= rep0 + 1.5, "reputation " .. rep0 .. " -> " .. p.rep)
+		-- the staff room keeps the team happy
+		local function moraleAfterDay(items)
+			p.shop.items = items
+			p.staff = { staffRec("technician", { uid = "sr1", morale = 50 }) }
+			EmployeeService._setRng(dice(0.99))
+			EmployeeService.payday()
+			EmployeeService._setRng(nil)
+			return p.staff[1].morale
+		end
+		local plain = moraleAfterDay({})
+		local cosy = moraleAfterDay({ lockers = true, health_plan = true, break_table = true })
+		T.ok(cosy >= plain + 3, "staff room morale " .. plain .. " -> " .. cosy)
+		p.staff = {}
+		p.shop.items, p.shop.level = savedItems, savedLevel
+		p.bills = nil
+	end)
 end

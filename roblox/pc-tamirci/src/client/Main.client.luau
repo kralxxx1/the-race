@@ -67,9 +67,9 @@ end
 -- Messages from the server
 ----------------------------------------------------------------------------------------------------
 local MONEY_VARS = { amount = true, fine = true, bounty = true, cash = true, price = true, bonus = true, reward = true }
-local BILL_KINDS = { utilities = true, rent = true, sgk = true, tax = true, fine = true, insurance = true }
-local GOOD = { staff_promoted = true, qa_caught = true, staff_levelup = true, support_income = true, staff_restock = true, power_back = true, burglar_scared = true, police_recovered = true, insurance_paid = true, bat_hit = true, quest_done = true, offline_income = true, tech_done = true, caught_scammer = true, thief_caught = true, bounty = true, moved = true, manager_bought = true, contract_machine = true, contract_done = true, showcase_put = true, showcase_sold = true }
-local BAD = { staff_quit_morale = true, staff_sticky = true, power_cut = true, police_fine = true, customer_left = true, scammer_escaped = true, thief_escaped = true, alarm = true, staff_quit = true, esd_zap = true, jobs_full = true, contract_machine_bad = true }
+local BILL_KINDS = { utilities = true, rent = true, sgk = true, tax = true, fine = true, insurance = true, inspection = true }
+local GOOD = { inspection_ok = true, staff_promoted = true, qa_caught = true, staff_levelup = true, support_income = true, staff_restock = true, power_back = true, burglar_scared = true, police_recovered = true, insurance_paid = true, bat_hit = true, quest_done = true, offline_income = true, tech_done = true, caught_scammer = true, thief_caught = true, bounty = true, moved = true, manager_bought = true, contract_machine = true, contract_done = true, showcase_put = true, showcase_sold = true }
+local BAD = { inspection_fail = true, staff_quit_morale = true, staff_sticky = true, power_cut = true, police_fine = true, customer_left = true, scammer_escaped = true, thief_escaped = true, alarm = true, staff_quit = true, esd_zap = true, jobs_full = true, contract_machine_bad = true }
 
 Net.on("toast", function(t)
 	if type(t) ~= "table" or type(t.key) ~= "string" then

@@ -94,10 +94,10 @@ local function facade(model: Instance, faceCf: CFrame, width: number, floors: nu
 end
 
 -- Striped awning above a storefront. cf = centre of the shopfront top edge on the facade.
-function Buildings.awning(parent: Instance, cf: CFrame, width: number, color: Color3, _rng: Random?)
+function Buildings.awning(parent: Instance, cf: CFrame, width: number, color: Color3, _rng: Random?, second: Color3?)
 	local stripes = math.max(2, math.floor(width / 2.2))
 	local sw = width / stripes
-	local white = Color3.fromRGB(245, 243, 236)
+	local white = second or Color3.fromRGB(245, 243, 236)
 	for i = 0, stripes - 1 do
 		local col = if i % 2 == 0 then color else white
 		-- wedge: tall side at the wall, sloping down towards the street

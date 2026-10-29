@@ -9,6 +9,7 @@ local Rand = require(script.Parent.Parent.Util.Rand)
 local Props = require(script.Parent.Props)
 local Buildings = require(script.Parent.Buildings)
 local Upgrades = require(script.Parent.Parent.Data.Upgrades)
+local ShopExtras = require(script.Parent.ShopExtras)
 
 local ShopBuilder = {}
 local M = Enum.Material
@@ -109,20 +110,22 @@ local POSTERS = {
 }
 
 -- Workbench facing into the room (cf.LookVector points at the technician).
-function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, items: { [string]: boolean }, rng: Random)
+function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, items: { [string]: boolean }, rng: Random, style: { [string]: any }?)
 	local m = B.model("Workbench_" .. index, parent)
-	local top = Color3.fromRGB(70, 74, 82)
-	local legs = Color3.fromRGB(40, 42, 46)
+	local st = style or Upgrades.benchStyles[1]
+	local top = B.color(st.color)
+	local legs = B.color(st.legs)
+	local drawerCol = B.color(st.drawers)
 	-- desk (top surface at y = 3.4)
-	B.box(m, cf * CFrame.new(0, 3.25, 0), Vector3.new(10, 0.3, 4.6), top, M.Metal)
+	B.box(m, cf * CFrame.new(0, 3.25, 0), Vector3.new(10, 0.3, 4.6), top, material(st.material or "Metal"))
 	for x = -1, 1, 2 do
 		B.box(m, cf * CFrame.new(x * 4.7, 1.55, 0), Vector3.new(0.4, 3.1, 4.2), legs, M.Metal)
 	end
 	B.box(m, cf * CFrame.new(0, 2.2, 2), Vector3.new(9, 2, 0.3), legs, M.Metal)
 	-- drawers
-	B.box(m, cf * CFrame.new(3.4, 2, -0.2), Vector3.new(2.4, 2.4, 3.8), Color3.fromRGB(200, 40, 40), M.Metal)
+	B.box(m, cf * CFrame.new(3.4, 2, -0.2), Vector3.new(2.4, 2.4, 3.8), drawerCol, M.Metal)
 	for k = 0, 2 do
-		B.box(m, cf * CFrame.new(3.4, 1.2 + k * 0.8, -2.15), Vector3.new(2.2, 0.6, 0.1), Color3.fromRGB(170, 30, 30), M.Metal, nc())
+		B.box(m, cf * CFrame.new(3.4, 1.2 + k * 0.8, -2.15), Vector3.new(2.2, 0.6, 0.1), drawerCol:Lerp(Color3.new(0, 0, 0), 0.15), M.Metal, nc())
 	end
 	-- ESD mat
 	local matCol = if items.bench_mat then Color3.fromRGB(40, 110, 200) else Color3.fromRGB(110, 114, 120)
@@ -275,8 +278,11 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		B.box(shop, front * CFrame.new(0, H + 1.5, D / 2), Vector3.new(4, 3, 1), Color3.fromRGB(60, 60, 64), M.Metal)
 	end
 	-- awning in the accent colour
-	Buildings.awning(shop, front * CFrame.new(-W / 4 - 2, 11.6, 0), W / 2 - 8, accent, rng)
-	Buildings.awning(shop, front * CFrame.new(W / 4 + 2, 11.6, 0), W / 2 - 8, accent, rng)
+	local awning = styleById(Upgrades.awningStyles, opts.awning or "stripes")
+	local awningA = if awning.a then B.color(awning.a) else accent
+	local awningB = if awning.b == "accent" then accent elseif awning.b then B.color(awning.b) else nil
+	Buildings.awning(shop, front * CFrame.new(-W / 4 - 2, 11.6, 0), W / 2 - 8, awningA, rng, awningB)
+	Buildings.awning(shop, front * CFrame.new(W / 4 + 2, 11.6, 0), W / 2 - 8, awningA, rng, awningB)
 
 	-- doorway points
 	point("Street", cf * CFrame.new(0, 0.5, -6))
@@ -347,7 +353,15 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	local xc = math.min(W / 4, inner - 5 - counterW / 2)
 	local zc = fz - 5
 	local counterCf = at(xc, zc)
-	Props.counter(shop, counterCf, counterW, Color3.fromRGB(236, 236, 236), Color3.fromRGB(40, 40, 46))
+	local counterStyle = styleById(Upgrades.counterStyles, opts.counter or "classic")
+	local counterModel = Props.counter(shop, counterCf, counterW, B.color(counterStyle.color), B.color(counterStyle.top))
+	for _, part in counterModel:GetChildren() do
+		if part:IsA("BasePart") and part.Material == M.SmoothPlastic and counterStyle.material then
+			part.Material = material(counterStyle.material)
+		elseif part:IsA("BasePart") and part.Material == M.Marble then
+			part.Material = material(counterStyle.topMaterial or "Marble")
+		end
+	end
 	plan:claim({ xc - counterW / 2 - 0.2, zc - 1.6, xc + counterW / 2 + 0.2, zc + 1.4 }, "hard")
 	if items.safe then
 		local sx = xc - counterW / 2 + 1.7
@@ -408,13 +422,15 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		return a.d < b.d
 	end)
 	local placed = 0
+	local benchList = {}
 	for _, c in candidates do
 		local r = c.run:rect(c.t, BENCH_LEN, BENCH_DEPTH)
 		if placed < L.benches and plan:free(r, "hard") then
 			plan:claim(r, "hard")
 			placed += 1
 			local bcf = facing(c.x, c.z, c.run.ix, c.run.iz)
-			ShopBuilder.workbench(shop, bcf, placed, items, rng)
+			ShopBuilder.workbench(shop, bcf, placed, items, rng, styleById(Upgrades.benchStyles, opts.bench or "steel"))
+			table.insert(benchList, { cf = bcf, index = placed })
 			point("Staff_" .. placed, bcf * CFrame.new(0, 0.4, -3.6), { Bench = placed })
 		end
 	end
@@ -565,11 +581,25 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		local ac = B.box(shop, at(0, D - 1.5, H - 3), Vector3.new(7, 2, 1), Color3.fromRGB(246, 246, 246), M.SmoothPlastic, nc())
 		ac.Name = "AC"
 	end
+	-- things already hanging high on the walls (ShopExtras keeps clear of them)
+	local highClaims = {}
+	local function highClaim(x0: number, z0: number, x1: number, z1: number, band: string)
+		table.insert(highClaims, { x0, z0, x1, z1, band = band })
+	end
+	if items.music then
+		for x = -1, 1, 2 do
+			highClaim(x * inner - 0.6, 3, x * inner + 0.6, 5, "top")
+		end
+	end
+	if items.ac then
+		highClaim(-3.6, D - 2.2, 3.6, D - 1, "top")
+	end
 	if items.posters then
 		for i = 1, math.min(#POSTERS, 2 + level) do
 			local side = if i % 2 == 0 then 1 else -1
 			local z = 6 + (i // 2) * 9
 			if z < D - 6 then
+				highClaim(side * inner - 0.6, z - 1.7, side * inner + 0.6, z + 1.7, "top")
 				local poster = B.box(shop, at(side * (inner - 0.05), z, 12.3), Vector3.new(0.1, 3.6, 3.2), Color3.fromRGB(20, 20, 24), M.SmoothPlastic, nc())
 				B.sign(poster, if side > 0 then Enum.NormalId.Left else Enum.NormalId.Right, POSTERS[i], { color = Color3.new(1, 1, 1), background = accent:Lerp(Color3.new(0, 0, 0), 0.35), glow = true, brightness = 1 })
 			end
@@ -631,7 +661,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	if items.cctv_hd then
 		-- dome cameras in the corners and the recorder's monitor on the counter
 		for side = -1, 1, 2 do
-			B.ball(shop, at(side * (inner - 1), D - 2, H - 0.9), 1.2, Color3.fromRGB(236, 236, 236), M.SmoothPlastic)
+			B.ball(shop, at(side * (inner - 1), D - 2, H - 0.75), 1.2, Color3.fromRGB(236, 236, 236), M.SmoothPlastic)
 		end
 		local mon = B.box(shop, counterCf * CFrame.new(-counterW / 2 + 1.4, 4.85, 0.6) * CFrame.Angles(0, math.pi, 0), Vector3.new(2.2, 1.4, 0.15), Color3.fromRGB(20, 20, 22), M.SmoothPlastic)
 		mon.Name = "CCTVMonitor"
@@ -683,6 +713,30 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	end
 	-- the night watchman's post outside, beside the door
 	point("NightGuardSpot", front * CFrame.new(-6.5, 0.5, -2.6), { Role = "night_guard" })
+	-- everything else from the catalogue: wall, floor, ceiling, counter, bench shelf, forecourt, roof,
+	-- window (Models/ShopExtras)
+	local outsideA, outsideB = {}, {}
+	table.insert(outsideB, { plotW / 2 - 7.4, plotW / 2 - 0.6 }) -- the pylon sign
+	table.insert(outsideB, { -plotW / 2 + 3, -plotW / 2 + 9 }) -- the bench
+	if items.plants then
+		for side = -1, 1, 2 do
+			local iv = { side * (W / 2 - 2) - 1.8, side * (W / 2 - 2) + 1.8 }
+			table.insert(outsideA, iv)
+			table.insert(outsideB, iv)
+		end
+	end
+	local roofClaims = {}
+	if (L.floors or 1) > 1 then
+		local half = math.min(W - 6, 44) / 2
+		table.insert(roofClaims, { -half, D / 2 - 1.5, half, D / 2 + 1.5 })
+	end
+	ShopExtras.place({
+		shop = shop, plan = plan, walls = walls, wallItem = wallItem, at = at, facing = facing, local2 = local2,
+		front = front, cf = cf, W = W, D = D, H = H, inner = inner, fz = fz,
+		counterCf = counterCf, counterW = counterW, benches = benchList, accent = accent, rng = rng, items = items,
+		level = level, plotW = plotW, setback = SETBACK, points = points, highClaims = highClaims,
+		outside = { A = outsideA, B = outsideB }, roof = roofClaims, name = opts.name, plotId = opts.plotId,
+	})
 	point("ThiefExit", cf * CFrame.new(if rng:NextNumber() < 0.5 then -plotW / 2 - 20 else plotW / 2 + 20, 0.5, -10))
 	-- outside: pylon sign, bench, parking marker
 	local pylon = cf * CFrame.new(plotW / 2 - 4, 0.12, 2)

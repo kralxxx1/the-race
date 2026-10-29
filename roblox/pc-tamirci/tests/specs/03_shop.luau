@@ -34,7 +34,8 @@ local function footprints(shop, front)
 				end
 			end
 		end
-		if any then
+		-- (things in the forecourt or up on the roof aren't furniture in the hall)
+		if any and hi.Z > 0.5 and lo.Y < 12 then
 			table.insert(list, { name = name, lo = lo, hi = hi })
 		end
 	end
@@ -160,6 +161,64 @@ return function(T)
 			folder:Destroy()
 		end
 		T.ok(#problems == 0, #problems .. " layout problems:\n" .. table.concat(problems, "\n"))
+	end)
+
+	T.test("shop: every catalogue item finds a place — nothing floats, nothing overlaps", function()
+		local ShopExtras = Engine.mod("ReplicatedStorage.Shared.Models.ShopExtras")
+		local every = {}
+		for _, it in Upgrades.items do
+			every[it.id] = true
+			if it.place and it.place ~= "none" and not string.find("door facade counter_glow bench_chair work_floor", it.place, 1, true) then
+				T.ok(ShopExtras.LOOKS[it.id] ~= nil, "a look for " .. it.id)
+			end
+		end
+		local problems = {}
+		for level = 1, #Upgrades.levels do
+			local L = Upgrades.levels[level]
+			local plot = CFrame.new(0, 0.75, 0)
+			local folder, shop, info = build(level, every, plot)
+			local extras = 0
+			for _, child in shop:GetChildren() do
+				if string.match(child.Name, "^Extra_") then
+					extras += 1
+				end
+			end
+			print(string.format("      level %d: %d catalogue items shown", level, extras))
+			T.ok(extras >= 75 + level * 3, "level " .. level .. " shows " .. extras .. " items")
+			-- the licences and safety gear the inspection asks for always find a spot
+			for _, id in { "license", "fire_extinguisher", "first_aid", "price_tags", "exit_sign", "cash_register" } do
+				T.ok(shop:FindFirstChild("Extra_" .. id) ~= nil, "level " .. level .. " shows " .. id)
+			end
+			local floating = Geometry.floating(shop, function()
+				return plot.Position.Y
+			end)
+			for k = 1, math.min(#floating, 8) do
+				local f = floating[k]
+				table.insert(problems, string.format("level %d: %s floats at %s", level, f:GetFullName(), tostring(info.front:PointToObjectSpace(f.Position))))
+			end
+			local boxes = footprints(shop, info.front)
+			local inner = L.w / 2 - 1
+			for i = 1, #boxes do
+				local a = boxes[i]
+				if string.match(a.name, "^Extra_") and not (a.lo.X > -inner - 0.6 and a.hi.X < inner + 0.6 and a.lo.Z > 0.4 and a.hi.Z < L.d - 0.4) then
+					table.insert(problems, string.format("level %d: %s pokes through a wall", level, a.name))
+				end
+				for j = i + 1, #boxes do
+					local b = boxes[j]
+					if (string.match(a.name, "^Extra_") or string.match(b.name, "^Extra_")) and overlaps(a, b, 0.15) then
+						table.insert(problems, string.format("level %d: %s overlaps %s", level, a.name, b.name))
+					end
+				end
+			end
+			-- the doorway stays clear
+			for _, b in boxes do
+				if string.match(b.name, "^Extra_") and b.lo.X < 4 and b.hi.X > -4 and b.lo.Z < 6 and b.lo.Y < 7 then
+					table.insert(problems, string.format("level %d: %s blocks the doorway", level, b.name))
+				end
+			end
+			folder:Destroy()
+		end
+		T.ok(#problems == 0, #problems .. " problems:\n" .. table.concat(problems, "\n"))
 	end)
 
 	T.test("shop: empty lot has a claim prompt", function()

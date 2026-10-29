@@ -7,6 +7,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Net)
 local Bills = require(Shared.Data.Bills)
+local Upgrades = require(Shared.Data.Upgrades)
 
 local UI = script.Parent
 local Kit = require(UI.Kit)
@@ -88,6 +89,13 @@ function BillsPanel.render(parent: Instance)
 				detail = S.t("bills_detail", { elec = S.money(bill.detail.elec or 0), water = S.money(bill.detail.water or 0), net = S.money(bill.detail.net or 0) }) .. "   •   "
 			elseif bill.kind == "tax" and bill.detail then
 				detail = S.t("bills_profit", { profit = S.money(bill.detail.profit or 0) }) .. "   •   "
+			elseif bill.kind == "inspection" and bill.detail and bill.detail.missing then
+				local names = {}
+				for _, id in bill.detail.missing do
+					local it = Upgrades.get(id)
+					table.insert(names, if it then S.pick(it.name) else id)
+				end
+				detail = S.t("bills_missing", { list = table.concat(names, ", ") }) .. "   •   "
 			end
 			local _, right = Kit.row(list, kind.icon, S.t("bill_" .. bill.kind), detail .. when, { LayoutOrder = order }, 190)
 			Kit.label(right, S.money(amount), { Size = UDim2.fromOffset(84, 36), TextColor3 = if late > 0 then Theme.bad else Theme.money, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Right, LayoutOrder = 1 })

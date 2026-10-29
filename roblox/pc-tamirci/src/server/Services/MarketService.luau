@@ -394,6 +394,13 @@ local function setStyle(player: Player, payload)
 		prof.shop.accent = payload.accent
 		changed = true
 	end
+	for _, key in { "counter", "bench", "awning" } do
+		local list = (Upgrades :: any)[key .. "Styles"]
+		if payload[key] and V.id(payload[key]) and valid(list, payload[key]) then
+			prof.shop[key] = payload[key]
+			changed = true
+		end
+	end
 	if changed then
 		DataService.touch(player)
 		PlotService.build(player)

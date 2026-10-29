@@ -48,9 +48,10 @@ function Geometry.floating(root, groundAt: (number, number) -> number, eps: numb
 	for i, a in parts do
 		local ok = a.lo.Y <= groundAt((a.lo.X + a.hi.X) / 2, (a.lo.Z + a.hi.Z) / 2) + 0.3
 		if not ok then
-			for x = floor(a.lo.X / CELL), floor(a.hi.X / CELL) do
-				for y = floor(a.lo.Y / CELL), floor(a.hi.Y / CELL) do
-					for z = floor(a.lo.Z / CELL), floor(a.hi.Z / CELL) do
+			-- (the cells around the part, eps included: a neighbour can sit just across a cell edge)
+			for x = floor((a.lo.X - eps) / CELL), floor((a.hi.X + eps) / CELL) do
+				for y = floor((a.lo.Y - eps) / CELL), floor((a.hi.Y + eps) / CELL) do
+					for z = floor((a.lo.Z - eps) / CELL), floor((a.hi.Z + eps) / CELL) do
 						for _, j in grid[x .. "," .. y .. "," .. z] or {} do
 							local b = parts[j]
 							if j ~= i and a.lo.X <= b.hi.X + eps and b.lo.X <= a.hi.X + eps and a.lo.Y <= b.hi.Y + eps and b.lo.Y <= a.hi.Y + eps and a.lo.Z <= b.hi.Z + eps and b.lo.Z <= a.hi.Z + eps then

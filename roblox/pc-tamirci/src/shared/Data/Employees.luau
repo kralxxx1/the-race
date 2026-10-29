@@ -616,11 +616,11 @@ function Employees.xpNeeded(skill: number): number
 end
 
 -- One day at work: experience (stars) and morale. ctx: { teach, teamMorale, comfort, paid,
--- rng }. Returns "levelup" when they earned a star.
+-- learn (a training bonus), rng }. Returns "levelup" when they earned a star.
 function Employees.dayPass(e, ctx): string?
 	local role = Employees.roles[e.role]
 	local edu = e.edu and Employees.eduById[e.edu]
-	local learn = (role and role.learn or 1) * (edu and edu.learn or 1) * (e.learnBoost or 1) * math.max(0.2, 1 + traitSum(e, "learn"))
+	local learn = (role and role.learn or 1) * (edu and edu.learn or 1) * (e.learnBoost or 1) * math.max(0.2, 1 + traitSum(e, "learn")) * (1 + (ctx.learn or 0))
 	if e.role == "apprentice" and ctx.teach then
 		learn *= 2
 	end
@@ -642,7 +642,7 @@ function Employees.dayPass(e, ctx): string?
 	if (e.wage or 0) < fair * 0.85 then
 		m -= 4
 	end
-	m += math.min(3, ctx.teamMorale or 0)
+	m += math.min(6, ctx.teamMorale or 0)
 	if (ctx.comfort or 0) >= 25 then
 		m += 1
 	end
