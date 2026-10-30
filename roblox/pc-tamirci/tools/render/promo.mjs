@@ -18,7 +18,7 @@ const base = '/roblox/pc-tamirci/tools/render';
 // camera, target, field of view (studs, Roblox axes)
 const SHOTS = [
   { name: 'city', file: 'world', cam: '-500,260,1150', look: '200,0,300', fov: 50 },
-  { name: 'fun', file: 'world', cam: '1150,180,900', look: '300,20,100', fov: 50 },
+  { name: 'fun', file: 'world', cam: '-2150,380,250', look: '-1100,0,-500', fov: 50 },
   { name: 'shop', file: 'shop6', cam: '-34,40,-8', look: '0,2,40', fov: 45, extra: 'clip=11&bg=none' },
   { name: 'pc', file: 'device_desktop', cam: '2.8,7.6,5.6', look: '-0.6,0.9,-0.7', fov: 40, extra: 'bg=none&ground=shadow' },
 ];

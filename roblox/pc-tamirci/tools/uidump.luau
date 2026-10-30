@@ -80,6 +80,7 @@ prof.level = 7
 prof.xp = 400
 prof.rep = 72
 prof.tutorial = 2
+prof.opened = true
 for _, id in { "precision_kit", "multimeter", "soldering_station", "usb_boot", "post_card", "thermal_camera", "spudger_kit", "brush", "tweezers" } do
 	prof.tools[id] = true
 end

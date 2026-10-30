@@ -53,7 +53,7 @@ Toplam süre yaklaşık 20–30 dakika (yaş doğrulaması hariç).
 
 ## 3. Studio'da dene
 
-1. Üstteki **▶ Play** düğmesine bas (F5). 5–10 saniye içinde şehir kurulur ve sana bir dükkân verilir.
+1. Üstteki **▶ Play** düğmesine bas (F5). 10–20 saniye içinde şehir kurulur ve sana bir dükkân verilir.
 2. Kontroller:
 
    | Tuş | İşlev |
@@ -185,12 +185,13 @@ temizle, termal macun sür, RAM'i yerine oturt ve POST bip sesini dinle!
 
 ⭐ 300+ gerçek parça: ekran kartı, işlemci, anakart, RAM, SSD, PSU…
 ⭐ 30+ gerçekçi arıza; multimetre, POST kartı ve termal kamera ile teşhis
-⭐ Dükkânını büyüt: 8 tezgâh, dekor, vitrin, güvenlik
-⭐ Teknisyen, müdür, güvenlik görevlisi tut; sen yokken de kazan
-⭐ Kocaman şehir: parçacı, 2. el pazarı, hurdalık, galeri, lunapark, sahil
+⭐ Dükkânını büyüt: 8 tezgâh, 200+ eşya, vitrin
+⭐ 22 meslekten personel tut; sen yokken de kazan
+⭐ Kendi fabrikanı kur, kendi markanı üret, PC seti sat
+⭐ Fatura, vergi ve gece hırsızları: kamera, alarm, sopa!
+⭐ Kocaman şehir: havalimanı, tersane, teknopark, villalar, sahil
 ⭐ Araba ve motor al, şehri gez (M: harita)
-⭐ Gıcık müşterilere, dolandırıcılara ve hırsızlara dikkat!
-⭐ Günlük görevler, internet kafe ve veri merkezi sözleşmeleri
+⭐ Liderlik tabloları, günlük görevler, kurumsal sözleşmeler
 
 Rahatlatıcı müzik, gece-gündüz döngüsü ve yağmur eşliğinde tamir keyfi. 🎧
 ```
@@ -210,12 +211,13 @@ blow out the dust, apply thermal paste, reseat the RAM and listen for the POST b
 
 ⭐ 300+ real parts: graphics cards, CPUs, motherboards, RAM, SSDs, PSUs…
 ⭐ 30+ realistic faults; diagnose with a multimeter, POST card and thermal camera
-⭐ Grow your shop: up to 8 benches, decor, showcase, security
-⭐ Hire technicians, a manager and a guard; earn even while you're away
-⭐ A huge city: parts dealers, second-hand market, scrapyard, car dealers, fun park, beach
+⭐ Grow your shop: up to 8 benches, 200+ items, a showcase
+⭐ Hire staff from 22 professions; earn even while you're away
+⭐ Build a factory, make your own brand, sell PC setups
+⭐ Bills, taxes and night-time burglars: cameras, alarms, a bat!
+⭐ A huge city: airport, shipyard, technopark, villas, beach
 ⭐ Buy cars and motorbikes and explore (M: map)
-⭐ Watch out for difficult customers, scammers and thieves!
-⭐ Daily tasks, internet café and data centre contracts
+⭐ Leaderboards, daily tasks, corporate contracts
 
 Relaxing music, a day/night cycle and rainy days while you work. 🎧
 ```

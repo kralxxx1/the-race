@@ -2,9 +2,14 @@
 
 Bilgisayar tamircisi simülatörü + tycoon. Müşteriyle pazarlık edip arızalı masaüstü ve laptopları
 tezgâhında gerçek bir teknisyen gibi sökersin, arızayı bulur, parçayı değiştirir, toplar ve test
-edersin. Kazandığın parayla alet, parça, araç alır; dükkânını büyütür, teknisyen/müdür/güvenlik
-tutarsın. Şehirde parçacılar, 2. el pazarı, hurdalık, galeriler, internet kafe, veri merkezi ve
-50'den fazla mekân var. 60 kişilik sunucu için 66 dükkân arsası hazır.
+edersin. Kazandığın parayla alet, parça, araç alırsın. Dükkânını 6 seviyede büyütür, 200'den fazla
+eşyayla döşersin. 22 meslekten personel tutar, kendi fabrikanda kendi markanı üretirsin. Faturaları,
+vergiyi ve gece hırsızlarını da sen idare edersin.
+
+Şehir 16 × 9 bloktan oluşur. Eski şehirde merkez, teknoloji çarşısı, eski çarşı, sahil ve liman var;
+çevresinde havalimanı, organize sanayi, tersane, balıkçı köyü, villa tepesi, teknopark, çiftlikler,
+golf kulübü, karavan parkı ve yazlıklar yer alır. Toplam 60'tan fazla mekân var. 60 kişilik sunucu
+için 66 dükkân arsası hazır; liderlik tabloları en zenginleri ve en değerli işletmeleri gösterir.
 
 Oyun Türkçe ve İngilizce'dir (oyuncunun diline göre otomatik, telefondaki Ayarlar'dan değişir).
 
@@ -116,32 +121,54 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
    kasa al, sök, sat). Aletler Usta Alet-Edevat'ta.
 4. **Teslim ve ödeme:** müşteri gelir, çalıştırır, öder; memnunsa bahşiş bırakır ve yorum yazar.
    Yorumlar itibarını, itibar da gelen müşteri sayısını belirler.
-5. **Büyü:** Emlak Ofisi/Telefon → Dükkân: 6 seviye (1→8 tezgâh), dekor (semaver, akvaryum, atari…),
-   güvenlik (kamera, alarm, kepenk, çelik kasa), atölye (ESD mat, LED lamba, mikroskop), PC vitrini,
-   kurumsal sözleşme ofisi. Personel Ajansı'ndan teknisyen, resepsiyonist, müdür, güvenlik görevlisi,
-   temizlikçi tut — teknisyenler boş tezgâhta işleri kendileri bitirir, müdür eksik parçayı sipariş eder.
-6. **Toplu işler:** Pixel İnternet Kafe ve Bulut Veri Merkezi makine başı ödemeli sözleşmeler verir.
-   **Günlük görevler** (her gün 3 tane: cihaz teslim et, 5 yıldız al, parça al/sat, hırsız yakala…)
-   Belediye'deki Görev Panosu'nda ve telefonda; ödüller seviyeyle büyür. Belediye önündeki pano
-   sunucunun en iyi tamircilerini gösterir. Müdürün varsa sen oyunda yokken de dükkân kazanır
-   (en fazla 8 saat).
-7. **Kendi projelerin:** hurda kasaları onar ya da boş kasa alıp PC topla; 2. el pazarına sat ya da
-   dükkân vitrinine koy (vitrindeki PC'yi gelen alıcılar daha pahalıya alır).
-8. **Şehir hayatı:** sağdan akan trafik (kırmızıda durur, yaya geçidini bekler), kaldırımlarda
-   yürüyen yayalar, martı ve güvercin sürüleri, gökyüzünden geçen uçaklar, sıcak hava balonları,
-   dönen dönme dolap ve rüzgâr türbinleri, deniz feneri, saat kulesi, gece yanan pencereler ve
-   sokak lambaları, yağmur; gündüz kuşlar, gece cırcır böcekleri, sahile yaklaştıkça artan dalga
-   sesi ve arka planda sakin lo-fi müzik.
-9. **Olaylar:** gece artan hırsızlık (kamera/alarm uyarır, F ile yakala, ödül al), parayı vermeden
-   kaçan dolandırıcı, "kutusu yok faturası yok" çalıntı parça satan şüpheli tip (polis gelebilir!),
-   yağmur, gün/gece döngüsü.
-10. **Ulaşım:** bisiklet, scooter, motorlar, Şahin/Doğan tadında klasikler, servis vanı, dolmuş,
-   pikap, SUV, elektrikli sedan, süper spor. Harita'dan taksi de çağırabilirsin.
-11. **Genişleyen şehir:** eski şehrin batısında havalimanı (pist, terminal, kule, hangarlar),
-   organize sanayi bölgesi (fabrikalar, silolar, güneş tarlası, tır parkı), tersane ve balıkçı köyü;
-   doğusunda villa tepesi, teknopark, çiftlikler, golf kulübü, karavan parkı ve yazlıklar. Havalimanı,
-   OSB, Teknopark ve Villa Tepe Kulübü kendi sözleşme işlerini verir. Haritadaki 🌍 düğmesi bütün
-   şehri gösterir; uzaklaştıkça semt adları görünür.
+5. **Büyü:** Emlak Ofisi/Telefon → Dükkân. 6 seviye var (1→8 tezgâh) ve 12 kategoride 200'den
+   fazla eşya: dekor, bekleme salonu, mutfak, aydınlatma, iş, güvenlik, iş güvenliği, atölye, BT,
+   enerji, personel odası ve dış cephe. Her eşya dükkânda görünür ve bir etki verir: daha çok
+   müşteri, bahşiş, sabır, hız, kalite, depo, güvenlik, düşük fatura. Duvar, zemin, renk, tezgâh,
+   vitrin ve tente stilini sen seçersin. Zabıta haftada bir denetler; yangın tüpü, ilk yardım
+   dolabı gibi zorunlu ekipman eksikse ceza keser.
+6. **Ekip:** 22 meslek var: teknisyen, çırak, ustabaşı, laptop teknisyeni, kart tamir uzmanı, veri
+   kurtarma, sistem toplayıcı, kalite kontrol, resepsiyonist, kasiyer, satış danışmanı, çaycı,
+   temizlikçi, depo sorumlusu, müdür, mali müşavir, sosyal medya, uzaktan destek, ağ teknisyeni,
+   kurye, güvenlik görevlisi ve gece bekçisi. Adayları 6 kanaldan bulursun: ajans, İŞKUR, kampüs,
+   ilan sitesi, headhunter ve tavsiye. 50 farklı kişilik özelliği var; mülakat yapar, işe alır,
+   zam verir, gerekirse tazminatla çıkarırsın. Teknisyenler boş tezgâhta işleri kendileri bitirir,
+   öğrenir ve terfi eder.
+7. **Faturalar ve vergi:** Her sabah elektrik, su ve internet faturası gelir. Haftada bir kira, SGK,
+   sigorta ve haftalık kâr üzerinden gelir vergisi ödenir. Geciken fatura büyür; çok gecikirse
+   elektrik kesilir ve müşteri gelmez. Telefon → Faturalar.
+8. **Gece güvenliği:** Geceleri hırsızlar dükkâna girer. Kamera ve alarm uyarır; kepenk, çelik kasa
+   ve bekçi köpeği korur. Güvenlik görevlisi ve gece bekçisi hırsızı yakalar. Sen de beyzbol
+   sopasıyla (Usta Alet-Edevat) kovalayabilir ya da **F** ile yakalayabilirsin; ödülü Polis
+   Merkezi'nden alırsın.
+9. **Fabrika ve kendi markan:** Sanayi Sitesi'nde fabrika kurarsın (5 seviye). Fabrikada "Atölye"
+   markalı RAM, SSD, PSU, kasa ve çevre birimi üretirsin. Ürünleri dükkâna sevk eder ya da
+   toptancılara satarsın. Ayrıca PC toplar, monitör, klavye ve fareyle set yapıp vitrinde satarsın.
+10. **Toplu işler ve görevler:** Makine başı ödemeli sözleşmeleri altı yer verir: Pixel İnternet
+    Kafe, Bulut Veri Merkezi, Organize Sanayi, Teknopark, Havalimanı ve Villa Tepe Kulübü. Her gün 3
+    **günlük görev** gelir: cihaz teslim et, 5 yıldız al, parça al/sat, hırsız yakala… Görevler
+    Belediye'deki Görev Panosu'nda ve telefondadır; ödüller seviyeyle büyür. Müdürün varsa sen
+    oyunda yokken de dükkân kazanır (en fazla 8 saat).
+11. **Liderlik tabloları:** Sunucudaki tablolar en zengini, en değerli işletmeyi, en çok tamiri,
+    seviyeyi, itibarı, yakalanan hırsızı ve fabrika üretimini gösterir. Tüm sunucularda tüm
+    zamanların serveti de tutulur. Belediye önündeki pano tabloları sırayla gösterir; hepsi
+    telefonda da var. Oyuncu listesinde para, servet ve seviye görünür.
+12. **Kendi projelerin:** Hurda kasaları onar ya da boş kasa alıp PC topla. Sonra 2. el pazarına sat
+    ya da dükkân vitrinine koy; vitrindeki PC'yi gelen alıcılar daha pahalıya alır.
+13. **Şehir hayatı:** Trafik sağdan akar, kırmızıda durur, yaya geçidini bekler. Kaldırımlarda
+    yayalar yürür; martı ve güvercin sürüleri, gökyüzünden geçen uçaklar ve sıcak hava balonları
+    görünür. Dönme dolap ve rüzgâr türbinleri döner; deniz feneri ve saat kulesi çalışır. Gece
+    pencereler ve sokak lambaları yanar, yağmur yağar. Gündüz kuşlar, gece cırcır böcekleri duyulur;
+    sahile yaklaştıkça dalga sesi artar, arkada sakin lo-fi müzik çalar.
+14. **Olaylar:** Parayı vermeden kaçan dolandırıcı olur. "Kutusu yok faturası yok" çalıntı parça
+    satan şüpheli tip gelir; polis gelebilir! Yağmur ve gün/gece döngüsü de var.
+15. **Ulaşım:** Bisiklet, scooter, motorlar, Şahin/Doğan tadında klasikler, servis vanı, dolmuş,
+    pikap, SUV, elektrikli sedan ve süper spor var. Harita'dan taksi de çağırabilirsin.
+16. **Genişleyen şehir:** Eski şehrin batısında havalimanı (pist, terminal, kule, hangarlar),
+    organize sanayi bölgesi (fabrikalar, silolar, güneş tarlası, tır parkı), tersane ve balıkçı
+    köyü var. Doğusunda villa tepesi, teknopark, çiftlikler, golf kulübü, karavan parkı ve
+    yazlıklar yer alır. Haritadaki 🌍 düğmesi bütün şehri gösterir; uzaklaştıkça semt adları
+    görünür.
 
 ---
 
@@ -151,9 +178,19 @@ Dengeyi bu dosyadan değiştirebilirsin: başlangıç parası ve aletleri, gün 
 sabrı, pazarlık hakkı, hırsızlık aralıkları ve ödülü, taksi ücreti, XP eğrisi, termal macun ideal
 aralığı, statik elektrik riski, 2. el fiyat oranları, para birimi sembolü, ses kimlikleri.
 
-Parçalar `Data/Parts.luau`, araçlar `Data/Vehicles.luau`, dükkân seviyeleri ve eşyalar
-`Data/Upgrades.luau`, müşteri tipleri ve replikleri `Data/Customers.luau`, arızalar `Data/Faults.luau`,
-mekânlar `Data/Locations.luau` içindedir.
+Veri dosyaları `src/shared/Data/` altındadır:
+
+- `Parts.luau`: parçalar
+- `Vehicles.luau`: araçlar
+- `Upgrades.luau`: dükkân seviyeleri, eşyalar ve stiller
+- `Employees.luau`: meslekler, özellikler ve aday kanalları
+- `Bills.luau`: faturalar, kira ve vergi
+- `Factory.luau`: fabrika seviyeleri ve ürünler
+- `Customers.luau`: müşteri tipleri ve replikleri
+- `Faults.luau`: arızalar
+- `Locations.luau`: mekânlar
+
+Şehir planı (bloklar, semtler, yollar) `src/shared/World/CityLayout.luau` içindedir.
 
 > `DataStoreName` değerini değiştirirsen herkesin kaydı sıfırlanır.
 
@@ -168,7 +205,8 @@ YAYINLAMA.md           Studio'dan herkese açık yayına adım adım rehber
 publish/               Oyun sayfası simgesi (512×512) ve kapak görselleri (1920×1080)
 src/shared/            ReplicatedStorage.Shared — veri, şehir düzeni, 3B modeller, tamir kuralları
 src/server/            ServerScriptService.Server — dünya kurucu ve servisler (kayıt, arsa, müşteri,
-                       tamir, pazar, çalışan, hırsız, araç, sözleşme, vitrin, zaman)
+                       tamir, pazar, çalışan, hırsız, araç, sözleşme, vitrin, fatura, fabrika,
+                       liderlik, görev, zaman)
 src/client/            StarterPlayerScripts.Client — HUD, pencereler, tezgâh, harita/GPS, araç,
                        trafik ve yayalar, ortam, öğretici
 tests/                 Lune ile Studio'suz testler
@@ -198,7 +236,11 @@ Testler Rojo ile yeri kurar, Roblox motorunu taklit eden başsız bir ortamda **
 betiklerini** çalıştırır: kurallar ve katalog, şehir, dükkân yerleşimi, cihaz modelleri, sunucu
 servisleri (müşteri → tezgâh → ödeme), istemci (her pencere, tezgâh, harita/GPS, mağazalar, araç,
 trafik, gece ışıkları), sözleşmeler/vitrin ve tamir botunun her arızayı her makine sınıfında
-onarabilmesi. Belirli bir dosya için: `lune run tests/run.luau client`.
+onarabilmesi. Faturalar, gece güvenliği, ekip, fabrika ve liderlik tabloları da test edilir. Şehirde
+havada kalan parça, çimden çıkan ince parça, boş arsa ya da tezgâhı eksik mekân kalmaması da
+denetlenir. Belirli bir dosya için: `lune run tests/run.luau client`.
+
+Şehrin parça bütçesi için: `lune run tools/worldstats.luau`.
 
 Görsel önizleme (Chromium + Playwright):
 
