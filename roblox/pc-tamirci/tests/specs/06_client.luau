@@ -220,6 +220,113 @@ return function(T)
 		noErrors("windows")
 	end)
 
+	T.test("client: the Settings window changes sound, graphics and help and saves them", function()
+		Mock.errors = {}
+		local Prefs = cmod("Prefs")
+		local Hud = cmod("UI.Hud")
+		local Ambience = cmod("Controllers.Ambience")
+		local Lighting = game:GetService("Lighting")
+		local Traffic = cmod("Controllers.Traffic")
+
+		-- the gear on the left opens it, with all four tabs
+		T.ok(Hud.buttons.settings ~= nil, "gear button")
+		Hud.buttons.settings.Activated:Fire()
+		local w = window()
+		T.ok(w ~= nil and w.root.Name == "SettingsWindow", "settings window")
+		for _, tab in { "Audio", "Graphics", "Gameplay", "Controls" } do
+			click(w.content, tab)
+			T.ok(w.content:FindFirstChildWhichIsA("ScrollingFrame", true) ~= nil, tab .. " page")
+		end
+
+		-- audio: a switch silences a channel, a slider sets a level
+		click(w.content, "Audio")
+		local musicSwitch = w.content:FindFirstChild("Switch_musicOn", true)
+		T.ok(musicSwitch ~= nil, "music switch")
+		T.ok(Prefs.volume("music") > 0, "music plays by default")
+		musicSwitch.Activated:Fire()
+		T.eq(Prefs.get("musicOn"), false, "music switched off")
+		T.eq(Prefs.volume("music"), 0, "silent")
+		musicSwitch.Activated:Fire()
+		T.ok(Prefs.volume("music") > 0, "and back on")
+		local hit = w.content:FindFirstChild("Slider_master", true).Parent:FindFirstChild("Hit")
+		hit.InputBegan:Fire({ UserInputType = roblox.Enum.UserInputType.MouseButton1, Position = roblox.Vector3.new(-50, 0, 0) })
+		T.eq(Prefs.get("master"), 0, "master slider dragged to the left end")
+		T.eq(Prefs.volume("sfx"), 0, "everything is quiet at master 0")
+		Prefs.set("master", 0.5)
+		T.near(Prefs.volume("sfx"), 0.4, 1e-6, "master × channel")
+
+		-- graphics: a preset flips the switches, a single switch makes it "custom"
+		click(w.content, "Graphics")
+		local custom = w.content:FindFirstChild("Custom", true)
+		T.ok(custom ~= nil and not custom.Visible, "high preset is not custom")
+		click(w.content, "Low")
+		T.eq(Prefs.get("quality"), "low", "low preset")
+		T.eq(Lighting.GlobalShadows, false, "shadows off")
+		T.eq(Lighting:FindFirstChild("AmbBloom").Enabled, false, "bloom off")
+		T.eq(Prefs.get("traffic"), "low", "fewer cars")
+		click(w.content, "Ultra")
+		T.eq(Lighting.GlobalShadows, true, "shadows on")
+		T.eq(Lighting:FindFirstChild("AmbDof").Enabled, true, "depth of field on")
+		w.content:FindFirstChild("Switch_bloom", true).Activated:Fire()
+		T.eq(Lighting:FindFirstChild("AmbBloom").Enabled, false, "bloom switch")
+		T.ok(w.content:FindFirstChild("Custom", true).Visible, "preset no longer matches: custom")
+		Prefs.set("brightness", 0.5)
+		Prefs.set("uiscale", 1.2)
+		T.near(gui:GetAttribute("UserScale"), 1.2, 1e-6, "UI size follows the setting")
+
+		-- name tags follow the switch, also for tags that appear later
+		local head = roblox.Instance.new("Part")
+		head.Parent = game:GetService("Workspace")
+		local tag = roblox.Instance.new("BillboardGui")
+		tag.Parent = head
+		tag:AddTag("NameTag")
+		Prefs.set("names", false)
+		T.eq(tag.Enabled, false, "name tag hidden")
+		local later = roblox.Instance.new("BillboardGui")
+		later.Parent = head
+		later:AddTag("NameTag")
+		CS:GetInstanceAddedSignal("NameTag"):Fire(later) -- (the headless engine does not raise it itself)
+		T.eq(later.Enabled, false, "a new tag starts hidden")
+		Prefs.set("names", true)
+		T.eq(tag.Enabled, true, "name tag back")
+		head:Destroy()
+
+		-- street life scales with the setting
+		Prefs.set("traffic", "off")
+		local cars, peds = Traffic.counts()
+		T.eq(cars + peds, 0, "no street life")
+		Prefs.set("traffic", "normal")
+
+		-- gameplay: the help level and the difficulty reach the server's save
+		click(w.content, "Gameplay")
+		click(w.content, "Hints only")
+		click(w.content, "Hard")
+		T.eq(State.data.settings.help, "hints", "mirrored in the client state")
+		local saved = DataService.get(player).settings
+		waitFor(function()
+			return saved.help == "hints" and saved.difficulty == "hard" and saved.quality == "ultra"
+		end, 3, "settings saved on the server")
+		T.eq(saved.fov, 70, "untouched settings keep their defaults")
+		T.near(saved.brightness, 0.5, 1e-6, "brightness saved")
+		T.eq(saved.bloom, false, "bloom saved")
+
+		-- a snapshot from the server does not undo what was just chosen
+		Prefs.set("fov", 88)
+		DataService.touch(player)
+		task.wait(0.1)
+		T.eq(Prefs.get("fov"), 88, "snapshot during a change")
+
+		-- reset
+		click(w.content, "Reset")
+		T.eq(Prefs.get("quality"), "high", "defaults are back")
+		T.eq(Prefs.get("help"), "guided", "help back to guided")
+		T.eq(Lighting:FindFirstChild("AmbBloom").Enabled, true, "bloom back")
+		Kit.closeWindow()
+		-- music still plays after all of it
+		T.ok(Ambience._music.decks[Ambience._music.cur].IsPlaying, "music keeps playing")
+		noErrors("settings")
+	end)
+
 	T.test("client: the map routes to a place and lays a GPS trail", function()
 		local Map = cmod("Controllers.MapController")
 		Map.open()

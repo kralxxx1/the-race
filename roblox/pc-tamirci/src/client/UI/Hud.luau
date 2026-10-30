@@ -151,7 +151,7 @@ function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
 	end)
 
 	-- left edge, above the minimap: quick buttons (also the only way in on touch screens)
-	local bar = Kit.frame(gui, { Name = "Quick", BackgroundTransparency = 1, Size = UDim2.fromOffset(64, 5 * 68), Position = UDim2.fromOffset(14, 140) })
+	local bar = Kit.frame(gui, { Name = "Quick", BackgroundTransparency = 1, Size = UDim2.fromOffset(60, 6 * 64), Position = UDim2.fromOffset(14, 96) })
 	Hud.register(bar)
 	Kit.listLayout(bar, 8)
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -161,9 +161,10 @@ function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
 		{ id = "inventory", icon = "🎒", key = "B" },
 		{ id = "phone", icon = "📱", key = "P" },
 		{ id = "map", icon = "🗺️", key = "M" },
+		{ id = "settings", icon = "⚙️", key = "O" },
 	}
 	for i, d in defs do
-		local b = Kit.button(bar, d.icon, actions[d.id], { Size = UDim2.fromOffset(60, 60), TextSize = 28, LayoutOrder = i, BackgroundTransparency = 0.1 })
+		local b = Kit.button(bar, d.icon, actions[d.id], { Size = UDim2.fromOffset(56, 56), TextSize = 26, LayoutOrder = i, BackgroundTransparency = 0.1 })
 		b.Name = d.id
 		if not touch then
 			Kit.label(b, d.key, { Size = UDim2.fromOffset(18, 16), Position = UDim2.new(1, -20, 1, -18), TextSize = 12, TextColor3 = Theme.dim, FontFace = Theme.bold })

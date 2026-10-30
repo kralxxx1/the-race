@@ -93,9 +93,11 @@ function Kit.screen(name: string, order: number?): ScreenGui
 	local function fit()
 		local cam = Workspace.CurrentCamera
 		local vp = if cam then cam.ViewportSize else Vector2.new(1280, 720)
-		scale.Scale = math.clamp(math.min(vp.X / 1280, vp.Y / 720), 0.55, 1.15)
+		local user = g:GetAttribute("UserScale")
+		scale.Scale = math.clamp(math.min(vp.X / 1280, vp.Y / 720), 0.55, 1.15) * (if type(user) == "number" then user else 1)
 	end
 	fit()
+	g:GetAttributeChangedSignal("UserScale"):Connect(fit) -- the Settings window
 	local cam = Workspace.CurrentCamera
 	if cam then
 		cam:GetPropertyChangedSignal("ViewportSize"):Connect(fit)

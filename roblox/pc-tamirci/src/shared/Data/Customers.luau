@@ -268,11 +268,11 @@ Customers.archetypes = {
 		device = { laptopChance = 0.9, tiers = { "mid" }, classes = { "ultra14", "business14" } },
 		budget = 1.5, patience = 0.9, haggle = 0.25, tip = 0.5, harsh = 0.35, look = "tourist", foreign = true,
 		lines = {
-			greet = L({ "Merhaba! Laptop... broken? Ekran... no work. Teşekkürler!", "Hello! Sorry, Türkçe az. Computer problem, please help.", "Merhaba! I am from Germany. Laptop kaput!" }, { "Hello! My laptop broke on holiday, can you help?", "Hi! Sorry, no Turkish. Computer problem, please help.", "Hello! I'm from Germany. Laptop kaput!" }),
-			haggle = L({ "{price}... okay? Çok güzel?" }, { "{price}... okay? Good price?" }),
+			greet = L({ "Merhaba! Laptop... broken? Ekran... no work. Teşekkürler!", "Hello! Sorry, Türkçe az. Computer problem, please help.", "Merhaba! I am from Germany. Laptop kaput!" }, { "Hello! My laptop broke on holiday, can you help?", "Hola! Sorry, my English... small. Computer problem, please help.", "Hello! I'm from Germany. Laptop kaputt!" }),
+			haggle = L({ "{price}... okay? Çok güzel?" }, { "{price}... okay? Good price? Bueno?" }),
 			reject = L({ "Oh, too expensive. Sorry, sorry." }, { "Oh, too expensive. Sorry." }),
 			nag = L({ "Is it ready? Hazır?", "My ferry leaves soon, feribot!" }, { "Is it ready?", "My ferry leaves soon!" }),
-			happy = L({ "Wonderful! Çok teşekkürler! Türkiye çok güzel!", "Amazing service! Five stars!" }, { "Wonderful! Thank you so much!", "Amazing service! Five stars!" }),
+			happy = L({ "Wonderful! Çok teşekkürler! Türkiye çok güzel!", "Amazing service! Five stars!" }, { "Wonderful! Thank you so much! Gracias!", "Amazing service! Five stars!" }),
 			angry = L({ "Sorry, my tour bus... bye bye." }, { "Sorry, my tour bus is leaving... bye." }),
 		},
 	},
@@ -382,41 +382,48 @@ Customers.generic = {
 
 Customers.firstNames = {
 	m = {
-		"Ahmet", "Mehmet", "Mustafa", "Ali", "Hüseyin", "Hasan", "İbrahim", "İsmail", "Osman", "Yusuf", "Murat", "Ömer",
-		"Ramazan", "Halil", "Süleyman", "Abdullah", "Mahmut", "Recep", "Salih", "Fatih", "Kemal", "Kadir", "Emre", "Burak",
-		"Serkan", "Cem", "Can", "Mert", "Kaan", "Barış", "Onur", "Volkan", "Tolga", "Uğur", "Hakan", "Erkan", "Selim", "Tarık",
-		"Oğuz", "Deniz", "Efe", "Arda", "Eren", "Yiğit", "Berk", "Emir", "Alp", "Doruk", "Kerem", "Tuna", "Batuhan", "Furkan",
-		"Enes", "Yasin", "Sinan", "Gökhan", "Okan", "Levent", "Taner", "Orhan", "Cengiz", "Nihat", "Erdem", "Koray", "Sarp",
-		"Umut", "Ozan", "Çağlar", "Cihan", "Bora", "Ege", "Atlas", "Poyraz", "Çınar", "Rüzgar", "Metin", "Şükrü", "Rıza",
-		"Nuri", "Remzi", "Ferhat", "Zeki", "Bülent", "Kenan", "Nazım", "Tayfun", "Serdar", "İlker", "Utku", "Kutay",
+		"James", "Oliver", "Jack", "Harry", "Henry", "George", "Charlie", "Thomas", "William", "Benjamin", "Samuel", "Daniel",
+		"Joseph", "Matthew", "Andrew", "Ryan", "Nathan", "Dylan", "Connor", "Owen", "Ethan", "Logan", "Mason", "Carter", "Wyatt",
+		"Hudson", "Caleb", "Isaac", "Gavin", "Tyler", "Mateo", "Santiago", "Diego", "Alejandro", "Javier", "Carlos", "Miguel",
+		"Pablo", "Rafael", "Joaquin", "Marco", "Luca", "Matteo", "Giovanni", "Alessandro", "Enzo", "Pierre", "Louis", "Antoine",
+		"Julien", "Hugo", "Etienne", "Lukas", "Felix", "Jonas", "Maximilian", "Lars", "Stefan", "Sven", "Erik", "Anders", "Bjorn",
+		"Olaf", "Jens", "Ivan", "Dmitri", "Pavel", "Milan", "Tomasz", "Marek", "Nikos", "Dimitri", "Yannis", "Arjun", "Rohan",
+		"Vikram", "Amit", "Raj", "Kenji", "Hiro", "Takeshi", "Wei", "Jun", "Min-jun", "Haruto", "Omar", "Karim", "Idris", "Kwame",
+		"Amadi", "Tariq", "Thiago", "Gabriel", "Noah", "Liam", "Lucas", "Elijah", "Aaron", "Cole", "Finn", "Rhys", "Callum", "Declan",
 	},
 	f = {
-		"Ayşe", "Fatma", "Emine", "Hatice", "Zeynep", "Elif", "Meryem", "Şerife", "Zehra", "Sultan", "Hanife", "Merve", "Büşra",
-		"Esra", "Özlem", "Hülya", "Gül", "Selin", "Ceren", "Ece", "Defne", "Eylül", "Ela", "Nehir", "Asel", "Duru", "Irmak",
-		"Melis", "İrem", "Gizem", "Tuğba", "Pınar", "Sevgi", "Derya", "Burcu", "Dilek", "Ebru", "Aslı", "Seda", "Yasemin",
-		"Nur", "Damla", "Buse", "Cansu", "Simge", "Şeyma", "Rabia", "Kübra", "Sibel", "Nilay", "Feride", "Nermin", "Gülsüm",
-		"Saadet", "Leyla", "Naz", "Bade", "Lara", "Mira", "Azra", "Ada", "Ecrin", "Hira", "Beren", "Zümra", "Sude", "Ceylin",
-		"Yağmur", "Başak", "Tülay", "Necla", "Filiz", "Songül", "Arzu", "Figen", "Güler", "Nazan", "Şule", "Melek", "Sevim",
-		"Aylin", "Berna", "Didem", "Elvan", "Funda", "Gamze", "Işıl", "Jale",
+		"Emma", "Olivia", "Ava", "Mia", "Sophia", "Isabella", "Charlotte", "Amelia", "Harper", "Evelyn", "Abigail", "Emily", "Ella",
+		"Grace", "Chloe", "Lily", "Hannah", "Zoe", "Nora", "Ruby", "Scarlett", "Violet", "Hazel", "Maya", "Lucia", "Valentina",
+		"Camila", "Elena", "Carmen", "Sofia", "Giulia", "Chiara", "Francesca", "Alessia", "Camille", "Manon", "Juliette", "Clara",
+		"Greta", "Lena", "Anna", "Marie", "Ingrid", "Astrid", "Freya", "Sigrid", "Olga", "Natasha", "Katya", "Ewa", "Zofia", "Eleni",
+		"Maria", "Priya", "Ananya", "Isha", "Meera", "Yuki", "Sakura", "Aiko", "Mei", "Lin", "Soo-ah", "Hana", "Layla", "Amira",
+		"Zainab", "Amara", "Ife", "Nia", "Imani", "Beatriz", "Fernanda", "Aoife", "Niamh", "Siobhan", "Imogen", "Poppy", "Daisy",
+		"Willow", "Iris", "Jade", "Stella", "Luna", "Aurora", "Eliza", "Clementine", "Matilda", "Rosa",
 	},
 }
 
 Customers.lastNames = {
-	"Yılmaz", "Kaya", "Demir", "Şahin", "Çelik", "Yıldız", "Yıldırım", "Öztürk", "Aydın", "Özdemir", "Arslan", "Doğan",
-	"Kılıç", "Aslan", "Çetin", "Kara", "Koç", "Kurt", "Özkan", "Şimşek", "Polat", "Özcan", "Korkmaz", "Çakır", "Erdoğan",
-	"Yavuz", "Can", "Acar", "Şen", "Aktaş", "Güler", "Yalçın", "Güneş", "Bozkurt", "Bulut", "Keskin", "Ünal", "Turan", "Gül",
-	"Özer", "Işık", "Kaplan", "Avcı", "Sarı", "Tekin", "Taş", "Köse", "Yüksel", "Ateş", "Aksoy", "Ekinci", "Karaca", "Uçar",
-	"Tunç", "Tuncer", "Erdem", "Duman", "Toprak", "Altun", "Sönmez", "Uysal", "Bayram", "Akın", "Oral", "Durmaz", "Karakaya",
-	"Özgür", "Akbulut", "Kocaman", "Demirci", "Ceylan", "Eren", "Çiftçi", "Alkan", "Yazıcı", "Şeker", "Coşkun", "Başaran",
-	"Uzun", "Kalkan", "Akgül", "Bilgin", "Dinç", "Ergün", "Gündoğdu", "Kahraman", "Metin", "Orhon", "Sezer", "Ulusoy",
+	"Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "Davis", "Wilson", "Taylor", "Anderson", "Thomas", "Moore",
+	"Jackson", "Martin", "Lee", "Thompson", "White", "Harris", "Clark", "Lewis", "Robinson", "Walker", "Young", "Allen", "King",
+	"Wright", "Scott", "Green", "Baker", "Adams", "Nelson", "Hill", "Campbell", "Mitchell", "Roberts", "Carter", "Phillips",
+	"Evans", "Turner", "Parker", "Collins", "Edwards", "Stewart", "Morris", "Murphy", "Cook", "Rogers", "Morgan", "Cooper",
+	"Reed", "Bailey", "Bell", "Kelly", "Howard", "Ward", "Cox", "Richardson", "Wood", "Watson", "Brooks", "Bennett", "Gray",
+	"Hughes", "Price", "Sanders", "Foster", "Ross", "Henderson", "Coleman", "Jenkins", "Perry", "Powell", "Long", "Patterson",
+	"Garcia", "Martinez", "Rodriguez", "Lopez", "Hernandez", "Gonzalez", "Perez", "Sanchez", "Ramirez", "Torres", "Flores",
+	"Rossi", "Russo", "Ferrari", "Esposito", "Bianchi", "Romano", "Dubois", "Moreau", "Laurent", "Bernard", "Petit", "Fournier",
+	"Schmidt", "Schneider", "Fischer", "Weber", "Meyer", "Wagner", "Becker", "Hoffmann", "Jansen", "De Vries", "Bakker", "Visser",
+	"Nielsen", "Hansen", "Larsen", "Johansson", "Andersson", "Lindberg", "Novak", "Kowalski", "Nowak", "Ivanov", "Petrov",
+	"Papadopoulos", "Silva", "Santos", "Oliveira", "Costa", "Patel", "Sharma", "Singh", "Kumar", "Tanaka", "Suzuki", "Sato",
+	"Wang", "Zhang", "Chen", "Kim", "Park", "Nguyen", "Haddad", "Khalil", "Mensah", "Okafor", "O'Brien", "Murray", "MacLeod",
 }
 
+-- Foreign visitors (the "tourist" customer): more of the world
 Customers.foreignNames = {
 	first = {
-		m = { "John", "Liam", "Noah", "Lucas", "Hans", "Pierre", "Marco", "Kenji", "Ivan", "Carlos", "Ahmed", "Raj", "Chen", "Kwame", "Sven", "Mateo" },
-		f = { "Emma", "Olivia", "Ava", "Mia", "Greta", "Chloé", "Giulia", "Yuki", "Olga", "Sofia", "Layla", "Priya", "Mei", "Amara", "Ingrid", "Lena" },
+		m = { "Hans", "Kenji", "Ivan", "Raj", "Chen", "Kwame", "Sven", "Mateo", "Luca", "Pierre", "Omar", "Jin", "Anders", "Diego" },
+		f = { "Greta", "Yuki", "Olga", "Priya", "Mei", "Amara", "Ingrid", "Lena", "Chloé", "Giulia", "Layla", "Sakura", "Elena", "Aiko" },
 	},
-	last = { "Smith", "Johnson", "Müller", "Schmidt", "Dubois", "Rossi", "Tanaka", "Ivanov", "García", "Silva", "Khan", "Patel", "Wang", "Kim", "Andersson", "Novak", "O'Brien", "Kowalski", "Jensen", "Moreau", "Becker", "Costa" },
+	last = { "Müller", "Tanaka", "Ivanov", "García", "Dubois", "Rossi", "Khan", "Patel", "Wang", "Kim", "Andersson", "Novak", "Kowalski", "Jensen", "Moreau", "Becker", "Costa", "Sato", "Silva", "Haddad" },
 }
 
 Customers.byId = {}

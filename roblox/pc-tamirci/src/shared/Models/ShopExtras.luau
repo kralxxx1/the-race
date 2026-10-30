@@ -146,7 +146,7 @@ end
 
 LOOKS.calligraphy = function(m, c)
 	frame(m, c, 3.4, 1.8, C(196, 160, 70), function(f, w, h)
-		label(m, f, Vector3.new(w, h, 0.02), "Sabreden derviş\nmuradına ermiş", C(230, 196, 100), C(20, 70, 50), { font = B.Fonts.Serif })
+		label(m, f, Vector3.new(w, h, 0.02), "Patience is bitter,\nbut its fruit is sweet", C(230, 196, 100), C(20, 70, 50), { font = B.Fonts.Serif })
 	end)
 end
 
@@ -242,7 +242,7 @@ LOOKS.mural = function(m, c)
 	for i = 0, 5 do
 		deco(m, c * CFrame.new(-4.2 + i * 1.7, -0.5 + (i % 2) * 0.4, -0.04), Vector3.new(1.2, 2.2 - (i % 3) * 0.5, 0.02), if i % 2 == 0 then C(240, 60, 160) else C(40, 220, 240), M.Neon, { Transparency = 0.45 })
 	end
-	label(m, c * CFrame.new(0, 1.1, -0.06), Vector3.new(8, 1.1, 0.02), "NEO İSTANBUL 2077", C(80, 240, 255), false, { glow = true, brightness = 2, font = B.Fonts.Display })
+	label(m, c * CFrame.new(0, 1.1, -0.06), Vector3.new(8, 1.1, 0.02), "NEO TOKYO 2077", C(80, 240, 255), false, { glow = true, brightness = 2, font = B.Fonts.Display })
 end
 
 LOOKS.retro_museum = function(m, c)
@@ -262,7 +262,7 @@ LOOKS.retro_museum = function(m, c)
 	for i = 0, 3 do
 		deco(m, c * CFrame.new(-2.2 + i * 0.6, 2.95, -0.3), Vector3.new(0.5, 0.04, 0.5), if i % 2 == 0 then BLACK else C(30, 60, 150))
 	end
-	label(m, c * CFrame.new(0, 2.2, -1.12), Vector3.new(2.6, 0.5, 0.02), "RETRO MÜZE", C(240, 220, 160), C(40, 30, 22))
+	label(m, c * CFrame.new(0, 2.2, -1.12), Vector3.new(2.6, 0.5, 0.02), "RETRO MUSEUM", C(240, 220, 160), C(40, 30, 22))
 end
 
 LOOKS.kutahya_plates = function(m, c)
@@ -303,7 +303,7 @@ LOOKS.window_led = function(m, c, k)
 	for _, s in { { 0, 0.85, 2.8, 0.08 }, { 0, -0.85, 2.8, 0.08 }, { 1.36, 0, 0.08, 1.78 }, { -1.36, 0, 0.08, 1.78 } } do
 		deco(m, c * CFrame.new(s[1], s[2], 0), Vector3.new(s[3], s[4], 0.03), k.accent, M.Neon)
 	end
-	label(m, c, Vector3.new(2.6, 1.6, 0.02), "TAMİR • BAKIM\nYÜKSELTME", WHITE, false, { glow = true })
+	label(m, c, Vector3.new(2.6, 1.6, 0.02), "REPAIR • SERVICE\nUPGRADES", WHITE, false, { glow = true })
 end
 
 LOOKS.review_qr = function(m, c)
@@ -314,12 +314,12 @@ end
 
 LOOKS.signature_tablet = function(m, c)
 	deco(m, c * CFrame.new(0, 0.04, 0) * CFrame.Angles(math.rad(-8), 0, 0), Vector3.new(0.8, 0.06, 0.55), BLACK)
-	label(m, c * CFrame.new(0, 0.08, 0) * CFrame.Angles(math.rad(-98), 0, 0), Vector3.new(0.7, 0.45, 0.01), "İmza: ~~~", C(30, 30, 30), WHITE, { font = B.Fonts.Hand })
+	label(m, c * CFrame.new(0, 0.08, 0) * CFrame.Angles(math.rad(-98), 0, 0), Vector3.new(0.7, 0.45, 0.01), "Signed: ~~~", C(30, 30, 30), WHITE, { font = B.Fonts.Hand })
 	deco(m, c * CFrame.new(0.45, 0.04, 0) * CFrame.Angles(0, math.rad(20), 0), Vector3.new(0.04, 0.04, 0.5), STEEL, M.Metal)
 end
 
 LOOKS.cctv_sticker = function(m, c)
-	sticker(m, c, 1.6, 1.0, "📹\nBU ALAN KAMERA İLE\nİZLENMEKTEDİR", BLACK, C(250, 210, 40))
+	sticker(m, c, 1.6, 1.0, "📹\nTHIS AREA IS\nUNDER CCTV", BLACK, C(250, 210, 40))
 end
 
 LOOKS.staff_tea = function(m, c)
@@ -368,7 +368,7 @@ LOOKS.newspapers = function(m, c)
 	for i = 0, 2 do
 		deco(m, c * CFrame.new(0, 0.03 + i * 0.05, 0) * CFrame.Angles(0, math.rad(i * 7), 0), Vector3.new(0.9, 0.05, 1.2), C(232, 230, 222))
 	end
-	label(m, c * CFrame.new(0, 0.2, 0) * CFrame.Angles(math.rad(-90), 0, 0), Vector3.new(0.85, 0.5, 0.02), "GÜNDEM", BLACK, C(232, 230, 222), { font = B.Fonts.Serif })
+	label(m, c * CFrame.new(0, 0.2, 0) * CFrame.Angles(math.rad(-90), 0, 0), Vector3.new(0.85, 0.5, 0.02), "NEWS", BLACK, C(232, 230, 222), { font = B.Fonts.Serif })
 end
 
 LOOKS.coat_rack = function(m, c)
@@ -392,12 +392,12 @@ end
 
 LOOKS.guest_wifi = function(m, c, k)
 	deco(m, c * CFrame.new(0, 0.42, 0) * CFrame.Angles(math.rad(-12), 0, 0), Vector3.new(0.9, 0.8, 0.05), WHITE, M.Glass)
-	label(m, c * CFrame.new(0, 0.42, -0.04) * CFrame.Angles(math.rad(-12), 0, 0), Vector3.new(0.85, 0.75, 0.01), "📶 Wi-Fi\n" .. k.wifi .. "\nŞifre: cay1234", BLACK, false, { font = B.Fonts.Medium })
+	label(m, c * CFrame.new(0, 0.42, -0.04) * CFrame.Angles(math.rad(-12), 0, 0), Vector3.new(0.85, 0.75, 0.01), "📶 Wi-Fi\n" .. k.wifi .. "\nPassword: tea1234", BLACK, false, { font = B.Fonts.Medium })
 end
 
 LOOKS.charging_station = function(m, c, k)
 	solid(m, c * CFrame.new(0, 1.8, 0), Vector3.new(1.2, 3.6, 1), DARK)
-	label(m, c * CFrame.new(0, 2.6, -0.51), Vector3.new(1, 0.9, 0.02), "⚡\nŞARJ", WHITE, k.accent, { glow = true })
+	label(m, c * CFrame.new(0, 2.6, -0.51), Vector3.new(1, 0.9, 0.02), "⚡\nCHARGE", WHITE, k.accent, { glow = true })
 	for i = -1, 1 do
 		deco(m, c * CFrame.new(i * 0.33, 3.66, -0.1), Vector3.new(0.22, 0.04, 0.42), BLACK)
 		deco(m, c * CFrame.new(i * 0.33, 3.35, -0.5), Vector3.new(0.04, 0.6, 0.04), WHITE)
@@ -445,7 +445,7 @@ LOOKS.kids_corner = function(m, c)
 end
 
 LOOKS.queue_screen = function(m, c)
-	screen(m, c, 3.8, 2, "SIRADAKİ: 024\n▸ TEZGÂH 2", C(255, 200, 60), C(20, 24, 30))
+	screen(m, c, 3.8, 2, "NOW SERVING: 024\n▸ BENCH 2", C(255, 200, 60), C(20, 24, 30))
 end
 
 LOOKS.game_console = function(m, c, k)
@@ -485,7 +485,7 @@ LOOKS.massage_chair = function(m, c)
 end
 
 LOOKS.big_screen = function(m, c)
-	screen(m, c, 6.6, 3.7, "🌅 ⛵ 🌉\nBoğaz'da gün batımı", WHITE, C(240, 120, 60))
+	screen(m, c, 6.6, 3.7, "🌅 ⛵ 🌉\nSunset over the bay", WHITE, C(240, 120, 60))
 end
 
 LOOKS.vr_demo = function(m, c, k)
@@ -549,7 +549,7 @@ LOOKS.turkish_coffee = function(m, c)
 		cylY(m, c * CFrame.new(0.6 + i * 0.4, 3.32, -0.3), 0.04, 0.32, WHITE)
 		cylY(m, c * CFrame.new(0.6 + i * 0.4, 3.45, -0.3), 0.22, 0.18, WHITE)
 	end
-	label(m, c * CFrame.new(0, 5.0, 1.23), Vector3.new(2.2, 0.6, 0.04), "☕ Türk Kahvesi", C(240, 220, 180), C(70, 40, 25), { font = B.Fonts.Serif })
+	label(m, c * CFrame.new(0, 5.0, 1.23), Vector3.new(2.2, 0.6, 0.04), "☕ Fresh Coffee", C(240, 220, 180), C(70, 40, 25), { font = B.Fonts.Serif })
 end
 
 LOOKS.microwave = function(m, c)
@@ -561,7 +561,7 @@ end
 
 LOOKS.drinks_fridge = function(m, c, k)
 	solid(m, c * CFrame.new(0, 3.2, 0), Vector3.new(2.4, 6.4, 2.2), WHITE)
-	label(m, c * CFrame.new(0, 6.1, -1.11), Vector3.new(2.2, 0.5, 0.02), "SOĞUK İÇECEK", WHITE, k.accent, { glow = true })
+	label(m, c * CFrame.new(0, 6.1, -1.11), Vector3.new(2.2, 0.5, 0.02), "COLD DRINKS", WHITE, k.accent, { glow = true })
 	deco(m, c * CFrame.new(0, 3.0, -1.05), Vector3.new(2.1, 5.2, 0.05), C(240, 250, 255), M.Neon, { Transparency = 0.6 })
 	local cans = { RED, C(250, 140, 30), C(60, 170, 70), C(240, 240, 240), C(40, 90, 200) }
 	for s = 0, 3 do
@@ -604,7 +604,7 @@ LOOKS.espresso_bar = function(m, c, k)
 	for i = 0, 3 do
 		cylY(m, c * CFrame.new(1.4 + (i % 2) * 0.35, 3.85 + (i // 2) * 0.3, 0.3), 0.28, 0.3, WHITE)
 	end
-	label(m, c * CFrame.new(0, 6.6, 1.42), Vector3.new(4, 1.6, 0.06), "ESPRESSO • LATTE\nTÜRK KAHVESİ • ÇAY", WHITE, C(30, 34, 30), { font = B.Fonts.Hand })
+	label(m, c * CFrame.new(0, 6.6, 1.42), Vector3.new(4, 1.6, 0.06), "ESPRESSO • LATTE\nCAPPUCCINO • TEA", WHITE, C(30, 34, 30), { font = B.Fonts.Hand })
 end
 
 -- Lighting --------------------------------------------------------------------------------------------
@@ -659,7 +659,7 @@ end
 
 LOOKS.window_lightbox = function(m, c, k)
 	deco(m, c, Vector3.new(2.9, 1.7, 0.16), DARK, M.Metal)
-	label(m, c * CFrame.new(0, 0, -0.09), Vector3.new(2.7, 1.5, 0.02), "BİLGİSAYAR\nTAMİR • BAKIM\nTOPLAMA", WHITE, k.accent, { glow = true, brightness = 1.6 })
+	label(m, c * CFrame.new(0, 0, -0.09), Vector3.new(2.7, 1.5, 0.02), "COMPUTER\nREPAIR • SERVICE\nCUSTOM BUILDS", WHITE, k.accent, { glow = true, brightness = 1.6 })
 end
 
 LOOKS.smart_lighting = function(m, c)
@@ -689,8 +689,8 @@ end
 -- Business --------------------------------------------------------------------------------------------
 LOOKS.price_tags = function(m, c)
 	deco(m, c, Vector3.new(3.6, 2.4, 0.08), C(250, 250, 246))
-	label(m, c * CFrame.new(0, 0.85, -0.05), Vector3.new(3.4, 0.5, 0.02), "FİYAT LİSTESİ", WHITE, C(30, 60, 120))
-	label(m, c * CFrame.new(0, -0.3, -0.05), Vector3.new(3.4, 1.7, 0.02), "Arıza tespiti ........ Ücretsiz\nFormat + Windows ....... $40\nTermal macun bakımı .... $25\nSSD takma ................... $20\nLaptop ekran ............. $90", BLACK, false, { font = B.Fonts.Mono })
+	label(m, c * CFrame.new(0, 0.85, -0.05), Vector3.new(3.4, 0.5, 0.02), "PRICE LIST", WHITE, C(30, 60, 120))
+	label(m, c * CFrame.new(0, -0.3, -0.05), Vector3.new(3.4, 1.7, 0.02), "Diagnosis ............. Free\nReinstall Windows ..... $40\nThermal paste ......... $25\nSSD install ........... $20\nLaptop screen ......... $90", BLACK, false, { font = B.Fonts.Mono })
 end
 
 LOOKS.pos_terminal = function(m, c)
@@ -706,7 +706,7 @@ end
 
 
 LOOKS.opening_hours = function(m, c)
-	sticker(m, c, 1.8, 1.4, "AÇIK\nPzt–Cmt 09:00–20:00\nPazar 11:00–18:00", WHITE, C(30, 30, 34))
+	sticker(m, c, 1.8, 1.4, "OPEN\nMon–Sat 09:00–20:00\nSun 11:00–18:00", WHITE, C(30, 30, 34))
 end
 
 LOOKS.sidewalk_sign = function(m, c)
@@ -714,7 +714,7 @@ LOOKS.sidewalk_sign = function(m, c)
 		local board = c * CFrame.new(0, 2, s * 0.5) * CFrame.Angles(math.rad(s * 14), 0, 0)
 		solid(m, board, Vector3.new(1.9, 3.8, 0.1), C(60, 40, 30), M.Wood)
 		if s < 0 then
-			label(m, board * CFrame.new(0, 0, -0.06), Vector3.new(1.6, 3.4, 0.02), "BUGÜN\nTermal macun\nbakımı\n%20\nindirimli!", WHITE, C(30, 34, 30), { font = B.Fonts.Hand })
+			label(m, board * CFrame.new(0, 0, -0.06), Vector3.new(1.6, 3.4, 0.02), "TODAY\nThermal paste\nservice\n20% off!", WHITE, C(30, 34, 30), { font = B.Fonts.Hand })
 		end
 	end
 end
@@ -728,7 +728,7 @@ end
 
 LOOKS.open_sign = function(m, c)
 	deco(m, c * CFrame.new(0, 0, 0.04), Vector3.new(2.2, 1, 0.05), BLACK)
-	label(m, c * CFrame.new(0, 0, -0.01), Vector3.new(2.1, 0.9, 0.02), "AÇIK", C(255, 60, 60), false, { glow = true, brightness = 2.4, font = B.Fonts.Display })
+	label(m, c * CFrame.new(0, 0, -0.01), Vector3.new(2.1, 0.9, 0.02), "OPEN", C(255, 60, 60), false, { glow = true, brightness = 2.4, font = B.Fonts.Display })
 end
 
 LOOKS.map_listing = function(m, c)
@@ -744,7 +744,7 @@ LOOKS.flag_banner = function(m, c, k)
 		deco(m, c * CFrame.new(0, 0.1, 0) * CFrame.Angles(0, i * math.pi / 2, 0), Vector3.new(1.4, 0.15, 0.15), DARK, M.Metal)
 	end
 	B.cylY(m, c * CFrame.new(0, 4.5, 0), 9, 0.12, STEEL, M.Metal, nc({ CanCollide = true }))
-	local f = label(m, c * CFrame.new(0.75, 5.3, 0), Vector3.new(1.4, 6.6, 0.05), "T\nA\nM\nİ\nR", WHITE, k.accent)
+	local f = label(m, c * CFrame.new(0.75, 5.3, 0), Vector3.new(1.4, 6.6, 0.05), "R\nE\nP\nA\nI\nR", WHITE, k.accent)
 	f.Material = M.Fabric
 end
 
@@ -761,7 +761,7 @@ end
 
 LOOKS.loyalty_cards = function(m, c, k)
 	deco(m, c * CFrame.new(0, 0.3, 0.05) * CFrame.Angles(math.rad(-10), 0, 0), Vector3.new(0.7, 0.55, 0.04), k.accent)
-	label(m, c * CFrame.new(0, 0.3, 0.02) * CFrame.Angles(math.rad(-10), 0, 0), Vector3.new(0.65, 0.5, 0.01), "10. TAMİR\nBİZDEN!\n● ● ● ○ ○", WHITE, false)
+	label(m, c * CFrame.new(0, 0.3, 0.02) * CFrame.Angles(math.rad(-10), 0, 0), Vector3.new(0.65, 0.5, 0.01), "10th REPAIR\nIS ON US!\n● ● ● ○ ○", WHITE, false)
 end
 
 local function certificate(m, c, w: number, h: number, text: string, seal)
@@ -772,11 +772,11 @@ local function certificate(m, c, w: number, h: number, text: string, seal)
 end
 
 LOOKS.warranty_system = function(m, c)
-	certificate(m, c, 2.4, 1.8, "GARANTİ BELGESİ\nTüm tamirlerde\n6 ay garanti", C(200, 160, 40))
+	certificate(m, c, 2.4, 1.8, "WARRANTY\nCERTIFICATE\n6 months on all repairs", C(200, 160, 40))
 end
 
 LOOKS.reviews_screen = function(m, c)
-	screen(m, c, 3.8, 2.0, "★★★★★  4,9\n“Çok hızlı tamir ettiler!”\n“Usta işini biliyor.”", C(255, 220, 90), C(20, 26, 40))
+	screen(m, c, 3.8, 2.0, "★★★★★  4.9\n“Fixed it so fast!”\n“These guys know their stuff.”", C(255, 220, 90), C(20, 26, 40))
 end
 
 LOOKS.delivery_scooter = function(m, c, k)
@@ -793,7 +793,7 @@ LOOKS.delivery_scooter = function(m, c, k)
 end
 
 LOOKS.iso_cert = function(m, c)
-	certificate(m, c, 2.4, 1.8, "ISO 9001:2015\nKALİTE YÖNETİM\nSİSTEMİ", C(40, 90, 180))
+	certificate(m, c, 2.4, 1.8, "ISO 9001:2015\nQUALITY MANAGEMENT\nSYSTEM", C(40, 90, 180))
 end
 
 LOOKS.roof_billboard = function(m, c, k)
@@ -801,7 +801,7 @@ LOOKS.roof_billboard = function(m, c, k)
 		solid(m, c * CFrame.new(x * 6, 6, 0.4), Vector3.new(0.6, 12, 0.6), DARK, M.Metal)
 	end
 	solid(m, c * CFrame.new(0, 12.5, 0), Vector3.new(16, 5, 0.5), k.accent)
-	label(m, c * CFrame.new(0, 12.5, -0.26), Vector3.new(15.6, 4.6, 0.02), k.name .. "\nBİLGİSAYAR TAMİR • TOPLAMA", WHITE, false, { glow = true, brightness = 1.8, font = B.Fonts.Display })
+	label(m, c * CFrame.new(0, 12.5, -0.26), Vector3.new(15.6, 4.6, 0.02), k.name .. "\nCOMPUTER REPAIR • BUILDS", WHITE, false, { glow = true, brightness = 1.8, font = B.Fonts.Display })
 end
 
 LOOKS.roof_letters = function(m, c, k)
@@ -827,12 +827,12 @@ end
 
 LOOKS.authorised = function(m, c)
 	deco(m, c, Vector3.new(2.6, 1.5, 0.1), C(210, 175, 70), M.Metal)
-	label(m, c * CFrame.new(0, 0, -0.06), Vector3.new(2.4, 1.3, 0.02), "★ YETKİLİ ★\nSERVİS", C(20, 40, 90), C(240, 236, 220), { font = B.Fonts.Serif })
+	label(m, c * CFrame.new(0, 0, -0.06), Vector3.new(2.4, 1.3, 0.02), "★ AUTHORISED ★\nSERVICE", C(20, 40, 90), C(240, 236, 220), { font = B.Fonts.Serif })
 end
 
 -- Safety --------------------------------------------------------------------------------------------
 LOOKS.license = function(m, c, k)
-	certificate(m, c, 2, 2.6, "İŞYERİ AÇMA VE\nÇALIŞMA RUHSATI\n\n" .. k.name .. "\nRuhsat No: 2026/" .. (100 + (k.plotId or 1)), C(200, 40, 40))
+	certificate(m, c, 2, 2.6, "BUSINESS\nOPERATING LICENCE\n\n" .. k.name .. "\nRuhsat No: 2026/" .. (100 + (k.plotId or 1)), C(200, 40, 40))
 end
 
 LOOKS.fire_extinguisher = function(m, c)
@@ -840,18 +840,18 @@ LOOKS.fire_extinguisher = function(m, c)
 	B.cylY(m, c * CFrame.new(0, -0.1, -0.25), 1.8, 0.62, RED, M.Metal, nc())
 	deco(m, c * CFrame.new(0, 0.95, -0.25), Vector3.new(0.3, 0.3, 0.2), BLACK)
 	deco(m, c * CFrame.new(0.3, 0.3, -0.45) * CFrame.Angles(0, 0, math.rad(-20)), Vector3.new(0.08, 1.1, 0.08), BLACK)
-	label(m, c * CFrame.new(0, 1.7, 0.05), Vector3.new(1, 0.5, 0.03), "🧯 YANGIN TÜPÜ", WHITE, RED)
+	label(m, c * CFrame.new(0, 1.7, 0.05), Vector3.new(1, 0.5, 0.03), "🧯 FIRE EXTINGUISHER", WHITE, RED)
 end
 
 LOOKS.first_aid = function(m, c)
 	deco(m, c, Vector3.new(1.4, 1.1, 0.4), WHITE)
 	deco(m, c * CFrame.new(0, 0.05, -0.21), Vector3.new(0.5, 0.15, 0.02), C(30, 150, 70))
 	deco(m, c * CFrame.new(0, 0.05, -0.21), Vector3.new(0.15, 0.5, 0.02), C(30, 150, 70))
-	label(m, c * CFrame.new(0, -0.38, -0.21), Vector3.new(1.2, 0.22, 0.01), "İLK YARDIM", C(30, 150, 70), false)
+	label(m, c * CFrame.new(0, -0.38, -0.21), Vector3.new(1.2, 0.22, 0.01), "FIRST AID", C(30, 150, 70), false)
 end
 
 LOOKS.fire_blanket = function(m, c)
-	label(m, c, Vector3.new(1, 1.2, 0.25), "YANGIN\nBATTANİYESİ", WHITE, RED)
+	label(m, c, Vector3.new(1, 1.2, 0.25), "FIRE\nBLANKET", WHITE, RED)
 	for x = -1, 1, 2 do
 		deco(m, c * CFrame.new(x * 0.25, -0.75, -0.05), Vector3.new(0.12, 0.35, 0.05), BLACK)
 	end
@@ -869,7 +869,7 @@ LOOKS.safety_kit = function(m, c)
 end
 
 LOOKS.exit_sign = function(m, c)
-	label(m, c, Vector3.new(2, 0.7, 0.15), "🏃 ACİL ÇIKIŞ", WHITE, C(20, 150, 70), { glow = true, brightness = 1.5 })
+	label(m, c, Vector3.new(2, 0.7, 0.15), "🏃 EMERGENCY EXIT", WHITE, C(20, 150, 70), { glow = true, brightness = 1.5 })
 end
 
 LOOKS.smoke_detector = function(m, c)
@@ -879,12 +879,12 @@ end
 
 LOOKS.emergency_light = function(m, c)
 	deco(m, c, Vector3.new(1.5, 0.45, 0.3), WHITE)
-	label(m, c * CFrame.new(0, 0, -0.16), Vector3.new(1.3, 0.35, 0.01), "ACİL", C(20, 150, 70), false, { glow = true })
+	label(m, c * CFrame.new(0, 0, -0.16), Vector3.new(1.3, 0.35, 0.01), "EMERGENCY", C(20, 150, 70), false, { glow = true })
 end
 
 LOOKS.kvkk_notice = function(m, c)
 	frame(m, c, 2, 2.4, C(40, 40, 44), function(f, w, h)
-		label(m, f, Vector3.new(w, h, 0.02), "KİŞİSEL VERİLERİN\nKORUNMASI\n\nCihazınızdaki verileri\nsadece onarım için\nkullanırız.", C(30, 30, 30), WHITE, { font = B.Fonts.Medium })
+		label(m, f, Vector3.new(w, h, 0.02), "DATA PROTECTION\n\nWe only use the data\non your device\nfor the repair.", C(30, 30, 30), WHITE, { font = B.Fonts.Medium })
 	end)
 end
 
@@ -1004,7 +1004,7 @@ LOOKS.spare_cabinet = function(m, c)
 	for x = -1, 1, 2 do
 		deco(m, c * CFrame.new(x * 0.25, 3.4, -0.84), Vector3.new(0.08, 0.6, 0.06), DARK, M.Metal)
 	end
-	label(m, c * CFrame.new(0, 5.8, -0.82), Vector3.new(2, 0.45, 0.02), "YEDEK PARÇA", WHITE, C(40, 44, 52))
+	label(m, c * CFrame.new(0, 5.8, -0.82), Vector3.new(2, 0.45, 0.02), "SPARE PARTS", WHITE, C(40, 44, 52))
 end
 
 LOOKS.screen_separator = function(m, c)
@@ -1100,7 +1100,7 @@ LOOKS.office_pc = function(m, c)
 	local back = c * CFrame.Angles(0, math.pi, 0)
 	deco(m, back * CFrame.new(0, 0.05, 0), Vector3.new(0.6, 0.06, 0.45), DARK)
 	deco(m, back * CFrame.new(0, 0.35, 0.05), Vector3.new(0.08, 0.6, 0.08), DARK)
-	screen(m, back * CFrame.new(0, 0.95, 0), 1.3, 0.75, "MÜŞTERİ KAYIT\n#1042", WHITE, C(20, 60, 120))
+	screen(m, back * CFrame.new(0, 0.95, 0), 1.3, 0.75, "CUSTOMER LOG\n#1042", WHITE, C(20, 60, 120))
 	deco(m, back * CFrame.new(0, 0.04, -0.7), Vector3.new(1.1, 0.05, 0.35), C(40, 40, 44))
 end
 
@@ -1116,7 +1116,7 @@ LOOKS.mesh_wifi = function(m, c)
 end
 
 LOOKS.fiber = function(m, c)
-	label(m, c * CFrame.new(0, 0.3, 0), Vector3.new(1.2, 0.8, 0.35), "FİBER", C(40, 40, 40), WHITE)
+	label(m, c * CFrame.new(0, 0.3, 0), Vector3.new(1.2, 0.8, 0.35), "FIBRE", C(40, 40, 40), WHITE)
 	deco(m, c * CFrame.new(0, -0.45, -0.1), Vector3.new(1.2, 0.25, 0.5), BLACK)
 	for x = -1, 1, 2 do
 		deco(m, c * CFrame.new(x * 0.45, -0.1, -0.1) * CFrame.Angles(0, 0, math.rad(x * 10)), Vector3.new(0.06, 0.6, 0.06), BLACK)
@@ -1142,7 +1142,7 @@ LOOKS.crm = function(m, c)
 	deco(m, c * CFrame.new(0, 0.1, 0.1), Vector3.new(0.3, 0.2, 0.3), DARK)
 	local tab = c * CFrame.new(0, 0.5, 0) * CFrame.Angles(math.rad(-20), 0, 0)
 	deco(m, tab, Vector3.new(0.95, 0.65, 0.05), BLACK)
-	label(m, tab * CFrame.new(0, 0, -0.03), Vector3.new(0.85, 0.55, 0.01), "Hoş geldiniz!\nKaydınız: #1042", WHITE, C(30, 90, 160), { glow = true })
+	label(m, tab * CFrame.new(0, 0, -0.03), Vector3.new(0.85, 0.55, 0.01), "Welcome!\nYour ticket: #1042", WHITE, C(30, 90, 160), { glow = true })
 end
 
 LOOKS.network_cabinet = function(m, c)
@@ -1286,7 +1286,7 @@ end
 
 LOOKS.training = function(m, c)
 	deco(m, c, Vector3.new(5, 2.6, 0.1), STEEL, M.Metal)
-	label(m, c * CFrame.new(0, 0, -0.06), Vector3.new(4.8, 2.4, 0.02), "EĞİTİM\n1) ESD önlemleri\n2) Termal macun\n3) Mikro lehim", C(30, 60, 160), WHITE, { font = B.Fonts.Hand })
+	label(m, c * CFrame.new(0, 0, -0.06), Vector3.new(4.8, 2.4, 0.02), "TRAINING\n1) ESD safety\n2) Thermal paste\n3) Micro soldering", C(30, 60, 160), WHITE, { font = B.Fonts.Hand })
 	deco(m, c * CFrame.new(0, -1.4, -0.12), Vector3.new(4, 0.1, 0.2), STEEL, M.Metal)
 end
 
@@ -1391,7 +1391,7 @@ end
 
 LOOKS.digital_signage = function(m, c, k)
 	solid(m, c * CFrame.new(0, 3.5, 0), Vector3.new(1.8, 7, 0.6), C(30, 30, 34))
-	label(m, c * CFrame.new(0, 3.9, -0.31), Vector3.new(1.5, 4.6, 0.02), "%30\nİNDİRİM\n\nSSD +\nKurulum", WHITE, k.accent, { glow = true, brightness = 1.6 })
+	label(m, c * CFrame.new(0, 3.9, -0.31), Vector3.new(1.5, 4.6, 0.02), "30%\nOFF\n\nSSD +\nInstall", WHITE, k.accent, { glow = true, brightness = 1.6 })
 	label(m, c * CFrame.new(0, 0.8, -0.31), Vector3.new(1.5, 0.6, 0.02), k.name, WHITE, false)
 end
 

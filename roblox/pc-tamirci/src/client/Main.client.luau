@@ -11,6 +11,7 @@ local Market = require(Shared.Economy.Market)
 local Client = script.Parent
 local S = require(Client.Strings)
 local State = require(Client.State)
+local Prefs = require(Client.Prefs)
 local UI = Client.UI
 local Kit = require(UI.Kit)
 local Hud = require(UI.Hud)
@@ -23,6 +24,7 @@ local Garage = require(UI.Garage)
 local JobsPanel = require(UI.JobsPanel)
 local Inventory = require(UI.Inventory)
 local Phone = require(UI.Phone)
+local SettingsPanel = require(UI.SettingsPanel)
 local BillsPanel = require(UI.BillsPanel)
 local ContractsPanel = require(UI.ContractsPanel)
 local Controllers = Client.Controllers
@@ -35,6 +37,7 @@ local Guide = require(Controllers.Guide)
 local Tutorial = require(Controllers.Tutorial)
 local Traffic = require(Controllers.Traffic)
 local Sky = require(Controllers.Sky)
+local Display = require(Controllers.Display)
 
 S.detect()
 State.init()
@@ -122,9 +125,6 @@ Net.on("paid", function(p)
 end)
 
 State.changed:Connect(function(d, prev)
-	local settings = d.settings or {}
-	App.sfxVolume = settings.sfx or 0.8
-	Ambience.setVolumes(settings.music, settings.sfx)
 	if prev and d.money > prev.money then
 		App.sound("Cash", 0.35)
 	end
@@ -139,6 +139,7 @@ Hud.init(screen, {
 	inventory = Inventory.toggle,
 	phone = Phone.toggle,
 	map = MapController.toggle,
+	settings = SettingsPanel.toggle,
 	bills = function()
 		BillsPanel.open()
 	end,
@@ -149,14 +150,16 @@ StaffPanel.init()
 FactoryPanel.init()
 Garage.init()
 ContractsPanel.init()
+local function relabel()
+	MapController.relabel()
+	Guide.relabel()
+end
 Phone.init({
 	map = MapController.open,
 	home = home,
-	relabel = function()
-		MapController.relabel()
-		Guide.relabel()
-	end,
+	relabel = relabel,
 })
+SettingsPanel.init({ relabel = relabel })
 BenchViews.init()
 BenchController.init(screen, Hud)
 MapController.init()
@@ -166,10 +169,9 @@ Traffic.init()
 Sky.init()
 Guide.init()
 Tutorial.init()
+Prefs.init()
+Display.init()
 if State.data then
-	local settings = State.data.settings or {}
-	App.sfxVolume = settings.sfx or 0.8
-	Ambience.setVolumes(settings.music, settings.sfx)
 	if State.data.daily and State.data.daily.day ~= Market.day() then
 		task.delay(6, function()
 			Hud.toast(S.t("daily_ready"), "good", 6)
@@ -191,5 +193,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		Phone.toggle()
 	elseif k == Enum.KeyCode.H then
 		home()
+	elseif k == Enum.KeyCode.O then
+		SettingsPanel.toggle()
 	end
 end)

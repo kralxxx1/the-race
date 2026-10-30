@@ -151,7 +151,7 @@ local function park(parent, poi, rng)
 		B.box(m, gate * CFrame.new(side * 7, 6, 0), Vector3.new(2, 12, 2), Color3.fromRGB(110, 80, 60), M.Brick)
 	end
 	local arch = B.box(m, gate * CFrame.new(0, 12.6, 0), Vector3.new(16, 2, 2), Color3.fromRGB(110, 80, 60), M.Brick)
-	B.sign(arch, Enum.NormalId.Front, "GÖL PARK", { color = Color3.fromRGB(250, 230, 180), font = B.Fonts.Serif })
+	B.sign(arch, Enum.NormalId.Front, "LAKE PARK", { color = Color3.fromRGB(250, 230, 180), font = B.Fonts.Serif })
 	return m
 end
 
@@ -236,13 +236,13 @@ local function lunapark(parent, poi, rng)
 			B.box(m, c * CFrame.new(x * 5, 4, -0.8), Vector3.new(0.4, 6, 0.4), col, M.Wood)
 		end
 		local sign = B.box(m, c * CFrame.new(0, 9, -0.4), Vector3.new(8, 1.6, 0.3), col, M.SmoothPlastic, nc())
-		B.sign(sign, Enum.NormalId.Front, ({ "PAMUK ŞEKER", "MISIR", "BALON PATLAT", "ÇİĞ KÖFTE", "KUMPİR", "HALKA AT", "DONDURMA", "LUNAPARK BİLET" })[i + 1], { color = Color3.new(1, 1, 1) })
+		B.sign(sign, Enum.NormalId.Front, ({ "COTTON CANDY", "POPCORN", "BALLOON POP", "HOT DOGS", "LOADED FRIES", "RING TOSS", "ICE CREAM", "FUNFAIR TICKETS" })[i + 1], { color = Color3.new(1, 1, 1) })
 		local bulb = B.box(m, c * CFrame.new(0, 8, -0.8), Vector3.new(9, 0.3, 0.3), Color3.fromRGB(255, 230, 160), M.Neon, nc())
 		bulb.Name = "StallLights"
 	end
 	local gate = CFrame.lookAt(Vector3.new(cx, WALK_Y, s.z0 + 2), Vector3.new(cx, WALK_Y, s.z0 - 10))
 	local arch = B.box(m, gate * CFrame.new(0, 16, 0), Vector3.new(30, 4, 2), Color3.fromRGB(240, 60, 120), M.SmoothPlastic)
-	B.sign(arch, Enum.NormalId.Front, "🎡 LUNAPARK 🎡", { color = Color3.new(1, 1, 1), glow = true, brightness = 1.5 })
+	B.sign(arch, Enum.NormalId.Front, "🎡 FUNFAIR 🎡", { color = Color3.new(1, 1, 1), glow = true, brightness = 1.5 })
 	for side = -1, 1, 2 do
 		B.box(m, gate * CFrame.new(side * 14, 8, 0), Vector3.new(2, 16, 2), Color3.fromRGB(250, 220, 60), M.SmoothPlastic)
 	end
@@ -308,7 +308,7 @@ local function harbor(parent, poi, rng)
 		end
 	end
 	local name = B.box(m, ship * CFrame.new(0, 6, 23.1), Vector3.new(60, 6, 0.2), Color3.fromRGB(30, 60, 110), M.SmoothPlastic, nc())
-	B.sign(name, Enum.NormalId.Back, "MV ANADOLU", { color = Color3.new(1, 1, 1) })
+	B.sign(name, Enum.NormalId.Back, "MV NORTHSTAR", { color = Color3.new(1, 1, 1) })
 	return m
 end
 
@@ -320,7 +320,7 @@ local function marina(parent, poi, rng)
 	local m = B.model("Marina", parent)
 	local cx = (s.x0 + s.x1) / 2
 	local clubCf = CFrame.lookAt(Vector3.new(cx, WALK_Y, s.z1 - 6), Vector3.new(cx, WALK_Y, s.z1 + 10))
-	Buildings.building(m, clubCf * CFrame.new(0, 0, 30), { w = 80, d = 40, floors = 2, floorH = 14, style = "modern", ground = "lobby", name = "YAT KULÜBÜ ⛵", rng = rng, glassColor = { 80, 140, 170 }, wallColor = { 240, 240, 240 } })
+	Buildings.building(m, clubCf * CFrame.new(0, 0, 30), { w = 80, d = 40, floors = 2, floorH = 14, style = "modern", ground = "lobby", name = "YACHT CLUB ⛵", rng = rng, glassColor = { 80, 140, 170 }, wallColor = { 240, 240, 240 } })
 	-- boats on trailers in the yard
 	for i = 0, 4 do
 		Props.boat(m, CFrame.new(s.x0 + 30 + i * 40, WALK_Y + 2, s.z0 + 40) * CFrame.Angles(0, math.pi / 2, 0), nil, rng)
@@ -369,7 +369,7 @@ local function pier(parent, poi, _rng)
 	B.box(m, term * CFrame.new(0, 7, -10), Vector3.new(26, 14, 16), Color3.fromRGB(240, 236, 226), M.Wood)
 	B.box(m, term * CFrame.new(0, 14.8, -10), Vector3.new(30, 1.6, 20), Color3.fromRGB(150, 40, 40), M.ClayRoofTiles)
 	local sign = B.box(m, term * CFrame.new(0, 11, -1.8), Vector3.new(16, 2, 0.3), Color3.fromRGB(20, 50, 100), M.SmoothPlastic, nc())
-	B.sign(sign, Enum.NormalId.Front, "VAPUR İSKELESİ", { color = Color3.new(1, 1, 1) })
+	B.sign(sign, Enum.NormalId.Front, "FERRY PIER", { color = Color3.new(1, 1, 1) })
 	-- anglers' buckets and lamps
 	for k = 0, 5 do
 		Props.streetLamp(m, CFrame.lookAt(Vector3.new(p.X + 7, WALK_Y + 0.7, start + 10 + k * 24), Vector3.new(p.X, WALK_Y + 0.7, start + 10 + k * 24)), "classic")
@@ -477,7 +477,7 @@ local function viewpoint(parent, poi, _rng)
 	local kiosk = CFrame.lookAt((base * CFrame.new(0, 0, -10)).Position, (base * CFrame.new(0, 0, 10)).Position)
 	B.box(m, kiosk * CFrame.new(0, 4, 2), Vector3.new(12, 8, 6), Color3.fromRGB(150, 110, 70), M.WoodPlanks)
 	local sign = B.box(m, kiosk * CFrame.new(0, 9, -1), Vector3.new(12, 2, 0.4), Color3.fromRGB(40, 90, 60), M.Wood)
-	B.sign(sign, Enum.NormalId.Front, "SEYİR TEPESİ ÇAY BAHÇESİ", { color = Color3.fromRGB(250, 240, 200) })
+	B.sign(sign, Enum.NormalId.Front, "VIEWPOINT TEA GARDEN", { color = Color3.fromRGB(250, 240, 200) })
 	Props.flag(m, base * CFrame.new(20, 0, -10), 26)
 	return m
 end

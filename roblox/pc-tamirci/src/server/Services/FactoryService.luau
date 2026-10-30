@@ -1,5 +1,5 @@
 -- FactoryService: the player's own factory at the industrial estate (Data/Factory). Production
--- lines make batches of "Atölye" products from bought-in materials; a finished batch goes into the
+-- lines make batches of "Benchcraft" products from bought-in materials; a finished batch goes into the
 -- factory warehouse and, with "repeat" on, the line starts the next one if the materials can be
 -- paid. From the warehouse the goods are shipped to the shop's inventory or sold to distributors.
 -- Batches run on the clock (os.time), so one that was running when you left is ready when you

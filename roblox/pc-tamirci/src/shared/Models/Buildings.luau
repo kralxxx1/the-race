@@ -23,14 +23,14 @@ local STONE = { { 214, 200, 176 }, { 196, 182, 160 }, { 222, 214, 196 }, { 170, 
 local AWNING = { { 200, 40, 40 }, { 30, 110, 60 }, { 30, 70, 150 }, { 230, 140, 30 }, { 120, 40, 90 }, { 40, 40, 44 } }
 
 Buildings.ShopNames = {
-	"Yıldız Eczanesi", "Berber Ali", "Kuaför Selin", "Lezzet Lokantası", "Ege Fırını", "Güven Kırtasiye",
-	"Lale Çiçekçilik", "Altın Kuyumcu", "Merkez Optik", "Şifa Eczanesi", "Usta Terzi", "Anadolu Halı",
-	"Mavi Butik", "Kristal Saat", "Yeni Kitabevi", "Doğa Kuruyemiş", "Sultan Baklava", "Hilal Pastanesi",
-	"Gül Mobilya", "Bereket Market", "Deniz Balık", "Kardeşler Kasap", "Taze Manav", "Nur Döviz",
-	"Ayakkabı Dünyası", "Spor Merkezi", "Oyuncak Diyarı", "Foto Işık", "Matbaa 34", "Pet Shop Pati",
-	"Noter", "Diş Kliniği", "Veteriner Can", "Lostra Salonu", "Telefoncu Emre", "Elektrikçi Hasan",
-	"Nalbur Osman", "Simitçi", "Börekçi Hatice", "Pide Salonu", "Tatlıcı Ömer", "Çay Bahçesi",
-	"Kafe Mola", "Burger Bros", "Sushi Ada", "Mantı Evi", "Gözleme Evi", "Kahve Durağı",
+	"Starlight Pharmacy", "Barber Joe", "Salon Bella", "The Hungry Fork", "Golden Crust Bakery", "Pennywise Stationery",
+	"Rose & Thorn Florist", "Gold Standard Jewellers", "Clearview Optics", "Green Cross Pharmacy", "Tailor & Sons", "Persian Rug House",
+	"Blue Boutique", "Crystal Watches", "Paper Moon Books", "Nutty Professor", "Honey Bee Sweets", "Sweet Tooth Patisserie",
+	"Home Haven Furniture", "Fresh Corner Market", "Harbour Fish Market", "Butcher Brothers", "Green Grocer", "QuickChange Exchange",
+	"Sole Mates Shoes", "Sports Hub", "Toyland", "Snapshot Photo", "Print 34", "Pet Palace",
+	"Notary Office", "Bright Smile Dental", "Happy Paws Vet", "Shine Shoe Repair", "Phone Fix Eddie", "Sparky Electric",
+	"Hardware Hank", "Bagel Stop", "Pie Corner", "Pizza Slice", "Cupcake Co.", "Tea Garden",
+	"Cafe Pause", "Burger Bros", "Sushi Ada", "Dumpling House", "Wrap Shack", "Coffee Stop",
 }
 local SHOP_COLORS = { { 200, 40, 40 }, { 30, 120, 70 }, { 30, 80, 170 }, { 230, 140, 30 }, { 120, 40, 120 }, { 20, 20, 24 }, { 200, 170, 60 }, { 0, 150, 190 } }
 

@@ -22,6 +22,7 @@ local BillsPanel = require(UI.BillsPanel)
 local Stores = require(UI.Stores)
 local FactoryPanel = require(UI.FactoryPanel)
 local LeadersPanel = require(UI.LeadersPanel)
+local SettingsPanel = require(UI.SettingsPanel)
 local S = require(UI.Parent.Strings)
 local State = require(UI.Parent.State)
 
@@ -77,51 +78,6 @@ local function reviewsPage(body: Frame)
 	end
 end
 
-local function slider(parent: Instance, label: string, value: number, order: number, onSet: (number) -> ())
-	local row = Kit.frame(parent, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 56), LayoutOrder = order })
-	Kit.label(row, label, { Size = UDim2.new(1, 0, 0, 20) })
-	local steps = Kit.frame(row, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 24) })
-	Kit.listLayout(steps, 4, true)
-	local buttons = {}
-	local function paint(v: number)
-		for i, b in buttons do
-			Kit.setColor(b, if (i - 1) / 10 <= v + 1e-3 then Theme.accent else Theme.card)
-		end
-	end
-	for i = 0, 10 do
-		local b = Kit.button(steps, "", function()
-			paint(i / 10)
-			onSet(i / 10)
-		end, { Size = UDim2.fromOffset(32, 28), LayoutOrder = i })
-		buttons[i + 1] = b
-	end
-	paint(value)
-end
-
-local function settingsPage(body: Frame)
-	Kit.listLayout(body, 12)
-	Kit.label(body, S.t("settings_lang"), { FontFace = Theme.bold, LayoutOrder = 1 })
-	local langs = Kit.frame(body, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 40), LayoutOrder = 2 })
-	Kit.listLayout(langs, 8, true)
-	for i, l in { { "tr", "🇹🇷 Türkçe" }, { "en", "🇬🇧 English" } } do
-		Kit.button(langs, l[2], function()
-			S.setLang(l[1])
-			Net.request("settings.set", { lang = l[1] })
-			if actions.relabel then
-				actions.relabel()
-			end
-			Phone.open()
-		end, { Size = UDim2.fromOffset(170, 38), LayoutOrder = i }, if S.lang() == l[1] then "primary" else nil)
-	end
-	local settings = State.data and State.data.settings or { music = 0.5, sfx = 0.8 }
-	slider(body, "🎵 " .. S.t("settings_music"), settings.music or 0.5, 3, function(v)
-		Net.request("settings.set", { music = v })
-	end)
-	slider(body, "🔊 " .. S.t("settings_sfx"), settings.sfx or 0.8, 4, function(v)
-		Net.request("settings.set", { sfx = v })
-	end)
-end
-
 local function helpPage(body: Frame)
 	local list = Kit.list(body)
 	Kit.label(list, S.t("help_text"), { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 16 })
@@ -174,7 +130,7 @@ function Phone.open()
 			page(S.t("phone_reviews"), reviewsPage)
 		end },
 		{ "⚙️", S.t("phone_settings"), function()
-			page(S.t("phone_settings"), settingsPage)
+			SettingsPanel.open()
 		end },
 		{ "❓", S.t("phone_help"), function()
 			page(S.t("phone_help"), helpPage)

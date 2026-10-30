@@ -136,10 +136,12 @@ local function customerJob()
 	return cust
 end
 
-Hud.toast("🎉 Seviye atladın! Seviye 7", "good")
-Hud.toast("🏢 Sözleşme: makine 2/3 teslim edildi (+$75)", "info")
+Hud.toast("🎉 Level up! Level 7", "good")
+Hud.toast("🏢 Contract: machine 2/3 delivered (+$75)", "info")
 if scene == "phone" then
 	cmod("UI.Phone").open()
+elseif string.sub(scene, 1, 9) == "settings_" then
+	cmod("UI.SettingsPanel").open(string.sub(scene, 10))
 elseif scene == "bills" then
 	-- a week of business and a late electricity bill
 	local BillsService = Engine.require(game:GetService("ServerScriptService").Server.Services.BillsService)
@@ -307,7 +309,7 @@ elseif scene == "parts_gpu" then
 	end
 	press("Ekran Kartı")
 	press("NVIDIA")
-elseif scene ~= "hud" then
+elseif scene ~= "hud" and string.sub(scene, 1, 9) ~= "settings_" then
 	service(if scene == "dealer" then "cars" elseif scene == "staff" then "staff" else scene)
 end
 task.wait(0.4)

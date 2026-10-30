@@ -47,8 +47,8 @@ end
 -- OSB: organised industrial zone
 ----------------------------------------------------------------------------------------------------
 local FIRMS = {
-	"ÇELİK BORU A.Ş.", "ANADOLU KABLO", "EGE OTOMOTİV", "TEKNİK PLASTİK", "MARMARA AMBALAJ", "KORKMAZ MOBİLYA",
-	"SİLİKON ELEKTRONİK", "YILDIZ ENERJİ", "DEMİRTAŞ MAKİNE", "AKDENİZ TEKSTİL", "KUZEY ALÜMİNYUM", "BAŞKENT BOYA",
+	"STEEL PIPE CO.", "NORTHERN CABLE", "COASTAL AUTOMOTIVE", "TECH PLASTICS", "PACIFIC PACKAGING", "HARTLEY FURNITURE",
+	"SILICON ELECTRONICS", "STARLINE ENERGY", "IRONWORKS MACHINERY", "OCEANIC TEXTILES", "NORDIC ALUMINIUM", "CAPITAL PAINT",
 }
 
 local function factory(parent: Instance, ctx, block, rng: Random)
@@ -81,7 +81,7 @@ local function silos(parent: Instance, ctx, block, rng: Random)
 	B.box(parent, mill * CFrame.new(0, 26, 10), Vector3.new(26, 52, 20), Color3.fromRGB(226, 220, 204), M.Concrete)
 	B.box(parent, mill * CFrame.new(0, 48, 0.2), Vector3.new(20, 4, 0.4), Color3.fromRGB(180, 40, 40), M.SmoothPlastic)
 	local label = B.box(parent, mill * CFrame.new(0, 40, -0.2), Vector3.new(22, 5, 0.4), Color3.fromRGB(180, 40, 40), M.SmoothPlastic)
-	B.sign(label, Enum.NormalId.Front, Rand.pick(rng, { "BEREKET UN", "ANADOLU YEM", "ALTIN BAŞAK UN", "TOPRAK TARIM" }), { color = Color3.new(1, 1, 1) })
+	B.sign(label, Enum.NormalId.Front, Rand.pick(rng, { "GOLDEN GRAIN MILL", "HEARTLAND FEED", "SUNRISE FLOUR", "PRAIRIE FARMS" }), { color = Color3.new(1, 1, 1) })
 	OuterProps.truck(parent, ctx.frontCf(x1 - 30, 8) * CFrame.Angles(0, -math.pi / 2, 0), rng)
 end
 
@@ -115,7 +115,7 @@ local function tanks(parent: Instance, ctx, block, rng: Random)
 	for _, x in { -w / 2 + 3, 0, w / 2 - 3 } do
 		B.box(parent, base * CFrame.new(x, 4.3, d / 2), Vector3.new(0.8, 8.6, 0.8), Color3.fromRGB(90, 90, 96), M.Metal)
 	end
-	sign(parent, ctx.frontCf(block.x0 + 26, 4), Rand.pick(rng, { "YILDIZ ENERJİ DEPOLAMA", "EGE KİMYA", "MARMARA YAĞ" }), 26, { 30, 60, 110 })
+	sign(parent, ctx.frontCf(block.x0 + 26, 4), Rand.pick(rng, { "STARLINE ENERGY STORAGE", "COASTAL CHEMICALS", "PACIFIC OIL" }), 26, { 30, 60, 110 })
 end
 
 local function solar(parent: Instance, ctx, block, rng: Random)
@@ -136,7 +136,7 @@ local function solar(parent: Instance, ctx, block, rng: Random)
 		end
 	end
 	B.box(parent, base * CFrame.new(w / 2 - 8, 3, d - 6), Vector3.new(8, 6, 5), Color3.fromRGB(220, 222, 226), M.Metal)
-	sign(parent, ctx.frontCf(block.x0 + 24, 2), Rand.pick(rng, { "GÜNEŞ ENERJİ SANTRALİ", "OSB GES 1", "YEŞİL ENERJİ A.Ş." }), 24, { 40, 120, 60 })
+	sign(parent, ctx.frontCf(block.x0 + 24, 2), Rand.pick(rng, { "SOLAR POWER STATION", "ESTATE SOLAR 1", "GREEN ENERGY CO." }), 24, { 40, 120, 60 })
 end
 
 local function logistics(parent: Instance, ctx, block, rng: Random)
@@ -149,7 +149,7 @@ local function logistics(parent: Instance, ctx, block, rng: Random)
 	B.box(parent, hall * CFrame.new(0, 7, d / 2), Vector3.new(w, 14, d), col, M.Metal)
 	B.box(parent, hall * CFrame.new(0, 14.3, d / 2), Vector3.new(w + 1, 0.6, d + 1), Color3.fromRGB(120, 120, 124), M.Concrete)
 	local label = B.box(parent, hall * CFrame.new(0, 12, -0.2), Vector3.new(math.min(40, w - 10), 3, 0.4), Color3.fromRGB(240, 120, 30), M.SmoothPlastic)
-	B.sign(label, Enum.NormalId.Front, Rand.pick(rng, { "ANADOLU LOJİSTİK MERKEZİ", "MARMARA KARGO AKTARMA", "OSB DEPOLAMA" }), { color = Color3.new(1, 1, 1) })
+	B.sign(label, Enum.NormalId.Front, Rand.pick(rng, { "NORTHERN LOGISTICS CENTRE", "PACIFIC CARGO HUB", "ESTATE WAREHOUSING" }), { color = Color3.new(1, 1, 1) })
 	local doors = math.floor(w / 18)
 	for i = 1, doors do
 		local x = -w / 2 + (i - 0.5) * w / doors
@@ -189,7 +189,7 @@ local function lumber(parent: Instance, ctx, block, rng: Random)
 			B.box(parent, shed * CFrame.new(sx * 19, 7, z), Vector3.new(1, 14, 1), Color3.fromRGB(110, 80, 60), M.Wood)
 		end
 	end
-	sign(parent, ctx.frontCf(block.x0 + 22, 3), Rand.pick(rng, { "KORKMAZ KERESTE", "ORMAN ÜRÜNLERİ", "ÇAM KERESTE" }), 22, { 110, 70, 40 })
+	sign(parent, ctx.frontCf(block.x0 + 22, 3), Rand.pick(rng, { "HARTLEY TIMBER", "FOREST PRODUCTS", "PINE LUMBER" }), 22, { 110, 70, 40 })
 end
 
 local OSB_KINDS = { factory, factory, factory, silos, tanks, solar, logistics, logistics, lumber }

@@ -35,6 +35,12 @@ function T.eq(a, b, msg: string?)
 	end
 end
 
+function T.near(a, b, eps: number, msg: string?)
+	if type(a) ~= "number" or math.abs(a - b) > eps then
+		error(string.format("%s: expected %s ± %s, got %s", msg or "near", tostring(b), tostring(eps), tostring(a)), 2)
+	end
+end
+
 function T.ok(cond, msg: string?)
 	if not cond then
 		error(msg or "assertion failed", 2)

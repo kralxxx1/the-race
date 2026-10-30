@@ -65,12 +65,12 @@ CityLayout.Districts = {
 	IND = { name = { tr = "Sanayi", en = "Industrial" }, color = { 170, 160, 150 } },
 	SCR = { name = { tr = "Hurdalık", en = "Scrapyard" }, color = { 150, 120, 90 } },
 	DAT = { name = { tr = "Veri Merkezi", en = "Data Centre" }, color = { 140, 150, 170 } },
-	OLD = { name = { tr = "Eski Çarşı", en = "Old Bazaar" }, color = { 220, 180, 130 } },
+	OLD = { name = { tr = "Eski Çarşı", en = "Old Town" }, color = { 220, 180, 130 } },
 	DWN = { name = { tr = "Şehir Merkezi", en = "Downtown" }, color = { 190, 190, 205 } },
-	PLZ = { name = { tr = "Cumhuriyet Meydanı", en = "Republic Square" }, color = { 230, 215, 170 } },
-	TEC = { name = { tr = "Teknoloji Çarşısı", en = "Tech Bazaar" }, color = { 140, 200, 230 } },
-	TEP = { name = { tr = "Teknoloji Çarşısı", en = "Tech Bazaar" }, color = { 140, 200, 230 } },
-	DLR = { name = { tr = "Galeriler", en = "Dealerships" }, color = { 230, 150, 150 } },
+	PLZ = { name = { tr = "Cumhuriyet Meydanı", en = "Founders Square" }, color = { 230, 215, 170 } },
+	TEC = { name = { tr = "Teknoloji Çarşısı", en = "Tech Row" }, color = { 140, 200, 230 } },
+	TEP = { name = { tr = "Teknoloji Çarşısı", en = "Tech Row" }, color = { 140, 200, 230 } },
+	DLR = { name = { tr = "Galeriler", en = "Auto Row" }, color = { 230, 150, 150 } },
 	SPT = { name = { tr = "Stadyum", en = "Stadium" }, color = { 120, 190, 120 } },
 	LUN = { name = { tr = "Lunapark", en = "Funfair" }, color = { 240, 170, 200 } },
 	SEA = { name = { tr = "Sahil", en = "Seaside" }, color = { 150, 210, 220 } },
@@ -81,12 +81,12 @@ CityLayout.Districts = {
 	OSB = { name = { tr = "Organize Sanayi", en = "Industrial Estate" }, color = { 176, 166, 150 } },
 	TRS = { name = { tr = "Tersane", en = "Shipyard" }, color = { 130, 146, 166 } },
 	BLK = { name = { tr = "Balıkçı Köyü", en = "Fishing Village" }, color = { 200, 222, 236 } },
-	VIL = { name = { tr = "Villa Tepe", en = "Villa Hill" }, color = { 176, 210, 150 } },
-	TKP = { name = { tr = "Teknopark", en = "Technopark" }, color = { 150, 210, 240 } },
+	VIL = { name = { tr = "Villa Tepe", en = "Hillcrest" }, color = { 176, 210, 150 } },
+	TKP = { name = { tr = "Teknopark", en = "Tech Park" }, color = { 150, 210, 240 } },
 	CFT = { name = { tr = "Çiftlikler", en = "Farmland" }, color = { 200, 200, 120 } },
 	GLF = { name = { tr = "Golf Kulübü", en = "Golf Club" }, color = { 120, 200, 110 } },
 	KRV = { name = { tr = "Karavan Parkı", en = "Caravan Park" }, color = { 170, 200, 130 } },
-	YZL = { name = { tr = "Yazlıklar", en = "Summer Houses" }, color = { 240, 214, 170 } },
+	YZL = { name = { tr = "Yazlıklar", en = "Beach Cottages" }, color = { 240, 214, 170 } },
 }
 
 -- Blocks that hold player shop plots (6 per block = 66 plots)
@@ -171,8 +171,8 @@ local FREE_POIS = {
 	{ "library", nil },
 }
 
-local VNAMES = { "Batı Otoyolu", "Pist Caddesi", "Tersane Caddesi", "Batı Çevre Yolu", "Fabrika Caddesi", "Han Sokak", "Kervan Caddesi", "Saray Caddesi", "Cumhuriyet Caddesi", "Teknoloji Caddesi", "Çip Sokak", "Galeri Caddesi", "Lale Sokak", "Doğu Çevre Yolu", "Villa Yolu", "Bağ Yolu", "Doğu Otoyolu" }
-local HNAMES = { "Kuzey Çevre Yolu", "Kampüs Caddesi", "Park Caddesi", "Çarşı Caddesi", "Meydan Caddesi", "İstiklal Bulvarı", "Liman Caddesi", "Martı Sokak", "Kumsal Caddesi", "Sahil Bulvarı" }
+local VNAMES = { "West Highway", "Runway Avenue", "Shipyard Road", "West Ring Road", "Factory Street", "Old Town Lane", "Market Street", "Regent Street", "Founders Avenue", "Silicon Street", "Chip Lane", "Auto Mile", "Tulip Lane", "East Ring Road", "Villa Road", "Vineyard Road", "East Highway" }
+local HNAMES = { "North Ring Road", "Campus Drive", "Park Avenue", "Market Row", "Central Plaza Street", "Liberty Boulevard", "Harbour Street", "Seagull Lane", "Beach Road", "Coastal Boulevard" }
 
 local function roadWidthV(i: number): number
 	if i == 1 or i == #XS or math.abs(XS[i]) == 1200 then

@@ -175,7 +175,7 @@ local function placeDisplays()
 			counters[dealer] = (counters[dealer] or 0) + 1
 			local def = list[((counters[dealer] - 1) % #list) + 1]
 			local cf = (marker :: BasePart).CFrame * CFrame.new(0, -0.5, 0)
-			local m = VehicleModels.build(folder, def, cf, { color = rng:NextInteger(1, #def.colors), plate = "GALERİ", static = true })
+			local m = VehicleModels.build(folder, def, cf, { color = rng:NextInteger(1, #def.colors), plate = "DEALER", static = true })
 			m.Name = "Display_" .. def.id
 			m:SetAttribute("Display", true)
 		end

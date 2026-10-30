@@ -286,10 +286,10 @@ local EDU_BY_ROLE = {
 }
 
 Employees.towns = {
-	"İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Konya", "Adana", "Gaziantep", "Kayseri", "Eskişehir",
-	"Trabzon", "Samsun", "Diyarbakır", "Erzurum", "Mersin", "Malatya", "Sakarya", "Denizli", "Manisa", "Van",
-	"Rize", "Sivas", "Hatay", "Kocaeli", "Tekirdağ", "Edirne", "Çanakkale", "Aydın", "Muğla", "Ordu",
-	"Giresun", "Kastamonu", "Balıkesir", "Afyonkarahisar", "Elazığ", "Şanlıurfa", "Mardin", "Zonguldak", "Bolu", "Artvin",
+	"London", "Manchester", "Dublin", "Edinburgh", "Toronto", "Vancouver", "Chicago", "Austin", "Boston", "Seattle",
+	"Denver", "Portland", "Sydney", "Melbourne", "Auckland", "Cape Town", "Nairobi", "Lagos", "Mumbai", "Bangalore",
+	"Singapore", "Seoul", "Osaka", "Berlin", "Munich", "Hamburg", "Amsterdam", "Rotterdam", "Madrid", "Barcelona",
+	"Lisbon", "Porto", "Rome", "Milan", "Paris", "Lyon", "Vienna", "Prague", "Warsaw", "Stockholm",
 }
 
 -- Where you find people. fee: the hiring fee in days of wages; lie: how likely a CV oversells;

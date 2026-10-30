@@ -53,7 +53,7 @@ local CLIENTS = {
 
 -- the outer districts' clients
 CLIENTS.osb = {
-	name = N("OSB Fabrika Ofisleri", "Industrial Zone Offices"),
+	name = N("Estate Factory Offices", "Industrial Zone Offices"),
 	level = 2,
 	offers = {
 		{ key = "osb_care", kind = "maintenance", tiers = { "office", "budget" }, count = { 3, 5 }, pay = 60, bonus = 120, title = N("Fabrika ofislerinin bakımı", "Factory office maintenance") },

@@ -219,6 +219,7 @@ return function(T)
 			T.eq(where.next, nil, "level 2 doesn't give the click")
 			-- follow the next step until nothing is left to do
 			local done = 0
+			local trail = {}
 			local timed = Engine.mod("ReplicatedStorage.Shared.Config").HoldActionSeconds
 			local lastAct = 0
 			for _ = 1, 60 do
@@ -236,8 +237,9 @@ return function(T)
 				lastAct = os.clock()
 				T.ok(act.ok, string.format("%s: %s %s with %s -> %s", case[1], h.next.action, tostring(h.next.target), h.next.tool, tostring(act.reason or act.err)))
 				done += 1
+				table.insert(trail, h.next.action .. ":" .. tostring(h.next.target))
 			end
-			T.ok(done >= 2 and done < 60, case[1] .. ": steps followed " .. done)
+			T.ok(done >= 2 and done < 60, case[1] .. ": steps followed " .. done .. " — last: " .. table.concat(trail, ", ", math.max(1, #trail - 7)))
 			-- what is left is putting it back together and the verdict
 			local bot = TechBot.new(job.device, { ctx = function(_, _, tool)
 				return RepairService.ctx(player, job, tool, nil)
@@ -981,14 +983,14 @@ return function(T)
 		-- the player list shows net worth
 		LeaderService.stats(player, p)
 		local ls = player:FindFirstChild("leaderstats")
-		T.ok(ls and ls:FindFirstChild("Servet") and ls.Servet.Value == Worth.of(p).total, "net worth in the player list")
+		T.ok(ls and ls:FindFirstChild("Net Worth") and ls["Net Worth"].Value == Worth.of(p).total, "net worth in the player list")
 		-- the board at city hall cycles through the tables
 		local board = CS:GetTagged("Leaderboard")[1]
 		LeaderService.paint("worth")
 		local label = board:FindFirstChild("Leaders"):FindFirstChild("Text")
-		T.ok(string.find(label.Text, "DEĞERLİ", 1, true) and string.find(label.Text, player.DisplayName, 1, true), "worth table on the board")
+		T.ok(string.find(label.Text, "VALUABLE", 1, true) and string.find(label.Text, player.DisplayName, 1, true), "worth table on the board")
 		LeaderService.paint("repairs")
-		T.ok(string.find(label.Text, "TAMİR", 1, true) ~= nil, "repairs table on the board")
+		T.ok(string.find(label.Text, "REPAIRS", 1, true) ~= nil, "repairs table on the board")
 		p.shop.level = 1
 		p.shop.items.solar = nil
 		rich:Destroy()

@@ -1,14 +1,13 @@
 -- Strings: every piece of UI text in Turkish and English. S.t(key, vars) picks the player's
 -- language; {name} placeholders are filled from vars.
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 
 local S = {}
 
-local lang = "tr"
+local lang = "en"
 
 local T = {
 	-- HUD and general
@@ -501,6 +500,70 @@ local T = {
 	settings_lang = { "Dil / Language", "Language / Dil" },
 	settings_music = { "Müzik sesi", "Music volume" },
 	settings_sfx = { "Efekt sesi", "Effects volume" },
+	set_title = { "Ayarlar", "Settings" },
+	set_tab_audio = { "🔊 Ses", "🔊 Audio" },
+	set_tab_graphics = { "🖼️ Görüntü", "🖼️ Graphics" },
+	set_tab_game = { "🎮 Oyun", "🎮 Gameplay" },
+	set_tab_keys = { "⌨️ Tuşlar", "⌨️ Controls" },
+	set_master = { "Ana ses", "Master volume" },
+	set_master_sub = { "Oyundaki her şeyin sesi.", "Everything you hear in the game." },
+	set_music = { "🎵 Müzik", "🎵 Music" },
+	set_music_sub = { "Arka plandaki sakin parçalar.", "The relaxed background playlist." },
+	set_sfx = { "🔔 Efektler", "🔔 Sound effects" },
+	set_sfx_sub = { "Tıklamalar, aletler, kasa sesi.", "Clicks, tools, the cash register." },
+	set_ambience = { "🌆 Şehir sesleri", "🌆 City ambience" },
+	set_ambience_sub = { "Kuşlar, yağmur, dalgalar, gece cırcırları.", "Birds, rain, waves, night crickets." },
+	set_on = { "AÇIK", "ON" },
+	set_off = { "KAPALI", "OFF" },
+	set_quality = { "Grafik kalitesi", "Graphics quality" },
+	set_quality_sub = { "Hazır ayar; aşağıdan ince ayar yap.", "A preset; fine-tune below." },
+	set_effects = { "Efektler ve ekran", "Effects and screen" },
+	set_q_low = { "Düşük", "Low" },
+	set_q_medium = { "Orta", "Medium" },
+	set_q_high = { "Yüksek", "High" },
+	set_q_ultra = { "Ultra", "Ultra" },
+	set_q_custom = { "Özel ayar", "Custom" },
+	set_shadows = { "Gölgeler", "Shadows" },
+	set_shadows_sub = { "Gerçekçi gölgeler. Yavaş bilgisayarda kapat.", "Realistic shadows. Turn off on slow devices." },
+	set_bloom = { "Parlama (Bloom)", "Glow (bloom)" },
+	set_bloom_sub = { "Lambalar ve ekranlar etrafında yumuşak ışık.", "Soft light around lamps and screens." },
+	set_sunrays = { "Güneş ışınları", "Sun rays" },
+	set_sunrays_sub = { "Güneşe bakınca ışık huzmeleri.", "Light shafts when you look towards the sun." },
+	set_dof = { "Derinlik bulanıklığı", "Depth of field" },
+	set_dof_sub = { "Uzak yerler hafif bulanık olur.", "Far away places get a little soft." },
+	set_clouds = { "3B bulutlar", "3D clouds" },
+	set_clouds_sub = { "Gökyüzünde hareket eden bulutlar.", "Moving clouds in the sky." },
+	set_brightness = { "Parlaklık", "Brightness" },
+	set_fov = { "Görüş açısı", "Field of view" },
+	set_uiscale = { "Arayüz boyutu", "Interface size" },
+	set_traffic = { "Sokak hayatı", "Street life" },
+	set_traffic_sub = { "Yoldaki araç ve yayaların yoğunluğu.", "How many cars and pedestrians are about." },
+	set_t_off = { "Yok", "None" },
+	set_t_low = { "Az", "Light" },
+	set_t_normal = { "Normal", "Normal" },
+	set_t_high = { "Yoğun", "Busy" },
+	set_names = { "İsim etiketleri", "Name tags" },
+	set_names_sub = { "Müşteri ve personel başında isimler.", "Names above customers and staff." },
+	set_shake = { "Hareket efektleri", "Motion effects" },
+	set_shake_sub = { "Aletlerin titreşimi gibi küçük hareketler.", "Small movements such as tool vibration." },
+	set_help = { "Yardım seviyesi", "Help level" },
+	set_help_sub = { "Tezgâhtaki Koç kartı ve ipuçları.", "The Coach card and hints at the bench." },
+	set_h_guided = { "Adım adım", "Step by step" },
+	set_h_hints = { "Sadece ipucu", "Hints only" },
+	set_h_off = { "Kapalı", "Off" },
+	set_difficulty = { "Zorluk", "Difficulty" },
+	set_difficulty_sub = { "Yeni müşterilerin sıklığı, sabrı ve ödemesi.", "How often customers come, how patient they are, what they pay." },
+	set_d_relaxed = { "Rahat", "Relaxed" },
+	set_d_normal = { "Normal", "Normal" },
+	set_d_hard = { "Zor", "Hard" },
+	set_language = { "Dil", "Language" },
+	set_language_sub = { "Oyun metinleri.", "Text in the game." },
+	set_reset = { "Varsayılana dön", "Reset to defaults" },
+	set_reset_done = { "Ayarlar sıfırlandı.", "Settings reset." },
+	set_keys = {
+		"<b>E</b> — konuş / kullan / otur\n<b>F</b> — hırsızı yakala\n<b>H</b> — dükkâna dön\n<b>J</b> — işler\n<b>B</b> — çanta\n<b>P</b> — telefon\n<b>M</b> — harita\n<b>O</b> — ayarlar\n<b>1–0</b> — alet / ekipman seç\n<b>Tezgâhta:</b> sağ tık sürükle = döndür • tekerlek = yakınlaş • R = kamerayı sıfırla • L = etiketler",
+		"<b>E</b> — talk / use / sit\n<b>F</b> — catch a thief\n<b>H</b> — back to your shop\n<b>J</b> — jobs\n<b>B</b> — backpack\n<b>P</b> — phone\n<b>M</b> — map\n<b>O</b> — settings\n<b>1–0</b> — pick a tool / gear\n<b>At the bench:</b> right-drag = orbit • wheel = zoom • R = reset camera • L = labels",
+	},
 	help_text = {
 		"<b>1.</b> Tezgâhın önündeki müşteriyle konuş (E), pazarlık et, işi al.\n<b>2.</b> Tezgâha otur, işi yükle. Aleti seç (1-0), parçanın üzerine gel: yeşil = yapılabilir, kırmızı = neden olmadığını yazar.\n<b>3.</b> Vidaları sök, kabloları çıkar, arızalı parçayı bul. Güç, stres, POST kartı ve USB araçlarıyla test et.\n<b>4.</b> Parça lazımsa Mega Parça Deposu, Çarşı Parçacısı veya 2. El Pazarı'ndan al. Taksi ya da kendi aracınla git (M: harita).\n<b>5.</b> Her şeyi geri tak, işi bitir; müşteri gelip öder. Para ile dükkânı büyüt, alet ve araç al, personel tut.\n<b>Dikkat:</b> Hırsız ve dolandırıcıları F ile yakala! Bileklik takmadan kartlara dokunma.",
 		"<b>1.</b> Talk to the customer at the counter (E), haggle, take the job.\n<b>2.</b> Sit at your bench and load the job. Pick a tool (1-0) and hover a part: green = possible, red tells you why not.\n<b>3.</b> Undo screws, unplug cables and find the faulty part. Test with power, stress test, POST card and USB tools.\n<b>4.</b> Need parts? Mega Parts Depot, the Bazaar stall or the Second-hand Market. Take a taxi or your own ride (M: map).\n<b>5.</b> Put everything back, finish the job and the customer pays. Expand your shop, buy tools and vehicles, hire staff.\n<b>Watch out:</b> catch thieves and scammers with F! Don't touch cards without your wrist strap.",
@@ -607,23 +670,21 @@ function S.lang(): string
 end
 
 function S.setLang(l: string)
-	lang = if l == "en" then "en" else "tr"
+	lang = if l == "tr" then "tr" else "en"
 end
 
+-- The game is in English for everybody; Turkish is a choice in Settings (it is saved with the
+-- player), not something to guess from the account's locale.
 function S.detect()
-	local ok, id = pcall(function()
-		return Players.LocalPlayer.LocaleId
-	end)
-	if ok and type(id) == "string" and string.sub(id, 1, 2) ~= "tr" then
-		lang = "en"
-	end
+	lang = "en"
 end
 
 function S.money(n: number?): string
 	local v = math.floor((n or 0) + 0.5)
 	local s = tostring(math.abs(v))
-	local out = s:reverse():gsub("(%d%d%d)", "%1."):reverse()
-	if string.sub(out, 1, 1) == "." then
+	local sep = if lang == "en" then "," else "."
+	local out = s:reverse():gsub("(%d%d%d)", "%1" .. sep):reverse()
+	if string.sub(out, 1, 1) == sep then
 		out = string.sub(out, 2)
 	end
 	return (if v < 0 then "-" else "") .. Config.CurrencySymbol .. out

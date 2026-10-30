@@ -210,7 +210,7 @@ local function half(parent: Instance, block, face: string, rng: Random)
 			Buildings.building(parent, frontCf(l.x, 4), {
 				w = l.w - 4, d = math.min(depth - 4, 56), floors = if tall then rng:NextInteger(9, 16) else rng:NextInteger(4, 8),
 				floorH = 13, style = style, rng = rng, ground = if rng:NextNumber() < 0.6 then "shop" else "lobby",
-				name = if rng:NextNumber() < 0.5 then Rand.pick(rng, { "Plaza İş Merkezi", "Kule 34", "Atlas Ofis", "Merkez Han", "Yıldız Tower", "Business Park", "Global Center" }) else nil,
+				name = if rng:NextNumber() < 0.5 then Rand.pick(rng, { "Plaza Business Centre", "Tower 34", "Atlas Offices", "Central Exchange", "Star Tower", "Business Park", "Global Center" }) else nil,
 			})
 		end
 		for _ = 1, 2 do
@@ -235,7 +235,7 @@ local function half(parent: Instance, block, face: string, rng: Random)
 		for _, l in lots(block.x0 + 2, block.x1 - 2, 56, rng) do
 			Buildings.building(parent, frontCf(l.x, 10), {
 				w = l.w - 6, d = math.min(depth - 10, 36), floors = rng:NextInteger(5, 8), style = "apartment", rng = rng,
-				ground = "shop", name = Rand.pick(rng, { "Martı Kafe", "Deniz Restoran", "Sahil Pansiyon", "Lagün Otel", "Mavi Bistro", "Yakamoz Cafe" }),
+				ground = "shop", name = Rand.pick(rng, { "Seagull Cafe", "Ocean Grill", "Shoreline Guesthouse", "Lagoon Hotel", "Blue Bistro", "Sunset Cafe" }),
 			})
 			for t = 1, 3 do
 				local x = l.x - l.w / 2 + 6 + t * (l.w - 12) / 4
@@ -247,7 +247,7 @@ local function half(parent: Instance, block, face: string, rng: Random)
 			local m = Buildings.building(parent, frontCf(l.x, 8), {
 				w = l.w - 8, d = math.min(depth - 8, 24), floors = rng:NextInteger(1, 2), floorH = 12, style = "apartment",
 				wallColor = { 246, 246, 242 }, rng = rng, ground = "shop", blankSides = true,
-				name = Rand.pick(rng, { "Plaj Büfe", "Dalga Bar", "Kumsal Cafe", "Güneş Dondurma", "Balıkçı Sefa", "Ada Çay Bahçesi", "Sörf Kulübü" }),
+				name = Rand.pick(rng, { "Beach Kiosk", "Wave Bar", "Sandy Cafe", "Sunny Ice Cream", "Captain Sam's Fish", "Island Tea Garden", "Surf Club" }),
 				accent = Rand.pick(rng, { { 30, 110, 190 }, { 20, 150, 170 }, { 230, 120, 40 } }),
 			})
 			m.Name = "BeachHouse"
@@ -257,7 +257,7 @@ local function half(parent: Instance, block, face: string, rng: Random)
 	elseif district == "IND" or district == "HAR" then
 		local w = block.x1 - block.x0 - 16
 		Buildings.warehouse(parent, frontCf((block.x0 + block.x1) / 2, 10), w, math.min(depth - 14, 70), rng, {
-			sign = Rand.pick(rng, { "ÖZTÜRK METAL", "ANADOLU LOJİSTİK", "EGE PLASTİK", "YILMAZ MAKİNA", "KARDEŞLER TEKSTİL", "MARMARA GIDA", "DEMİR DÖKÜM" }),
+			sign = Rand.pick(rng, { "HARTLEY METALWORKS", "COASTAL LOGISTICS", "PRECISION PLASTICS", "MILLER MACHINERY", "BROTHERS TEXTILES", "PACIFIC FOODS", "IRON FOUNDRY" }),
 			chimney = rng:NextNumber() < 0.5,
 		})
 		for _ = 1, 4 do

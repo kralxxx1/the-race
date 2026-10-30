@@ -61,7 +61,7 @@ function OuterProps.car(parent: Instance, cf: CFrame, rng: Random, color: any?):
 end
 
 -- A truck: cab and box trailer (9 parts).
-local TRUCK_NAMES = { "ANADOLU LOJİSTİK", "EGE NAKLİYAT", "MARMARA KARGO", "YILDIZ TAŞIMACILIK", "KUZEY SOĞUK ZİNCİR", "OSB EKSPRES" }
+local TRUCK_NAMES = { "NORTHERN LOGISTICS", "COASTAL FREIGHT", "PACIFIC CARGO", "STARLINE TRANSPORT", "ARCTIC COLD CHAIN", "ESTATE EXPRESS" }
 function OuterProps.truck(parent: Instance, cf: CFrame, rng: Random): Model
 	local m = B.model("Truck", parent)
 	local cab = B.color(Rand.pick(rng, { { 240, 240, 238 }, { 200, 40, 40 }, { 30, 70, 150 }, { 240, 170, 30 }, { 40, 120, 70 } }))
@@ -81,10 +81,10 @@ end
 
 -- A passenger jet (about 24 parts). s = scale (1.4 is believable next to a player).
 local LIVERIES = {
-	{ name = "ANADOLU AIR", color = { 200, 30, 40 } },
-	{ name = "MARMARA JET", color = { 30, 80, 170 } },
-	{ name = "EGE HAVA", color = { 20, 150, 150 } },
-	{ name = "KAPADOKYA AIR", color = { 230, 130, 30 } },
+	{ name = "NORTHWIND AIR", color = { 200, 30, 40 } },
+	{ name = "PACIFIC JET", color = { 30, 80, 170 } },
+	{ name = "AEGEAN SKY", color = { 20, 150, 150 } },
+	{ name = "CANYON AIR", color = { 230, 130, 30 } },
 }
 function OuterProps.airliner(parent: Instance, cf: CFrame, s: number, livery: number?): Model
 	local m = B.model("Airliner", parent)

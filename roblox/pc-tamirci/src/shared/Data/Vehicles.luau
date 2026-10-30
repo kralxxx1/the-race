@@ -13,25 +13,25 @@ Vehicles.list = {
 	{ id = "escooter", dealer = "bicycles", kind = "scooter", body = "escooter", name = N("Elektrikli Scooter", "E-Scooter"), price = 600, level = 1, speed = 36, accel = 26, turn = 3.4, seats = 1, colors = { { 30, 30, 30 }, { 240, 240, 240 }, { 30, 160, 120 } } },
 	-- Motorcycle dealer
 	{ id = "moped", dealer = "bikes", kind = "bike", body = "moped", name = N("Kurye Motoru 110", "Courier Moped 110"), price = 1800, level = 2, speed = 56, accel = 30, turn = 3, seats = 1, colors = { { 200, 30, 40 }, { 240, 240, 240 }, { 30, 70, 160 } }, box = true },
-	{ id = "vespina", dealer = "bikes", kind = "bike", body = "vespa", name = N("Vespina 150 Retro", "Vespina 150 Retro"), price = 3500, level = 3, speed = 62, accel = 30, turn = 3, seats = 2, colors = { { 150, 210, 200 }, { 245, 230, 190 }, { 210, 60, 60 }, { 120, 160, 220 } } },
-	{ id = "toprak", dealer = "bikes", kind = "bike", body = "enduro", name = N("Toprak 450 Enduro", "Toprak 450 Enduro"), price = 9000, level = 5, speed = 76, accel = 40, turn = 3.2, seats = 1, colors = { { 240, 120, 30 }, { 40, 40, 40 }, { 30, 90, 200 } } },
-	{ id = "ruzgar", dealer = "bikes", kind = "bike", body = "naked", name = N("Rüzgar 250 Naked", "Rüzgar 250 Naked"), price = 8000, level = 4, speed = 82, accel = 42, turn = 3, seats = 2, colors = { { 30, 30, 30 }, { 220, 220, 220 }, { 200, 40, 40 } } },
-	{ id = "kartal_chopper", dealer = "bikes", kind = "bike", body = "chopper", name = N("Kartal Chopper 1200", "Kartal Chopper 1200"), price = 15000, level = 7, speed = 86, accel = 36, turn = 2.4, seats = 2, colors = { { 20, 20, 22 }, { 120, 20, 20 }, { 200, 170, 90 } } },
-	{ id = "simsek", dealer = "bikes", kind = "bike", body = "sport", name = N("Şimşek R6 Yarış", "Şimşek R6 Racer"), price = 18000, level = 8, speed = 112, accel = 58, turn = 3.4, seats = 2, colors = { { 20, 60, 170 }, { 230, 230, 230 }, { 200, 20, 30 }, { 40, 200, 80 } } },
+	{ id = "vespina", dealer = "bikes", kind = "bike", body = "vespa", name = N("Piazza 150 Retro", "Piazza 150 Retro"), price = 3500, level = 3, speed = 62, accel = 30, turn = 3, seats = 2, colors = { { 150, 210, 200 }, { 245, 230, 190 }, { 210, 60, 60 }, { 120, 160, 220 } } },
+	{ id = "toprak", dealer = "bikes", kind = "bike", body = "enduro", name = N("Terra 450 Enduro", "Terra 450 Enduro"), price = 9000, level = 5, speed = 76, accel = 40, turn = 3.2, seats = 1, colors = { { 240, 120, 30 }, { 40, 40, 40 }, { 30, 90, 200 } } },
+	{ id = "ruzgar", dealer = "bikes", kind = "bike", body = "naked", name = N("Gale 250 Naked", "Gale 250 Naked"), price = 8000, level = 4, speed = 82, accel = 42, turn = 3, seats = 2, colors = { { 30, 30, 30 }, { 220, 220, 220 }, { 200, 40, 40 } } },
+	{ id = "kartal_chopper", dealer = "bikes", kind = "bike", body = "chopper", name = N("Eagle Chopper 1200", "Eagle Chopper 1200"), price = 15000, level = 7, speed = 86, accel = 36, turn = 2.4, seats = 2, colors = { { 20, 20, 22 }, { 120, 20, 20 }, { 200, 170, 90 } } },
+	{ id = "simsek", dealer = "bikes", kind = "bike", body = "sport", name = N("Bolt R6 Racer", "Bolt R6 Racer"), price = 18000, level = 8, speed = 112, accel = 58, turn = 3.4, seats = 2, colors = { { 20, 60, 170 }, { 230, 230, 230 }, { 200, 20, 30 }, { 40, 200, 80 } } },
 	-- Car dealer
-	{ id = "sahin", dealer = "cars", kind = "car", body = "classic", name = N("Şahin 1.6 (Klasik)", "Şahin 1.6 (Classic)"), price = 6000, level = 2, speed = 70, accel = 26, turn = 2.4, seats = 4, colors = { { 240, 240, 236 }, { 200, 30, 30 }, { 40, 60, 120 }, { 30, 30, 30 }, { 120, 140, 80 } } },
-	{ id = "dogan", dealer = "cars", kind = "car", body = "classic", name = N("Doğan SLX", "Doğan SLX"), price = 7500, level = 3, speed = 74, accel = 28, turn = 2.5, seats = 4, colors = { { 190, 190, 196 }, { 30, 30, 30 }, { 110, 20, 30 } }, spoiler = true },
-	{ id = "kartal_sw", dealer = "cars", kind = "car", body = "wagon", name = N("Kartal Station Wagon", "Kartal Station Wagon"), price = 8000, level = 3, speed = 72, accel = 27, turn = 2.4, seats = 5, colors = { { 230, 226, 214 }, { 70, 90, 60 }, { 90, 60, 40 } } },
-	{ id = "minik", dealer = "cars", kind = "car", body = "hatch", name = N("Minik Hatchback", "Minik Hatchback"), price = 12000, level = 4, speed = 80, accel = 34, turn = 2.9, seats = 4, colors = { { 230, 60, 60 }, { 250, 210, 60 }, { 70, 160, 220 }, { 240, 240, 240 } } },
+	{ id = "sahin", dealer = "cars", kind = "car", body = "classic", name = N("Falcon 1.6 (Classic)", "Falcon 1.6 (Classic)"), price = 6000, level = 2, speed = 70, accel = 26, turn = 2.4, seats = 4, colors = { { 240, 240, 236 }, { 200, 30, 30 }, { 40, 60, 120 }, { 30, 30, 30 }, { 120, 140, 80 } } },
+	{ id = "dogan", dealer = "cars", kind = "car", body = "classic", name = N("Hawke SLX", "Hawke SLX"), price = 7500, level = 3, speed = 74, accel = 28, turn = 2.5, seats = 4, colors = { { 190, 190, 196 }, { 30, 30, 30 }, { 110, 20, 30 } }, spoiler = true },
+	{ id = "kartal_sw", dealer = "cars", kind = "car", body = "wagon", name = N("Eagle Station Wagon", "Eagle Station Wagon"), price = 8000, level = 3, speed = 72, accel = 27, turn = 2.4, seats = 5, colors = { { 230, 226, 214 }, { 70, 90, 60 }, { 90, 60, 40 } } },
+	{ id = "minik", dealer = "cars", kind = "car", body = "hatch", name = N("Pico Hatchback", "Pico Hatchback"), price = 12000, level = 4, speed = 80, accel = 34, turn = 2.9, seats = 4, colors = { { 230, 60, 60 }, { 250, 210, 60 }, { 70, 160, 220 }, { 240, 240, 240 } } },
 	{ id = "kompakt", dealer = "cars", kind = "car", body = "sedan", name = N("Kompakt Sedan", "Compact Sedan"), price = 18000, level = 5, speed = 86, accel = 34, turn = 2.6, seats = 5, colors = { { 30, 30, 34 }, { 200, 200, 205 }, { 40, 70, 130 }, { 120, 20, 30 } } },
 	{ id = "servis_van", dealer = "cars", kind = "car", body = "van", name = N("Servis Vanı (Tamirci)", "Service Van"), price = 22000, level = 5, speed = 72, accel = 26, turn = 2.2, seats = 2, colors = { { 240, 240, 240 }, { 30, 120, 200 }, { 240, 160, 30 } }, livery = true },
-	{ id = "dolmus", dealer = "cars", kind = "car", body = "minibus", name = N("Klasik Dolmuş", "Classic Minibus"), price = 25000, level = 6, speed = 68, accel = 22, turn = 2, seats = 8, colors = { { 250, 205, 40 }, { 240, 240, 240 } } },
+	{ id = "dolmus", dealer = "cars", kind = "car", body = "minibus", name = N("Classic Shuttle Van", "Classic Shuttle Van"), price = 25000, level = 6, speed = 68, accel = 22, turn = 2, seats = 8, colors = { { 250, 205, 40 }, { 240, 240, 240 } } },
 	{ id = "pikap", dealer = "cars", kind = "car", body = "pickup", name = N("Pikap 4x4", "4x4 Pickup"), price = 30000, level = 7, speed = 82, accel = 32, turn = 2.3, seats = 4, colors = { { 150, 30, 30 }, { 30, 30, 30 }, { 200, 200, 196 }, { 60, 90, 60 } } },
 	{ id = "suv", dealer = "cars", kind = "car", body = "suv", name = N("SUV Premium", "Premium SUV"), price = 45000, level = 9, speed = 90, accel = 38, turn = 2.4, seats = 5, colors = { { 20, 20, 24 }, { 240, 240, 240 }, { 70, 80, 90 }, { 30, 50, 90 } } },
 	{ id = "elektro", dealer = "cars", kind = "car", body = "electric", name = N("Volt Elektrikli Sedan", "Volt Electric Sedan"), price = 55000, level = 10, speed = 98, accel = 52, turn = 2.8, seats = 5, colors = { { 240, 240, 240 }, { 200, 20, 30 }, { 30, 30, 34 }, { 40, 90, 170 } }, electric = true },
 	{ id = "coupe", dealer = "cars", kind = "car", body = "coupe", name = N("Turbo Coupe GT", "Turbo Coupe GT"), price = 70000, level = 12, speed = 108, accel = 50, turn = 3, seats = 2, colors = { { 240, 200, 40 }, { 20, 20, 24 }, { 200, 30, 30 }, { 40, 120, 200 } }, spoiler = true },
 	{ id = "limuzin", dealer = "cars", kind = "car", body = "limo", name = N("Limuzin", "Limousine"), price = 160000, level = 16, speed = 80, accel = 26, turn = 1.8, seats = 6, colors = { { 20, 20, 22 }, { 240, 240, 240 } } },
-	{ id = "super", dealer = "cars", kind = "car", body = "super", name = N("Yıldırım Süper Spor", "Yıldırım Supercar"), price = 250000, level = 18, speed = 140, accel = 80, turn = 3.2, seats = 2, colors = { { 240, 120, 20 }, { 50, 200, 80 }, { 20, 20, 22 }, { 220, 30, 40 }, { 240, 240, 240 } }, spoiler = true },
+	{ id = "super", dealer = "cars", kind = "car", body = "super", name = N("Thunder Supercar", "Thunder Supercar"), price = 250000, level = 18, speed = 140, accel = 80, turn = 3.2, seats = 2, colors = { { 240, 120, 20 }, { 50, 200, 80 }, { 20, 20, 22 }, { 220, 30, 40 }, { 240, 240, 240 } }, spoiler = true },
 }
 
 Vehicles.byId = {}
@@ -49,21 +49,14 @@ function Vehicles.get(id: string)
 	return Vehicles.byId[id]
 end
 
--- Random Turkish-style plate: "34 ABC 123"
+-- A random plate: "KXT 4821"
 function Vehicles.plate(rng: Random): string
-	local cities = { "34", "06", "35", "16", "07", "01", "42", "61", "41", "26", "55", "33" }
-	local letters = "ABCDEFGHJKLMNPRSTUVYZ"
+	local letters = "ABCDEFGHJKLMNPRSTUVWXYZ"
 	local function letter()
 		local i = rng:NextInteger(1, #letters)
 		return string.sub(letters, i, i)
 	end
-	local n = rng:NextInteger(1, 3)
-	local l = ""
-	for _ = 1, n do
-		l ..= letter()
-	end
-	local digits = if n == 1 then rng:NextInteger(1000, 9999) elseif n == 2 then rng:NextInteger(100, 9999) else rng:NextInteger(10, 999)
-	return cities[rng:NextInteger(1, #cities)] .. " " .. l .. " " .. tostring(digits)
+	return letter() .. letter() .. letter() .. " " .. tostring(rng:NextInteger(1000, 9999))
 end
 
 return Vehicles

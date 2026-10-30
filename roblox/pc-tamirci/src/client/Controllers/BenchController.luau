@@ -29,6 +29,7 @@ local ToolModels = require(Shared.Models.ToolModels)
 local Client = script.Parent.Parent
 local S = require(Client.Strings)
 local State = require(Client.State)
+local Prefs = require(Client.Prefs)
 local Kit = require(Client.UI.Kit)
 local Theme = require(Client.UI.Theme)
 local App = require(Client.UI.App)
@@ -683,7 +684,7 @@ local function startFx(action: string, pos: Vector3?, normal: Vector3?): () -> (
 			cf *= CFrame.new(math.cos(t * 9) * def.circle, 0, math.sin(t * 9) * def.circle)
 		elseif def.lever then
 			cf *= CFrame.Angles(math.sin(t * 7) * def.lever, 0, 0)
-		elseif def.shake then
+		elseif def.shake and Prefs.get("shake") then
 			local a = def.shake
 			cf *= CFrame.new(math.noise(t * 20, 1.3) * a, math.noise(t * 20, 2.7) * a, math.noise(t * 20, 4.1) * a)
 		end

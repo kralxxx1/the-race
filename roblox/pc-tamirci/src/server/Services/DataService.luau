@@ -70,7 +70,29 @@ local function defaults()
 		last = 0,
 		daily = { day = 0, streak = 0 },
 		quests = { day = 0, list = {} },
-		settings = { master = 1, music = 0.5, sfx = 0.8, ambience = 0.8, difficulty = "normal" },
+		settings = {
+			master = 1,
+			music = 0.5,
+			sfx = 0.8,
+			ambience = 0.8,
+			musicOn = true,
+			sfxOn = true,
+			ambienceOn = true,
+			help = "guided",
+			difficulty = "normal",
+			quality = "high",
+			shadows = true,
+			bloom = true,
+			sunrays = true,
+			dof = true,
+			clouds = true,
+			names = true,
+			shake = true,
+			fov = 70,
+			brightness = 0,
+			uiscale = 1,
+			traffic = "normal",
+		},
 		-- bills waiting to be paid, the week's books (BillsService)
 		bills = { list = {}, nextId = 0, paid = {}, week = { income = 0, expense = 0, wages = 0 }, mornings = 0, lastDay = 0, cut = false },
 	}
@@ -217,8 +239,8 @@ function DataService.touch(player: Player)
 			Net.push(player, "data", snapshot(p))
 			local ls = player:FindFirstChild("leaderstats")
 			if ls then
-				local money = ls:FindFirstChild("Para") :: IntValue
-				local level = ls:FindFirstChild("Seviye") :: IntValue
+				local money = ls:FindFirstChild("Cash") :: IntValue
+				local level = ls:FindFirstChild("Level") :: IntValue
 				money.Value = math.floor(p.money)
 				level.Value = p.level
 			end
@@ -230,16 +252,16 @@ local function makeLeaderstats(player: Player, p)
 	local ls = Instance.new("Folder")
 	ls.Name = "leaderstats"
 	local money = Instance.new("IntValue")
-	money.Name = "Para"
+	money.Name = "Cash"
 	money.Value = math.floor(p.money)
 	money.Parent = ls
 	-- (net worth: LeaderService keeps it up to date)
 	local worth = Instance.new("IntValue")
-	worth.Name = "Servet"
+	worth.Name = "Net Worth"
 	worth.Value = math.floor(p.money)
 	worth.Parent = ls
 	local level = Instance.new("IntValue")
-	level.Name = "Seviye"
+	level.Name = "Level"
 	level.Value = p.level
 	level.Parent = ls
 	ls.Parent = player
@@ -570,13 +592,7 @@ function DataService.lang(player: Player): string
 	if p and p.lang then
 		return p.lang
 	end
-	local ok, id = pcall(function()
-		return player.LocaleId
-	end)
-	if ok and type(id) == "string" and string.sub(id, 1, 2) ~= "tr" then
-		return "en"
-	end
-	return "tr"
+	return "en"
 end
 
 return DataService

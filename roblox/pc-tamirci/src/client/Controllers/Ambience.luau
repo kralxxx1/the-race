@@ -122,6 +122,19 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Sky, light mood, weather
 ----------------------------------------------------------------------------------------------------
+-- Graphics switches from the Settings window. Effects that are off are disabled, not deleted.
+local fxOn = { bloom = true, rays = true, dof = true, clouds = true }
+local trim = 0 -- brightness slider, -1..1
+
+local function applyFx()
+	for name, on in fxOn do
+		local e = fx[name]
+		if e then
+			e.Enabled = on
+		end
+	end
+end
+
 local function setupEffects()
 	local function get(className: string, name: string, parent: Instance): any
 		local e = parent:FindFirstChild(name)
@@ -236,7 +249,7 @@ local function mood(t: number)
 	Lighting.Ambient = a[2]:Lerp(b[2], f)
 	Lighting.OutdoorAmbient = a[3]:Lerp(b[3], f):Lerp(Color3.fromRGB(110, 116, 128), wet * 0.4)
 	Lighting.Brightness = lerp(a[5], b[5], f) * (1 - wet * 0.35)
-	Lighting.ExposureCompensation = lerp(a[6], b[6], f)
+	Lighting.ExposureCompensation = lerp(a[6], b[6], f) + trim * 0.9
 	if fx.cc then
 		fx.cc.TintColor = a[4]:Lerp(b[4], f):Lerp(Color3.fromRGB(220, 228, 240), wet * 0.5)
 		fx.cc.Saturation = 0.08 - wet * 0.12
@@ -477,12 +490,25 @@ local function playlist(entries: any)
 	nextTrack()
 end
 
-local volumes = { music = 0.5, sfx = 0.8 }
+local volumes = { music = 0.5, ambience = 0.8 }
 
--- Player settings from the phone (0..1).
-function Ambience.setVolumes(musicVol: number?, sfx: number?)
+-- Player settings (0..1, already multiplied by master and zero when switched off).
+function Ambience.setMix(musicVol: number?, ambienceVol: number?)
 	volumes.music = musicVol or volumes.music
-	volumes.sfx = sfx or volumes.sfx
+	volumes.ambience = ambienceVol or volumes.ambience
+end
+
+function Ambience.setEffects(flags: { bloom: boolean?, rays: boolean?, dof: boolean?, clouds: boolean? })
+	for name in fxOn do
+		if flags[name] ~= nil then
+			fxOn[name] = flags[name] == true
+		end
+	end
+	applyFx()
+end
+
+function Ambience.setTrim(v: number)
+	trim = math.clamp(v, -1, 1)
 end
 
 -- Is the camera under a roof? (rain stays outside; you hear it drumming on the roof instead)
@@ -515,7 +541,7 @@ local function mix(t: number)
 	local function set(name: string, v: number)
 		local s = loops[name]
 		if s then
-			s.Volume = lerp(s.Volume, v * volumes.sfx * (gains[name] or 1), 0.05)
+			s.Volume = lerp(s.Volume, v * volumes.ambience * (gains[name] or 1), 0.05)
 		end
 	end
 	local inside = underRoof()
@@ -561,6 +587,7 @@ Ambience._nextTrack = nextTrack
 ----------------------------------------------------------------------------------------------------
 function Ambience.init()
 	setupEffects()
+	applyFx()
 	for _, tag in NIGHT_TAGS do
 		track(tag, function(inst)
 			if night ~= nil then

@@ -145,7 +145,7 @@ end
 Tools.gear = {
 	{
 		id = "bat", icon = "🏏", price = 45, level = 2,
-		name = { tr = "Beyzbol Sopası", en = "Baseball Bat" },
+		name = { tr = "Baseball Bat", en = "Baseball Bat" },
 		desc = { tr = "Kaçan hırsıza ya da dolandırıcıya bir tane geçir: yakalanır, ödülü sen alırsın. (Normal müşterilere işlemez.)", en = "Give a running thief or scammer a whack: they're caught and the bounty is yours. (Honest customers are safe.)" },
 	},
 }

@@ -158,13 +158,13 @@ local function buildCar(m: Model, cf: CFrame, def, color: Color3, plateText: str
 	end
 	if def.body == "minibus" then
 		local sign = vis(m, cf * CFrame.new(0, g + hb + hc + 0.55, cz - cabinL * 0.3), Vector3.new(2.6, 0.7, 0.8), Color3.fromRGB(240, 240, 240))
-		B.sign(sign, Enum.NormalId.Front, "DOLMUŞ", { color = Color3.fromRGB(200, 30, 30), font = B.Fonts.Heavy })
+		B.sign(sign, Enum.NormalId.Front, "SHUTTLE", { color = Color3.fromRGB(200, 30, 30), font = B.Fonts.Heavy })
 	end
 	if def.livery then
 		local panel = vis(m, cf * CFrame.new(W / 2 + 0.03, yc, cz + 0.6), Vector3.new(0.02, hc * 0.8, cabinL * 0.7), color, M.SmoothPlastic)
-		B.sign(panel, Enum.NormalId.Right, "🔧 PC TAMİR SERVİSİ", { color = Color3.fromRGB(20, 60, 160), font = B.Fonts.Heavy })
+		B.sign(panel, Enum.NormalId.Right, "🔧 PC REPAIR SERVICE", { color = Color3.fromRGB(20, 60, 160), font = B.Fonts.Heavy })
 		local panel2 = vis(m, cf * CFrame.new(-W / 2 - 0.03, yc, cz + 0.6), Vector3.new(0.02, hc * 0.8, cabinL * 0.7), color, M.SmoothPlastic)
-		B.sign(panel2, Enum.NormalId.Left, "🔧 PC TAMİR SERVİSİ", { color = Color3.fromRGB(20, 60, 160), font = B.Fonts.Heavy })
+		B.sign(panel2, Enum.NormalId.Left, "🔧 PC REPAIR SERVICE", { color = Color3.fromRGB(20, 60, 160), font = B.Fonts.Heavy })
 	end
 	if def.spoiler then
 		vis(m, cf * CFrame.new(0, g + hb + 0.8, L / 2 - 0.5), Vector3.new(W * 0.9, 0.12, 0.9), trim)

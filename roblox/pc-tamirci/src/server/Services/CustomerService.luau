@@ -365,7 +365,7 @@ function CustomerService.enablePrompt(cust)
 	end
 	local pp = Instance.new("ProximityPrompt")
 	pp.Name = "TalkPrompt"
-	pp.ActionText = if cust.lang == "en" then "Talk" else "Konuş"
+	pp.ActionText = if cust.lang == "en" then "Talk" else "Talk"
 	pp.ObjectText = cust.name
 	pp.KeyboardKeyCode = Enum.KeyCode.E
 	pp.MaxActivationDistance = 11

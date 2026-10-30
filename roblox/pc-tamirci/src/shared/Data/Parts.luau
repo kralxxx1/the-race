@@ -434,7 +434,7 @@ ram("ddr3_8gs", "G.Skill Ripjaws X 8GB DDR3 1866", "DDR3", "DIMM", 8, 1866, fals
 ram("ddr4_4", "Samsung 4GB DDR4 2400", "DDR4", "DIMM", 4, 2400, false, 12, "green")
 ram("ddr4_8_2666", "Crucial 8GB DDR4 2666", "DDR4", "DIMM", 8, 2666, false, 18, "green")
 ram("ddr4_8_3200", "Kingston Fury Beast 8GB DDR4 3200", "DDR4", "DIMM", 8, 3200, false, 22, "black", "fury")
-ram("ddr4_8_lpxr", "Corsair Vengeance LPX 8GB DDR4 3200 (Kırmızı)", "DDR4", "DIMM", 8, 3200, false, 22, "red", "lpx")
+ram("ddr4_8_lpxr", "Corsair Vengeance LPX 8GB DDR4 3200 (Red)", "DDR4", "DIMM", 8, 3200, false, 22, "red", "lpx")
 ram("ddr4_8_spectrix", "ADATA XPG Spectrix D41 8GB DDR4 3200", "DDR4", "DIMM", 8, 3200, true, 26, "silver", "xpg")
 ram("ddr4_16_3200", "Corsair Vengeance LPX 16GB DDR4 3200", "DDR4", "DIMM", 16, 3200, false, 38, "black", "lpx")
 ram("ddr4_16_ripjaws", "G.Skill Ripjaws V 16GB DDR4 3600", "DDR4", "DIMM", 16, 3600, false, 40, "red", "ripjaws")
@@ -513,14 +513,14 @@ storage("nv1t980", "Samsung 980 1TB", "nvme", 1000, 3500, 65, { gen = 3 })
 storage("nv1tp3", "Crucial P3 Plus 1TB", "nvme", 1000, 5000, 55, { gen = 4 })
 storage("nv1tmp44", "TeamGroup MP44 1TB", "nvme", 1000, 7400, 65, { gen = 4 })
 storage("nv1tp41", "SK hynix Platinum P41 1TB", "nvme", 1000, 7000, 90, { gen = 4 })
-storage("nv1tsn850xh", "WD Black SN850X 1TB (Soğutuculu)", "nvme", 1000, 7300, 95, { gen = 4, heatsink = true })
+storage("nv1tsn850xh", "WD Black SN850X 1TB (Heatsink)", "nvme", 1000, 7300, 95, { gen = 4, heatsink = true })
 storage("nv2t990evo", "Samsung 990 EVO Plus 2TB", "nvme", 2000, 7250, 140, { gen = 4 })
 storage("nv2tnm790", "Lexar NM790 2TB", "nvme", 2000, 7400, 120, { gen = 4 })
 storage("nv2tt500", "Crucial T500 2TB", "nvme", 2000, 7400, 135, { gen = 4 })
 storage("nv2tmp600", "Corsair MP600 PRO LPX 2TB", "nvme", 2000, 7100, 150, { gen = 4, heatsink = true })
 storage("nv2tfc530", "Seagate FireCuda 530 2TB", "nvme", 2000, 7300, 170, { gen = 4, heatsink = true })
-storage("nv2trenegade", "Kingston FURY Renegade 2TB (Soğutuculu)", "nvme", 2000, 7300, 165, { gen = 4, heatsink = true })
-storage("nv2t990h", "Samsung 990 Pro 2TB (Soğutuculu)", "nvme", 2000, 7450, 185, { gen = 4, heatsink = true })
+storage("nv2trenegade", "Kingston FURY Renegade 2TB (Heatsink)", "nvme", 2000, 7300, 165, { gen = 4, heatsink = true })
+storage("nv2t990h", "Samsung 990 Pro 2TB (Heatsink)", "nvme", 2000, 7450, 185, { gen = 4, heatsink = true })
 storage("ssd480bx", "Crucial BX500 480GB", "ssd25", 480, 540, 28)
 storage("ssd500_860", "Samsung 860 EVO 500GB", "ssd25", 500, 550, 40)
 storage("ssd1tsa510", "WD Blue SA510 1TB", "ssd25", 1000, 560, 55)
@@ -545,7 +545,7 @@ local function psu(id, name, watt, eff, modular, quality, price, extra)
 	return add(p)
 end
 
-psu("turbox500", "Turbox 500W (Markasız)", 500, "Yok", "none", 0.22, 18)
+psu("turbox500", "Turbox 500W (No-name)", 500, "None", "none", 0.22, 18)
 psu("oem300", "HP OEM 300W", 300, "80+", "none", 0.6, 25)
 psu("lite450", "Thermaltake Litepower 450W", 450, "Yok", "none", 0.45, 30)
 psu("mwe550", "Cooler Master MWE 550 Bronze V2", 550, "Bronze", "none", 0.7, 55)
@@ -595,7 +595,7 @@ end
 -- style: the maker's look (PCParts.cooler). Stock: "intel", "laminar", "amd". Towers: "cm",
 -- "deepcool", "thermalright", "noctua", "noctuablack", "bequiet", "arctic", "scythe", "idcool".
 -- AIO pumps: "arctic", "nzxt", "corsair", "lianli", "deepcool", "msi", "rog".
-cooler("intel_stock", "Intel Stok Soğutucu", "stock", 70, "intel", false, 10, { style = "intel" })
+cooler("intel_stock", "Intel Stock Cooler", "stock", 70, "intel", false, 10, { style = "intel" })
 cooler("intel_laminar", "Intel Laminar RM1", "stock", 95, "intel", false, 15, { style = "laminar" })
 cooler("amd_stealth", "AMD Wraith Stealth", "stock", 70, "amd", false, 10, { style = "amd" })
 cooler("amd_spire", "AMD Wraith Spire", "stock", 95, "amd", false, 15, { style = "amd" })
@@ -635,14 +635,14 @@ local function fan(id, name, size, rgb, price, color)
 	return add({ id = "fan_" .. id, cat = "fan", name = name, size = size, rgb = rgb, price = price, color = color or "black" })
 end
 
-fan("std120", "Standart 120mm Kasa Fanı", 120, false, 5)
+fan("std120", "Standard 120mm Case Fan", 120, false, 5)
 fan("p12", "Arctic P12 PWM PST", 120, false, 8)
 fan("p14", "Arctic P14 PWM PST", 140, false, 10)
 fan("nfa12", "Noctua NF-A12x25", 120, false, 32, "brown")
 fan("af120rgb", "Corsair iCUE AF120 RGB", 120, true, 25)
 fan("sl120", "Lian Li UNI FAN SL120 V2", 120, true, 28, "white")
 fan("sw4", "be quiet! Silent Wings 4 140mm", 140, false, 28)
-fan("std80", "80mm Eski Kasa Fanı", 80, false, 4)
+fan("std80", "80mm Old Case Fan", 80, false, 4)
 fan("tlc12", "Thermalright TL-C12C ARGB", 120, true, 6)
 fan("sickle", "Cooler Master SickleFlow 120 ARGB", 120, true, 9)
 fan("fc120w", "DeepCool FC120 ARGB (Beyaz)", 120, true, 10, "white")
@@ -674,7 +674,7 @@ case("retro", "Bej Eski Kasa (2005)", "retro", { "ATX", "mATX" }, "beige", false
 case("office", "Ofis Mini Tower", "office", { "mATX", "ITX" }, "black", false, 24, 1, 30)
 case("sff", "Ofis SFF Kasa", "sff", { "mATX", "ITX" }, "black", false, 18, 1, 25, { lowProfileOnly = true })
 case("q300l", "Cooler Master MasterBox Q300L", "airflow", { "mATX", "ITX" }, "black", true, 33, 4, 45)
-case("budgetrgb", "Ekonomik RGB Oyuncu Kasası", "glass", { "ATX", "mATX", "ITX" }, "black", true, 32, 4, 40, { rgb = true })
+case("budgetrgb", "Budget RGB Gaming Case", "glass", { "ATX", "mATX", "ITX" }, "black", true, 32, 4, 40, { rgb = true })
 case("4000d", "Corsair 4000D Airflow", "airflow", { "ATX", "mATX", "ITX" }, "black", true, 36, 6, 95)
 case("4000dw", "Corsair 4000D Airflow (Beyaz)", "airflow", { "ATX", "mATX", "ITX" }, "white", true, 36, 6, 95)
 case("popair", "Fractal Design Pop Air RGB", "airflow", { "ATX", "mATX", "ITX" }, "black", true, 40, 6, 80, { rgb = true })
@@ -723,11 +723,11 @@ misc("paste_arctic_mx6", "Arctic MX-6 Termal Macun", "paste", 10, { uses = 5, pa
 misc("paste_nth2", "Noctua NT-H2 Termal Macun", "paste", 12, { uses = 5, paste = 0.9 })
 misc("paste_kryonaut", "Thermal Grizzly Kryonaut", "paste", 15, { uses = 5, paste = 0.97 })
 misc("cmos_cr2032", "CR2032 BIOS Pili", "cmos", 2)
-misc("cap_470", "Kondansatör 470µF 16V", "capacitor", 1)
-misc("cap_820", "Kondansatör 820µF 6.3V", "capacitor", 1)
-misc("cap_1000", "Kondansatör 1000µF 10V", "capacitor", 2)
-misc("zip_ties", "Kablo Bağı (50'li)", "zip", 3, { uses = 50 })
-misc("solder_wire", "Lehim Teli (Kurşunsuz)", "solder", 5, { uses = 30 })
+misc("cap_470", "Capacitor 470µF 16V", "capacitor", 1)
+misc("cap_820", "Capacitor 820µF 6.3V", "capacitor", 1)
+misc("cap_1000", "Capacitor 1000µF 10V", "capacitor", 2)
+misc("zip_ties", "Cable Ties (pack of 50)", "zip", 3, { uses = 50 })
+misc("solder_wire", "Solder Wire (Lead-free)", "solder", 5, { uses = 30 })
 misc("wifi_ax200", "Intel Wi-Fi 6 AX200 (M.2)", "wifi", 18, { slot = "m2" })
 misc("wifi_ax210", "Intel Wi-Fi 6E AX210 (M.2)", "wifi", 22, { slot = "m2" })
 misc("wifi_tx3000e", "TP-Link Archer TX3000E (PCIe)", "wifi", 45, { slot = "pcie" })
@@ -740,11 +740,11 @@ misc("sata_cable", "SATA Veri Kablosu", "cable", 3)
 local LAPTOP_CLASSES = { "budget15", "ultra14", "business14", "gaming15", "gaming17" }
 Parts.LaptopClasses = LAPTOP_CLASSES
 local CLASS_LABEL = {
-	budget15 = "15.6\" Ekonomik",
-	ultra14 = "14\" İnce (Ultrabook)",
-	business14 = "14\" İş Serisi",
-	gaming15 = "15.6\" Oyuncu",
-	gaming17 = "17.3\" Oyuncu",
+	budget15 = "15.6\" Budget",
+	ultra14 = "14\" Slim (Ultrabook)",
+	business14 = "14\" Business Series",
+	gaming15 = "15.6\" Gaming",
+	gaming17 = "17.3\" Gaming",
 }
 Parts.LaptopClassLabel = CLASS_LABEL
 
@@ -756,12 +756,12 @@ local LAPTOP_PRICES = {
 	gaming17 = { battery = 80, screen = 150, keyboard = 60, fan = 35, hinge = 25, dcjack = 14 },
 }
 local LAPTOP_PART_NAMES = {
-	battery = "Batarya",
-	screen = "Ekran Paneli",
-	keyboard = "Klavye (TR-Q)",
-	fan = "Fan + Soğutucu",
-	hinge = "Menteşe Seti",
-	dcjack = "Şarj Soketi (DC Jack)",
+	battery = "Battery",
+	screen = "Screen Panel",
+	keyboard = "Keyboard (US layout)",
+	fan = "Fan + Heatsink",
+	hinge = "Hinge Set",
+	dcjack = "Charging Port (DC Jack)",
 }
 for _, cls in LAPTOP_CLASSES do
 	for kind, price in LAPTOP_PRICES[cls] do
@@ -777,29 +777,29 @@ for _, cls in LAPTOP_CLASSES do
 end
 
 ----------------------------------------------------------------------------------------------------
--- Your own brand: "Atölye" parts only your factory makes (Data/Factory). own = true keeps them
+-- Your own brand: "Benchcraft" parts only your factory makes (Data/Factory). own = true keeps them
 -- out of the depot's catalogue, the second-hand markets and the technicians' shopping.
 ----------------------------------------------------------------------------------------------------
 local function own(p: Part): Part
 	p.own = true
 	return p
 end
-own(ram("atl_ddr4_8", "Atölye DDR4 8GB 3200", "DDR4", "DIMM", 8, 3200, false, 15, "black", "lpx"))
-own(ram("atl_ddr4_16", "Atölye Gaming RGB 16GB DDR4 3600", "DDR4", "DIMM", 16, 3600, true, 38, "black", "vrgb"))
-own(ram("atl_ddr4_32", "Atölye Pro 32GB DDR4 3200", "DDR4", "DIMM", 32, 3200, false, 62, "black", "lpx"))
-own(ram("atl_ddr5_16", "Atölye 16GB DDR5 6000", "DDR5", "DIMM", 16, 6000, false, 46, "black", "fury"))
-own(ram("atl_ddr5_32", "Atölye Gaming RGB 32GB DDR5 6000", "DDR5", "DIMM", 32, 6000, true, 98, "white", "vrgb"))
-own(storage("atl_ssd1t", "Atölye 1TB SATA SSD", "ssd25", 1000, 550, 46))
-own(storage("atl_nv1t", "Atölye 1TB NVMe Gen4", "nvme", 1000, 5000, 48, { gen = 4 }))
-own(storage("atl_nv2t", "Atölye 2TB NVMe Gen4 (Soğutuculu)", "nvme", 2000, 7000, 105, { gen = 4, heatsink = true }))
-own(psu("atl550", "Atölye 550W 80+ Bronze", 550, "Bronze", "none", 0.64, 36))
-own(psu("atl750", "Atölye 750W 80+ Gold", 750, "Gold", "full", 0.82, 76))
-own(psu("atl1000", "Atölye 1000W 80+ Gold ATX 3.0", 1000, "Gold", "full", 0.86, 128, { v12 = true }))
-own(cooler("atl_tower", "Atölye Frost 120 ARGB", "air", 200, "all", true, 27, { style = "idcool" }))
-own(cooler("atl_aio240", "Atölye Liquid 240 ARGB", "aio", 255, "all", true, 72, { radiator = 240, style = "arctic" }))
-own(fan("atl_rgb120", "Atölye 120mm ARGB Fan", 120, true, 6))
-own(case("atl_mid", "Atölye Vortex Mid Tower", "airflow", { "ATX", "mATX", "ITX" }, "black", true, 38, 6, 52, { rgb = true }))
-own(case("atl_white", "Atölye Vortex Mid Tower (Beyaz)", "airflow", { "ATX", "mATX", "ITX" }, "white", true, 38, 6, 56, { rgb = true }))
+own(ram("atl_ddr4_8", "Benchcraft DDR4 8GB 3200", "DDR4", "DIMM", 8, 3200, false, 15, "black", "lpx"))
+own(ram("atl_ddr4_16", "Benchcraft Gaming RGB 16GB DDR4 3600", "DDR4", "DIMM", 16, 3600, true, 38, "black", "vrgb"))
+own(ram("atl_ddr4_32", "Benchcraft Pro 32GB DDR4 3200", "DDR4", "DIMM", 32, 3200, false, 62, "black", "lpx"))
+own(ram("atl_ddr5_16", "Benchcraft 16GB DDR5 6000", "DDR5", "DIMM", 16, 6000, false, 46, "black", "fury"))
+own(ram("atl_ddr5_32", "Benchcraft Gaming RGB 32GB DDR5 6000", "DDR5", "DIMM", 32, 6000, true, 98, "white", "vrgb"))
+own(storage("atl_ssd1t", "Benchcraft 1TB SATA SSD", "ssd25", 1000, 550, 46))
+own(storage("atl_nv1t", "Benchcraft 1TB NVMe Gen4", "nvme", 1000, 5000, 48, { gen = 4 }))
+own(storage("atl_nv2t", "Benchcraft 2TB NVMe Gen4 (Heatsink)", "nvme", 2000, 7000, 105, { gen = 4, heatsink = true }))
+own(psu("atl550", "Benchcraft 550W 80+ Bronze", 550, "Bronze", "none", 0.64, 36))
+own(psu("atl750", "Benchcraft 750W 80+ Gold", 750, "Gold", "full", 0.82, 76))
+own(psu("atl1000", "Benchcraft 1000W 80+ Gold ATX 3.0", 1000, "Gold", "full", 0.86, 128, { v12 = true }))
+own(cooler("atl_tower", "Benchcraft Frost 120 ARGB", "air", 200, "all", true, 27, { style = "idcool" }))
+own(cooler("atl_aio240", "Benchcraft Liquid 240 ARGB", "aio", 255, "all", true, 72, { radiator = 240, style = "arctic" }))
+own(fan("atl_rgb120", "Benchcraft 120mm ARGB Fan", 120, true, 6))
+own(case("atl_mid", "Benchcraft Vortex Mid Tower", "airflow", { "ATX", "mATX", "ITX" }, "black", true, 38, 6, 52, { rgb = true }))
+own(case("atl_white", "Benchcraft Vortex Mid Tower (Beyaz)", "airflow", { "ATX", "mATX", "ITX" }, "white", true, 38, 6, 56, { rgb = true }))
 
 ----------------------------------------------------------------------------------------------------
 -- Peripherals: what goes with a PC on a desk. They make a build a "setup" in the showcase.
@@ -813,18 +813,18 @@ local function peripheral(id, kind, name, price, extra)
 	return add(p)
 end
 -- monitors
-peripheral("mon_22", "monitor", "Philips 22\" 1080p 75Hz Monitör", 85, { size = 22, hz = 75 })
-peripheral("mon_24ips", "monitor", "LG 24\" IPS 1080p 100Hz Monitör", 115, { size = 24, hz = 100 })
-peripheral("mon_24g", "monitor", "AOC 24G2 24\" 144Hz Oyuncu Monitörü", 150, { size = 24, hz = 144 })
-peripheral("mon_27g", "monitor", "MSI G27C4 27\" 170Hz Kavisli Monitör", 190, { size = 27, hz = 170, curved = true })
-peripheral("mon_27qhd", "monitor", "Dell S2721DGF 27\" QHD 165Hz Monitör", 280, { size = 27, hz = 165 })
+peripheral("mon_22", "monitor", "Philips 22\" 1080p 75Hz Monitor", 85, { size = 22, hz = 75 })
+peripheral("mon_24ips", "monitor", "LG 24\" IPS 1080p 100Hz Monitor", 115, { size = 24, hz = 100 })
+peripheral("mon_24g", "monitor", "AOC 24G2 24\" 144Hz Gaming Monitor", 150, { size = 24, hz = 144 })
+peripheral("mon_27g", "monitor", "MSI G27C4 27\" 170Hz Kavisli Monitor", 190, { size = 27, hz = 170, curved = true })
+peripheral("mon_27qhd", "monitor", "Dell S2721DGF 27\" QHD 165Hz Monitor", 280, { size = 27, hz = 165 })
 peripheral("mon_27ips", "monitor", "LG UltraGear 27GP850 27\" QHD 180Hz", 300, { size = 27, hz = 180 })
 peripheral("mon_27oled", "monitor", "ASUS ROG Swift 27\" QD-OLED 360Hz", 750, { size = 27, hz = 360, oled = true })
 peripheral("mon_32_4k", "monitor", "Samsung Odyssey G7 32\" 4K 144Hz", 650, { size = 32, hz = 144 })
-peripheral("mon_34uw", "monitor", "Xiaomi 34\" Ultrawide 180Hz Monitör", 380, { size = 34, hz = 180, curved = true })
-peripheral("mon_49", "monitor", "Samsung Odyssey G9 49\" Süper Ultrawide", 1100, { size = 49, hz = 240, curved = true })
-peripheral("mon_office", "monitor", "Lenovo 23.8\" Ofis Monitörü", 95, { size = 24, hz = 60 })
-peripheral("mon_4kpro", "monitor", "BenQ 27\" 4K Tasarım Monitörü", 520, { size = 27, hz = 60 })
+peripheral("mon_34uw", "monitor", "Xiaomi 34\" Ultrawide 180Hz Monitor", 380, { size = 34, hz = 180, curved = true })
+peripheral("mon_49", "monitor", "Samsung Odyssey G9 49\" Super Ultrawide", 1100, { size = 49, hz = 240, curved = true })
+peripheral("mon_office", "monitor", "Lenovo 23.8\" Office Monitor", 95, { size = 24, hz = 60 })
+peripheral("mon_4kpro", "monitor", "BenQ 27\" 4K Design Monitor", 520, { size = 27, hz = 60 })
 -- keyboards
 peripheral("kb_office", "keyboard", "Logitech K120 Klavye", 12)
 peripheral("kb_wireless", "keyboard", "Logitech MK270 Kablosuz Set", 30)
@@ -846,7 +846,7 @@ peripheral("ms_gpro", "mouse", "Logitech G Pro X Superlight 2", 150)
 peripheral("ms_rival", "mouse", "SteelSeries Rival 3", 30, { rgb = true })
 peripheral("ms_mx", "mouse", "Logitech MX Master 3S", 95)
 -- headsets
-peripheral("hs_basic", "headset", "Rampage Oyuncu Kulaklığı", 15)
+peripheral("hs_basic", "headset", "Rampage Gaming Headset", 15)
 peripheral("hs_cloud2", "headset", "HyperX Cloud II", 80)
 peripheral("hs_arctis", "headset", "SteelSeries Arctis Nova 1", 60)
 peripheral("hs_blackshark", "headset", "Razer BlackShark V2 X", 50)
@@ -856,26 +856,26 @@ peripheral("hs_virtuoso", "headset", "Corsair Virtuoso RGB Kablosuz XT", 220, { 
 peripheral("pad_basic", "pad", "Standart Mouse Pad", 4)
 peripheral("pad_xl", "pad", "SteelSeries QcK XXL Mouse Pad", 30)
 peripheral("pad_rgb", "pad", "Corsair MM700 RGB Mouse Pad", 60, { rgb = true })
-peripheral("spk_basic", "speakers", "Creative Pebble 2.0 Hoparlör", 25)
-peripheral("spk_21", "speakers", "Logitech Z333 2.1 Hoparlör", 70)
-peripheral("spk_studio", "speakers", "Edifier R1280T Stüdyo Hoparlör", 110)
+peripheral("spk_basic", "speakers", "Creative Pebble 2.0 Speakers", 25)
+peripheral("spk_21", "speakers", "Logitech Z333 2.1 Speakers", 70)
+peripheral("spk_studio", "speakers", "Edifier R1280T Studio Speakers", 110)
 peripheral("cam_c270", "webcam", "Logitech C270 HD Webcam", 25)
 peripheral("cam_c920", "webcam", "Logitech C920 Full HD Webcam", 70)
 peripheral("cam_kiyo", "webcam", "Razer Kiyo Pro Webcam", 130)
 -- chairs and desks
-peripheral("chair_basic", "chair", "Rampage Oyuncu Koltuğu", 120)
-peripheral("chair_dxr", "chair", "DXRacer Formula Oyuncu Koltuğu", 260)
+peripheral("chair_basic", "chair", "Rampage Gaming Chair", 120)
+peripheral("chair_dxr", "chair", "DXRacer Formula Gaming Chair", 260)
 peripheral("chair_secret", "chair", "Secretlab Titan Evo Koltuk", 480)
-peripheral("chair_ergo", "chair", "Ergonomik File Ofis Koltuğu", 180)
-peripheral("desk_basic", "desk", "120cm Bilgisayar Masası", 90)
-peripheral("desk_l", "desk", "L Tipi Oyuncu Masası (RGB)", 210, { rgb = true })
+peripheral("chair_ergo", "chair", "Ergonomic Mesh Office Chair", 180)
+peripheral("desk_basic", "desk", "120cm Computer Desk", 90)
+peripheral("desk_l", "desk", "L-Shaped Gaming Desk (RGB)", 210, { rgb = true })
 peripheral("desk_standing", "desk", "Elektrikli Ayarlanabilir Masa", 330)
 -- your own brand's peripherals
-own(peripheral("atl_kb", "keyboard", "Atölye Mekanik RGB Klavye", 34, { rgb = true }))
-own(peripheral("atl_ms", "mouse", "Atölye Pro RGB Mouse", 18, { rgb = true }))
-own(peripheral("atl_hs", "headset", "Atölye 7.1 Oyuncu Kulaklığı", 36))
-own(peripheral("atl_pad", "pad", "Atölye XXL Mouse Pad", 12))
-own(peripheral("atl_mon", "monitor", "Atölye 27\" 165Hz Oyuncu Monitörü", 175, { size = 27, hz = 165 }))
+own(peripheral("atl_kb", "keyboard", "Benchcraft Mekanik RGB Klavye", 34, { rgb = true }))
+own(peripheral("atl_ms", "mouse", "Benchcraft Pro RGB Mouse", 18, { rgb = true }))
+own(peripheral("atl_hs", "headset", "Benchcraft 7.1 Gaming Headset", 36))
+own(peripheral("atl_pad", "pad", "Benchcraft XXL Mouse Pad", 12))
+own(peripheral("atl_mon", "monitor", "Benchcraft 27\" 165Hz Gaming Monitor", 175, { size = 27, hz = 165 }))
 
 ----------------------------------------------------------------------------------------------------
 -- Lookup and helpers

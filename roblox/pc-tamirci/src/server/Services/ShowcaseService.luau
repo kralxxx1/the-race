@@ -167,7 +167,7 @@ local function showModel(player: Player, slot: number, job)
 			table.insert(kinds, pp.kind)
 		end
 	end
-	local head = if #kinds > 0 then "🖥️ SET (" .. #kinds + 1 .. " parça)" else "🖥️ PC"
+	local head = if #kinds > 0 then "🖥️ SET (" .. #kinds + 1 .. " parts)" else "🖥️ PC"
 	B.sign(card, Enum.NormalId.Front, head .. "\n$" .. ShowcaseService.priceOf(player, job), { color = Color3.fromRGB(20, 20, 24), font = B.Fonts.Bold })
 	models[player] = models[player] or {}
 	models[player][slot] = h.model

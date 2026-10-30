@@ -333,7 +333,7 @@ function Props.busStop(parent: Instance, cf: CFrame, name: string): Model
 		real.Name = "BusStop"
 		-- the stop's name over the shelter and the bus sign on its pole
 		local label = B.box(real, cf * CFrame.new(0, 9.2, -1.2), Vector3.new(8, 1, 0.2), Color3.fromRGB(30, 40, 60), M.SmoothPlastic, noCollide())
-		B.sign(label, Enum.NormalId.Front, "DURAK • " .. name, { color = Color3.fromRGB(255, 255, 255) })
+		B.sign(label, Enum.NormalId.Front, "BUS STOP • " .. name, { color = Color3.fromRGB(255, 255, 255) })
 		local pole = B.cylY(real, cf * CFrame.new(-8.6, 5, -1.5), 10, 0.35, frame, M.Metal)
 		local plate = B.box(real, pole.CFrame * CFrame.new(4.6, 0, 0) * CFrame.Angles(0, 0, -math.pi / 2), Vector3.new(2.6, 0.2, 2.6), Color3.fromRGB(240, 200, 40), M.SmoothPlastic, noCollide())
 		B.sign(plate, Enum.NormalId.Top, "🚌", { color = Color3.fromRGB(30, 30, 30) })
@@ -348,13 +348,13 @@ function Props.busStop(parent: Instance, cf: CFrame, name: string): Model
 	B.box(m, cf * CFrame.new(0, 4.4, 2.1), Vector3.new(11, 7, 0.2), P.glass, M.Glass, { Transparency = 0.6 })
 	B.box(m, cf * CFrame.new(-5.8, 4.4, 0.4), Vector3.new(0.2, 7, 3.2), P.glass, M.Glass, { Transparency = 0.6 })
 	local ad = B.box(m, cf * CFrame.new(5.8, 4.4, 0.4), Vector3.new(0.3, 6, 3), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
-	B.sign(ad, Enum.NormalId.Left, "RTX 5090\nMega Parça'da!", { background = Color3.fromRGB(20, 24, 30), color = Color3.fromRGB(120, 230, 255), glow = true })
+	B.sign(ad, Enum.NormalId.Left, "RTX 5090\nat Mega Parts!", { background = Color3.fromRGB(20, 24, 30), color = Color3.fromRGB(120, 230, 255), glow = true })
 	Props.bench(m, cf * CFrame.new(0, 0.3, 1))
 	local pole = B.cylY(m, cf * CFrame.new(-7.5, 5, -1.5), 10, 0.35, frame, M.Metal)
 	local plate = B.box(m, pole.CFrame * CFrame.new(4.6, 0, 0) * CFrame.Angles(0, 0, -math.pi / 2), Vector3.new(2.6, 0.2, 2.6), Color3.fromRGB(240, 200, 40), M.SmoothPlastic, noCollide())
 	B.sign(plate, Enum.NormalId.Top, "🚌", { color = Color3.fromRGB(30, 30, 30) })
 	local label = B.box(m, cf * CFrame.new(0, 9.1, -1.7), Vector3.new(8, 1, 0.2), Color3.fromRGB(30, 40, 60), M.SmoothPlastic, noCollide())
-	B.sign(label, Enum.NormalId.Front, "DURAK • " .. name, { color = Color3.fromRGB(255, 255, 255) })
+	B.sign(label, Enum.NormalId.Front, "BUS STOP • " .. name, { color = Color3.fromRGB(255, 255, 255) })
 	return m
 end
 
@@ -384,9 +384,9 @@ function Props.flag(parent: Instance, cf: CFrame, height: number?): Model
 	local h = height or 22
 	B.cylY(m, cf * CFrame.new(0, h / 2, 0), h, 0.45, Color3.fromRGB(220, 220, 225), M.Metal)
 	B.ball(m, cf * CFrame.new(0, h + 0.3, 0), 0.8, Color3.fromRGB(230, 200, 80), M.Metal, noCollide())
-	local cloth = B.box(m, cf * CFrame.new(3.4, h - 2.3, 0), Vector3.new(6.6, 4.4, 0.1), Color3.fromRGB(227, 10, 23), M.Fabric, noCollide({ Name = "Cloth" }))
-	B.sign(cloth, Enum.NormalId.Front, "☾★", { color = Color3.new(1, 1, 1), padding = 0.12 })
-	B.sign(cloth, Enum.NormalId.Back, "★☽", { color = Color3.new(1, 1, 1), padding = 0.12, name = "SignBack" })
+	local cloth = B.box(m, cf * CFrame.new(3.4, h - 2.3, 0), Vector3.new(6.6, 4.4, 0.1), Color3.fromRGB(30, 80, 170), M.Fabric, noCollide({ Name = "Cloth" }))
+	B.sign(cloth, Enum.NormalId.Front, "★", { color = Color3.new(1, 1, 1), padding = 0.12 })
+	B.sign(cloth, Enum.NormalId.Back, "★", { color = Color3.new(1, 1, 1), padding = 0.12, name = "SignBack" })
 	B.tag(cloth, "FlagCloth")
 	return m
 end
@@ -422,7 +422,7 @@ function Props.simitCart(parent: Instance, cf: CFrame): Model
 		B.cyl(m, cf * CFrame.new(side * 1.6, 0.8, 1.3), 0.3, 1.6, Color3.fromRGB(30, 30, 30), M.Rubber)
 	end
 	local sign = B.box(m, cf * CFrame.new(0, 6.1, 0), Vector3.new(3.6, 1.2, 0.2), Color3.fromRGB(250, 220, 120), M.SmoothPlastic, noCollide())
-	B.sign(sign, Enum.NormalId.Front, "SİMİT • POĞAÇA", { color = red })
+	B.sign(sign, Enum.NormalId.Front, "BAGELS • PRETZELS", { color = red })
 	return m
 end
 
@@ -431,7 +431,7 @@ function Props.newsKiosk(parent: Instance, cf: CFrame): Model
 	B.box(m, cf * CFrame.new(0, 4, 0), Vector3.new(7, 8, 5), Color3.fromRGB(30, 90, 60), M.Metal)
 	B.box(m, cf * CFrame.new(0, 8.3, -0.6), Vector3.new(8, 0.6, 6.6), Color3.fromRGB(240, 200, 60), M.SmoothPlastic)
 	local win = B.box(m, cf * CFrame.new(0, 4.6, -2.55), Vector3.new(5.6, 3.6, 0.1), Color3.fromRGB(240, 240, 230), M.SmoothPlastic, noCollide())
-	B.sign(win, Enum.NormalId.Front, "GAZETE • DERGİ\nBİLET • SU", { color = Color3.fromRGB(30, 30, 30), background = Color3.fromRGB(250, 248, 240) })
+	B.sign(win, Enum.NormalId.Front, "NEWSPAPERS • MAGAZINES\nTICKETS • WATER", { color = Color3.fromRGB(30, 30, 30), background = Color3.fromRGB(250, 248, 240) })
 	return m
 end
 
@@ -502,7 +502,7 @@ end
 -- Industrial / harbour
 ----------------------------------------------------------------------------------------------------
 local CONTAINER_COLORS = { { 190, 50, 40 }, { 30, 90, 160 }, { 40, 130, 80 }, { 230, 150, 30 }, { 120, 120, 125 }, { 150, 70, 120 }, { 230, 230, 225 } }
-local CONTAINER_LABELS = { "MARMARA LINE", "EGE KARGO", "BOSPHORUS", "TRANSKON", "YILDIZ SHIP", "ANADOLU LOG", "MAVI DENIZ" }
+local CONTAINER_LABELS = { "NORTHSTAR LINE", "COASTAL CARGO", "ATLANTIC SHIP", "TRANSCON", "STARLINE SHIP", "PACIFIC LOG", "BLUE OCEAN" }
 function Props.container(parent: Instance, cf: CFrame, rng: Random?): BasePart
 	local r = rng or Random.new()
 	local i = r:NextInteger(1, #CONTAINER_COLORS)
@@ -682,11 +682,11 @@ function Props.arcade(parent: Instance, cf: CFrame): Model
 	local screen = B.box(m, cf * CFrame.new(0, 4, -1.1) * CFrame.Angles(math.rad(-12), 0, 0), Vector3.new(2, 1.6, 0.1), Color3.fromRGB(10, 10, 10), M.Glass, noCollide())
 	B.sign(screen, Enum.NormalId.Front, "INSERT COIN", { glow = true, color = Color3.fromRGB(255, 240, 80), background = Color3.fromRGB(10, 10, 30), font = B.Fonts.Mono })
 	local marquee = B.box(m, cf * CFrame.new(0, 5.6, -1.05), Vector3.new(2.4, 0.6, 0.1), Color3.fromRGB(240, 60, 120), M.Neon, noCollide())
-	B.sign(marquee, Enum.NormalId.Front, "PAC-TAMİRCİ", { color = Color3.new(1, 1, 1) })
+	B.sign(marquee, Enum.NormalId.Front, "PAC-REPAIR", { color = Color3.new(1, 1, 1) })
 	return m
 end
 
--- Karabaş, the shop's Anatolian shepherd: fawn coat, black mask and ears, lying on his cushion
+-- Buddy, the shop's shepherd dog: fawn coat, black mask and ears, lying on his cushion
 -- with his head up (facing -Z).
 function Props.guardDog(parent: Instance, cf: CFrame): Model
 	local m = B.model("GuardDog", parent)
@@ -716,7 +716,7 @@ function Props.guardDog(parent: Instance, cf: CFrame): Model
 	B.ellipsoid(m, cf * CFrame.new(0.5, 1.15, 2.15) * CFrame.Angles(0.6, 0, 0.4), Vector3.new(0.35, 0.35, 1.1), fawn, M.Fabric, noCollide())
 	-- his name on the cushion
 	local tag = B.box(m, cf * CFrame.new(0, 0.31, 2.0), Vector3.new(1.6, 0.02, 0.5), Color3.fromRGB(150, 40, 46), M.Fabric, noCollide())
-	B.sign(tag, Enum.NormalId.Top, "KARABAŞ", { color = Color3.fromRGB(250, 220, 120), font = B.Fonts.Heavy })
+	B.sign(tag, Enum.NormalId.Top, "BUDDY", { color = Color3.fromRGB(250, 220, 120), font = B.Fonts.Heavy })
 	m:AddTag("GuardDog")
 	return m
 end

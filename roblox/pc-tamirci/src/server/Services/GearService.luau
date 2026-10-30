@@ -43,7 +43,7 @@ end
 -- handle's +Z; held near the knob end).
 local function makeBat(): Tool
 	local tool = Instance.new("Tool")
-	tool.Name = "Beyzbol Sopası"
+	tool.Name = "Baseball Bat"
 	tool.ToolTip = "🏏"
 	tool.CanBeDropped = false
 	tool.RequiresHandle = true

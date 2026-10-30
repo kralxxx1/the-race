@@ -691,6 +691,7 @@ function NpcService.tag(model: Model, text: string, color: Color3?)
 		g.StudsOffset = Vector3.new(0, 1.6, 0)
 		g.MaxDistance = 40
 		g.LightInfluence = 0
+		g:AddTag("NameTag") -- the Settings window can hide them
 		local l = Instance.new("TextLabel")
 		l.Name = "Label"
 		l.Size = UDim2.fromScale(1, 1)

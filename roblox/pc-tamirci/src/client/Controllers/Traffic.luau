@@ -25,12 +25,14 @@ local L
 local folder: Folder
 local rng = Random.new()
 
-local MAX_CARS = 20
-local MAX_PEDS = 26
+local BASE_CARS = 20
+local BASE_PEDS = 26
 if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
 	-- phones: lighter streets
-	MAX_CARS, MAX_PEDS = 10, 14
+	BASE_CARS, BASE_PEDS = 10, 14
 end
+local DENSITY = { off = 0, low = 0.5, normal = 1, high = 1.5 }
+local MAX_CARS, MAX_PEDS = BASE_CARS, BASE_PEDS
 local SPAWN_MIN, SPAWN_MAX, DESPAWN = 80, 320, 430
 local CAR_GAP = 10
 
@@ -530,6 +532,19 @@ function Traffic.init()
 			Workspace:BulkMoveTo(moved, cfs, Enum.BulkMoveMode.FireCFrameChanged)
 		end
 	end)
+end
+
+-- How busy the streets are (the Settings window): "off", "low", "normal" or "high".
+function Traffic.setDensity(level: string)
+	local f = DENSITY[level] or 1
+	MAX_CARS, MAX_PEDS = math.floor(BASE_CARS * f + 0.5), math.floor(BASE_PEDS * f + 0.5)
+	while #cars > MAX_CARS do
+		cars[#cars].model:Destroy()
+		table.remove(cars)
+	end
+	while #peds > MAX_PEDS do
+		removePed(#peds)
+	end
 end
 
 function Traffic.counts(): (number, number)

@@ -319,7 +319,7 @@ return function(T)
 		T.eq(p.settings.difficulty, "hard", "unknown difficulty ignored")
 		T.eq(p.settings.fov, 80, "fov out of range ignored")
 		T.eq(p.settings.music, 0.2, "bad volume ignored")
-		T.eq(p.settings.quality, nil, "bad quality ignored")
+		T.eq(p.settings.quality, "high", "bad quality ignored")
 		request("settings.set", { difficulty = "normal", help = "guided" })
 		request("settings.set", { help = "bogus" })
 		T.eq(p.settings.help, "guided", "help back")
@@ -459,14 +459,14 @@ return function(T)
 		T.ok(gone and gone.vars.cash > 0, "the till was emptied")
 		T.eq(paid.vars.amount, math.floor(gone.vars.cash * 0.7), "70 % back")
 
-		-- a shoplifter runs out of the door into Karabaş
+		-- a shoplifter runs out of the door into Buddy
 		pushes = {}
 		roll = 0
 		ThiefService.visit(player)
 		local dog = waitFor(function()
 			return toast("thief_caught")
 		end, 8, "the dog catches him")
-		T.ok(string.find(dog.vars.by, "Karabaş", 1, true) ~= nil, "caught by Karabaş")
+		T.ok(string.find(dog.vars.by, "Buddy", 1, true) ~= nil, "caught by Buddy")
 
 		-- another slips past the dog and the police at the door, but the police find him on the
 		-- HD footage and bring the cash back

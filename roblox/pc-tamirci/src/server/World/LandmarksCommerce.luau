@@ -66,7 +66,7 @@ end
 local function megastore(parent, poi, rng)
 	local cf, w, d = Commerce.siteFrame(poi, 6)
 	local hw, hd, hh = w - 12, d - 14, 22
-	local m, _pts = Buildings.hall(parent, cf, hw, hd, hh, { name = "MEGA PARÇA DEPOSU", accent = { 0, 140, 210 }, wall = { 230, 232, 236 }, floor = { 70, 74, 82 }, floorMat = M.SmoothPlastic, door = 12, modelName = "Megastore" })
+	local m, _pts = Buildings.hall(parent, cf, hw, hd, hh, { name = "MEGA PARTS DEPOT", accent = { 0, 140, 210 }, wall = { 230, 232, 236 }, floor = { 70, 74, 82 }, floorMat = M.SmoothPlastic, door = 12, modelName = "Megastore" })
 	-- product aisles
 	local aisles = math.floor((hw - 20) / 12)
 	for i = 0, aisles - 1 do
@@ -79,7 +79,7 @@ local function megastore(parent, poi, rng)
 		for k = -1, 1, 2 do
 			B.box(m, cf * CFrame.new(x, (hh - 2.8 + hh - 0.15) / 2, hd / 2 + k * 3), Vector3.new(0.1, 2.75, 0.1), Color3.fromRGB(150, 150, 156), M.Metal, nc())
 		end
-		B.sign(sign, Enum.NormalId.Right, ({ "EKRAN KARTI", "İŞLEMCİ", "ANAKART", "RAM", "SSD / HDD", "GÜÇ KAYNAĞI", "SOĞUTMA", "KASA", "FAN", "AKSESUAR" })[(i % 10) + 1], { color = Color3.new(1, 1, 1) })
+		B.sign(sign, Enum.NormalId.Right, ({ "GRAPHICS CARDS", "PROCESSORS", "MOTHERBOARDS", "RAM", "SSD / HDD", "POWER SUPPLIES", "COOLING", "CASES", "FANS", "ACCESSORIES" })[(i % 10) + 1], { color = Color3.new(1, 1, 1) })
 	end
 	-- GPU showcase island near the door
 	local island = cf * CFrame.new(-hw / 4, 0.2, 12)
@@ -89,20 +89,20 @@ local function megastore(parent, poi, rng)
 		local box = B.box(m, island * CFrame.new(k * 2.6, 4.6, 0), Vector3.new(2.2, 2.4, 0.8), Color3.fromRGB(20, 20, 22), M.Cardboard, nc())
 		B.sign(box, Enum.NormalId.Front, ({ "RTX\n5090", "RX\n9070 XT", "RTX\n4070", "ARC\nB580", "RTX\n5060" })[k + 3], { color = Color3.fromRGB(118, 185, 0), background = Color3.fromRGB(20, 20, 22) })
 	end
-	Commerce.servicePoint(m, cf * CFrame.new(hw / 4, 0.2, hd - 10), "parts", poi.id, "Alışveriş", "Mega Parça Deposu", 12)
+	Commerce.servicePoint(m, cf * CFrame.new(hw / 4, 0.2, hd - 10), "parts", poi.id, "Shop", "Mega Parts Depot", 12)
 	-- trolley bay outside
 	for k = 0, 3 do
 		B.box(parent, cf * CFrame.new(hw / 2 - 6, 1.2, -4 - k * 1.2), Vector3.new(2.4, 2.4, 1), Color3.fromRGB(200, 40, 40), M.Metal, nc())
 	end
-	Props.billboard(parent, cf * CFrame.new(hw / 2 + 2, 0, 4) * CFrame.Angles(0, math.rad(-25), 0), "GÜNÜN FIRSATI", "Ekran kartlarında %20 indirim!", { 0, 90, 160 })
+	Props.billboard(parent, cf * CFrame.new(hw / 2 + 2, 0, 4) * CFrame.Angles(0, math.rad(-25), 0), "DEAL OF THE DAY", "20% off graphics cards!", { 0, 90, 160 })
 	return m
 end
 
 local function mall(parent, poi, rng)
 	local cf, w, d = Commerce.siteFrame(poi, 4)
-	local m = Buildings.building(parent, cf, { w = w - 10, d = d - 12, floors = 4, floorH = 14, style = "modern", ground = "lobby", name = "ELEKTRONİK AVM", rng = rng, glassColor = { 40, 80, 110 } })
+	local m = Buildings.building(parent, cf, { w = w - 10, d = d - 12, floors = 4, floorH = 14, style = "modern", ground = "lobby", name = "ELECTRONICS MALL", rng = rng, glassColor = { 40, 80, 110 } })
 	for k = -1, 1 do
-		Props.billboard(parent, cf * CFrame.new(k * 26, 0, -6), ({ "OYUN DÜNYASI", "TELEFON & TABLET", "MONİTÖR FUARI" })[k + 2], "AVM'de", ({ { 120, 40, 160 }, { 20, 120, 80 }, { 160, 60, 20 } })[k + 2])
+		Props.billboard(parent, cf * CFrame.new(k * 26, 0, -6), ({ "GAME WORLD", "PHONES & TABLETS", "MONITOR EXPO" })[k + 2], "At the mall", ({ { 120, 40, 160 }, { 20, 120, 80 }, { 160, 60, 20 } })[k + 2])
 	end
 	return m
 end
@@ -150,13 +150,13 @@ local function coveredBazaar(parent, poi, rng)
 	end
 	-- the name board stands on the arcade's top beam
 	local sign = B.box(m, cf * CFrame.new(0, hh + 1.5, -0.9), Vector3.new(26, 3, 0.6), Color3.fromRGB(120, 40, 30), M.Wood)
-	B.sign(sign, Enum.NormalId.Front, "KAPALI ÇARŞI", { color = Color3.fromRGB(250, 220, 140), font = B.Fonts.Serif })
+	B.sign(sign, Enum.NormalId.Front, "COVERED MARKET", { color = Color3.fromRGB(250, 220, 140), font = B.Fonts.Serif })
 	return m
 end
 
 local function bazaarParts(parent, poi, rng)
 	local cf, w, d = Commerce.siteFrame(poi, 4)
-	local m = Buildings.hall(parent, cf, math.min(w - 20, 70), d - 12, 14, { name = "ÇARŞI PARÇACISI", accent = { 150, 60, 30 }, wall = { 210, 190, 160 }, wallMat = M.Brick, floor = { 140, 120, 100 }, floorMat = M.WoodPlanks, modelName = "BazaarParts", font = B.Fonts.Serif })
+	local m = Buildings.hall(parent, cf, math.min(w - 20, 70), d - 12, 14, { name = "OLD TOWN PARTS", accent = { 150, 60, 30 }, wall = { 210, 190, 160 }, wallMat = M.Brick, floor = { 140, 120, 100 }, floorMat = M.WoodPlanks, modelName = "BazaarParts", font = B.Fonts.Serif })
 	local hw = math.min(w - 20, 70)
 	for i = -1, 1 do
 		Props.shelf(m, cf * CFrame.new(i * 18, 0.2, d - 18), 14, 10, 3, rng, 0.95)
@@ -164,13 +164,13 @@ local function bazaarParts(parent, poi, rng)
 	for _ = 1, 6 do
 		Props.crate(m, cf * CFrame.new(Rand.range(rng, -hw / 2 + 4, hw / 2 - 4), 0.2, Rand.range(rng, 6, 12)), Rand.range(rng, 2, 3))
 	end
-	Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, d - 30), "parts_bazaar", poi.id, "Pazarlık Et", "Çarşı Parçacısı")
+	Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, d - 30), "parts_bazaar", poi.id, "Haggle", "Old Town Parts")
 	return m
 end
 
 local function usedMarket(parent, poi, rng)
 	local cf, w, d = Commerce.siteFrame(poi, 4)
-	local m = Buildings.hall(parent, cf, w - 16, d - 12, 15, { name = "2. EL PAZARI ♻", accent = { 30, 140, 70 }, wall = { 220, 214, 196 }, floor = { 120, 110, 96 }, floorMat = M.Concrete, modelName = "UsedMarket" })
+	local m = Buildings.hall(parent, cf, w - 16, d - 12, 15, { name = "SECOND-HAND MARKET ♻", accent = { 30, 140, 70 }, wall = { 220, 214, 196 }, floor = { 120, 110, 96 }, floorMat = M.Concrete, modelName = "UsedMarket" })
 	-- bins full of used parts
 	for i = 0, 5 do
 		local x = -(w - 16) / 2 + 8 + i * ((w - 32) / 5)
@@ -181,10 +181,10 @@ local function usedMarket(parent, poi, rng)
 		-- a price tag on a stick
 		B.box(m, cf * CFrame.new(x, 3.8, 14.3), Vector3.new(0.12, 1.2, 0.12), Color3.fromRGB(120, 90, 60), M.Wood, nc())
 		local tag = B.box(m, cf * CFrame.new(x, 5, 14.41), Vector3.new(3, 1.2, 0.1), Color3.fromRGB(250, 240, 200), M.SmoothPlastic, nc())
-		B.sign(tag, Enum.NormalId.Front, Rand.pick(rng, { "%50 İNDİRİM", "SAĞLAM", "TEST EDİLDİ", "KAPANIŞ", "UCUZ!" }), { color = Color3.fromRGB(200, 30, 30), font = B.Fonts.Hand })
+		B.sign(tag, Enum.NormalId.Front, Rand.pick(rng, { "50% OFF", "WORKS", "TESTED", "CLEARANCE", "CHEAP!" }), { color = Color3.fromRGB(200, 30, 30), font = B.Fonts.Hand })
 		bin.Name = "PartsBin"
 	end
-	Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, d - 24), "used", poi.id, "Al / Sat", "2. El Pazarı")
+	Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, d - 24), "used", poi.id, "Buy / Sell", "Second-hand Market")
 	return m
 end
 
@@ -208,19 +208,19 @@ local function fleaMarket(parent, poi, rng)
 			B.box(m, c * CFrame.new(Rand.range(rng, -4, 4), 2.35 + ih / 2, Rand.range(rng, -1.6, 1.6)) * CFrame.Angles(0, Rand.range(rng, 0, 3), 0), Vector3.new(Rand.range(rng, 0.8, 2.4), ih, Rand.range(rng, 0.6, 1.6)), Rand.pick(rng, { Color3.fromRGB(30, 30, 34), Color3.fromRGB(20, 100, 40), Color3.fromRGB(200, 200, 205), Color3.fromRGB(180, 150, 90) }), M.SmoothPlastic, nc())
 		end
 	end
-	Commerce.servicePoint(m, cf * CFrame.new(0, 0, 30), "used", poi.id, "Tezgâhlara Bak", "Bit Pazarı", 10)
+	Commerce.servicePoint(m, cf * CFrame.new(0, 0, 30), "used", poi.id, "Browse Stalls", "Flea Market", 10)
 	local banner = B.box(m, cf * CFrame.new(0, 12, 4), Vector3.new(30, 3, 0.3), Color3.fromRGB(250, 220, 90), M.Fabric, nc())
 	for side = -1, 1, 2 do
 		B.cylY(m, cf * CFrame.new(side * 15.2, 6.75, 4), 13.5, 0.4, Color3.fromRGB(110, 80, 50), M.Wood)
 	end
-	B.sign(banner, Enum.NormalId.Front, "BİT PAZARI • HER GÜN AÇIK", { color = Color3.fromRGB(120, 30, 20), font = B.Fonts.Hand })
+	B.sign(banner, Enum.NormalId.Front, "FLEA MARKET • OPEN DAILY", { color = Color3.fromRGB(120, 30, 20), font = B.Fonts.Hand })
 	return m
 end
 
 local function toolShop(parent, poi, rng)
 	local cf, w, d = Commerce.siteFrame(poi, 4)
 	local hw = math.min(w - 16, 64)
-	local m = Buildings.hall(parent, cf, hw, d - 14, 14, { name = "USTA ALET-EDEVAT 🧰", accent = { 220, 140, 20 }, wall = { 70, 70, 76 }, wallMat = M.Concrete, floor = { 150, 150, 150 }, floorMat = M.Concrete, modelName = "ToolShop" })
+	local m = Buildings.hall(parent, cf, hw, d - 14, 14, { name = "MASTER TOOLS & HARDWARE 🧰", accent = { 220, 140, 20 }, wall = { 70, 70, 76 }, wallMat = M.Concrete, floor = { 150, 150, 150 }, floorMat = M.Concrete, modelName = "ToolShop" })
 	-- pegboard walls with tools
 	for side = -1, 1, 2 do
 		local board = B.box(m, cf * CFrame.new(side * (hw / 2 - 1.2), 7, (d - 14) / 2), Vector3.new(0.4, 9, d - 24), Color3.fromRGB(190, 160, 120), M.Wood)
@@ -262,7 +262,7 @@ local function oldHan(parent, poi, rng)
 		Props.parasolTable(m, cf * CFrame.new(Rand.range(rng, -hw / 4, hw / 4), 0, Rand.range(rng, hd / 2 - 12, hd / 2 + 12)), { 160, 40, 40 }, rng)
 	end
 	local plaque = B.box(m, cf * CFrame.new(0, hh + 1.8, -0.2), Vector3.new(18, 3, 0.4), Color3.fromRGB(120, 40, 30), M.Wood)
-	B.sign(plaque, Enum.NormalId.Front, "TARİHİ HAN • 1625", { color = Color3.fromRGB(250, 220, 150), font = B.Fonts.Serif })
+	B.sign(plaque, Enum.NormalId.Front, "HISTORIC INN • 1842", { color = Color3.fromRGB(250, 220, 150), font = B.Fonts.Serif })
 	return m
 end
 
@@ -305,7 +305,7 @@ local function marketHall(parent, poi, rng)
 	for side = -1, 1, 2 do
 		B.cylY(m, cf * CFrame.new(side * 12.2, 5.75, 3), 11.5, 0.4, Color3.fromRGB(90, 90, 96), M.Metal)
 	end
-	B.sign(sign, Enum.NormalId.Front, "SEMT PAZARI • TAZE ÜRÜN", { color = Color3.new(1, 1, 1) })
+	B.sign(sign, Enum.NormalId.Front, "NEIGHBOURHOOD MARKET • FRESH PRODUCE", { color = Color3.new(1, 1, 1) })
 	return m
 end
 
@@ -343,8 +343,8 @@ local function scrapyard(parent, poi, rng)
 	end
 	-- office cabin with the counter
 	local cabin = CFrame.lookAt(Vector3.new(cx, WALK_Y, s.z0 + 26), Vector3.new(cx, WALK_Y, s.z0))
-	local hall = Buildings.hall(m, cabin, 26, 18, 11, { name = "HURDACI REMZİ", accent = { 120, 80, 40 }, wall = { 150, 140, 120 }, wallMat = M.CorrodedMetal, floor = { 110, 100, 90 }, floorMat = M.Concrete, modelName = "ScrapOffice" })
-	Commerce.servicePoint(hall, cabin * CFrame.new(0, 0.2, 12), "scrap", poi.id, "Hurda Kasa Al", "Hurdalık", 8)
+	local hall = Buildings.hall(m, cabin, 26, 18, 11, { name = "JUNKYARD JOE", accent = { 120, 80, 40 }, wall = { 150, 140, 120 }, wallMat = M.CorrodedMetal, floor = { 110, 100, 90 }, floorMat = M.Concrete, modelName = "ScrapOffice" })
+	Commerce.servicePoint(hall, cabin * CFrame.new(0, 0.2, 12), "scrap", poi.id, "Buy a Junk PC", "Scrapyard", 8)
 	return m
 end
 
@@ -366,13 +366,13 @@ local function dealer(parent, poi, _rng, service: string, title: string, accent)
 		marker:SetAttribute("Dealer", service)
 		B.tag(marker, "DealerDisplay")
 	end
-	Commerce.servicePoint(m, cf * CFrame.new(hw / 3, 0.2, 10 + hd - 10), service, poi.id, "Araçlara Bak", title)
+	Commerce.servicePoint(m, cf * CFrame.new(hw / 3, 0.2, 10 + hd - 10), service, poi.id, "Browse Vehicles", title)
 	-- pennant banners along the forecourt
 	for k = -2, 2 do
 		local base = cf * CFrame.new(k * 10, 0, -2)
 		B.cylY(parent, base * CFrame.new(0, 7, 0), 14, 0.35, Color3.fromRGB(220, 220, 225), M.Metal)
 		local cloth = B.box(parent, base * CFrame.new(0, 10.5, -1.6), Vector3.new(0.1, 6, 3), B.color(accent), M.Fabric, nc())
-		B.sign(cloth, Enum.NormalId.Left, if k % 2 == 0 then "SATIŞ" else "%0 FAİZ", { color = Color3.new(1, 1, 1) })
+		B.sign(cloth, Enum.NormalId.Left, if k % 2 == 0 then "SALE" else "0% APR", { color = Color3.new(1, 1, 1) })
 	end
 	return m
 end
@@ -383,7 +383,7 @@ local function fuelStation(parent, poi, rng)
 	local canopy = cf * CFrame.new(0, 0, 22)
 	B.box(m, canopy * CFrame.new(0, 14, 0), Vector3.new(40, 1.6, 22), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
 	local band = B.box(m, canopy * CFrame.new(0, 14, -11), Vector3.new(40, 1.8, 0.4), Color3.fromRGB(20, 120, 60), M.SmoothPlastic)
-	B.sign(band, Enum.NormalId.Front, "YEŞİL PETROL", { color = Color3.new(1, 1, 1) })
+	B.sign(band, Enum.NormalId.Front, "GREEN FUEL", { color = Color3.new(1, 1, 1) })
 	for k = -1, 1, 2 do
 		B.box(m, canopy * CFrame.new(k * 14, 7, 0), Vector3.new(1.2, 14, 1.2), Color3.fromRGB(200, 200, 200), M.Metal)
 		for p = -1, 1, 2 do
@@ -398,10 +398,10 @@ local function fuelStation(parent, poi, rng)
 		local p = B.box(m, canopy * CFrame.new(l), Vector3.new(8, 0.2, 4), Color3.fromRGB(255, 255, 255), M.Neon, nc())
 		B.spotLight(p, Enum.NormalId.Bottom, 30, 120, 1.5, Color3.fromRGB(255, 255, 250), false)
 	end
-	Buildings.building(parent, cf * CFrame.new(0, 0, 44), { w = 30, d = math.min(24, d - 50), floors = 1, floorH = 12, style = "modern", ground = "shop", name = "MARKET 7/24", rng = rng, blankSides = true })
+	Buildings.building(parent, cf * CFrame.new(0, 0, 44), { w = 30, d = math.min(24, d - 50), floors = 1, floorH = 12, style = "modern", ground = "shop", name = "24/7 MARKET", rng = rng, blankSides = true })
 	-- price totem
 	local totem = B.box(m, cf * CFrame.new(w / 2 - 6, 9, 2), Vector3.new(5, 18, 1.2), Color3.fromRGB(20, 120, 60), M.SmoothPlastic)
-	B.sign(totem, Enum.NormalId.Front, "BENZİN 42.90\nMOTORİN 44.15\nLPG 21.30", { color = Color3.new(1, 1, 1), glow = true, font = B.Fonts.Mono })
+	B.sign(totem, Enum.NormalId.Front, "UNLEADED 3.49\nDIESEL 3.89\nLPG 1.79", { color = Color3.new(1, 1, 1), glow = true, font = B.Fonts.Mono })
 	return m
 end
 
@@ -428,7 +428,7 @@ end
 local function internetCafe(parent, poi, _rng)
 	local cf, w, d = Commerce.siteFrame(poi, 4)
 	local hw, hd = math.min(w - 20, 60), d - 14
-	local m = Buildings.hall(parent, cf, hw, hd, 13, { name = "PIXEL İNTERNET KAFE 🎮", accent = { 120, 40, 200 }, wall = { 30, 30, 40 }, wallMat = M.SmoothPlastic, floor = { 40, 40, 50 }, floorMat = M.Carpet, modelName = "InternetCafe" })
+	local m = Buildings.hall(parent, cf, hw, hd, 13, { name = "PIXEL INTERNET CAFE 🎮", accent = { 120, 40, 200 }, wall = { 30, 30, 40 }, wallMat = M.SmoothPlastic, floor = { 40, 40, 50 }, floorMat = M.Carpet, modelName = "InternetCafe" })
 	for row = 0, 2 do
 		for i = 0, 5 do
 			local c = cf * CFrame.new(-hw / 2 + 6 + i * 8, 0.2, 10 + row * 9)
@@ -438,7 +438,7 @@ local function internetCafe(parent, poi, _rng)
 			Props.chair(m, c * CFrame.new(0, 0, -2.2), { 160, 30, 40 })
 		end
 	end
-	Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, hd - 8), "contracts", poi.id, "Toplu İş Al", "Pixel İnternet Kafe")
+	Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, hd - 8), "contracts", poi.id, "Take Bulk Job", "Pixel Internet Cafe")
 	B.box(parent, cf * CFrame.new(0, 13 + 13, hd / 2), Vector3.new(hw, 26, hd), Color3.fromRGB(190, 190, 196), M.Concrete)
 	return m
 end
@@ -449,7 +449,7 @@ local function datacenter(parent, poi, _rng)
 	local cx = (s.x0 + s.x1) / 2
 	local cf = CFrame.lookAt(Vector3.new(cx, WALK_Y, s.z0 + 20), Vector3.new(cx, WALK_Y, s.z0))
 	local hw, hd = s.x1 - s.x0 - 30, s.z1 - s.z0 - 50
-	local hall = Buildings.hall(m, cf, hw, hd, 20, { name = "BULUT VERİ MERKEZİ", accent = { 30, 60, 110 }, wall = { 190, 196, 204 }, wallMat = M.Metal, floor = { 210, 214, 220 }, floorMat = M.DiamondPlate, modelName = "DataHall" })
+	local hall = Buildings.hall(m, cf, hw, hd, 20, { name = "CLOUD DATA CENTRE", accent = { 30, 60, 110 }, wall = { 190, 196, 204 }, wallMat = M.Metal, floor = { 210, 214, 220 }, floorMat = M.DiamondPlate, modelName = "DataHall" })
 	for row = 0, 3 do
 		for i = 0, 6 do
 			local rack = cf * CFrame.new(-hw / 2 + 10 + i * (hw - 20) / 6, 0.2, 18 + row * 14)
@@ -460,7 +460,7 @@ local function datacenter(parent, poi, _rng)
 			end
 		end
 	end
-	Commerce.servicePoint(hall, cf * CFrame.new(0, 0.2, 8), "contracts", poi.id, "Kurumsal İş Al", "Bulut Veri Merkezi")
+	Commerce.servicePoint(hall, cf * CFrame.new(0, 0.2, 8), "contracts", poi.id, "Take Corporate Job", "Cloud Data Centre")
 	-- cooling units on the roof and a generator yard
 	for i = 0, 3 do
 		B.box(m, cf * CFrame.new(-hw / 3 + i * hw / 4.5, 22.5, hd / 2), Vector3.new(8, 3, 8), Color3.fromRGB(200, 200, 204), M.Metal)
@@ -490,7 +490,7 @@ local function cinema(parent, poi, _rng)
 	local m = B.model("Cinema", parent)
 	B.box(m, cf * CFrame.new(0, 14, d / 2), Vector3.new(w - 16, 28, d - 16), Color3.fromRGB(60, 30, 50), M.Concrete)
 	local marquee = B.box(m, cf * CFrame.new(0, 12, -2), Vector3.new(w - 20, 6, 4), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
-	B.sign(marquee, Enum.NormalId.Front, "YILDIZ SİNEMASI  •  VİZYONDA: 'SON TAMİRCİ'", { color = Color3.fromRGB(255, 220, 90), glow = true, brightness = 2 })
+	B.sign(marquee, Enum.NormalId.Front, "STAR CINEMA  •  NOW SHOWING: 'THE LAST REPAIRMAN'", { color = Color3.fromRGB(255, 220, 90), glow = true, brightness = 2 })
 	for i = -3, 3 do
 		local bulb = B.ball(m, cf * CFrame.new(i * (w - 24) / 6, 15.3, -3.8), 0.6, Color3.fromRGB(255, 230, 150), M.Neon, nc())
 		bulb.Name = "MarqueeBulb"
@@ -498,7 +498,7 @@ local function cinema(parent, poi, _rng)
 	B.box(m, cf * CFrame.new(0, 4.5, 0.2), Vector3.new(w - 24, 9, 0.4), Color3.fromRGB(160, 180, 196), M.Glass, { Transparency = 0.5 })
 	for k = -1, 1, 2 do
 		local poster = B.box(m, cf * CFrame.new(k * (w / 2 - 14), 5, -0.4), Vector3.new(6, 9, 0.3), Color3.fromRGB(30, 30, 30), M.SmoothPlastic, nc())
-		B.sign(poster, Enum.NormalId.Front, if k < 0 then "RAM\nSAVAŞLARI" else "MAVİ\nEKRAN 2", { color = Color3.fromRGB(255, 255, 255), background = if k < 0 then Color3.fromRGB(120, 20, 30) else Color3.fromRGB(20, 40, 120), glow = true })
+		B.sign(poster, Enum.NormalId.Front, if k < 0 then "RAM\nWARS" else "BLUE\nSCREEN 2", { color = Color3.fromRGB(255, 255, 255), background = if k < 0 then Color3.fromRGB(120, 20, 30) else Color3.fromRGB(20, 40, 120), glow = true })
 	end
 	return m
 end
@@ -509,7 +509,7 @@ local function arena(parent, poi, _rng)
 	local stage = cf * CFrame.new(0, 0.2, d - 26)
 	B.box(m, stage * CFrame.new(0, 1.5, 0), Vector3.new(36, 3, 12), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
 	local screen = B.box(m, stage * CFrame.new(0, 9, 5.8), Vector3.new(30, 12, 0.4), Color3.fromRGB(10, 10, 12), M.SmoothPlastic)
-	B.sign(screen, Enum.NormalId.Front, "FİNAL • TAMİRCİLER vs ÇİPLER", { glow = true, brightness = 1.6, color = Color3.new(1, 1, 1), background = Color3.fromRGB(80, 10, 50) })
+	B.sign(screen, Enum.NormalId.Front, "FINAL • REPAIRERS vs CHIPS", { glow = true, brightness = 1.6, color = Color3.new(1, 1, 1), background = Color3.fromRGB(80, 10, 50) })
 	for i = -2, 2 do
 		B.box(m, stage * CFrame.new(i * 6, 3.4, -2), Vector3.new(4, 0.3, 2), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
 		Props.monitor(m, stage * CFrame.new(i * 6, 3.55, -1.6), "", Color3.fromRGB(80, 10, 50))
@@ -539,7 +539,7 @@ local function arena(parent, poi, _rng)
 		end
 		for k = 0, 2 do
 			local banner = B.box(m, cf * CFrame.new(side * (hw - 1.1), 8, 14 + k * 16) * CFrame.Angles(0, -side * math.pi / 2, 0), Vector3.new(7, 5, 0.2), Color3.fromRGB(20, 20, 26), M.Fabric, { CanCollide = false })
-			B.sign(banner, Enum.NormalId.Front, ({ "TAMİRCİLER", "ÇİPLER", "OVERCLOCK", "RGB KURTLARI", "SOĞUTUCULAR", "BIOS BOYS" })[k + 1 + (if side < 0 then 0 else 3)], { glow = true, color = Color3.new(1, 1, 1), background = if k % 2 == 0 then Color3.fromRGB(120, 20, 60) else Color3.fromRGB(20, 40, 120) })
+			B.sign(banner, Enum.NormalId.Front, ({ "REPAIRERS", "CHIPS", "OVERCLOCK", "RGB WOLVES", "COOLERS", "BIOS BOYS" })[k + 1 + (if side < 0 then 0 else 3)], { glow = true, color = Color3.new(1, 1, 1), background = if k % 2 == 0 then Color3.fromRGB(120, 20, 60) else Color3.fromRGB(20, 40, 120) })
 		end
 	end
 	return m
@@ -562,13 +562,13 @@ function Commerce.build(parent: Instance, L, yieldFn: (() -> ())?)
 		market_hall = marketHall,
 		scrapyard = scrapyard,
 		car_dealer = function(p, poi, r)
-			return dealer(p, poi, r, "cars", "OTO GALERİ 🚗", { 200, 30, 40 })
+			return dealer(p, poi, r, "cars", "AUTO DEALER 🚗", { 200, 30, 40 })
 		end,
 		bike_dealer = function(p, poi, r)
-			return dealer(p, poi, r, "bikes", "MOTOR BAYİ 🏍", { 240, 120, 20 })
+			return dealer(p, poi, r, "bikes", "MOTORCYCLE DEALER 🏍", { 240, 120, 20 })
 		end,
 		bicycle_shop = function(p, poi, r)
-			return dealer(p, poi, r, "bicycles", "BİSİKLET & SCOOTER 🚲", { 40, 160, 90 })
+			return dealer(p, poi, r, "bicycles", "BIKES & SCOOTERS 🚲", { 40, 160, 90 })
 		end,
 		gas_north = fuelStation,
 		gas_west = fuelStation,
@@ -576,10 +576,10 @@ function Commerce.build(parent: Instance, L, yieldFn: (() -> ())?)
 			return officeDesk(p, poi, r, "staff", "PERSONEL AJANSI", "Personel Bul", { 120, 70, 200 })
 		end,
 		realty = function(p, poi, r)
-			return officeDesk(p, poi, r, "realty", "EMLAK OFİSİ 🔑", "Dükkân Bul", { 30, 120, 90 })
+			return officeDesk(p, poi, r, "realty", "REAL ESTATE 🔑", "Find a Shop", { 30, 120, 90 })
 		end,
 		police = function(p, poi, r)
-			return officeDesk(p, poi, r, "police", "POLİS MERKEZİ", "Ödül Al", { 30, 50, 120 }, { wall = { 220, 226, 236 }, floor = { 200, 200, 204 }, floorMat = M.CeramicTiles })
+			return officeDesk(p, poi, r, "police", "POLICE STATION", "Claim Bounty", { 30, 50, 120 }, { wall = { 220, 226, 236 }, floor = { 200, 200, 204 }, floorMat = M.CeramicTiles })
 		end,
 		post = function(p, poi, r)
 			return officeDesk(p, poi, r, nil, "PTT POSTANE", "", { 250, 200, 20 })
@@ -597,12 +597,12 @@ function Commerce.build(parent: Instance, L, yieldFn: (() -> ())?)
 				local z = if k == 0 then s.z0 else s.z1
 				local look = if k == 0 then Vector3.new(0, 0, -1) else Vector3.new(0, 0, 1)
 				local pos = Vector3.new((s.x0 + s.x1) / 2, WALK_Y, z - look.Z * 8)
-				local sign = if k == 0 then "ATÖLYE ELEKTRONİK FABRİKASI" else Rand.pick(r, { "SANAYİ SİTESİ OTO TAMİR", "ÇELİK KONSTRÜKSİYON", "MOBİLYA ATÖLYESİ" })
+				local sign = if k == 0 then "WORKSHOP ELECTRONICS FACTORY" else Rand.pick(r, { "ESTATE AUTO REPAIR", "STEEL CONSTRUCTION", "FURNITURE WORKSHOP" })
 				Buildings.warehouse(m, CFrame.lookAt(pos, pos + look), s.x1 - s.x0 - 20, (s.z1 - s.z0) / 2 - 20, r, { sign = sign, chimney = k == 0 })
 				if k == 0 then
 					-- the factory office: buy a production line, run it, ship and sell what it makes
 					local counterPos = pos + look * 4
-					Commerce.servicePoint(m, CFrame.lookAt(counterPos, counterPos + look), "factory", poi.id, "Fabrika", "Üretim Ofisi", 10)
+					Commerce.servicePoint(m, CFrame.lookAt(counterPos, counterPos + look), "factory", poi.id, "Factory", "Production Office", 10)
 				end
 			end
 			return m
@@ -610,25 +610,25 @@ function Commerce.build(parent: Instance, L, yieldFn: (() -> ())?)
 		cinema = cinema,
 		arena = arena,
 		kebab = function(p, poi, r)
-			return restaurant(p, poi, r, "DÖNERCİ USTA", { 200, 40, 30 }, 4)
+			return restaurant(p, poi, r, "DOWNTOWN DINER", { 200, 40, 30 }, 4)
 		end,
 		bakery = function(p, poi, r)
-			return restaurant(p, poi, r, "TAŞ FIRIN", { 170, 110, 50 }, 2)
+			return restaurant(p, poi, r, "STONE OVEN BAKERY", { 170, 110, 50 }, 2)
 		end,
 		pizzeria = function(p, poi, r)
-			return restaurant(p, poi, r, "NAPOLİ PİZZA", { 30, 130, 60 }, 5)
+			return restaurant(p, poi, r, "NAPOLI PIZZA", { 30, 130, 60 }, 5)
 		end,
 		fish = function(p, poi, r)
-			return restaurant(p, poi, r, "BALIKÇI BARINAĞI", { 30, 90, 150 }, 6)
+			return restaurant(p, poi, r, "HARBOUR FISH & CHIPS", { 30, 90, 150 }, 6)
 		end,
 		icecream = function(p, poi, r)
-			return restaurant(p, poi, r, "MARAŞ DONDURMACISI", { 240, 120, 160 }, 4)
+			return restaurant(p, poi, r, "SCOOP ICE CREAM", { 240, 120, 160 }, 4)
 		end,
 		gym = function(p, poi, r)
-			return simpleBuilding(p, poi, r, "DEMİR SPOR SALONU", "modern", 3, { 30, 30, 34 }, "shop")
+			return simpleBuilding(p, poi, r, "IRON GYM", "modern", 3, { 30, 30, 34 }, "shop")
 		end,
 		hotel = function(p, poi, r)
-			return simpleBuilding(p, poi, r, "GRAND SAHİL OTELİ", "modern", 12, { 160, 120, 40 })
+			return simpleBuilding(p, poi, r, "GRAND SEASIDE HOTEL", "modern", 12, { 160, 120, 40 })
 		end,
 	}
 	for _, poi in L.pois do

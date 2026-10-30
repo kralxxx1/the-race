@@ -100,13 +100,13 @@ local BENCH_LEN, BENCH_BACK, BENCH_DEPTH = 10, 2.9, 7.8
 
 local POSTERS = {
 	"RTX 5090\nSTOKTA!",
-	"ÜCRETSİZ\nARIZA TESPİTİ",
-	"6 AY\nGARANTİLİ TAMİR",
+	"FREE\nDIAGNOSIS",
+	"6 MONTH\nREPAIR WARRANTY",
 	"TERMAL MACUN\nBAKIMI 15 DK",
-	"SSD İLE\n10 KAT HIZ",
+	"10x FASTER\nWITH AN SSD",
 	"OYUNCU PC\nTOPLAMA",
-	"LAPTOP EKRAN\nDEĞİŞİMİ",
-	"VERİ\nKURTARMA",
+	"LAPTOP SCREEN\nREPLACEMENT",
+	"DATA\nRECOVERY",
 }
 
 -- Workbench facing into the room (cf.LookVector points at the technician).
@@ -178,7 +178,7 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 	anchor:SetAttribute("Bench", index)
 	local camAnchor = B.marker(m, "CameraAnchor", cf * CFrame.new(-0.6, 9.5, -6.5))
 	camAnchor:SetAttribute("Bench", index)
-	local prompt = B.prompt(B.marker(m, "PromptAnchor", stool * CFrame.new(0, 3, 0)), "Tezgâha Geç", "Tezgâh " .. index, { distance = 8, name = "BenchPrompt" })
+	local prompt = B.prompt(B.marker(m, "PromptAnchor", stool * CFrame.new(0, 3, 0)), "Sit at Bench", "Bench " .. index, { distance = 8, name = "BenchPrompt" })
 	prompt:SetAttribute("Bench", index)
 	m:SetAttribute("Bench", index)
 	B.tag(m, "Workbench")
@@ -214,8 +214,8 @@ function ShopBuilder.emptyLot(parent: Instance, cf: CFrame, plotW: number, plotD
 		B.box(m, post * CFrame.new(x * 3.6, 4, 0), Vector3.new(0.4, 8, 0.4), Color3.fromRGB(60, 60, 64), M.Metal)
 	end
 	local board = B.box(m, post * CFrame.new(0, 7.4, 0), Vector3.new(8, 4, 0.3), Color3.fromRGB(240, 200, 40), M.SmoothPlastic)
-	B.sign(board, Enum.NormalId.Front, "KİRALIK DÜKKÂN\n#" .. plotId, { color = Color3.fromRGB(30, 30, 30), font = B.Fonts.Heavy })
-	local prompt = B.prompt(board, "Bu Dükkânı Tut", "Kiralık Dükkân #" .. plotId, { distance = 14, hold = 0.5, name = "ClaimPrompt" })
+	B.sign(board, Enum.NormalId.Front, "SHOP FOR RENT\n#" .. plotId, { color = Color3.fromRGB(30, 30, 30), font = B.Fonts.Heavy })
+	local prompt = B.prompt(board, "Rent This Shop", "Shop for Rent #" .. plotId, { distance = 14, hold = 0.5, name = "ClaimPrompt" })
 	prompt:SetAttribute("Plot", plotId)
 	-- a few construction props
 	Props.pallet(m, cf * CFrame.new(-plotW / 3, 0.1, plotD * 0.6))
@@ -260,7 +260,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 
 	-- the building shell
 	local hall = Buildings.hall(shop, front, W, D, H, {
-		name = opts.name or "Bilgisayar Tamir",
+		name = opts.name or "PC Repair",
 		accent = accent,
 		wall = wallStyle.color,
 		wallMat = material(wallStyle.material),
@@ -516,7 +516,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		if items.tv then
 			local tz = math.min(szMax + 2.6, fz - 0.6)
 			B.box(shop, at(cx, tz, (H + 11.5) / 2), Vector3.new(0.3, H - 11.5, 0.3), Color3.fromRGB(30, 30, 34), M.Metal, nc())
-			Props.tv(shop, at(cx, tz, 9.5), "<b>" .. (opts.name or "Bilgisayar Tamir") .. "</b>\nHoş geldiniz!")
+			Props.tv(shop, at(cx, tz, 9.5), "<b>" .. (opts.name or "PC Repair") .. "</b>\nWelcome!")
 		end
 	end
 
@@ -685,12 +685,12 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		wallItem({ walls.rightFront, walls.leftFront, walls.back }, 2.4, 0.15, 0.3, function(c)
 			local frame = B.box(shop, c * CFrame.new(0, 6.5, 0), Vector3.new(2.4, 3, 0.2), Color3.fromRGB(150, 110, 60), M.Wood)
 			local paper = B.box(shop, c * CFrame.new(0, 6.5, -0.12), Vector3.new(2.0, 2.6, 0.05), Color3.fromRGB(246, 244, 236), M.SmoothPlastic)
-			B.sign(paper, Enum.NormalId.Front, "İŞYERİ\nSİGORTA\nPOLİÇESİ", { color = Color3.fromRGB(30, 50, 120), font = B.Fonts.Serif })
+			B.sign(paper, Enum.NormalId.Front, "BUSINESS\nINSURANCE\nPOLICY", { color = Color3.fromRGB(30, 50, 120), font = B.Fonts.Serif })
 			_ = frame
 		end)
 	end
 	if items.guard_dog then
-		-- Karabaş, an Anatolian shepherd, lies on his cushion just inside the door
+		-- Buddy, a shepherd dog, lies on his cushion just inside the door
 		for ring = 0, 10 do
 			local done = false
 			for _, x in { 6.5 + ring, -6.5 - ring } do
@@ -750,11 +750,11 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	local pylon = cf * CFrame.new(plotW / 2 - 4, 0.12, 2)
 	B.box(shop, pylon * CFrame.new(0, 5, 0), Vector3.new(0.6, 10, 0.6), Color3.fromRGB(60, 60, 64), M.Metal)
 	local pylonSign = B.box(shop, pylon * CFrame.new(0, 10.5, 0), Vector3.new(6, 4, 0.8), accent, if items.neon then M.Neon else M.SmoothPlastic)
-	B.sign(pylonSign, Enum.NormalId.Front, "🔧 " .. (opts.name or "Tamir"), { color = Color3.new(1, 1, 1), glow = true })
-	B.sign(pylonSign, Enum.NormalId.Back, "🔧 " .. (opts.name or "Tamir"), { color = Color3.new(1, 1, 1), glow = true, name = "SignBack" })
+	B.sign(pylonSign, Enum.NormalId.Front, "🔧 " .. (opts.name or "Repair"), { color = Color3.new(1, 1, 1), glow = true })
+	B.sign(pylonSign, Enum.NormalId.Back, "🔧 " .. (opts.name or "Repair"), { color = Color3.new(1, 1, 1), glow = true, name = "SignBack" })
 	if items.sign_pro then
 		local lb = B.box(shop, front * CFrame.new(0, H + 5.6, -0.2), Vector3.new(math.min(W - 4, 30), 3, 1), Color3.fromRGB(250, 250, 250), M.SmoothPlastic)
-		B.sign(lb, Enum.NormalId.Front, "BİLGİSAYAR • LAPTOP • TAMİR", { color = accent, glow = true, brightness = 1.6 })
+		B.sign(lb, Enum.NormalId.Front, "COMPUTERS • LAPTOPS • REPAIR", { color = accent, glow = true, brightness = 1.6 })
 	end
 	Props.bench(shop, cf * CFrame.new(-plotW / 2 + 6, 0.12, 2) * CFrame.Angles(0, 0, 0))
 	point("Parking", cf * CFrame.new(-plotW / 4, 0.5, -16) * CFrame.Angles(0, math.pi / 2, 0), { Parking = true })

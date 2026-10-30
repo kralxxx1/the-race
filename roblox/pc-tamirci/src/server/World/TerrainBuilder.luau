@@ -29,8 +29,9 @@ Terrain.SEA_LEVEL = -1.5
 Terrain.Lake = LAKE
 
 -- The paved city: every block and road plus a margin. Grass terrain grows blades about a stud
--- tall that poke through roads, pavements and floors, so the city stands on bare ground and only
--- the lawns (park blocks) and the countryside around it are grass.
+-- tall that poke through roads, pavements and floors, so the city stands on a paved base (never
+-- brown dirt: wherever a building or slab has not streamed in yet, you see pavement) and only the
+-- lawns (park blocks) and the countryside around it are grass.
 local urban = nil
 function Terrain.urbanRect()
 	if urban then
@@ -110,6 +111,8 @@ function Terrain.build()
 		terrain:SetMaterialColor(M.LeafyGrass, Color3.fromRGB(86, 128, 62))
 		terrain:SetMaterialColor(M.Sand, Color3.fromRGB(230, 212, 168))
 		terrain:SetMaterialColor(M.Ground, Color3.fromRGB(120, 100, 76))
+		terrain:SetMaterialColor(M.Pavement, Color3.fromRGB(158, 157, 152))
+		terrain:SetMaterialColor(M.Concrete, Color3.fromRGB(146, 147, 150))
 		terrain:SetMaterialColor(M.Rock, Color3.fromRGB(130, 126, 120))
 		terrain:SetMaterialColor(M.Mud, Color3.fromRGB(96, 80, 62))
 	end)
@@ -126,11 +129,11 @@ function Terrain.build()
 
 	local b = CityLayout.get().bounds
 	local seaZ = CityLayout.SEA_Z
-	-- land: grass around the city, bare ground under it, lawns in the park
+	-- land: grass around the city, pavement under it, lawns in the park
 	local landDepth = seaZ - b.minZ
 	terrain:FillBlock(CFrame.new(0, -6, b.minZ + landDepth / 2), Vector3.new(b.maxX - b.minX, 12, landDepth), M.Grass)
 	local u = Terrain.urbanRect()
-	terrain:FillBlock(CFrame.new((u.x0 + u.x1) / 2, -6, (u.z0 + u.z1) / 2), Vector3.new(u.x1 - u.x0, 12, u.z1 - u.z0), M.Ground)
+	terrain:FillBlock(CFrame.new((u.x0 + u.x1) / 2, -6, (u.z0 + u.z1) / 2), Vector3.new(u.x1 - u.x0, 12, u.z1 - u.z0), M.Pavement)
 	for _, lawn in Terrain.lawns() do
 		terrain:FillBlock(CFrame.new((lawn.x0 + lawn.x1) / 2, -6, (lawn.z0 + lawn.z1) / 2), Vector3.new(lawn.x1 - lawn.x0, 12, lawn.z1 - lawn.z0), M.Grass)
 	end
@@ -157,7 +160,7 @@ function Terrain.build()
 		if blk.z1 > CityLayout.BEACH_Z then
 			local cx, w = (blk.x0 + blk.x1) / 2, blk.x1 - blk.x0 + 8
 			terrain:FillBlock(CFrame.new(cx, (SEA_LEVEL - 20) / 2, blk.z1 + 110), Vector3.new(w, SEA_LEVEL + 20, 220), M.Water)
-			terrain:FillBlock(CFrame.new(cx, -6, (CityLayout.BEACH_Z + blk.z1) / 2 + 4), Vector3.new(w, 12, blk.z1 - CityLayout.BEACH_Z + 8), M.Ground)
+			terrain:FillBlock(CFrame.new(cx, -6, (CityLayout.BEACH_Z + blk.z1) / 2 + 4), Vector3.new(w, 12, blk.z1 - CityLayout.BEACH_Z + 8), M.Concrete)
 		end
 	end
 	-- northern hills

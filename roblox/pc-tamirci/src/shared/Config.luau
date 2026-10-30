@@ -3,7 +3,7 @@
 
 local Config = {
 	Version = "1.0.0",
-	GameName = "PC Tamircisi Simülatörü",
+	GameName = "PC Repair Tycoon",
 
 	-- Para birimi sembolü (ör. "$", "₺", "€")
 	CurrencySymbol = "$",

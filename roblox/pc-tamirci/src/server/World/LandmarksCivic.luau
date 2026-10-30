@@ -116,7 +116,7 @@ local function plaza(parent, poi, rng)
 	-- city hall on the north edge, facing the square (front = local -Z = south)
 	local hallCf = CFrame.lookAt(Vector3.new(c.X, WALK_Y, c.Z - 64), Vector3.new(c.X, WALK_Y, c.Z))
 	local facadeCf = hallCf * CFrame.new(0, 0, -26)
-	Buildings.hall(m, facadeCf, 72, 22, 16, { name = "BELEDİYE", accent = { 160, 30, 40 }, wall = { 236, 228, 210 }, wallMat = M.Limestone, floor = { 200, 190, 170 }, floorMat = M.Marble, glassFront = false, modelName = "CityHall", sign = false })
+	Buildings.hall(m, facadeCf, 72, 22, 16, { name = "CITY HALL", accent = { 160, 30, 40 }, wall = { 236, 228, 210 }, wallMat = M.Limestone, floor = { 200, 190, 170 }, floorMat = M.Marble, glassFront = false, modelName = "CityHall", sign = false })
 	colonnade(m, facadeCf * CFrame.new(0, 0, -4), 50, 18, 8, Color3.fromRGB(240, 236, 226))
 	B.box(m, facadeCf * CFrame.new(0, 20.6, -4.5), Vector3.new(54, 1.2, 4), Color3.fromRGB(236, 228, 210), M.Limestone)
 	-- triangular pediment: two wedges whose tall edges meet in the middle
@@ -124,7 +124,7 @@ local function plaza(parent, poi, rng)
 		B.wedge(m, facadeCf * CFrame.new(side * 13.5, 24.2, -4.5) * CFrame.Angles(0, -side * math.pi / 2, 0), Vector3.new(2, 6, 27), Color3.fromRGB(236, 228, 210), M.Limestone)
 	end
 	local hallSign = B.box(m, facadeCf * CFrame.new(0, 22.4, -5.8), Vector3.new(20, 2, 0.4), Color3.fromRGB(150, 30, 40), M.SmoothPlastic, nc())
-	B.sign(hallSign, Enum.NormalId.Front, "BELEDİYE BAŞKANLIĞI", { color = Color3.fromRGB(250, 230, 180), font = B.Fonts.Serif })
+	B.sign(hallSign, Enum.NormalId.Front, "MAYOR'S OFFICE", { color = Color3.fromRGB(250, 230, 180), font = B.Fonts.Serif })
 	B.ball(m, facadeCf * CFrame.new(0, 22, 11), 18, Color3.fromRGB(90, 120, 140), M.Slate)
 	for s = 0, 5 do
 		B.box(m, facadeCf * CFrame.new(0, 0.2 + (5 - s) * 0.3, -(6 + s * 1.2)), Vector3.new(30 + s * 2, 0.4, 1.4), Color3.fromRGB(226, 220, 206), M.Marble)
@@ -136,15 +136,15 @@ local function plaza(parent, poi, rng)
 	local anchor = B.marker(m, "ServiceAnchor", facadeCf * CFrame.new(0, 3, -14), Vector3.new(10, 6, 4))
 	anchor:SetAttribute("Service", "board")
 	anchor:SetAttribute("Poi", "cityhall")
-	B.prompt(anchor, "Görev Panosu", "Belediye", { distance = 16, name = "ServicePrompt" })
+	B.prompt(anchor, "Task Board", "City Hall", { distance = 16, name = "ServicePrompt" })
 	B.tag(anchor, "ServicePoint")
 	-- bank on the east edge, café on the west edge
 	local bankCf = CFrame.lookAt(Vector3.new(c.X + 66, WALK_Y, c.Z - 10), Vector3.new(c.X, WALK_Y, c.Z - 10))
-	Buildings.building(m, bankCf, { w = 36, d = 24, floors = 3, floorH = 13, style = "historic", ground = "lobby", name = "ŞEHİR BANKASI", rng = rng, blankSides = true })
+	Buildings.building(m, bankCf, { w = 36, d = 24, floors = 3, floorH = 13, style = "historic", ground = "lobby", name = "CITY BANK", rng = rng, blankSides = true })
 	Props.atm(m, bankCf * CFrame.new(-12, 0, -1))
 	Props.atm(m, bankCf * CFrame.new(-8, 0, -1))
 	local cafeCf = CFrame.lookAt(Vector3.new(c.X - 66, WALK_Y, c.Z + 20), Vector3.new(c.X, WALK_Y, c.Z + 20))
-	Buildings.building(m, cafeCf, { w = 34, d = 22, floors = 2, floorH = 12, style = "apartment", ground = "shop", shops = 1, name = "MEYDAN KAFE ☕", accent = { 120, 70, 40 }, rng = rng, blankSides = true })
+	Buildings.building(m, cafeCf, { w = 34, d = 22, floors = 2, floorH = 12, style = "apartment", ground = "shop", shops = 1, name = "PLAZA CAFE ☕", accent = { 120, 70, 40 }, rng = rng, blankSides = true })
 	for i = 0, 3 do
 		Props.parasolTable(m, cafeCf * CFrame.new(-12 + i * 8, 0, -8), { 120, 70, 40 }, rng)
 	end
@@ -160,15 +160,15 @@ local function university(parent, poi, rng)
 	local cx, cz = (b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2
 	-- main building along the south (facing the quad and Park Caddesi)
 	local mainCf = CFrame.lookAt(Vector3.new(cx, WALK_Y, b.z1 - 70), Vector3.new(cx, WALK_Y, b.z1 + 10))
-	Buildings.building(m, mainCf, { w = 140, d = 40, floors = 4, floorH = 14, style = "historic", ground = "lobby", name = "TEKNİK ÜNİVERSİTE", rng = rng, roof = "gable" })
+	Buildings.building(m, mainCf, { w = 140, d = 40, floors = 4, floorH = 14, style = "historic", ground = "lobby", name = "TECHNICAL UNIVERSITY", rng = rng, roof = "gable" })
 	colonnade(m, mainCf * CFrame.new(0, 0, -3), 40, 18, 6, Color3.fromRGB(240, 236, 226))
 	-- library (modern glass box) on the east side
 	local libCf = CFrame.lookAt(Vector3.new(b.x1 - 70, WALK_Y, cz - 20), Vector3.new(b.x1 - 140, WALK_Y, cz - 20))
-	Buildings.building(m, libCf, { w = 70, d = 46, floors = 3, floorH = 14, style = "modern", ground = "lobby", name = "KÜTÜPHANE", rng = rng, glassColor = { 80, 120, 140 } })
+	Buildings.building(m, libCf, { w = 70, d = 46, floors = 3, floorH = 14, style = "modern", ground = "lobby", name = "LIBRARY", rng = rng, glassColor = { 80, 120, 140 } })
 	-- dorms on the west side
 	for k = 0, 1 do
 		local dormCf = CFrame.lookAt(Vector3.new(b.x0 + 40, WALK_Y, b.z0 + 70 + k * 110), Vector3.new(b.x0 + 140, WALK_Y, b.z0 + 70 + k * 110))
-		Buildings.building(m, dormCf, { w = 70, d = 30, floors = 6, style = "apartment", ground = "lobby", name = "ÖĞRENCİ YURDU " .. (k + 1), rng = rng })
+		Buildings.building(m, dormCf, { w = 70, d = 30, floors = 6, style = "apartment", ground = "lobby", name = "STUDENT DORM " .. (k + 1), rng = rng })
 	end
 	-- the quad: lawn paths, trees, statue, fountain
 	local quad = CFrame.new(cx, WALK_Y, cz - 30)
@@ -202,7 +202,7 @@ end
 ----------------------------------------------------------------------------------------------------
 local function hospital(parent, poi, rng)
 	local cf, w, d = Commerce.siteFrame(poi, 10)
-	local m = Buildings.building(parent, cf, { w = w - 30, d = d - 30, floors = 8, floorH = 13, style = "office", ground = "lobby", name = "ŞEHİR HASTANESİ", rng = rng, wallColor = { 240, 242, 246 }, glassColor = { 70, 120, 150 } })
+	local m = Buildings.building(parent, cf, { w = w - 30, d = d - 30, floors = 8, floorH = 13, style = "office", ground = "lobby", name = "CITY HOSPITAL", rng = rng, wallColor = { 240, 242, 246 }, glassColor = { 70, 120, 150 } })
 	local H = 8 * 13
 	local roof = cf * CFrame.new(0, H + 1.4, (d - 30) / 2)
 	B.cylY(m, roof, 0.4, 30, Color3.fromRGB(80, 84, 90), M.Concrete)
@@ -211,7 +211,7 @@ local function hospital(parent, poi, rng)
 	local cross = B.box(m, cf * CFrame.new(-(w - 30) / 2 + 10, H - 10, -0.5), Vector3.new(10, 10, 1), Color3.fromRGB(255, 255, 255), M.SmoothPlastic)
 	B.sign(cross, Enum.NormalId.Front, "☾", { color = Color3.fromRGB(220, 20, 30), glow = true })
 	local er = B.box(m, cf * CFrame.new((w - 30) / 2 - 12, 11, -0.5), Vector3.new(14, 3, 1), Color3.fromRGB(200, 20, 30), M.Neon, nc())
-	B.sign(er, Enum.NormalId.Front, "ACİL", { color = Color3.new(1, 1, 1) })
+	B.sign(er, Enum.NormalId.Front, "EMERGENCY", { color = Color3.new(1, 1, 1) })
 	-- ambulance bay
 	B.box(parent, cf * CFrame.new((w - 30) / 2 - 12, 0.05, -10), Vector3.new(16, 0.1, 14), Color3.fromRGB(240, 200, 40), M.SmoothPlastic, nc({ CanCollide = true }))
 	return m
@@ -219,7 +219,7 @@ end
 
 local function school(parent, poi, rng)
 	local cf, w, d = Commerce.siteFrame(poi, 8)
-	local m = Buildings.building(parent, cf * CFrame.new(0, 0, d / 2 - 10), { w = w - 30, d = 34, floors = 3, floorH = 12, style = "apartment", wallColor = { 238, 210, 160 }, ground = "lobby", name = "ATATÜRK İLKOKULU", rng = rng, roof = "gable" })
+	local m = Buildings.building(parent, cf * CFrame.new(0, 0, d / 2 - 10), { w = w - 30, d = 34, floors = 3, floorH = 12, style = "apartment", wallColor = { 238, 210, 160 }, ground = "lobby", name = "LINCOLN PRIMARY SCHOOL", rng = rng, roof = "gable" })
 	-- schoolyard with court markings and hoops
 	local yard = cf * CFrame.new(0, 0.06, d / 4 - 6)
 	B.box(parent, yard, Vector3.new(w - 30, 0.12, d / 2 - 22), Color3.fromRGB(70, 110, 160), M.SmoothPlastic, nc({ CanCollide = true }))
@@ -249,7 +249,7 @@ local function fireStation(parent, poi, _rng)
 		end
 	end
 	local sign = B.box(m, cf * CFrame.new(0, bh - 3, 3.8), Vector3.new(30, 3, 0.4), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
-	B.sign(sign, Enum.NormalId.Front, "İTFAİYE 112", { color = Color3.fromRGB(200, 30, 30) })
+	B.sign(sign, Enum.NormalId.Front, "FIRE DEPT 911", { color = Color3.fromRGB(200, 30, 30) })
 	-- drill tower
 	B.box(m, cf * CFrame.new(bw / 2 + 10, 25, 20), Vector3.new(12, 50, 12), brick, M.Brick)
 	-- fire truck parked out front
@@ -318,7 +318,7 @@ local function stadium(parent, poi, _rng)
 	for side = -1, 1, 2 do
 		B.box(m, center * CFrame.new(side * 11, 7.5, -(pd / 2 + 30)), Vector3.new(1.2, 15, 1.2), Color3.fromRGB(70, 70, 76), M.Metal)
 	end
-	B.sign(board, Enum.NormalId.Back, "TAMİRSPOR 2 - 1 ÇİPSPOR", { glow = true, color = Color3.fromRGB(255, 200, 40), font = B.Fonts.Mono })
+	B.sign(board, Enum.NormalId.Back, "REPAIRERS 2 - 1 CHIPSTERS", { glow = true, color = Color3.fromRGB(255, 200, 40), font = B.Fonts.Mono })
 	return m
 end
 

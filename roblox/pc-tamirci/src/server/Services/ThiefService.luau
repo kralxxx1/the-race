@@ -211,7 +211,7 @@ local function lastChance(t): boolean
 	if it.guard_dog then
 		playAt(point(t.owner, "Door"), "bark", 3)
 		if rng:NextNumber() < 0.5 then
-			caught(t, nil, "🐕 Karabaş")
+			caught(t, nil, "🐕 Buddy")
 			return true
 		end
 	end

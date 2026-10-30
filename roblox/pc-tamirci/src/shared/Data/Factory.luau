@@ -1,6 +1,6 @@
 -- Factory: your own production at the industrial estate. Buy a small workshop and grow it into a
 -- technology campus; each level adds a production line, speed, warehouse room and an electricity
--- bill. A line makes a batch of one "Atölye" product (Data/Parts, own = true) from bought-in
+-- bill. A line makes a batch of one "Benchcraft" product (Data/Parts, own = true) from bought-in
 -- materials; the batch lands in the factory's warehouse, from where you ship it to your shop (to
 -- build PCs and setups with) or sell it to distributors.
 
@@ -14,7 +14,7 @@ end
 
 -- cost: to buy (level 1) or upgrade to it; req: player level; elec: $ a day on the utility bill
 Factory.levels = {
-	{ level = 1, name = N("Küçük Üretim Atölyesi", "Small Production Workshop"), cost = 15000, req = 6, lines = 1, speed = 1, storage = 80, elec = 25 },
+	{ level = 1, name = N("Küçük Üretim Benchcraftsi", "Small Production Workshop"), cost = 15000, req = 6, lines = 1, speed = 1, storage = 80, elec = 25 },
 	{ level = 2, name = N("Montaj Hattı", "Assembly Line"), cost = 45000, req = 9, lines = 2, speed = 1.2, storage = 160, elec = 45 },
 	{ level = 3, name = N("Elektronik Fabrikası", "Electronics Factory"), cost = 120000, req = 13, lines = 3, speed = 1.45, storage = 300, elec = 80 },
 	{ level = 4, name = N("Otomasyonlu Fabrika", "Automated Factory"), cost = 300000, req = 17, lines = 4, speed = 1.75, storage = 600, elec = 130 },

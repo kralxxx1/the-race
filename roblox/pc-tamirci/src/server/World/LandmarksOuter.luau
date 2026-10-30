@@ -96,7 +96,7 @@ local function controlTower(parent: Instance, cf: CFrame)
 	local beacon = B.ball(m, cf * CFrame.new(0, 74.4, 0), 1.2, Color3.fromRGB(255, 40, 40), M.Neon, nc())
 	beacon:AddTag("Beacon")
 	local label = B.box(m, cf * CFrame.new(0, 8, -9.1), Vector3.new(12, 3, 0.2), Color3.fromRGB(20, 70, 140), M.SmoothPlastic, nc())
-	B.sign(label, Enum.NormalId.Front, "KULE • TOWER", { color = Color3.new(1, 1, 1) })
+	B.sign(label, Enum.NormalId.Front, "TOWER", { color = Color3.new(1, 1, 1) })
 	return m
 end
 
@@ -148,7 +148,7 @@ local function airport(parent: Instance, poi, rng: Random)
 	slab(m, x0 + 60, tz + 8, x1 - 60, front - td, Y + 0.1, Color3.fromRGB(178, 178, 174), M.Concrete).Name = "Apron"
 	local tcf = facing(cx, front, 0, 1)
 	local hall = Buildings.hall(m, tcf, tw, td, 22, {
-		name = "ŞEHİR HAVALİMANI  ✈  CITY AIRPORT", accent = { 20, 70, 140 }, wall = { 226, 230, 236 }, wallMat = M.Metal,
+		name = "CITY AIRPORT  ✈  TERMINAL", accent = { 20, 70, 140 }, wall = { 226, 230, 236 }, wallMat = M.Metal,
 		floor = { 222, 222, 226 }, floorMat = M.Marble, modelName = "Terminal", lightStep = 30, door = 14,
 	})
 	for i = -2, 2 do
@@ -158,7 +158,7 @@ local function airport(parent: Instance, poi, rng: Random)
 		B.box(hall, c * CFrame.new(0, 1.1, 4), Vector3.new(10, 2.2, 3), Color3.fromRGB(60, 62, 68), M.Metal)
 	end
 	local board = B.box(hall, tcf * CFrame.new(0, 12, td - 1.5), Vector3.new(36, 9, 1), Color3.fromRGB(14, 16, 22), M.SmoothPlastic)
-	B.sign(board, Enum.NormalId.Front, "KALKIŞ • DEPARTURES\nAA 2024  ANKARA  14:30\nMJ 0711  İZMİR  15:05\nEH 0346  ANTALYA  15:40\nKA 1923  KAYSERİ  16:15", { color = Color3.fromRGB(255, 210, 80), background = Color3.fromRGB(14, 16, 22), glow = true, font = B.Fonts.Mono })
+	B.sign(board, Enum.NormalId.Front, "DEPARTURES\nNA 2024  LONDON  14:30\nPJ 0711  NEW YORK  15:05\nAS 0346  SYDNEY  15:40\nCA 1923  TOKYO  16:15", { color = Color3.fromRGB(255, 210, 80), background = Color3.fromRGB(14, 16, 22), glow = true, font = B.Fonts.Mono })
 	for row = 0, 2 do
 		for _, sx in { -1, 1 } do
 			local c = tcf * CFrame.new(sx * 70, 0.2, 52 + row * 7)
@@ -167,7 +167,7 @@ local function airport(parent: Instance, poi, rng: Random)
 			B.box(hall, c * CFrame.new(0, 0.5, 0), Vector3.new(28, 1, 1), Color3.fromRGB(70, 70, 76), M.Metal)
 		end
 	end
-	Commerce.servicePoint(hall, tcf * CFrame.new(-82, 0.2, 18), "contracts", poi.id, "BT Sözleşmesi Al", "Havalimanı Bilgi İşlem", 10)
+	Commerce.servicePoint(hall, tcf * CFrame.new(-82, 0.2, 18), "contracts", poi.id, "Take IT Contract", "Airport IT Department", 10)
 	-- the drop-off canopy, the car park and a taxi rank in front
 	B.box(m, tcf * CFrame.new(0, 13, -8), Vector3.new(120, 1, 16), Color3.fromRGB(200, 204, 210), M.Metal)
 	for _, sx in { -55, -18, 18, 55 } do
@@ -223,10 +223,10 @@ local function airport(parent: Instance, poi, rng: Random)
 	-- control tower, hangars with small planes, windsock, a catering truck
 	controlTower(m, facing(x0 + 30, (tz + front - td) / 2, 1, 0))
 	local hg = facing(x1 - 115, tz + 30, 0, -1)
-	hangar(m, hg, 90, 70, 26, "BAKIM HANGARI", { 210, 214, 220 })
+	hangar(m, hg, 90, 70, 26, "MAINTENANCE HANGAR", { 210, 214, 220 })
 	OuterProps.propPlane(m, hg * CFrame.new(0, 0.2, 30) * CFrame.Angles(0, math.pi, 0))
 	local hg2 = facing(x0 + 130, tz + 30, 0, -1)
-	hangar(m, hg2, 80, 60, 24, "KARGO • CARGO", { 190, 200, 214 })
+	hangar(m, hg2, 80, 60, 24, "AIR CARGO", { 190, 200, 214 })
 	OuterProps.propPlane(m, hg2 * CFrame.new(0, 0.2, 28) * CFrame.Angles(0, math.pi, 0), { 240, 200, 40 })
 	OuterProps.truck(m, facing(cx + 30, front - td - 30, 0, 1, Y + 0.1), rng)
 	local sock = CFrame.new(rx1 - 20, Y, rz + 50)
@@ -235,7 +235,7 @@ local function airport(parent: Instance, poi, rng: Random)
 	-- hedges along the highway and the ring road
 	hedge(m, Vector3.new(x0 + 2, Y, z0 + 2), Vector3.new(x1 - 2, Y, z0 + 2))
 	hedge(m, Vector3.new(x0 + 2, Y, z0 + 4), Vector3.new(x0 + 2, Y, z1 - 4))
-	postSign(m, facing(cx - 140, z1 - 3, 0, 1), "✈ HAVALİMANI • AIRPORT", 30, { 20, 70, 140 }, 8)
+	postSign(m, facing(cx - 140, z1 - 3, 0, 1), "✈ CITY AIRPORT", 30, { 20, 70, 140 }, 8)
 	return m
 end
 
@@ -299,8 +299,8 @@ local function shipyard(parent: Instance, poi, rng: Random)
 		B.box(m, CFrame.new(lx, Y + 1.5, gz), Vector3.new(10, 3, 30), Color3.fromRGB(60, 60, 64), M.Metal)
 	end
 	local girder = B.box(m, CFrame.new(x0 + 160, Y + 86, gz), Vector3.new(240, 10, 14), cream, M.Metal)
-	B.sign(girder, Enum.NormalId.Back, "ANADOLU TERSANESİ", { color = red })
-	B.sign(girder, Enum.NormalId.Front, "ANADOLU TERSANESİ", { color = red, name = "SignFront" })
+	B.sign(girder, Enum.NormalId.Back, "NORTHPORT SHIPYARD", { color = red })
+	B.sign(girder, Enum.NormalId.Front, "NORTHPORT SHIPYARD", { color = red, name = "SignFront" })
 	B.box(m, CFrame.new(x0 + 140, Y + 79, gz), Vector3.new(16, 4, 16), Color3.fromRGB(240, 200, 40), M.Metal)
 	-- quay cranes and a ship fitting out at the quay
 	for k = 0, 1 do
@@ -317,8 +317,8 @@ local function shipyard(parent: Instance, poi, rng: Random)
 	B.box(m, ship * CFrame.new(60, 16, 0), Vector3.new(26, 14, 26), Color3.fromRGB(240, 240, 240), M.Metal)
 	B.box(m, ship * CFrame.new(64, 26, 0), Vector3.new(6, 6, 6), Color3.fromRGB(200, 60, 40), M.Metal)
 	-- fabrication halls along the northern road and stock in the yard
-	Buildings.warehouse(m, facing(x0 + 90, z0 + 8, 0, -1), 150, 70, rng, { sign = "BLOK İMALAT", color = { 120, 140, 160 }, height = 24 })
-	Buildings.warehouse(m, facing(x0 + 290, z0 + 8, 0, -1), 130, 70, rng, { sign = "BORU ATÖLYESİ", color = { 200, 200, 196 }, height = 20 })
+	Buildings.warehouse(m, facing(x0 + 90, z0 + 8, 0, -1), 150, 70, rng, { sign = "HULL FABRICATION", color = { 120, 140, 160 }, height = 24 })
+	Buildings.warehouse(m, facing(x0 + 290, z0 + 8, 0, -1), 130, 70, rng, { sign = "PIPE SHOP", color = { 200, 200, 196 }, height = 20 })
 	for k = 0, 3 do
 		local c = CFrame.new(x0 + 40 + k * 26, Y, z0 + 110)
 		for lv = 0, 2 do
@@ -345,13 +345,13 @@ local function shipyard(parent: Instance, poi, rng: Random)
 	B.box(m, crane * CFrame.new(0, 7, 2), Vector3.new(10, 6, 10), Color3.fromRGB(240, 180, 30), M.Metal)
 	B.box(m, crane * CFrame.new(0, 34, -18) * CFrame.Angles(math.rad(50), 0, 0), Vector3.new(2.4, 2.4, 70), Color3.fromRGB(240, 180, 30), M.Metal)
 	-- the office by the gate on the eastern street, the gate arch
-	Buildings.building(m, facing(x1 - 6, z0 + 160, 1, 0), { w = 46, d = 24, floors = 3, floorH = 13, style = "office", rng = rng, ground = "lobby", name = "ANADOLU TERSANESİ A.Ş." })
+	Buildings.building(m, facing(x1 - 6, z0 + 160, 1, 0), { w = 46, d = 24, floors = 3, floorH = 13, style = "office", rng = rng, ground = "lobby", name = "NORTHPORT SHIPYARD LTD." })
 	local gate = facing(x1 - 4, z0 + 210, 1, 0)
 	for _, sx in { -14, 14 } do
 		B.box(m, gate * CFrame.new(sx, 6, 0), Vector3.new(1.6, 12, 1.6), red, M.Metal)
 	end
 	local arch = B.box(m, gate * CFrame.new(0, 12.6, 0), Vector3.new(30, 2.6, 1), red, M.Metal)
-	B.sign(arch, Enum.NormalId.Front, "TERSANE • SHIPYARD", { color = Color3.new(1, 1, 1) })
+	B.sign(arch, Enum.NormalId.Front, "NORTHPORT SHIPYARD", { color = Color3.new(1, 1, 1) })
 	return m
 end
 
@@ -375,7 +375,7 @@ local function fishingVillage(parent: Instance, poi, rng: Random)
 	slab(m, cx - 60, cz - 40, cx + 60, cz + 40, Y + 0.12, Color3.fromRGB(214, 206, 188), M.Cobblestone)
 	Props.tree(m, CFrame.new(cx, Y + 0.12, cz), "forest", rng)
 	B.cylY(m, CFrame.new(cx, Y + 0.6, cz), 1, 12, Color3.fromRGB(200, 196, 186), M.Cobblestone)
-	-- the fountain (çeşme) on the north side of the square
+	-- the fountain on the north side of the square
 	local f = facing(cx, cz - 34, 0, 1, Y + 0.12)
 	B.box(m, f * CFrame.new(0, 4, 0), Vector3.new(8, 8, 2), Color3.fromRGB(236, 232, 222), M.Marble)
 	B.box(m, f * CFrame.new(0, 0.8, -2), Vector3.new(8, 1.6, 2.4), Color3.fromRGB(220, 216, 206), M.Marble)
@@ -405,7 +405,7 @@ local function fishingVillage(parent: Instance, poi, rng: Random)
 	B.box(m, tc * CFrame.new(-4, 3.6, -0.15), Vector3.new(3.4, 7.2, 0.3), blue, M.Wood)
 	B.box(m, tc * CFrame.new(4, 4.4, -0.1), Vector3.new(5, 3.4, 0.2), Color3.fromRGB(40, 56, 70), M.Glass, nc())
 	local label = B.box(m, tc * CFrame.new(0, 8.4, -0.2), Vector3.new(14, 2, 0.4), blue, M.SmoothPlastic)
-	B.sign(label, Enum.NormalId.Front, "LİMAN KAHVESİ", { color = Color3.new(1, 1, 1) })
+	B.sign(label, Enum.NormalId.Front, "HARBOUR CAFE", { color = Color3.new(1, 1, 1) })
 	-- the jetty on the beach south of the village, with fishing boats moored along it
 	local jx = cx
 	local zj0, zj1 = CityLayout.BEACH_Z + 8, CityLayout.SEA_Z + 80
@@ -439,8 +439,8 @@ local function osb(parent: Instance, poi, rng: Random)
 	local cx = (s.x0 + s.x1) / 2
 	local Y = WALK_Y
 	local hcf = facing(cx - 30, s.z0 + 10, 0, -1)
-	local hall = Buildings.hall(m, hcf, 64, 34, 14, { name = "OSB MÜDÜRLÜĞÜ", accent = { 30, 60, 110 }, wall = { 210, 214, 220 }, floor = { 200, 204, 210 }, floorMat = M.CeramicTiles, modelName = "OSBOffice", lightStep = 20 })
-	Commerce.servicePoint(hall, hcf * CFrame.new(0, 0.2, 12), "contracts", poi.id, "Toplu Bakım İşi Al", "OSB Fabrika Ofisleri", 10)
+	local hall = Buildings.hall(m, hcf, 64, 34, 14, { name = "ESTATE MANAGEMENT", accent = { 30, 60, 110 }, wall = { 210, 214, 220 }, floor = { 200, 204, 210 }, floorMat = M.CeramicTiles, modelName = "OSBOffice", lightStep = 20 })
+	Commerce.servicePoint(hall, hcf * CFrame.new(0, 0.2, 12), "contracts", poi.id, "Take Bulk Job", "Estate Factory Offices", 10)
 	for k = 0, 2 do
 		Props.flag(m, hcf * CFrame.new(40 + k * 7, 0, 4), 20)
 	end
@@ -458,8 +458,8 @@ local function osb(parent: Instance, poi, rng: Random)
 	slab(m, s.x1 - 46, s.z0 + 60, s.x1 - 16, s.z0 + 74, Y + 0.2, Color3.fromRGB(90, 90, 96), M.DiamondPlate)
 	B.box(m, CFrame.new(s.x1 - 10, Y + 4, s.z0 + 67), Vector3.new(6, 8, 6), Color3.fromRGB(230, 230, 226), M.Plaster)
 	local mono = B.box(m, CFrame.new(s.x1 - 20, Y + 5, s.z0 + 20), Vector3.new(26, 10, 3), Color3.fromRGB(30, 60, 110), M.Concrete)
-	B.sign(mono, Enum.NormalId.Front, "ORGANİZE SANAYİ BÖLGESİ", { color = Color3.new(1, 1, 1) })
-	B.sign(mono, Enum.NormalId.Back, "ORGANİZE SANAYİ BÖLGESİ", { color = Color3.new(1, 1, 1), name = "SignBack" })
+	B.sign(mono, Enum.NormalId.Front, "CENTRAL INDUSTRIAL ESTATE", { color = Color3.new(1, 1, 1) })
+	B.sign(mono, Enum.NormalId.Back, "CENTRAL INDUSTRIAL ESTATE", { color = Color3.new(1, 1, 1), name = "SignBack" })
 	return m
 end
 
@@ -497,14 +497,14 @@ local function teknopark(parent: Instance, poi, rng: Random)
 	B.box(m, CFrame.new(cx, Y + 1.5, cz), Vector3.new(8, 3, 8), Color3.fromRGB(60, 64, 70), M.Concrete)
 	B.box(m, CFrame.new(cx, Y + 4, cz) * CFrame.Angles(0, math.rad(45), 0), Vector3.new(20, 2, 20), Color3.fromRGB(40, 110, 70), M.SmoothPlastic)
 	local die = B.box(m, CFrame.new(cx, Y + 5.6, cz) * CFrame.Angles(0, math.rad(45), 0), Vector3.new(12, 1.2, 12), Color3.fromRGB(190, 196, 204), M.Metal)
-	B.sign(die, Enum.NormalId.Top, "TEKNOPARK\nÇİP", { color = Color3.fromRGB(30, 40, 60) })
+	B.sign(die, Enum.NormalId.Top, "TECH PARK\nCHIP", { color = Color3.fromRGB(30, 40, 60) })
 	for k = 0, 3 do
 		local a = k * math.pi / 2 + math.rad(45)
 		B.box(m, CFrame.new(cx, Y + 3.6, cz) * CFrame.Angles(0, a, 0) * CFrame.new(0, 0, -10.6), Vector3.new(18, 0.4, 1.2), Color3.fromRGB(220, 180, 60), M.Metal, nc())
 	end
 	local hcf = facing(cx - 120, cz - 16, 0, 1)
-	local hall = Buildings.hall(m, hcf, 70, 40, 16, { name = "AR-GE MERKEZİ • R&D", accent = { 0, 130, 200 }, wall = { 236, 240, 244 }, floor = { 220, 224, 230 }, floorMat = M.CeramicTiles, modelName = "RnD", lightStep = 20 })
-	Commerce.servicePoint(hall, hcf * CFrame.new(0, 0.2, 12), "contracts", poi.id, "Teknopark İşi Al", "Teknopark Şirketleri", 10)
+	local hall = Buildings.hall(m, hcf, 70, 40, 16, { name = "R&D CENTRE", accent = { 0, 130, 200 }, wall = { 236, 240, 244 }, floor = { 220, 224, 230 }, floorMat = M.CeramicTiles, modelName = "RnD", lightStep = 20 })
+	Commerce.servicePoint(hall, hcf * CFrame.new(0, 0.2, 12), "contracts", poi.id, "Take Tech Job", "Tech Park Companies", 10)
 	for i = -1, 1 do
 		local desk = hcf * CFrame.new(i * 18, 0.2, 28)
 		B.box(hall, desk * CFrame.new(0, 2, 0), Vector3.new(10, 0.3, 4), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
@@ -516,7 +516,7 @@ local function teknopark(parent: Instance, poi, rng: Random)
 	B.box(m, lab * CFrame.new(0, 9, 22), Vector3.new(70, 18, 44), Color3.fromRGB(246, 248, 250), M.SmoothPlastic)
 	B.box(m, lab * CFrame.new(0, 8, -0.1), Vector3.new(60, 4, 0.3), Color3.fromRGB(40, 120, 200), M.Glass, nc({ Transparency = 0.2 }))
 	local labSign = B.box(m, lab * CFrame.new(0, 14.5, -0.2), Vector3.new(30, 3, 0.3), Color3.fromRGB(0, 90, 160), M.SmoothPlastic, nc())
-	B.sign(labSign, Enum.NormalId.Front, "ÇİP LABORATUVARI • TEMİZ ODA", { color = Color3.new(1, 1, 1) })
+	B.sign(labSign, Enum.NormalId.Front, "CHIP LAB • CLEAN ROOM", { color = Color3.new(1, 1, 1) })
 	for k = 0, 2 do
 		B.cylY(m, lab * CFrame.new(-20 + k * 20, 21, 30), 6, 4, Color3.fromRGB(190, 194, 200), M.Metal)
 	end
@@ -531,7 +531,7 @@ local function teknopark(parent: Instance, poi, rng: Random)
 	for _, sx in { -24, 24 } do
 		Props.bench(m, facing(cx + sx, cz + 26, 0, -1, Y))
 	end
-	postSign(m, facing(s.x0 + 8, cz + 22, -1, 0), "TEKNOPARK", 22, { 0, 110, 180 }, 7)
+	postSign(m, facing(s.x0 + 8, cz + 22, -1, 0), "TECH PARK", 22, { 0, 110, 180 }, 7)
 	return m
 end
 
@@ -600,7 +600,7 @@ local function farm(parent: Instance, poi, rng: Random)
 	for k = 0, 3 do
 		B.box(m, stall * CFrame.new(-4.5 + k * 3, 3.6, 0), Vector3.new(2.6, 0.8, 2.6), crops[k + 1]:Lerp(Color3.fromRGB(220, 60, 40), if k % 2 == 0 then 0.6 else 0), M.SmoothPlastic)
 	end
-	postSign(m, stall * CFrame.new(0, 0, 3), "KÖY ÜRÜNLERİ", 12, { 90, 140, 60 }, 7)
+	postSign(m, stall * CFrame.new(0, 0, 3), "FARM FRESH", 12, { 90, 140, 60 }, 7)
 	hedge(m, Vector3.new(s.x1 - 2, Y, s.z0 + 4), Vector3.new(s.x1 - 2, Y, s.z1 - 4))
 	return m
 end
@@ -614,7 +614,7 @@ local function golf(parent: Instance, poi, rng: Random)
 	local cx = (s.x0 + s.x1) / 2
 	local Y = WALK_Y
 	-- the clubhouse and its car park on the northern road
-	Buildings.building(m, facing(cx, s.z0 + 8, 0, -1), { w = 70, d = 32, floors = 2, floorH = 13, style = "modern", rng = rng, ground = "lobby", name = "GOLF KULÜBÜ ⛳", wallColor = { 236, 236, 232 } })
+	Buildings.building(m, facing(cx, s.z0 + 8, 0, -1), { w = 70, d = 32, floors = 2, floorH = 13, style = "modern", rng = rng, ground = "lobby", name = "GOLF CLUB ⛳", wallColor = { 236, 236, 232 } })
 	slab(m, cx + 44, s.z0 + 4, s.x1 - 6, s.z0 + 34, Y + 0.12, ASPHALT, M.Asphalt)
 	parkingRow(m, cx + 46, s.x1 - 8, s.z0 + 20, -1, rng, 0.6)
 	-- nine holes on a three by three grid: tee, fairway, green with its flag, a bunker
@@ -681,7 +681,7 @@ local function caravanPark(parent: Instance, poi, rng: Random)
 	B.box(m, rec * CFrame.new(0, 5, 8), Vector3.new(20, 10, 16), Color3.fromRGB(170, 130, 90), M.WoodPlanks)
 	B.wedge(m, rec * CFrame.new(0, 12, 4), Vector3.new(22, 4, 8.5), Color3.fromRGB(90, 70, 60), M.RoofShingles)
 	B.wedge(m, rec * CFrame.new(0, 12, 12) * CFrame.Angles(0, math.pi, 0), Vector3.new(22, 4, 8.5), Color3.fromRGB(90, 70, 60), M.RoofShingles)
-	postSign(m, facing(cx - 16, s.z0 + 3, 0, -1), "🚐 KARAVAN PARKI", 20, { 60, 120, 70 }, 7)
+	postSign(m, facing(cx - 16, s.z0 + 3, 0, -1), "🚐 CARAVAN PARK", 20, { 60, 120, 70 }, 7)
 	B.box(m, CFrame.new(cx, Y + 3, s.z0 + 4), Vector3.new(11, 0.4, 0.4), Color3.fromRGB(220, 40, 40), M.SmoothPlastic)
 	B.box(m, CFrame.new(cx + 6, Y + 1.5, s.z0 + 4), Vector3.new(1, 3, 1), Color3.fromRGB(240, 240, 240), M.Metal)
 	-- pitches on both sides of the lane
@@ -719,7 +719,7 @@ local function caravanPark(parent: Instance, poi, rng: Random)
 	B.box(m, wc * CFrame.new(0, 5, 8), Vector3.new(24, 10, 16), Color3.fromRGB(230, 226, 214), M.Plaster)
 	B.box(m, wc * CFrame.new(0, 10.4, 8), Vector3.new(26, 0.8, 17), Color3.fromRGB(120, 70, 50), M.Wood)
 	local wcSign = B.box(m, wc * CFrame.new(0, 7.6, -0.2), Vector3.new(10, 2, 0.4), Color3.fromRGB(40, 110, 170), M.SmoothPlastic)
-	B.sign(wcSign, Enum.NormalId.Front, "DUŞ • WC", { color = Color3.new(1, 1, 1) })
+	B.sign(wcSign, Enum.NormalId.Front, "SHOWERS • WC", { color = Color3.new(1, 1, 1) })
 	local pg = CFrame.new(s.x1 - 24, Y, s.z0 + 200)
 	B.box(m, pg * CFrame.new(0, 0.15, 0), Vector3.new(26, 0.3, 30), Color3.fromRGB(230, 200, 150), M.Sand)
 	for _, sz in { -6, 6 } do
@@ -762,8 +762,8 @@ local function villaClub(parent: Instance, poi, rng: Random)
 	local cx = (s.x0 + s.x1) / 2
 	local Y = WALK_Y
 	local hcf = facing(cx + 40, s.z1 - 8, 0, 1)
-	local hall = Buildings.hall(m, hcf, 64, 32, 14, { name = "VİLLA TEPE KULÜBÜ", accent = { 40, 110, 70 }, wall = { 246, 244, 238 }, floor = { 200, 170, 130 }, floorMat = M.WoodPlanks, modelName = "ClubHouse", lightStep = 20 })
-	Commerce.servicePoint(hall, hcf * CFrame.new(-14, 0.2, 12), "contracts", poi.id, "Villa İşi Al", "Villa Sahipleri", 10)
+	local hall = Buildings.hall(m, hcf, 64, 32, 14, { name = "HILLCREST CLUB", accent = { 40, 110, 70 }, wall = { 246, 244, 238 }, floor = { 200, 170, 130 }, floorMat = M.WoodPlanks, modelName = "ClubHouse", lightStep = 20 })
+	Commerce.servicePoint(hall, hcf * CFrame.new(-14, 0.2, 12), "contracts", poi.id, "Take Villa Job", "Hillcrest Residents", 10)
 	-- two tennis courts in the north half
 	for k = 0, 1 do
 		local c = CFrame.new(s.x0 + 26 + k * 38, Y, s.z0 + 46)
@@ -808,8 +808,8 @@ local function summerSite(parent: Instance, poi, rng: Random)
 	local m = B.model("HolidayVillage", parent)
 	local cx, cz = (s.x0 + s.x1) / 2, (s.z0 + s.z1) / 2
 	local Y = WALK_Y
-	Buildings.building(m, facing(s.x0 + 30, s.z1 - 4, 0, 1), { w = 44, d = 26, floors = 1, floorH = 12, style = "apartment", rng = rng, ground = "shop", shops = 1, name = "PLAJ KULÜBÜ", wallColor = { 246, 246, 242 }, blankSides = true })
-	Buildings.building(m, facing(s.x1 - 20, s.z1 - 4, 0, 1), { w = 26, d = 20, floors = 1, floorH = 11, style = "apartment", rng = rng, ground = "shop", shops = 1, name = "SİTE MARKET", wallColor = { 250, 236, 210 }, blankSides = true })
+	Buildings.building(m, facing(s.x0 + 30, s.z1 - 4, 0, 1), { w = 44, d = 26, floors = 1, floorH = 12, style = "apartment", rng = rng, ground = "shop", shops = 1, name = "BEACH CLUB", wallColor = { 246, 246, 242 }, blankSides = true })
+	Buildings.building(m, facing(s.x1 - 20, s.z1 - 4, 0, 1), { w = 26, d = 20, floors = 1, floorH = 11, style = "apartment", rng = rng, ground = "shop", shops = 1, name = "VILLAGE MARKET", wallColor = { 250, 236, 210 }, blankSides = true })
 	slab(m, cx - 44, cz - 30, cx + 40, cz + 8, Y + 0.3, Color3.fromRGB(236, 230, 214), M.Pavement)
 	B.box(m, CFrame.new(cx - 2, Y + 0.35, cz - 12), Vector3.new(64, 0.2, 22), Color3.fromRGB(60, 180, 210), M.Glass, { Transparency = 0.15, Reflectance = 0.1, Name = "PoolWater" })
 	for k = 0, 6 do

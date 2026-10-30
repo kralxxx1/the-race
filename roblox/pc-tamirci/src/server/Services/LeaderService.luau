@@ -92,10 +92,10 @@ local function stats(player: Player, p)
 	if not ls then
 		return
 	end
-	local worth = ls:FindFirstChild("Servet") :: IntValue?
+	local worth = ls:FindFirstChild("Net Worth") :: IntValue?
 	if not worth then
 		worth = Instance.new("IntValue")
-		worth.Name = "Servet"
+		worth.Name = "Net Worth"
 		worth.Parent = ls
 	end
 	worth.Value = Worth.of(p).total
@@ -154,18 +154,18 @@ end
 -- The board at city hall: one table at a time
 ----------------------------------------------------------------------------------------------------
 local TITLES = {
-	money = "💰 EN ZENGİN TAMİRCİLER",
-	worth = "🏢 EN DEĞERLİ İŞLETMELER",
-	repairs = "🔧 EN ÇOK TAMİR",
-	global = "🌍 TÜM ZAMANLAR • SERVET",
+	money = "💰 RICHEST REPAIRERS",
+	worth = "🏢 MOST VALUABLE BUSINESSES",
+	repairs = "🔧 MOST REPAIRS",
+	global = "🌍 ALL TIME • NET WORTH",
 }
 local ROTATION = { "money", "worth", "repairs", "global" }
 local turn = 0
 
 local function money(n: number): string
 	local s = tostring(math.floor(n))
-	local out = s:reverse():gsub("(%d%d%d)", "%1."):reverse()
-	if string.sub(out, 1, 1) == "." then
+	local out = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+	if string.sub(out, 1, 1) == "," then
 		out = string.sub(out, 2)
 	end
 	return "$" .. out
@@ -181,7 +181,7 @@ function LeaderService.paint(which: string?)
 	local lines = { "<b>" .. TITLES[kind] .. "</b>" }
 	for i = 1, math.min(8, #rows) do
 		local r = rows[i]
-		local value = if kind == "repairs" then tostring(r.score) .. " tamir" else money(r.score)
+		local value = if kind == "repairs" then tostring(r.score) .. " repairs" else money(r.score)
 		table.insert(lines, string.format("%d. %s  •  %s", i, r.name, value))
 	end
 	if #rows == 0 then
