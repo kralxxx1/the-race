@@ -207,7 +207,11 @@ return function(T)
 		waitFor(function()
 			return RepairService.session(player)
 		end, 3, "bench session")
-		for _, case in { { "dust", 9 }, { "ram_unseated", 21 }, { "cable_loose", 33 } } do
+		local Config = Engine.mod("ReplicatedStorage.Shared.Config")
+		local esdChance = Config.EsdDamageChance
+		-- (the last one: every touch without the wrist strap would ruin the stick)
+		for _, case in { { "dust", 9 }, { "ram_unseated", 21 }, { "cable_loose", 33 }, { "ram_unseated", 24, true } } do
+			Config.EsdDamageChance = if case[3] then 1 else esdChance
 			local dev = DeviceGen.desktop(Mock.Random.new(case[2]), "mid")
 			T.ok(DeviceGen.applyFault(dev, case[1], Mock.Random.new(case[2] + 1)), "fault " .. case[1])
 			local job = RepairService.createJob(player, { device = dev, faults = { case[1] }, kind = "repair", price = 90 })
@@ -241,6 +245,9 @@ return function(T)
 			end
 			print(string.format("      coach %s: %d hinted steps", case[1], done))
 			T.ok(done >= 2 and done < 60, case[1] .. ": steps followed " .. done .. " — last: " .. table.concat(trail, ", ", math.max(1, #trail - 7)))
+			if case[3] then
+				T.eq(trail[1], "wear_strap:nil", "the wrist strap comes first")
+			end
 			-- what is left is putting it back together and the verdict
 			local bot = TechBot.new(job.device, { ctx = function(_, _, tool)
 				return RepairService.ctx(player, job, tool, nil)

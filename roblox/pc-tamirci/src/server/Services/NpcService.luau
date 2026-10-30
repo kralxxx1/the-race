@@ -29,6 +29,21 @@ local ANIMS = {
 }
 NpcService.Anims = ANIMS
 
+-- One-shot gestures (Roblox's own emote animations). A name with several ids picks one at random:
+-- three dance families of three takes each.
+local EMOTES = {
+	wave = { "rbxassetid://507770239" },
+	point = { "rbxassetid://507770453" },
+	cheer = { "rbxassetid://507770677" },
+	laugh = { "rbxassetid://507770818" },
+	dance = {
+		"rbxassetid://507771019", "rbxassetid://507771955", "rbxassetid://507772104",
+		"rbxassetid://507776043", "rbxassetid://507776720", "rbxassetid://507776879",
+		"rbxassetid://507777268", "rbxassetid://507777451", "rbxassetid://507777623",
+	},
+}
+NpcService.Emotes = EMOTES
+
 local SKIN = {
 	{ 255, 224, 196 }, { 241, 194, 160 }, { 224, 172, 130 }, { 198, 140, 98 }, { 160, 108, 72 }, { 120, 80, 52 }, { 92, 60, 40 },
 }
@@ -553,8 +568,55 @@ function NpcService.play(model: Model, name: string, speed: number?)
 		track:Play(0.2)
 		if speed then
 			track:AdjustSpeed(speed)
+		elseif name == "idle" then
+			-- a crowd of people standing still should not breathe in step
+			track:AdjustSpeed(0.9 + math.random() * 0.2)
+			pcall(function()
+				if track.Length > 0 then
+					track.TimePosition = math.random() * track.Length
+				end
+			end)
 		end
 	end
+end
+
+-- A gesture (wave, point, cheer, laugh, dance) on someone who is standing around; afterwards they
+-- go back to what they were doing. Does nothing for people who are walking or sitting.
+function NpcService.emote(model: Model?, name: string, seconds: number?)
+	local list = EMOTES[name]
+	local hum = model and model:FindFirstChildOfClass("Humanoid")
+	local animator = hum and hum:FindFirstChildOfClass("Animator")
+	if not model or not list or not hum or not animator or hum.SeatPart then
+		return
+	end
+	local prev = model:GetAttribute("Anim")
+	if type(prev) == "string" and (prev == "walk" or prev == "run" or string.sub(prev, 1, 6) == "emote:") then
+		return
+	end
+	local tag = "emote:" .. name
+	model:SetAttribute("Anim", tag)
+	for _, t in animator:GetPlayingAnimationTracks() do
+		t:Stop(0.2)
+	end
+	local anim = Instance.new("Animation")
+	anim.AnimationId = list[math.random(#list)]
+	local ok, track = pcall(function()
+		return animator:LoadAnimation(anim)
+	end)
+	local hold = seconds or (if name == "dance" then 5 else 2.6)
+	if ok and track then
+		track.Looped = name == "dance"
+		track:Play(0.2)
+	end
+	task.delay(hold, function()
+		if model.Parent and model:GetAttribute("Anim") == tag then
+			if ok and track then
+				track:Stop(0.25)
+			end
+			model:SetAttribute("Anim", nil)
+			NpcService.play(model, if type(prev) == "string" and prev ~= "" then prev else "idle")
+		end
+	end)
 end
 
 -- Walks to a position; yields until arrived or timeout. Teleports the last bit if stuck.

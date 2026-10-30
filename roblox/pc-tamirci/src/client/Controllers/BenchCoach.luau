@@ -55,11 +55,14 @@ local TXT = {
 	need_tool = T("You need {tool} for this: buy it at the tool shop.", "Bunun için {tool} gerekli: alet dükkânından al."),
 	put_back = T("Put {part} back in.", "{part} parçasını geri tak."),
 	need_part = T("This part is faulty: you need a working replacement. Buy one at the parts store, or take one from your inventory.", "Bu parça arızalı: çalışan bir yenisi gerek. Parça mağazasından al ya da envanterinden kullan."),
+	stuck_title = T("Hmm — something changed", "Hmm — bir şey değişti"),
+	stuck = T("I can't plan any further: something happened that I can't see from here (a part may have been damaged). Press ⏻ Power again and read what the machine does, or look closely with the magnifier.", "Daha ileri planlayamıyorum: buradan göremediğim bir şey oldu (bir parça zarar görmüş olabilir). Tekrar ⏻ Güç'e bas ve cihazın ne yaptığına bak, ya da büyüteçle yakından incele."),
 	hide = T("Hide", "Gizle"),
 	hints_pill = T("💡 Coach", "💡 Koç"),
 }
 
 local ACTION_WHAT = {
+	wear_strap = T("put on the wrist strap (📿) so static can't hurt the parts", "statik parçalara zarar vermesin diye bilekliği tak (📿)"),
 	unscrew = T("undo it", "sök"),
 	screw = T("screw it back in", "geri sık"),
 	remove = T("take it out", "çıkar"),
@@ -249,6 +252,9 @@ local function phaseOf(v)
 		if st.hint.next then
 			return "step", missing
 		end
+		if st.hint.stuck then
+			return "stuck", missing
+		end
 		-- nothing left to fix
 		return (if assembled then "verify" else "back"), missing
 	end
@@ -325,6 +331,8 @@ function BenchCoach.refresh()
 			table.insert(pointIds, nx.target)
 		elseif nx.action == "software" then
 			uiButton = api.diagButton("usb")
+		elseif nx.action == "wear_strap" then
+			uiButton = api.diagButton("strap")
 		end
 	elseif phase == "back" then
 		local ids = {}
@@ -339,6 +347,10 @@ function BenchCoach.refresh()
 			end
 		end
 		show.where = false
+	elseif phase == "stuck" then
+		setCard(S.pick(TXT.stuck_title), S.pick(TXT.stuck))
+		uiButton = api.diagButton("power")
+		show.where, show.next = false, false
 	elseif phase == "verify" then
 		setCard(S.pick(TXT.verify_title), S.pick(TXT.verify))
 		uiButton = api.diagButton("power")

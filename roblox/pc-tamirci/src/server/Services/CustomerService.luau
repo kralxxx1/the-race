@@ -262,6 +262,7 @@ local function advance(player: Player)
 				head.counterSince = os.clock()
 				CustomerService.enablePrompt(head)
 				say(head, "greet", nil, 7)
+				NpcService.emote(head.model, "wave")
 				CustomerService.atCounter:Fire(player, head)
 			end
 		end)
@@ -643,6 +644,11 @@ local function pay(player: Player, cust, job)
 			QuestService.bump(player, "perfect")
 		end
 		local text = say(cust, if stars >= 4 then "happy" else "meh", nil, 6)
+		if stars >= 5 then
+			NpcService.emote(cust.model, "cheer")
+		elseif stars == 4 then
+			NpcService.emote(cust.model, "wave")
+		end
 		if tip > 0 then
 			task.delay(2.5, function()
 				if cust.model then
@@ -864,6 +870,14 @@ local function tick()
 						if c.arch.nag or rng:NextNumber() < 0.35 then
 							say(c, "nag", nil, 5)
 						end
+					end
+					-- somebody waiting around fidgets now and then: a laugh, a point, a little dance
+					if not c.nextFidget then
+						c.nextFidget = now + 15 + rng:NextNumber() * 40
+					elseif now > c.nextFidget then
+						c.nextFidget = now + 25 + rng:NextNumber() * 50
+						local kind = if c.arch.look == "kid" or c.arch.look == "gamer" or c.arch.look == "streamer" then (if rng:NextNumber() < 0.5 then "dance" else "laugh") else (if rng:NextNumber() < 0.5 then "laugh" else "point")
+						NpcService.emote(c.model, kind)
 					end
 				end
 			end

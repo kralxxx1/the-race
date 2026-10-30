@@ -436,6 +436,9 @@ end
 local FIXING = { install = true, straighten_pins = true, plug = true, solder = true, blow_dust = true, brush = true, apply_paste = true, clean_paste = true, clean_liquid = true, software = true }
 
 -- The steps the technician bot would take on a copy of the job's device from where it stands now.
+-- the last few steps hinted per job (to notice a plan that goes round in circles)
+local hintTrails = setmetatable({}, { __mode = "k" })
+
 -- Returns { { action, target, tool }... } (empty when nothing is left to do) and the nodes that are
 -- actually being fixed.
 function RepairService.plan(job, maxSteps: number?): ({ { [string]: any } }, { string })
@@ -446,13 +449,11 @@ function RepairService.plan(job, maxSteps: number?): ({ { [string]: any } }, { s
 	local bot = TechBot.new(dev, {
 		budget = 600,
 		onStep = function(action, target, _, args)
-			if action == "wear_strap" then
-				return
-			end
-			-- (only what the client may need to know about how: where the part comes from, which program)
+			-- (only what the client may need to know about how: where the part comes from, which
+			-- program, whether the wrist strap goes on)
 			local how = nil
 			if type(args) == "table" then
-				how = { source = args.source, program = args.program }
+				how = { source = args.source, program = args.program, on = args.on }
 			end
 			table.insert(steps, { action = action, target = target, tool = TechBot.toolFor(dev, action, target), args = how })
 			local tn = target and Rules.tnode(dev, target)
@@ -465,8 +466,33 @@ function RepairService.plan(job, maxSteps: number?): ({ { [string]: any } }, { s
 			end
 		end,
 	})
+	-- what to plan for: the job's own faults, plus what the work itself has broken since (a stick
+	-- of RAM or a card that took a static shock without the wrist strap is no longer "unseated"
+	-- or merely "worn": it has to be replaced)
+	local broken = {}
+	for id, st in dev.hidden or {} do
+		if st == "faulty" and string.find(id, "ram") then
+			broken.ram_faulty = true
+		elseif st == "dead" and id == "gpu" then
+			broken.gpu_dead = true
+		end
+	end
+	local faults = {}
+	for _, fid in job.faults or {} do
+		if fid == "ram_unseated" and broken.ram_faulty then
+			fid = "ram_faulty"
+		end
+		if not table.find(faults, fid) then
+			table.insert(faults, fid)
+		end
+	end
+	for fid in broken do
+		if not table.find(faults, fid) then
+			table.insert(faults, fid)
+		end
+	end
 	local ok, err = pcall(function()
-		for _, fid in job.faults or {} do
+		for _, fid in faults do
 			bot:fix(fid)
 		end
 		if job.requestId and job.request then
@@ -688,6 +714,25 @@ function RepairService.start()
 		if payload.level >= 3 then
 			if steps[1] then
 				out.next = steps[1]
+				-- the same click again and again means the plan cannot get further (something the
+				-- plan does not know about): say so instead of walking the player in circles
+				local key = steps[1].action .. ":" .. tostring(steps[1].target)
+				local trail = hintTrails[job] or {}
+				table.insert(trail, key)
+				if #trail > 9 then
+					table.remove(trail, 1)
+				end
+				hintTrails[job] = trail
+				local same = 0
+				for _, k in trail do
+					if k == key then
+						same += 1
+					end
+				end
+				if same >= 4 then
+					out.next = nil
+					out.stuck = true
+				end
 			end
 			if not learning then
 				job.assist = math.min(5, (job.assist or 0) + 1)

@@ -80,6 +80,9 @@ function TechBot:try(action: string, target: string?, args)
 				ctx.tool = "esd_strap"
 				local res = Rules.apply(self.dev, "wear_strap", nil, { on = true }, ctx)
 				table.insert(self.log, "wear_strap -> " .. (if res.ok then "ok" else tostring(res.reason)))
+				if res.ok and self.opts.onStep then
+					self.opts.onStep("wear_strap", nil, res, { on = true })
+				end
 			end
 		end
 	end
