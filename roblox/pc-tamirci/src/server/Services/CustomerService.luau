@@ -608,7 +608,13 @@ local function pay(player: Player, cust, job)
 			RepairService.removeJob(player, job.id)
 			return
 		end
-		DataService.money(player, job.price + tip, "repair")
+		-- step-by-step hints cost a share of the price (and the tip)
+		local pay = job.price
+		if (job.assist or 0) > 0 then
+			pay = math.floor(job.price * (1 - 0.08 * job.assist))
+			tip = 0
+		end
+		DataService.money(player, pay + tip, "repair")
 		QuestService.bump(player, "deliver")
 		local diff = 1
 		for _, fid in job.faults or {} do
@@ -631,7 +637,7 @@ local function pay(player: Player, cust, job)
 			end)
 		end
 		DataService.review(player, stars, text, cust.name)
-		Net.push(player, "paid", { name = cust.name, price = job.price, tip = tip, stars = stars, text = text })
+		Net.push(player, "paid", { name = cust.name, price = pay, tip = tip, stars = stars, text = text, assisted = job.assist or 0 })
 	else
 		local text = say(cust, "notFixed", nil, 6)
 		DataService.rep(player, -4 * (1 + harsh))

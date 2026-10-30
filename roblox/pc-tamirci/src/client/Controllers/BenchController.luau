@@ -33,6 +33,8 @@ local Kit = require(Client.UI.Kit)
 local Theme = require(Client.UI.Theme)
 local App = require(Client.UI.App)
 local BenchViews = require(script.Parent.BenchViews)
+local BenchCoach = require(script.Parent.BenchCoach)
+local Glossary = require(Shared.Data.Glossary)
 
 local BenchController = {}
 BenchController.acted = Signal.new() -- (action, result) after every successful bench action
@@ -333,6 +335,7 @@ end
 
 local function jobCard()
 	local j = active and active.job
+	BenchCoach.reset(j and j.id or nil)
 	Kit.clear(ui.jobInfo)
 	if not j then
 		Kit.label(ui.jobInfo, S.t("bench_no_job"), { TextColor3 = Theme.dim })
@@ -859,11 +862,20 @@ local function updateHover(at: Vector2?)
 	local name = nodeLabel(v, id)
 	local pname = partName(v, id)
 	local title = name .. (if pname then " — " .. pname else "")
+	-- a plain-language line about what this is (unless you asked the coach to stay quiet)
+	local gloss = ""
+	if BenchCoach.help() ~= "off" then
+		local gk = Glossary.key(Rules.tnode(v, id))
+		local g = gk and Glossary.parts[gk]
+		if g then
+			gloss = "\n<font color=\"#9fb4d0\"><i>" .. S.pick(g) .. "</i></font>"
+		end
+	end
 	if c then
 		local act = S.t("act_" .. c.action)
-		setHint("<b>" .. act .. "</b>  " .. title .. (if reason then "\n<font color=\"#ff8080\">" .. reason .. "</font>" else ""), ok)
+		setHint("<b>" .. act .. "</b>  " .. title .. (if reason then "\n<font color=\"#ff8080\">" .. reason .. "</font>" else "") .. gloss, ok)
 	else
-		setHint(title .. "\n<font color=\"#a0a6b4\">" .. stText(v.nodes[id] and v.nodes[id].st) .. "</font>", true)
+		setHint(title .. "\n<font color=\"#a0a6b4\">" .. stText(v.nodes[id] and v.nodes[id].st) .. "</font>" .. gloss, true)
 	end
 	-- the tool hovers just above the surface, tilted towards the camera
 	if toolModel and pos and normal then
@@ -1032,6 +1044,7 @@ local function exit()
 	setAdornee(nil)
 	clearLabels()
 	hideAvatar(false)
+	BenchCoach.leave()
 	if toolModel then
 		toolModel:Destroy()
 		toolModel = nil
@@ -1099,6 +1112,7 @@ local function enter(data)
 	table.insert(conns, BenchViews.changed:Connect(function(bench)
 		if active and bench == active.model then
 			refreshLabels()
+			BenchCoach.refresh()
 		end
 	end))
 	-- the avatar respawns: keep it hidden
@@ -1311,6 +1325,20 @@ function build()
 	highlight.OutlineTransparency = 0
 	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 	highlight.Parent = gui
+
+	BenchCoach.init(root, {
+		view = view,
+		handle = handle,
+		nodeLabel = nodeLabel,
+		owns = State.owns,
+		selectTool = selectTool,
+		active = function()
+			return active ~= nil
+		end,
+		diagButton = function(id: string)
+			return ui.diag[id]
+		end,
+	})
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -1318,6 +1346,7 @@ function BenchController.init(screen: ScreenGui, hudModule)
 	gui = screen
 	hud = hudModule
 	build()
+	BenchController.acted:Connect(BenchCoach.onActed)
 	Net.on("bench.open", enter)
 	Net.on("bench.close", function()
 		exit()

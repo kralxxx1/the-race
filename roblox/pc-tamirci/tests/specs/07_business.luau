@@ -196,6 +196,73 @@ return function(T)
 		T.ok(ContractService.active(player) == nil, "contract closed once the machines are gone")
 	end)
 
+	T.test("coach: hints name the problem parts and the next click; following them fixes the machine", function()
+		local Tools = Engine.mod("ReplicatedStorage.Shared.Data.Tools")
+		local p = DataService.get(player)
+		for _, t in Tools.list do
+			p.tools[t.id] = true
+		end
+		local bench = PlotService.shopOf(player).benches[1]
+		pps.PromptTriggered:Fire(bench:FindFirstChild("PromptAnchor"):FindFirstChildOfClass("ProximityPrompt"), player)
+		waitFor(function()
+			return RepairService.session(player)
+		end, 3, "bench session")
+		for _, case in { { "dust", 9 }, { "ram_unseated", 21 }, { "cable_loose", 33 } } do
+			local dev = DeviceGen.desktop(Mock.Random.new(case[2]), "mid")
+			T.ok(DeviceGen.applyFault(dev, case[1], Mock.Random.new(case[2] + 1)), "fault " .. case[1])
+			local job = RepairService.createJob(player, { device = dev, faults = { case[1] }, kind = "repair", price = 90 })
+			T.ok(job ~= nil, "job")
+			T.ok(request("bench.load", { job = job.id }).ok, "load")
+			task.wait(0.3)
+			local where = request("repair.hint", { level = 2 })
+			T.ok(where.ok and #where.culprits > 0, case[1] .. ": the parts to look at")
+			T.eq(where.next, nil, "level 2 doesn't give the click")
+			-- follow the next step until nothing is left to do
+			local done = 0
+			local timed = Engine.mod("ReplicatedStorage.Shared.Config").HoldActionSeconds
+			local lastAct = 0
+			for _ = 1, 60 do
+				task.wait(0.28)
+				local h = request("repair.hint", { level = 3 })
+				T.ok(h.ok, "hint")
+				if not h.next then
+					break
+				end
+				-- (the work takes as long as the rules say it does)
+				local tool = Tools.get(h.next.tool)
+				local need = (timed[h.next.action] or 0.08) * 0.8 / ((tool and tool.speed) or 1) + 0.05
+				task.wait(math.max(0, need - (os.clock() - lastAct)))
+				local act = request("repair.act", { action = h.next.action, target = h.next.target, tool = h.next.tool, args = h.next.args })
+				lastAct = os.clock()
+				T.ok(act.ok, string.format("%s: %s %s with %s -> %s", case[1], h.next.action, tostring(h.next.target), h.next.tool, tostring(act.reason or act.err)))
+				done += 1
+			end
+			T.ok(done >= 2 and done < 60, case[1] .. ": steps followed " .. done)
+			-- what is left is putting it back together and the verdict
+			local bot = TechBot.new(job.device, { ctx = function(_, _, tool)
+				return RepairService.ctx(player, job, tool, nil)
+			end })
+			bot:reassemble()
+			local verdict = request("repair.assess").verdict
+			T.ok(verdict.fixed, case[1] .. " fixed: " .. tostring(verdict.stage))
+			request("bench.unload")
+		end
+		-- hints cost a share of the pay once you're past the learning phase
+		local dev = DeviceGen.desktop(Mock.Random.new(5), "mid")
+		DeviceGen.applyFault(dev, "dust", Mock.Random.new(6))
+		local job = RepairService.createJob(player, { device = dev, faults = { "dust" }, kind = "repair", price = 100 })
+		request("bench.load", { job = job.id })
+		p.stats.repairs = 2
+		task.wait(0.3)
+		T.ok(request("repair.hint", { level = 3 }).learning, "free while learning")
+		T.eq(job.assist or 0, 0, "no cost yet")
+		p.stats.repairs = 9
+		task.wait(0.3)
+		local paid = request("repair.hint", { level = 3 })
+		T.ok(not paid.learning and paid.assist == 1 and job.assist == 1, "a step hint is counted")
+		request("bench.unload")
+	end)
+
 	T.test("business: daily tasks progress and pay out once", function()
 		local p = DataService.get(player)
 		p.level = 5

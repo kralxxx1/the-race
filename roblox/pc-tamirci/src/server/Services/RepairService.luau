@@ -20,6 +20,7 @@ local Faults = require(Shared.Data.Faults)
 local Upgrades = require(Shared.Data.Upgrades)
 local Rules = require(Shared.Repair.RepairRules)
 local DeviceGen = require(Shared.Repair.DeviceGen)
+local TechBot = require(Shared.Repair.TechBot)
 
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
@@ -417,6 +418,67 @@ function RepairService.finish(player: Player, jobId: string): (boolean, any)
 	return true, { verdict = verdict, kept = kept, scrapped = scrapped }
 end
 
+----------------------------------------------------------------------------------------------------
+-- Hints: what a good technician would do next, worked out on a copy of the device
+----------------------------------------------------------------------------------------------------
+local function deepCopy(v)
+	if type(v) ~= "table" then
+		return v
+	end
+	local out = {}
+	for k, x in v do
+		out[k] = deepCopy(x)
+	end
+	return out
+end
+
+-- The actions that fix the nodes themselves (the rest — panels, screws, blockers — is access work).
+local FIXING = { install = true, straighten_pins = true, plug = true, solder = true, blow_dust = true, brush = true, apply_paste = true, clean_paste = true, clean_liquid = true, software = true }
+
+-- The steps the technician bot would take on a copy of the job's device from where it stands now.
+-- Returns { { action, target, tool }... } (empty when nothing is left to do) and the nodes that are
+-- actually being fixed.
+function RepairService.plan(job, maxSteps: number?): ({ { [string]: any } }, { string })
+	local dev = deepCopy(job.device)
+	local steps, culprits, seen = {}, {}, {}
+	local stop = {}
+	local limit = maxSteps or 80
+	local bot = TechBot.new(dev, {
+		budget = 600,
+		onStep = function(action, target, _, args)
+			if action == "wear_strap" then
+				return
+			end
+			-- (only what the client may need to know about how: where the part comes from, which program)
+			local how = nil
+			if type(args) == "table" then
+				how = { source = args.source, program = args.program }
+			end
+			table.insert(steps, { action = action, target = target, tool = TechBot.toolFor(dev, action, target), args = how })
+			local tn = target and Rules.tnode(dev, target)
+			if FIXING[action] and target and tn and tn.kind ~= "screw" and tn.kind ~= "panel" and not seen[target] then
+				seen[target] = true
+				table.insert(culprits, target)
+			end
+			if #steps >= limit then
+				error(stop)
+			end
+		end,
+	})
+	local ok, err = pcall(function()
+		for _, fid in job.faults or {} do
+			bot:fix(fid)
+		end
+		if job.requestId and job.request then
+			bot:fulfil(job.requestId, job.request)
+		end
+	end)
+	if not ok and err ~= stop then
+		warn("[RepairService] hint plan failed: " .. tostring(err))
+	end
+	return steps, culprits
+end
+
 -- Value of a working own project when sold to the second-hand dealer.
 function RepairService.resale(job): number
 	local v = DeviceGen.value(job.device)
@@ -604,6 +666,35 @@ function RepairService.start()
 			return { ok = false, err = info }
 		end
 		return { ok = true, verdict = info.verdict, kept = info.kept, scrapped = info.scrapped, own = job.own, resale = if job.own then RepairService.resale(job) else nil }
+	end)
+
+	-- A hint for the job on the bench. level 2: which parts are the problem; level 3: the next click.
+	-- (Free while you're learning; later each step hint costs a share of what the customer pays.)
+	local lastHint: { [Player]: number } = {}
+	Net.handle("repair.hint", function(player, payload)
+		local i = sessionBench(player)
+		local job = i and RepairService.benchJob(player, i)
+		if not job or not V.tbl(payload) or not V.int(payload.level, 2, 3) then
+			return { ok = false, err = "no_job" }
+		end
+		if os.clock() - (lastHint[player] or 0) < 0.25 then
+			return { ok = false, err = "rate_limited" }
+		end
+		lastHint[player] = os.clock()
+		local steps, culprits = RepairService.plan(job)
+		local p = DataService.get(player)
+		local learning = p ~= nil and (p.stats.repairs or 0) < 5
+		local out = { ok = true, level = payload.level, culprits = culprits, steps = #steps, learning = learning }
+		if payload.level >= 3 then
+			if steps[1] then
+				out.next = steps[1]
+			end
+			if not learning then
+				job.assist = math.min(5, (job.assist or 0) + 1)
+			end
+		end
+		out.assist = job.assist or 0
+		return out
 	end)
 
 	Net.handle("repair.assess", function(player)

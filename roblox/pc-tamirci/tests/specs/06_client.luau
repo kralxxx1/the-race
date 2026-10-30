@@ -304,6 +304,27 @@ return function(T)
 			return if type(e) == "table" then e.id else e
 		end
 		T.ok(table.find(Engine.played, sid(BenchSounds.press_power)) ~= nil, "the power button clicks")
+		-- the coach: step 1 was "test it"; now it has seen the symptom, and the next-step hint points at a part
+		local Coach = cmod("Controllers.BenchCoach")
+		T.ok(Coach._card().Visible, "the coach card is up")
+		T.ok(Coach._state().powered and Coach._state().stage ~= nil, "the coach saw the power test")
+		if v.kind == "desktop" then
+			local nextBtn = Coach._card():FindFirstChild("CoachNext", true)
+			T.ok(nextBtn ~= nil and nextBtn.Visible, "a next-step button")
+			nextBtn.Activated:Fire()
+			waitFor(function()
+				return Coach._state().hint ~= nil
+			end, 3, "hint")
+			T.ok(Coach._state().hint.next ~= nil, "the hint names the next click")
+			-- (a software fix has no part to point at: the USB button glows instead)
+			local nx = Coach._state().hint.next
+			local pointers = game:GetService("Workspace"):FindFirstChild("BenchCoach")
+			if nx.target then
+				T.ok(pointers ~= nil and #pointers:GetChildren() >= 1, "an arrow over the part")
+			else
+				T.ok(nx.action == "software", "only software steps have no part: " .. nx.action)
+			end
+		end
 		local first = if v.kind == "desktop" then "sp_s1" else nil
 		if first then
 			-- the screw whirs while it's held, and stops with it (the engine's hold loop doesn't

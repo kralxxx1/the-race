@@ -6,7 +6,7 @@
 -- opts:
 --   ctx(action, target)  -> RepairRules ctx (tool, owned, lang, rng, takePart, usePaste...)
 --   pickPart(id, filter) -> part id to install into node `id` or nil (default: catalogue)
---   onStep(action, target, result)  called after every successful action (may yield)
+--   onStep(action, target, result, args)  called after every successful action (may yield)
 --   budget               maximum number of actions (default 3000)
 
 local Shared = script.Parent.Parent
@@ -90,7 +90,7 @@ function TechBot:try(action: string, target: string?, args)
 	local res = Rules.apply(self.dev, action, target, args, self:ctx(action, target))
 	table.insert(self.log, string.format("%s %s -> %s", action, tostring(target), if res.ok then "ok" else tostring(res.reason)))
 	if res.ok and self.opts.onStep then
-		self.opts.onStep(action, target, res)
+		self.opts.onStep(action, target, res, args)
 	end
 	return res
 end
