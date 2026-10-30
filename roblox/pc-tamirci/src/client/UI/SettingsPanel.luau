@@ -7,6 +7,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Net)
+local Config = require(Shared.Config)
 
 local UI = script.Parent
 local Kit = require(UI.Kit)
@@ -283,6 +284,7 @@ local function keysTab(list: Instance)
 	local f = Kit.panel(list, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.card, LayoutOrder = nextOrder() })
 	Kit.padding(f, 14)
 	Kit.label(f, S.t("set_keys"), { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 16, LineHeight = 1.3 })
+	Kit.label(list, Config.GameName .. " • build " .. Config.Version, { Name = "Version", Size = UDim2.new(1, 0, 0, 24), TextSize = 13, TextColor3 = Theme.dim, LayoutOrder = nextOrder() })
 end
 
 local BUILDERS = {

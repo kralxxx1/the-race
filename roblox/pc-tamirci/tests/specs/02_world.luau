@@ -315,7 +315,8 @@ return function(T)
 		T.ok(#bad == 0, #bad .. " parts lie on grass terrain, e.g. " .. tostring(bad[1]))
 		-- and the countryside and the park are still green
 		T.eq(Engine.terrainMaterialAt(Vector3.new(-860, TerrainB.groundHeight(-860, -1380) - 1, -1380)), "Grass", "a hill")
-		T.eq(Engine.terrainMaterialAt(Vector3.new(0, -4, 0)), "Asphalt", "under the city: dark asphalt, never brown dirt, cobbles or white concrete")
+		T.eq(Engine.terrainMaterialAt(Vector3.new(0, -8, 0)), "Asphalt", "under the city: dark asphalt, well below the roads")
+		T.eq(Engine.terrainMaterialAt(Vector3.new(0, -1, 0)), "Air", "nothing of the terrain reaches the roads")
 		local lawn = TerrainB.lawns()[1]
 		T.ok(lawn ~= nil, "a park lawn")
 	end)

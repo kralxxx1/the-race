@@ -2,8 +2,8 @@
 -- (Game tuning. Change the numbers below to rebalance the game.)
 
 local Config = {
-	Version = "1.0.0",
 	GameName = "PC Repair Tycoon",
+	Version = "2026.10.30-e", -- shown in Settings > Controls and printed when the server starts, to tell which file is running
 
 	-- Para birimi sembolü (ör. "$", "₺", "€")
 	CurrencySymbol = "$",

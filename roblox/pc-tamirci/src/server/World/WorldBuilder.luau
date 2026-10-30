@@ -69,6 +69,11 @@ function WorldBuilder.build(opts: { [string]: any }?)
 		table.insert(failures, "blocks: " .. Blocks.lastError)
 	end
 	world:SetAttribute("Errors", table.concat(failures, " | "))
+	local function count(name: string): number
+		local f = world:FindFirstChild(name)
+		return if f then #f:GetChildren() else 0
+	end
+	world:SetAttribute("Counts", string.format("roads %d, blocks %d", count("Roads"), count("Blocks")))
 
 	-- spawn point on the main square
 	local L = CityLayout.get()

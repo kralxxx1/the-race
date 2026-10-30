@@ -652,6 +652,11 @@ local function refreshIgnore()
 			table.insert(ignoreList, pl.Character)
 		end
 	end
+	-- (people walk on the city's slabs and floors, never on the terrain under them)
+	local terrain = Workspace:FindFirstChildOfClass("Terrain")
+	if terrain then
+		table.insert(ignoreList, terrain)
+	end
 	groundParams.FilterDescendantsInstances = ignoreList
 end
 

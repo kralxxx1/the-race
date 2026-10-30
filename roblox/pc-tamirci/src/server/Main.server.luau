@@ -16,7 +16,7 @@ local Services = Server.Services
 Net.init()
 
 local world = WorldBuilder.build()
-print(string.format("[PC Repair Tycoon] city ready (%s, %.1fs)", if world:GetAttribute("Reused") then "baked" else "built", world:GetAttribute("BuildSeconds") or 0))
+print(string.format("[PC Repair Tycoon] build " .. Config.Version .. " - city ready (%s, %.1fs)", if world:GetAttribute("Reused") then "baked" else "built", world:GetAttribute("BuildSeconds") or 0))
 
 local DataService = require(Services.DataService)
 local PlotService = require(Services.PlotService)

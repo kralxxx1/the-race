@@ -197,3 +197,17 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		SettingsPanel.toggle()
 	end
 end)
+
+-- If the city did not build completely, say so (the server lists what failed on the City folder).
+task.spawn(function()
+	local city = workspace:WaitForChild("City", 120)
+	if not city then
+		Hud.toast("⚠ The city has not been built (see the Output window)", "bad", 12)
+		return
+	end
+	local errors = city:GetAttribute("Errors")
+	if type(errors) == "string" and errors ~= "" then
+		warn("[PC Repair Tycoon] the city built with errors: " .. errors)
+		Hud.toast("⚠ Part of the city failed to build: " .. string.sub(errors, 1, 160), "bad", 14)
+	end
+end)
