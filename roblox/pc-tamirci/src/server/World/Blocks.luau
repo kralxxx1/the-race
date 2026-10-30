@@ -363,11 +363,33 @@ function Blocks.build(parent: Instance, yieldEvery: (() -> ())?)
 	local L = CityLayout.get()
 	local folder = B.folder("Blocks", parent)
 	local rng = Random.new(7331)
+	Blocks.lastError = nil
 	for _, block in L.blocks do
 		local bm = B.model("Block_" .. block.id .. "_" .. block.district, folder)
+		-- the ground goes down first and on its own: whatever happens to the buildings on top, a
+		-- block is never left as bare terrain
 		if block.district ~= "PRK" then
-			Blocks.ground(bm, block)
+			local ok, err = pcall(Blocks.ground, bm, block)
+			if not ok then
+				Blocks.lastError = block.id .. " ground: " .. tostring(err)
+				warn("[Blocks] " .. Blocks.lastError)
+			end
 		end
+		local built, failure = pcall(Blocks.fill, bm, block, rng, L)
+		if not built then
+			Blocks.lastError = block.id .. ": " .. tostring(failure)
+			warn("[Blocks] block " .. Blocks.lastError)
+		end
+		if yieldEvery then
+			yieldEvery()
+		end
+	end
+	return folder
+end
+
+-- The buildings, lots and street furniture of one block.
+function Blocks.fill(bm: Instance, block, rng: Random, L)
+	do
 		if block.kind == "plots" then
 			Blocks.plotAlley(bm, block, rng)
 		else
@@ -396,11 +418,7 @@ function Blocks.build(parent: Instance, yieldEvery: (() -> ())?)
 				half(bm, block, "s", rng)
 			end
 		end
-		if yieldEvery then
-			yieldEvery()
-		end
 	end
-	return folder
 end
 
 return Blocks

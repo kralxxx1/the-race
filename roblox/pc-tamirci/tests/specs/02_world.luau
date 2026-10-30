@@ -103,6 +103,9 @@ return function(T)
 		for _, e in Landmarks.errors or {} do
 			T.ok(e == nil, "landmark error: " .. tostring(e))
 		end
+		-- (every stage and every block is isolated, so a failure would not stop the build: it
+		-- shows up here instead)
+		T.eq(world:GetAttribute("Errors"), "", "the city built without a failed stage")
 		local counts = { parts = 0, lights = 0, guis = 0, prompts = 0, models = 0 }
 		for _, d in world:GetDescendants() do
 			if d:IsA("BasePart") then

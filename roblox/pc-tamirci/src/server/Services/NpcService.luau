@@ -119,7 +119,7 @@ end
 local templateFolder: Folder
 local streetFolder: Folder
 local templates: { [string]: { Model } } = {} -- "look:gender" -> avatars
-local STREET_COUNT = 24
+local STREET_COUNT = 48
 
 local function describe(o: Avatars.Outfit): HumanoidDescription
 	local d = Instance.new("HumanoidDescription")
@@ -252,10 +252,13 @@ local function buildTemplates()
 		end
 		task.wait()
 	end
-	for _, j in jobs do
-		if j[3] >= 0.3 then
-			addTemplate(j[1], j[2], rng)
-			task.wait()
+	-- two more rounds of the looks a shop sees most (every customer picks one of the copies)
+	for _ = 1, 2 do
+		for _, j in jobs do
+			if j[3] >= 0.3 then
+				addTemplate(j[1], j[2], rng)
+				task.wait()
+			end
 		end
 	end
 	templateFolder:SetAttribute("Ready", true)

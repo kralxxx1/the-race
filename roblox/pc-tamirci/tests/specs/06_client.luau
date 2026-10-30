@@ -423,13 +423,13 @@ return function(T)
 				return Coach._state().hint ~= nil
 			end, 3, "hint")
 			T.ok(Coach._state().hint.next ~= nil, "the hint names the next click")
-			-- (a software fix has no part to point at: the USB button glows instead)
+			-- (a software fix or the wrist strap has no part to point at: its button glows instead)
 			local nx = Coach._state().hint.next
 			local pointers = game:GetService("Workspace"):FindFirstChild("BenchCoach")
 			if nx.target then
 				T.ok(pointers ~= nil and #pointers:GetChildren() >= 1, "an arrow over the part")
 			else
-				T.ok(nx.action == "software", "only software steps have no part: " .. nx.action)
+				T.ok(nx.action == "software" or nx.action == "wear_strap", "only software steps and the wrist strap have no part: " .. nx.action)
 			end
 		end
 		local first = if v.kind == "desktop" then "sp_s1" else nil

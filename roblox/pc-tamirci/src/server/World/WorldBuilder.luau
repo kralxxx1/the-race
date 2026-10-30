@@ -38,12 +38,37 @@ function WorldBuilder.build(opts: { [string]: any }?)
 		end
 	end
 
-	Terrain.build()
-	Roads.build(world, yield)
-	Blocks.build(world, yield)
-	Landmarks.build(world, yield)
-	world:SetAttribute("FilledLots", Blocks.fillPoiSites(world, Random.new(5150)))
-	world:SetAttribute("GroundPatches", Terrain.clearUnder(world))
+	-- Every stage runs on its own: if one of them fails (a missing asset, an engine quirk) the rest
+	-- of the city still gets built, instead of leaving bare terrain where the failed part would
+	-- have been. The failures are listed in the world's "Errors" attribute and the output.
+	local failures = {}
+	local function stage(name: string, fn: () -> ())
+		local ok, err = pcall(fn)
+		if not ok then
+			table.insert(failures, name .. ": " .. tostring(err))
+			warn("[WorldBuilder] " .. name .. " failed: " .. tostring(err))
+		end
+	end
+	stage("terrain", Terrain.build)
+	stage("roads", function()
+		Roads.build(world, yield)
+	end)
+	stage("blocks", function()
+		Blocks.build(world, yield)
+	end)
+	stage("landmarks", function()
+		Landmarks.build(world, yield)
+	end)
+	stage("lots", function()
+		world:SetAttribute("FilledLots", Blocks.fillPoiSites(world, Random.new(5150)))
+	end)
+	stage("ground patches", function()
+		world:SetAttribute("GroundPatches", Terrain.clearUnder(world))
+	end)
+	if Blocks.lastError then
+		table.insert(failures, "blocks: " .. Blocks.lastError)
+	end
+	world:SetAttribute("Errors", table.concat(failures, " | "))
 
 	-- spawn point on the main square
 	local L = CityLayout.get()

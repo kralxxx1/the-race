@@ -207,9 +207,9 @@ elseif scene == "shop_items" then
 		end
 		error("no button " .. text)
 	end
-	press("Eşyalar")
+	press("Items")
 	task.wait(0.1)
-	press("İş Güvenliği")
+	press("Safety")
 	task.wait(0.2)
 elseif scene == "factory" then
 	-- a level-2 factory: one line running, stock in the warehouse
@@ -307,7 +307,7 @@ elseif scene == "parts_gpu" then
 		end
 		error("no button " .. text)
 	end
-	press("Ekran Kartı")
+	press("Graphics Cards")
 	press("NVIDIA")
 elseif scene ~= "hud" and string.sub(scene, 1, 9) ~= "settings_" then
 	service(if scene == "dealer" then "cars" elseif scene == "staff" then "staff" else scene)

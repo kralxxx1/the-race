@@ -29,7 +29,13 @@ function RealFurniture.fit(parent: Instance, name: string, cf: CFrame, w: number
 		s = 1
 	end
 	s = math.clamp(s, 0.25, 1.4)
-	return Assets.place(parent, LIB, name, cf, s), s, size.Y * s
+	-- furniture is decoration: if placing it fails the caller falls back to its own look
+	local ok, model = pcall(Assets.place, parent, LIB, name, cf, s)
+	if not ok then
+		warn("[RealFurniture] " .. name .. ": " .. tostring(model))
+		return nil, 1, 0
+	end
+	return model, s, size.Y * s
 end
 
 -- A sofa you can sit on: the real model with an invisible Seat on its cushions.

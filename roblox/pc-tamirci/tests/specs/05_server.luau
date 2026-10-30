@@ -502,7 +502,7 @@ return function(T)
 			end
 		end
 		local street = game:GetService("ReplicatedStorage"):FindFirstChild("Avatars")
-		T.ok(street and #street:GetChildren() == 24, "street avatars for the clients")
+		T.ok(street and #street:GetChildren() == 48, "street avatars for the clients")
 		for _, m in street:GetChildren() do
 			T.ok(m:FindFirstChildOfClass("Humanoid") and m:FindFirstChild("HumanoidRootPart"), "street avatar rig " .. m.Name)
 			T.ok(type(m:GetAttribute("Hip")) == "number", "hip height for posing " .. m.Name)
