@@ -11,9 +11,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local PCModel = require(Shared.Models.PCModel)
 local Rules = require(Shared.Repair.RepairRules)
+local Signal = require(Shared.Util.Signal)
 local S = require(script.Parent.Parent.Strings)
 
 local BenchViews = {}
+BenchViews.changed = Signal.new() -- (bench) whenever a device was built or updated
 
 local RANGE_IN = 140
 local RANGE_OUT = 190
@@ -96,6 +98,7 @@ function BenchViews.apply(bench: Model, view: any, rev: number?)
 	v.rev = rev or v.rev
 	v.jobId = job
 	v.model = view.model
+	BenchViews.changed:Fire(bench)
 end
 
 function BenchViews.handle(bench: Model)

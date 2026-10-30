@@ -406,7 +406,7 @@ function Buildings.hall(parent: Instance, cf: CFrame, w: number, d: number, h: n
 			local z = d * (r - 0.5) / rows
 			local panel = B.box(m, cf * CFrame.new(x, h - 0.3, z), Vector3.new(4, 0.2, 4), Color3.fromRGB(255, 250, 240), M.Neon, nc({ CastShadow = false, Name = "CeilingLight" }))
 			if (r + c) % 2 == 0 or (rows * cols <= 2) then
-				B.pointLight(panel, math.max(w, d) * 0.6, 0.9, Color3.fromRGB(255, 244, 228), false)
+				B.pointLight(panel, math.max(w, d) * 0.6, 1.25, Color3.fromRGB(255, 244, 228), false)
 			end
 		end
 	end

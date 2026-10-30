@@ -127,6 +127,7 @@ local T = {
 	bench_load = { "Tezgâha Al", "Load" },
 	bench_unload = { "Raftan Kaldır", "Put Away" },
 	bench_leave = { "Kalk", "Stand Up" },
+	bench_labels = { "Etiketler", "Labels" },
 	bench_finish = { "İşi Bitir", "Finish Job" },
 	bench_power = { "Güç", "Power" },
 	bench_stress = { "Stres Testi", "Stress Test" },

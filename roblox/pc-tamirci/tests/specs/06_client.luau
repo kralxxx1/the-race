@@ -275,6 +275,18 @@ return function(T)
 		T.ok(#h.model:GetDescendants() > 20, "device model")
 		local v = Bench._view()
 		T.ok(v and v.nodes, "view")
+		-- every part carries a name tag, and your own avatar stays out of the picture
+		local tags = game:GetService("Workspace"):FindFirstChild("BenchLabels")
+		T.ok(tags ~= nil and #tags:GetChildren() >= 6, "name tags on the parts")
+		Bench.setLabels(false)
+		T.eq(#tags:GetChildren(), 0, "tags off")
+		Bench.setLabels(true)
+		T.ok(#tags:GetChildren() >= 6, "tags back on")
+		for _, part in player.Character:GetDescendants() do
+			if part:IsA("BasePart") then
+				T.eq(part.LocalTransparencyModifier, 1, "avatar hidden at the bench: " .. part.Name)
+			end
+		end
 		-- the rules-driven hover hint for every node and owned tool
 		local tested = 0
 		for id in v.nodes do

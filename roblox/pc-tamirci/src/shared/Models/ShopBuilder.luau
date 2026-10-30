@@ -150,6 +150,14 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 		local led = B.cylY(m, cf * CFrame.new(-4.2, 6.42, 0.8), 0.06, 1.4, Color3.fromRGB(255, 250, 240), M.Neon, nc())
 		B.spotLight(led, Enum.NormalId.Bottom, 10, 70, 1.4, Color3.fromRGB(255, 250, 240), false)
 	end
+	-- the light every bench has: a soft fill over the device (it lights the inside of an open case,
+	-- which would be black otherwise) and a beam from the lamp onto the mat
+	local fill = B.box(m, cf * CFrame.new(-0.6, 8.2, -0.4), Vector3.new(0.3, 0.2, 0.3), Color3.new(1, 1, 1), M.SmoothPlastic, nc({ Transparency = 1, Name = "WorkLight", CastShadow = false }))
+	B.pointLight(fill, 15, 1.7, Color3.fromRGB(255, 246, 232), false)
+	if not items.bench_led then
+		local beam = B.box(m, cf * CFrame.new(-4.2, 6.35, 0.8), Vector3.new(0.3, 0.1, 0.3), Color3.new(1, 1, 1), M.SmoothPlastic, nc({ Transparency = 1, Name = "LampBeam", CastShadow = false }))
+		B.spotLight(beam, Enum.NormalId.Bottom, 12, 75, 1.2, Color3.fromRGB(255, 250, 240), false)
+	end
 	-- magnetic screw bowl, where PCModel drops the screws (device frame TRAY)
 	B.cylY(m, cf * CFrame.new(2.6, 3.5, -1.2), 0.2, 1.2, Color3.fromRGB(150, 150, 156), M.Metal, nc({ Name = "ScrewTray" }))
 	-- stool

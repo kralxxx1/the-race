@@ -49,7 +49,16 @@ local hover = nil :: any -- { id, primary, ok, reason, pos, normal }
 local highlight: Highlight
 local busy = false
 local holding = nil :: any
-local orbit = { yaw = 0, pitch = 0.82, dist = 7.2 }
+-- The camera looks at the middle of the device from close up and above; zooming in with the wheel
+-- drifts the focus towards the part under the mouse (off follows offT smoothly).
+local CAM_FOCUS = Vector3.new(-0.4, 0.55, 0)
+local CAM_START = { yaw = 0, pitch = 1.02, dist = 4.8 }
+local orbit = { yaw = 0, pitch = CAM_START.pitch, dist = CAM_START.dist, off = Vector3.zero, offT = Vector3.zero }
+local labelsOn = true
+local labelFolder: Folder? = nil
+local labels = {} :: { [string]: { gui: BillboardGui, anchor: Part } }
+local labelClock = 0
+local hiddenParts = {} :: { [BasePart]: boolean }
 local dragging = false
 local dragMoved = 0
 local touchStart: Vector2? = nil
@@ -868,16 +877,118 @@ local function updateHover(at: Vector2?)
 	end
 end
 
-local function updateCamera()
+-- Your own avatar sits between the camera and the device: hide it (only on your screen) while you
+-- work, and show it again when you stand up.
+local function hideAvatar(on: boolean)
+	local char = player.Character
+	if on and char then
+		for _, d in char:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.LocalTransparencyModifier = 1
+				hiddenParts[d] = true
+			end
+		end
+	else
+		for part in hiddenParts do
+			if part.Parent then
+				part.LocalTransparencyModifier = 0
+			end
+		end
+		table.clear(hiddenParts)
+	end
+end
+
+local function clearLabels()
+	for _, l in labels do
+		l.gui:Destroy()
+		l.anchor:Destroy()
+	end
+	table.clear(labels)
+end
+
+-- A small name tag over every part of the device (and over the empty slots), so a newcomer can read
+-- what each thing is. Rebuilt whenever the device changes; positions follow the part models.
+local function refreshLabels()
+	local v, h = view(), handle()
+	clearLabels()
+	if not labelsOn or not v or not h or not active then
+		return
+	end
+	if not labelFolder then
+		labelFolder = Instance.new("Folder")
+		labelFolder.Name = "BenchLabels"
+		labelFolder.Parent = Workspace
+	end
+	for id, rec in h.recs do
+		local tn = Rules.tnode(v, id)
+		local node = v.nodes[id]
+		if tn and (tn.kind == "comp" or tn.kind == "panel") and rec.model and node and (node.st == "in" or node.st == "out" or node.st == "loose" or node.st == "open") then
+			local a = Instance.new("Part")
+			a.Name = "LabelAnchor"
+			a.Size = Vector3.new(0.2, 0.2, 0.2)
+			a.Transparency = 1
+			a.Anchored = true
+			a.CanCollide = false
+			a.CanQuery = false
+			a.CanTouch = false
+			a.CastShadow = false
+			a.Parent = labelFolder
+			local g = Instance.new("BillboardGui")
+			g.Name = "Tag"
+			g.Adornee = a
+			g.AlwaysOnTop = true
+			g.Size = UDim2.fromOffset(150, 22)
+			g.StudsOffsetWorldSpace = Vector3.new(0, 0.5, 0)
+			g.MaxDistance = 24
+			g.LightInfluence = 0
+			g.Parent = a
+			local t = Kit.label(g, nodeLabel(v, id), { Size = UDim2.fromScale(1, 1), TextSize = 13, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Center, TextStrokeTransparency = 0.3, TextColor3 = Color3.fromRGB(255, 248, 210) })
+			t.TextScaled = false
+			t.BackgroundTransparency = 0.35
+			t.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
+			Kit.corner(t, UDim.new(0, 5))
+			labels[id] = { gui = g, anchor = a }
+		end
+	end
+	labelClock = 1
+end
+
+local function placeLabels()
+	local h = handle()
+	if not h then
+		return
+	end
+	for id, l in labels do
+		local rec = h.recs[id]
+		local m = rec and rec.model
+		if m and m.Parent then
+			l.anchor.Position = m:GetPivot().Position
+		end
+	end
+end
+
+local function updateCamera(dt: number?)
 	local cam = Workspace.CurrentCamera
 	local root = active and BenchViews.rootOf(active.model)
 	if not cam or not root then
 		return
 	end
-	local focus = (root * CFrame.new(-0.4, 0.55, 0)).Position
+	orbit.off = orbit.off:Lerp(orbit.offT, math.clamp((dt or 1 / 60) * 9, 0, 1))
+	local focus = (root * CFrame.new(CAM_FOCUS + orbit.off)).Position
 	local offset = CFrame.Angles(0, orbit.yaw, 0) * CFrame.Angles(-orbit.pitch, 0, 0) * Vector3.new(0, 0, orbit.dist)
 	local pos = (root.Rotation * CFrame.new(offset)).Position + focus
 	cam.CFrame = CFrame.lookAt(pos, focus)
+	cam.FieldOfView = 62
+	-- keep the tags on their parts while the parts are being moved around (otherwise a few times
+	-- a second is plenty)
+	local h = handle()
+	if h and next(labels) then
+		labelClock += dt or 0
+		if labelClock > 0.2 or h:busy() then
+			labelClock = 0
+			placeLabels()
+		end
+	end
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -919,6 +1030,8 @@ local function exit()
 	ui.root.Visible = false
 	ui.pickerFrame.Visible = false
 	setAdornee(nil)
+	clearLabels()
+	hideAvatar(false)
 	if toolModel then
 		toolModel:Destroy()
 		toolModel = nil
@@ -967,9 +1080,11 @@ local function enter(data)
 	end
 	local cam = Workspace.CurrentCamera
 	cam.CameraType = Enum.CameraType.Scriptable
-	orbit = { yaw = 0, pitch = 0.82, dist = 7.2 }
-	table.insert(conns, RunService.RenderStepped:Connect(function()
-		updateCamera()
+	orbit = { yaw = CAM_START.yaw, pitch = CAM_START.pitch, dist = CAM_START.dist, off = Vector3.zero, offT = Vector3.zero }
+	hideAvatar(true)
+	refreshLabels()
+	table.insert(conns, RunService.RenderStepped:Connect(function(dt)
+		updateCamera(dt)
 		updateHover()
 		if ui.money and State.data then
 			ui.money.Text = S.money(State.data.money)
@@ -978,6 +1093,20 @@ local function enter(data)
 	table.insert(conns, State.changed:Connect(function()
 		buildToolbar()
 		refreshDiag()
+		refreshLabels()
+	end))
+	-- a part was fitted or removed (or the device arrived): the tags follow
+	table.insert(conns, BenchViews.changed:Connect(function(bench)
+		if active and bench == active.model then
+			refreshLabels()
+		end
+	end))
+	-- the avatar respawns: keep it hidden
+	table.insert(conns, player.CharacterAdded:Connect(function()
+		task.wait(0.2)
+		if active then
+			hideAvatar(true)
+		end
 	end))
 	table.insert(conns, State.jobsChanged:Connect(function()
 		if active and not active.job and ui.pickerFrame.Visible then
@@ -1024,9 +1153,12 @@ function build()
 	local root = Kit.frame(gui, { Name = "Bench", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Visible = false })
 	ui.root = root
 	-- top bar
-	local top = Kit.panel(root, { Size = UDim2.new(0, 520, 0, 46), Position = UDim2.new(0.5, 0, 0, 12), AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 0.1 })
+	local top = Kit.panel(root, { Size = UDim2.new(0, 640, 0, 46), Position = UDim2.new(0.5, 0, 0, 12), AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 0.1 })
 	ui.title = Kit.label(top, "", { Size = UDim2.new(0.5, 0, 1, 0), Position = UDim2.fromOffset(14, 0), FontFace = Theme.heavy, TextSize = 20 })
-	ui.money = Kit.label(top, "", { Size = UDim2.new(0.3, 0, 1, 0), Position = UDim2.new(0.42, 0, 0, 0), TextColor3 = Theme.money, FontFace = Theme.heavy, TextSize = 20 })
+	ui.money = Kit.label(top, "", { Size = UDim2.new(0.2, 0, 1, 0), Position = UDim2.new(0.34, 0, 0, 0), TextColor3 = Theme.money, FontFace = Theme.heavy, TextSize = 20 })
+	ui.labelBtn = Kit.button(top, "🏷 " .. S.t("bench_labels"), function()
+		BenchController.setLabels(not labelsOn)
+	end, { Size = UDim2.fromOffset(112, 34), Position = UDim2.new(1, -228, 0, 6), TextSize = 14 }, "ghost")
 	Kit.button(top, S.t("bench_leave"), function()
 		Net.request("bench.leave")
 		exit()
@@ -1229,6 +1361,11 @@ function BenchController.init(screen: ScreenGui, hudModule)
 				orbit.yaw -= 0.25
 			elseif k == Enum.KeyCode.E then
 				orbit.yaw += 0.25
+			elseif k == Enum.KeyCode.R then
+				orbit.yaw, orbit.pitch, orbit.dist = CAM_START.yaw, CAM_START.pitch, CAM_START.dist
+				orbit.offT = Vector3.zero
+			elseif k == Enum.KeyCode.L then
+				BenchController.setLabels(not labelsOn)
 			else
 				local digits = { [Enum.KeyCode.One] = "1", [Enum.KeyCode.Two] = "2", [Enum.KeyCode.Three] = "3", [Enum.KeyCode.Four] = "4", [Enum.KeyCode.Five] = "5", [Enum.KeyCode.Six] = "6", [Enum.KeyCode.Seven] = "7", [Enum.KeyCode.Eight] = "8", [Enum.KeyCode.Nine] = "9", [Enum.KeyCode.Zero] = "0" }
 				local d = digits[k]
@@ -1287,14 +1424,38 @@ function BenchController.init(screen: ScreenGui, hudModule)
 			orbit.yaw -= input.Delta.X * 0.008
 			orbit.pitch = math.clamp(orbit.pitch + input.Delta.Y * 0.006, 0.15, 1.45)
 		elseif input.UserInputType == Enum.UserInputType.MouseWheel then
-			orbit.dist = math.clamp(orbit.dist - input.Position.Z * 0.6, 2.2, 14)
+			local dir = input.Position.Z
+			orbit.dist = math.clamp(orbit.dist - dir * 0.5, 1.4, 12)
+			local root = active and BenchViews.rootOf(active.model)
+			if dir > 0 and hover and hover.pos and root then
+				-- zooming in: the part under the mouse drifts to the middle of the view
+				local local3 = root:PointToObjectSpace(hover.pos) - CAM_FOCUS
+				orbit.offT = orbit.offT:Lerp(local3, 0.3)
+				if orbit.offT.Magnitude > 3.2 then
+					orbit.offT = orbit.offT.Unit * 3.2
+				end
+			elseif dir < 0 then
+				orbit.offT = orbit.offT * 0.7
+			end
 		end
 	end)
 	UserInputService.TouchPinch:Connect(function(_, scale, _, state)
 		if active and state == Enum.UserInputState.Change then
-			orbit.dist = math.clamp(orbit.dist / scale, 2.2, 14)
+			orbit.dist = math.clamp(orbit.dist / scale, 1.4, 12)
 		end
 	end)
+end
+
+function BenchController.setLabels(on: boolean)
+	labelsOn = on
+	if ui.labelBtn then
+		ui.labelBtn.Text = (if on then "🏷 " else "🚫 ") .. S.t("bench_labels")
+	end
+	refreshLabels()
+end
+
+function BenchController.labelsOn(): boolean
+	return labelsOn
 end
 
 function BenchController.active(): boolean
