@@ -426,8 +426,18 @@ elseif what == "vehicles" then
 	local VehicleModels = Engine.mod("ReplicatedStorage.Shared.Models.VehicleModels")
 	local folder = roblox.Instance.new("Folder")
 	folder.Parent = Engine.workspace
+	-- every car in three different dresses (colour, rims, tint, rack, taxi), the two-wheelers once
+	local n = 0
 	for i, v in Vehicles.list do
-		VehicleModels.build(folder, v, roblox.CFrame.new((i - 1) * 16 - 160, 0, 0), { color = v.colors[1], plate = "34 TMR " .. i, static = true })
+		if v.kind == "car" then
+			n += 1
+			for j = 1, 3 do
+				local pal = VehicleModels.PALETTE[(n * 3 + j * 5) % #VehicleModels.PALETTE + 1]
+				VehicleModels.build(folder, v, roblox.CFrame.new(n * 22 - 160, 0, j * 14), { color = pal, plate = "KX-" .. (n * 37 + j * 11), static = true, taxi = n == 4 and j == 2 })
+			end
+		else
+			VehicleModels.build(folder, v, roblox.CFrame.new((i - 1) * 16 - 160, 0, -16), { color = v.colors[1], plate = "KX-" .. i, static = true })
+		end
 	end
 	result.parts = dumpParts(folder)
 end

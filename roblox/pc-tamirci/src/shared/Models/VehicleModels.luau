@@ -324,14 +324,98 @@ local function buildOfficial(m: Model, cf: CFrame, def, color: Color3, plateText
 		track = template:GetAttribute("Track") * scale,
 		W = size.X,
 		L = size.Z,
+		H = size.Y,
 		seat = seat,
 	}
 end
 
 ----------------------------------------------------------------------------------------------------
+-- Variety: the same car never looks quite the same twice. Body colour, rim colour, window tint,
+-- mirrors, a roof rack on the tall ones and the odd taxi sign multiply every body shape into
+-- hundreds of different cars (the choice is seeded, so a bought car keeps its look).
+----------------------------------------------------------------------------------------------------
+local function rgb(r: number, g: number, b: number): Color3
+	return Color3.fromRGB(r, g, b)
+end
+
+-- everyday car colours, in { r, g, b }
+VehicleModels.PALETTE = {
+	{ 240, 240, 242 }, { 24, 24, 28 }, { 176, 180, 188 }, { 96, 100, 108 }, { 170, 28, 36 }, { 110, 20, 30 },
+	{ 30, 80, 170 }, { 18, 32, 80 }, { 30, 110, 70 }, { 20, 60, 44 }, { 244, 196, 40 }, { 230, 120, 30 },
+	{ 120, 84, 56 }, { 214, 196, 160 }, { 40, 150, 160 }, { 110, 60, 150 },
+}
+local RIM_COLORS = { rgb(190, 192, 198), rgb(40, 42, 46), rgb(120, 124, 132), rgb(212, 175, 55), rgb(235, 235, 238), rgb(180, 40, 40) }
+local TINTS = { 0.32, 0.5, 0.68 }
+local RACK_BODIES = { wagon = true, suv = true, van = true, minibus = true, offroad = true }
+local TAXI_BODIES = { classic = true, hatch = true, sedan = true, electric = true, wagon = true }
+
+-- A stable number from text (plates, ids).
+function VehicleModels.seedOf(text: string): number
+	local h = 5381
+	for i = 1, #text do
+		h = (h * 33 + string.byte(text, i)) % 2147483647
+	end
+	return h
+end
+
+local function customize(m: Model, cf: CFrame, def, real, o: { [string]: any })
+	local r = Random.new(o.look or VehicleModels.seedOf(tostring(o.plate or def.id)))
+	local rim = RIM_COLORS[r:NextInteger(1, #RIM_COLORS)]
+	local tint = TINTS[r:NextInteger(1, #TINTS)]
+	local blackMirrors = r:NextNumber() < 0.5
+	for _, d in m:GetDescendants() do
+		if d:IsA("BasePart") then
+			local n = string.lower(d.Name)
+			if d:GetAttribute("RimOf") and not string.find(n, "spoke") then
+				d.Color = rim
+			elseif string.sub(n, -5) == "glass" and not string.find(n, "bumper") then
+				d.Transparency = tint
+				d.Color = rgb(34, 44, 56)
+			elseif blackMirrors and string.find(n, "mirror") then
+				d.Color = rgb(28, 28, 32)
+			end
+		end
+	end
+	local function box(name: string, offset: CFrame, size: Vector3, color: Color3, mat: Enum.Material?)
+		local p = B.box(m, cf * offset, size, color, mat or M.Metal, { Name = name, CanCollide = false, CanTouch = false, CanQuery = false })
+		p:AddTag("CarAddon")
+		return p
+	end
+	-- roof rack: two rails, two cross bars and sometimes a cargo box
+	if RACK_BODIES[def.body] and r:NextNumber() < 0.5 then
+		local H, W, L = real.H, real.W, real.L
+		local len = L * 0.42
+		local z = -L * 0.04
+		for _, x in { -1, 1 } do
+			box("RackRail", CFrame.new(x * W * 0.3, H + 0.1, z), Vector3.new(0.18, 0.2, len), rgb(30, 30, 34))
+		end
+		for _, dz in { -1, 1 } do
+			box("RackBar", CFrame.new(0, H + 0.3, z + dz * len * 0.4), Vector3.new(W * 0.6, 0.16, 0.2), rgb(30, 30, 34))
+		end
+		if r:NextNumber() < 0.5 then
+			box("RackBox", CFrame.new(0, H + 0.2 + 0.55, z), Vector3.new(W * 0.5, 1.1, len * 0.55), rgb(54, 58, 66), M.SmoothPlastic)
+		end
+	end
+	-- the odd taxi: yellow paint and a lit sign on the roof
+	if o.taxi and TAXI_BODIES[def.body] then
+		local H = real.H
+		for _, d in m:GetDescendants() do
+			if d:IsA("BasePart") and d:GetAttribute("Paint") then
+				d.Color = rgb(244, 196, 40)
+			end
+		end
+		local sign = box("TaxiSign", CFrame.new(0, H + 0.3, -real.L * 0.02), Vector3.new(real.W * 0.34, 0.6, 1.1), rgb(250, 250, 244), M.SmoothPlastic)
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			B.sign(sign, face, "TAXI", { color = rgb(20, 20, 20), background = rgb(250, 210, 60), pixelsPerStud = 60 })
+		end
+	end
+end
+
+----------------------------------------------------------------------------------------------------
 -- build
 ----------------------------------------------------------------------------------------------------
--- opts: color (index or {r,g,b}), plate (text), static (display only), owner (UserId)
+-- opts: color (index or {r,g,b}), plate (text), static (display only), owner (UserId),
+--       look (seed of the rims/tint/rack choices; default from the plate), taxi (yellow + sign)
 function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string]: any }?): Model
 	local o = opts or {}
 	local m = Instance.new("Model")
@@ -405,6 +489,10 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 				end
 			end
 		end
+	end
+
+	if real then
+		customize(m, cf, def, real, o)
 	end
 
 	if o.static then

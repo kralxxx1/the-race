@@ -257,7 +257,7 @@ local function spawnCar(): boolean
 	end
 	local def = carDefs[rng:NextInteger(1, #carDefs)]
 	local c = { def = def, leg = g, lane = lane, offset = laneOffset(road, lane), t = t, speed = 0, cruise = math.min(def.speed * 0.42, if road.kind == "street" then 28 else 38) * rng:NextNumber(0.85, 1.1) }
-	local ok, m = pcall(VehicleModels.build, folder, def, CFrame.new(), { color = rng:NextInteger(1, #def.colors), plate = randomPlate(), static = true })
+	local ok, m = pcall(VehicleModels.build, folder, def, CFrame.new(), { color = VehicleModels.PALETTE[rng:NextInteger(1, #VehicleModels.PALETTE)], plate = randomPlate(), static = true, taxi = rng:NextNumber() < 0.07 })
 	if not ok then
 		return false
 	end
