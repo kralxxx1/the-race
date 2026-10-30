@@ -86,6 +86,10 @@ local function strip(root: Instance)
 					break
 				end
 			end
+			-- the furniture packs' invisible seat triggers
+			if d.Parent and d.Name == "ClickTrigger" then
+				d:Destroy()
+			end
 		end
 	end
 end
@@ -194,9 +198,65 @@ end
 -- What goes into each library: { packId, itemPath, ourName, opts }
 ----------------------------------------------------------------------------------------------------
 local CITY, FOREST, GARDEN = 6370681139, 6432306802, 10840661513
+local FURNITURE, HOUSE_PROPS = 10847897579, 10840642581
 local CITY_BUILDINGS, MODULAR_KIT = 6418277837, 13168370735
 
 local LIBRARIES = {
+	{
+		-- shop furniture and desk things from the House Furnishing and House Props packs (avatar
+		-- scale; lights are dropped, the shop has its own)
+		name = "Interior",
+		where = "server",
+		items = {
+			{ FURNITURE, "Couch_Triple", "SofaTriple", { noLights = true } },
+			{ FURNITURE, "Couch_Triple_Dark", "SofaTripleDark", { noLights = true } },
+			{ FURNITURE, "Couch_Double", "SofaDouble", { noLights = true } },
+			{ FURNITURE, "Couch_Double_Dark", "SofaDoubleDark", { noLights = true } },
+			{ FURNITURE, "Couch_Single", "SofaSingle", { noLights = true } },
+			{ FURNITURE, "Couch_Ottoman", "Ottoman", { noLights = true } },
+			{ FURNITURE, "ArmChair", "ArmChair", { noLights = true } },
+			{ FURNITURE, "Furniture_Study_Ottoman", "Pouf", { noLights = true } },
+			{ FURNITURE, "Furniture_CoffeeTable", "CoffeeTable", { noLights = true } },
+			{ FURNITURE, "Furniture_SideTable_A", "SideTable", { noLights = true } },
+			{ FURNITURE, "Furniture_Entry_Table", "EntryTable", { noLights = true } },
+			{ FURNITURE, "Furniture_Bookshelf_B", "Bookcase", { noLights = true } },
+			{ FURNITURE, "Furniture_BookshelfTall_A", "BookcaseTall", { noLights = true } },
+			{ FURNITURE, "Display_Case_Tall", "DisplayTall", { noLights = true } },
+			{ FURNITURE, "Display_Case_Wide", "DisplayWide", { noLights = true } },
+			{ FURNITURE, "Display_Case_Half", "DisplayHalf", { noLights = true } },
+			{ FURNITURE, "Display_Cloche", "Cloche", { noLights = true } },
+			{ FURNITURE, "Furniture_FilingCabinet", "FilingCabinet", { noLights = true } },
+			{ FURNITURE, "Furniture_Study_Desk", "StudyDesk", { noLights = true } },
+			{ FURNITURE, "Furniture_WorksStation", "WorkStation", { noLights = true } },
+			{ FURNITURE, "Kitchen_BarStool", "BarStool", { noLights = true } },
+			{ FURNITURE, "Kitchen_DiningTable", "DiningTable", { noLights = true } },
+			{ FURNITURE, "Kitchen_DiningChair", "DiningChair", { noLights = true } },
+			{ FURNITURE, "Furniture_Kitchen_Fridge_Normal", "Fridge", { noLights = true } },
+			{ FURNITURE, "LowerCabinetMicrowave", "CabinetMicrowave", { noLights = true } },
+			{ FURNITURE, "Lower-Dishwasher", "Dishwasher", { noLights = true } },
+			{ FURNITURE, "Furniture_Kitchen_LowerCabinetDoors_Sink", "CabinetSink", { noLights = true } },
+			{ FURNITURE, "KitchenIsland", "KitchenIsland", { noLights = true, turn = 180 } },
+			{ FURNITURE, "Furniture_FloorLamp_On", "FloorLamp", { noLights = true } },
+			{ FURNITURE, "Table_Lamp_B", "TableLamp", { noLights = true } },
+			{ FURNITURE, "Desk Lamp", "DeskLamp", { noLights = true } },
+			{ FURNITURE, "Bankers_Lamp_on", "BankersLamp", { noLights = true } },
+			{ FURNITURE, "Furniture_Credenza_A", "Credenza", { noLights = true } },
+			{ FURNITURE, "Furniture_Console_A", "Console", { noLights = true } },
+			{ FURNITURE, "Furniture_FloorCoatRack", "CoatRack", { noLights = true } },
+			{ FURNITURE, "GrandfatherClock", "GrandfatherClock", { noLights = true } },
+			{ FURNITURE, "Bench", "BenchWood", { noLights = true } },
+			{ FURNITURE, "Metal Shelf", "MetalShelf", { noLights = true } },
+			{ FURNITURE, "Rolling_Stand", "RollingStand", { noLights = true } },
+			{ HOUSE_PROPS, "CoffeeMachine", "CoffeeMachine", { noLights = true } },
+			{ HOUSE_PROPS, "Telephone", "Telephone", { noLights = true } },
+			{ HOUSE_PROPS, "Desk_Bell", "DeskBell", { noLights = true } },
+			{ HOUSE_PROPS, "Paper_Stack", "PaperStack", { noLights = true } },
+			{ HOUSE_PROPS, "Prop_Notepad", "Notepad", { noLights = true } },
+			{ HOUSE_PROPS, "Coffee_Cup_White", "CupWhite", { noLights = true } },
+			{ HOUSE_PROPS, "Tray", "Tray", { noLights = true } },
+			{ HOUSE_PROPS, "TeaKettle", "Kettle", { noLights = true } },
+		},
+	},
 	{
 		-- whole buildings: the City Building Pack's blocks (Tower01-12, ~1.4x avatar scale, every side
 		-- a facade, lobbies behind the glass) and the Modular Building Kit's prefabs (KitA-L, avatar

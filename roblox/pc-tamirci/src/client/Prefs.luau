@@ -50,13 +50,9 @@ local SEND_DELAY = 0.35
 
 Prefs.changed = Signal.new() -- (changed keys: { [string]: true })
 
-local values: { [string]: any } = {}
+local values: { [string]: any } = table.clone(Prefs.DEFAULTS)
 local dirty: { [string]: any } = {} -- changed here, not yet confirmed by the server
 local sending = false
-
-for k, v in Prefs.DEFAULTS do
-	values[k] = v
-end
 
 local function clamp(key: string, v: any): any
 	local d = Prefs.DEFAULTS[key]

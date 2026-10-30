@@ -7,6 +7,7 @@
 local B = require(script.Parent.Parent.Util.Builder)
 local Rand = require(script.Parent.Parent.Util.Rand)
 local Props = require(script.Parent.Props)
+local Real = require(script.Parent.RealFurniture)
 local Buildings = require(script.Parent.Buildings)
 local Upgrades = require(script.Parent.Parent.Data.Upgrades)
 local ShopExtras = require(script.Parent.ShopExtras)
@@ -370,6 +371,11 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 			part.Material = material(counterStyle.topMaterial or "Marble")
 		end
 	end
+	-- the reception desk's own things: service bell, phone, paperwork
+	Real.fit(counterModel, "DeskBell", counterCf * CFrame.new(-counterW / 2 + 1.2, 4, -0.5), 0.5, 0.5, 0.5)
+	Real.fit(counterModel, "Telephone", counterCf * CFrame.new(-counterW / 2 + 2.6, 4, 0.6) * CFrame.Angles(0, math.rad(200), 0), 1.2, 1.1, 0.9)
+	Real.fit(counterModel, "PaperStack", counterCf * CFrame.new(-counterW / 2 + 4.2, 4, 0.5) * CFrame.Angles(0, math.rad(15), 0), 1, 1.4, 0.4)
+	Real.fit(counterModel, "Notepad", counterCf * CFrame.new(-counterW / 2 + 5.4, 4, 0.2) * CFrame.Angles(0, math.rad(-20), 0), 0.8, 1, 0.2)
 	plan:claim({ xc - counterW / 2 - 0.2, zc - 1.6, xc + counterW / 2 + 0.2, zc + 1.4 }, "hard")
 	if items.safe then
 		local sx = xc - counterW / 2 + 1.7
@@ -387,9 +393,17 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		-- glass trophy cabinet on the wall nearest the counter
 		wallItem({ walls.rightFront, walls.leftFront, walls.back, walls.rightWork, walls.leftWork }, 6, 1.15, 2.3, function(c)
 			local m = B.model("TrophyCabinet", shop)
-			B.box(m, c * CFrame.new(0, 3.5, 0), Vector3.new(6, 7, 2.2), Color3.fromRGB(90, 60, 40), M.Wood)
-			for k = 0, 2 do
-				B.cylY(m, c * CFrame.new(-1.6 + k * 1.6, 3 + k * 1.4, -0.9), 1.2, 0.8, Color3.fromRGB(230, 190, 60), M.Metal, nc())
+			local real, _, top = Real.fit(m, "DisplayWide", c, 5.8, 2.1, 7.4)
+			if real then
+				-- gold cups on top of the glass cabinet
+				for k = -1, 1 do
+					B.cylY(m, c * CFrame.new(k * 1.5, top + 0.6, 0), 1.2, 0.8, Color3.fromRGB(230, 190, 60), M.Metal, nc())
+				end
+			else
+				B.box(m, c * CFrame.new(0, 3.5, 0), Vector3.new(6, 7, 2.2), Color3.fromRGB(90, 60, 40), M.Wood)
+				for k = 0, 2 do
+					B.cylY(m, c * CFrame.new(-1.6 + k * 1.6, 3 + k * 1.4, -0.9), 1.2, 0.8, Color3.fromRGB(230, 190, 60), M.Metal, nc())
+				end
 			end
 		end)
 	end
@@ -485,17 +499,19 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 				local c = facing(x, rowZ, 0, 1)
 				if sofa then
 					local m = B.model("Sofa", shop)
-					local leather = Color3.fromRGB(110, 70, 40)
-					B.box(m, c * CFrame.new(0, 1.4, -0.1), Vector3.new(3.4, 1.6, 2.2), leather, M.Leather)
-					B.box(m, c * CFrame.new(0, 2.8, 0.95), Vector3.new(3.4, 2, 0.5), leather, M.Leather)
-					local seat = Instance.new("Seat")
-					seat.Name = "Seat"
-					seat.Anchored = true
-					seat.Transparency = 1
-					seat.CanCollide = false
-					seat.Size = Vector3.new(2.4, 0.3, 1.6)
-					seat.CFrame = c * CFrame.new(0, 2.25, -0.1)
-					seat.Parent = m
+					if not Real.sofa(m, "SofaSingle", c, 3.4, 3.3) then
+						local leather = Color3.fromRGB(110, 70, 40)
+						B.box(m, c * CFrame.new(0, 1.4, -0.1), Vector3.new(3.4, 1.6, 2.2), leather, M.Leather)
+						B.box(m, c * CFrame.new(0, 2.8, 0.95), Vector3.new(3.4, 2, 0.5), leather, M.Leather)
+						local seat = Instance.new("Seat")
+						seat.Name = "Seat"
+						seat.Anchored = true
+						seat.Transparency = 1
+						seat.CanCollide = false
+						seat.Size = Vector3.new(2.4, 0.3, 1.6)
+						seat.CFrame = c * CFrame.new(0, 2.25, -0.1)
+						seat.Parent = m
+					end
 				else
 					Props.chair(shop, c, accent:Lerp(Color3.new(0, 0, 0), 0.4))
 				end
@@ -526,7 +542,12 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		wallItem(comfortRuns, 3, 1.55, 3.1, function(c)
 			local m = B.model("TeaStation", shop)
 			B.box(m, c * CFrame.new(0, 1.6, 0), Vector3.new(3, 3.2, 3), Color3.fromRGB(150, 110, 70), M.Wood)
-			Props.samovar(m, c * CFrame.new(0, 3.2, 0))
+			if Real.fit(m, "Kettle", c * CFrame.new(-0.6, 3.2, 0), 1.3, 1.3, 1.5) then
+				Real.fit(m, "Tray", c * CFrame.new(0.7, 3.2, 0), 1, 2, 0.5)
+				Real.fit(m, "CupWhite", c * CFrame.new(0.7, 3.4, -0.3), 0.5, 0.5, 0.5)
+			else
+				Props.samovar(m, c * CFrame.new(0, 3.2, 0))
+			end
 		end)
 	end
 	if items.coffee then

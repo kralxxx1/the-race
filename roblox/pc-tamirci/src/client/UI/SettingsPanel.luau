@@ -99,8 +99,14 @@ local function slider(parent: Instance, key: string, lo: number, hi: number, fmt
 		readout.Text = fmt(Prefs.get(key))
 	end
 	local function setFromX(x: number)
-		local w = math.max(1, bar.AbsoluteSize.X)
-		local f = math.clamp((x - bar.AbsolutePosition.X) / w, 0, 1)
+		local w, left = bar.AbsoluteSize.X, bar.AbsolutePosition.X
+		if w ~= w or w < 1 then
+			w = 1 -- (not laid out yet)
+		end
+		if left ~= left then
+			left = 0
+		end
+		local f = math.clamp((x - left) / w, 0, 1)
 		Prefs.set(key, lo + (hi - lo) * f)
 		paint()
 	end

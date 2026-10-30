@@ -16,6 +16,7 @@
 
 local B = require(script.Parent.Parent.Util.Builder)
 local Props = require(script.Parent.Props)
+local Real = require(script.Parent.RealFurniture)
 local Upgrades = require(script.Parent.Parent.Data.Upgrades)
 
 local ShopExtras = {}
@@ -324,7 +325,9 @@ end
 
 LOOKS.staff_tea = function(m, c)
 	cabinet(m, c, 2.4, 3.2, 2)
-	Props.samovar(m, c * CFrame.new(-0.3, 3.26, 0.1))
+	if not Real.fit(m, "Kettle", c * CFrame.new(-0.3, 3.26, 0.1), 1.2, 1.2, 1.4) then
+		Props.samovar(m, c * CFrame.new(-0.3, 3.26, 0.1))
+	end
 	for i = 0, 1 do
 		B.cylY(m, c * CFrame.new(0.7 + i * 0.3, 3.46, -0.4), 0.4, 0.2, C(170, 50, 20), M.Glass, nc({ Transparency = 0.2 }))
 	end
@@ -1498,6 +1501,29 @@ local function placeHigh(k, it, build, band: string?, zone: string?)
 	return false
 end
 
+-- Furniture from the official packs replaces the box-built look where the asset exists (the old
+-- look stays as the fallback). { asset, footprint w, d, max height }
+local REAL = {
+	bookshelf = { "Bookcase", 4, 1.6, 7.5 },
+	coat_rack = { "CoatRack", 1.8, 1.8, 6 },
+	massage_chair = { "ArmChair", 3, 3.4, 5 },
+	microwave = { "CabinetMicrowave", 2.4, 2.2, 3.6 },
+	dishwasher = { "Dishwasher", 2.4, 2.2, 3.6 },
+	spare_cabinet = { "MetalShelf", 3, 1.8, 6.5 },
+	outdoor_bench = { "BenchWood", 4.4, 2, 3.4 },
+}
+for id, r in REAL do
+	local boxed = LOOKS[id]
+	LOOKS[id] = function(m, c, k, ...)
+		if Real.fit(m, r[1], c, r[2], r[3], r[4]) then
+			return
+		end
+		if boxed then
+			boxed(m, c, k, ...)
+		end
+	end
+end
+
 local function placeWall(k, it, build)
 	local d = it.d or 1.6
 	if k.wallItem(runsFor(k, it.zone), it.w or 2, d / 2 + 0.15, d + 0.3, build) then
@@ -1851,12 +1877,12 @@ function ShopExtras.place(k)
 	table.sort(k.windowSlots, function(a, b)
 		return math.abs(a.x) < math.abs(b.x)
 	end)
-	k.name = k.name or "PC Tamir"
+	k.name = k.name or "PC Repair"
 	k.handle = string.lower((string.gsub(k.name, "[^%w]", "")))
 	if k.handle == "" then
-		k.handle = "pctamirci"
+		k.handle = "pcrepair"
 	end
-	k.wifi = (string.gsub(k.name, " ", "_")) .. "_Misafir"
+	k.wifi = (string.gsub(k.name, " ", "_")) .. "_Guest"
 	corridors(k)
 
 	local order = table.clone(Upgrades.items)

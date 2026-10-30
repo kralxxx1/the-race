@@ -16,7 +16,7 @@ local Services = Server.Services
 Net.init()
 
 local world = WorldBuilder.build()
-print(string.format("[PC Tamircisi] city ready (%s, %.1fs)", if world:GetAttribute("Reused") then "baked" else "built", world:GetAttribute("BuildSeconds") or 0))
+print(string.format("[PC Repair Tycoon] city ready (%s, %.1fs)", if world:GetAttribute("Reused") then "baked" else "built", world:GetAttribute("BuildSeconds") or 0))
 
 local DataService = require(Services.DataService)
 local PlotService = require(Services.PlotService)
@@ -167,4 +167,4 @@ Net.handle("travel.taxi", function(player, poiId)
 	return { ok = true, fare = fare }
 end)
 
-print("[PC Tamircisi] server started")
+print("[PC Repair Tycoon] server started")

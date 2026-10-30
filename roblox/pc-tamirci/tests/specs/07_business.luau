@@ -239,6 +239,7 @@ return function(T)
 				done += 1
 				table.insert(trail, h.next.action .. ":" .. tostring(h.next.target))
 			end
+			print(string.format("      coach %s: %d hinted steps", case[1], done))
 			T.ok(done >= 2 and done < 60, case[1] .. ": steps followed " .. done .. " — last: " .. table.concat(trail, ", ", math.max(1, #trail - 7)))
 			-- what is left is putting it back together and the verdict
 			local bot = TechBot.new(job.device, { ctx = function(_, _, tool)
