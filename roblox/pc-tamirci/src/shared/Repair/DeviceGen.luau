@@ -897,6 +897,15 @@ function DeviceGen.forJob(rng: Random, profile: { [string]: any }, level: number
 		local hasGpu = dev.kind == "desktop" and Rules.part(dev, "gpu") ~= nil
 		local k = bootKind(dev)
 		local pool = Faults.pool(dev.kind, level, { hasGpu = hasGpu, hasHdd = k == "hdd35" or k == "hdd25" })
+		if profile.onlyFaults then
+			-- (the first customers bring simple, well-known faults)
+			local easy = filter(pool, function(f)
+				return table.find(profile.onlyFaults, f.id) ~= nil
+			end)
+			if #easy > 0 then
+				pool = easy
+			end
+		end
 		local tries = 0
 		while #job.faults == 0 and tries < 12 do
 			tries += 1

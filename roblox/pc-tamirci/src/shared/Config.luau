@@ -28,8 +28,18 @@ local Config = {
 	NightEnd = 6.0,
 
 	-- Müşteriler
-	CustomerSpawnBase = 28, -- saniye (dükkân seviyesi ve itibarla kısalır)
-	CustomerSpawnMin = 9,
+	CustomerSpawnBase = 80, -- saniye (dükkân seviyesi ve itibarla kısalır)
+	CustomerSpawnMin = 24,
+	-- the first customers: simple faults only, one at a time, so a newcomer can learn the bench
+	LearningRepairs = 3,
+	EasyFaults = { "dust", "ram_unseated", "cable_loose", "virus", "os_corrupt" },
+	-- how hard the shop is on you (Settings → Difficulty): customers come every `spawn` times as
+	-- long, wait `patience` times as long, pay `pay` times as much and bring more double faults
+	Difficulty = {
+		relaxed = { spawn = 1.5, patience = 1.5, pay = 0.85, extraFaults = -1 },
+		normal = { spawn = 1, patience = 1, pay = 1, extraFaults = 0 },
+		hard = { spawn = 0.7, patience = 0.7, pay = 1.35, extraFaults = 0.2 },
+	},
 	CustomerPatienceMinutes = { 4, 11 }, -- gerçek dakika
 	MaxCustomersPerServer = 140,
 	ReviewHistory = 40,

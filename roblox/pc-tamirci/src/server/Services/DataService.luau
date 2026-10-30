@@ -70,7 +70,7 @@ local function defaults()
 		last = 0,
 		daily = { day = 0, streak = 0 },
 		quests = { day = 0, list = {} },
-		settings = { music = 0.5, sfx = 0.8 },
+		settings = { master = 1, music = 0.5, sfx = 0.8, ambience = 0.8, difficulty = "normal" },
 		-- bills waiting to be paid, the week's books (BillsService)
 		bills = { list = {}, nextId = 0, paid = {}, week = { income = 0, expense = 0, wages = 0 }, mornings = 0, lastDay = 0, cut = false },
 	}
@@ -167,6 +167,31 @@ local function saveToStore(player: Player, profile, release: boolean)
 end
 
 ----------------------------------------------------------------------------------------------------
+-- What the Settings window may change (settings.set): volumes, help, difficulty, graphics.
+DataService.SETTING_RULES = {
+	master = { kind = "num", lo = 0, hi = 1 },
+	music = { kind = "num", lo = 0, hi = 1 },
+	sfx = { kind = "num", lo = 0, hi = 1 },
+	ambience = { kind = "num", lo = 0, hi = 1 },
+	musicOn = { kind = "bool" },
+	sfxOn = { kind = "bool" },
+	ambienceOn = { kind = "bool" },
+	help = { kind = "enum", words = { "guided", "hints", "off" } },
+	difficulty = { kind = "enum", words = { "relaxed", "normal", "hard" } },
+	quality = { kind = "enum", words = { "low", "medium", "high", "ultra" } },
+	shadows = { kind = "bool" },
+	bloom = { kind = "bool" },
+	sunrays = { kind = "bool" },
+	dof = { kind = "bool" },
+	clouds = { kind = "bool" },
+	names = { kind = "bool" },
+	shake = { kind = "bool" },
+	fov = { kind = "num", lo = 55, hi = 100 },
+	brightness = { kind = "num", lo = -1, hi = 1 },
+	uiscale = { kind = "num", lo = 0.7, hi = 1.4 },
+	traffic = { kind = "enum", words = { "off", "low", "normal", "high" } },
+}
+
 -- Client snapshot (coalesced to one push per frame)
 ----------------------------------------------------------------------------------------------------
 local function snapshot(profile)
@@ -281,11 +306,22 @@ function DataService.start()
 		if payload.lang == "tr" or payload.lang == "en" then
 			p.lang = payload.lang
 		end
-		if Net.V.num(payload.music, 0, 1) then
-			p.settings.music = payload.music
-		end
-		if Net.V.num(payload.sfx, 0, 1) then
-			p.settings.sfx = payload.sfx
+		-- every other setting is checked against its rule (type, range or allowed words)
+		for key, rule in DataService.SETTING_RULES do
+			local v = payload[key]
+			if v ~= nil then
+				local ok = false
+				if rule.kind == "num" then
+					ok = Net.V.num(v, rule.lo, rule.hi)
+				elseif rule.kind == "bool" then
+					ok = Net.V.bool(v)
+				elseif rule.kind == "enum" then
+					ok = type(v) == "string" and table.find(rule.words, v) ~= nil
+				end
+				if ok then
+					p.settings[key] = v
+				end
+			end
 		end
 		if Net.V.int(payload.tutorial, 0, 99) then
 			p.tutorial = payload.tutorial

@@ -146,6 +146,13 @@ return function(T)
 			end
 			return nil
 		end, 3, "job")
+		-- a newcomer's first customer brings a simple desktop with a well-known fault
+		local Config = Engine.mod("ReplicatedStorage.Shared.Config")
+		T.eq(job.device.kind, "desktop", "the first job is a desktop")
+		T.eq(job.kind, "repair", "the first job is a plain repair")
+		for _, fid in job.faults do
+			T.ok(table.find(Config.EasyFaults, fid) ~= nil, "an easy first fault: " .. fid)
+		end
 		-- sit at bench 1 and load the job
 		local bench = PlotService.shopOf(player).benches[1]
 		local prompt = bench:FindFirstChild("PromptAnchor"):FindFirstChildOfClass("ProximityPrompt")
@@ -293,6 +300,29 @@ return function(T)
 			return j.status == "ready"
 		end, 20, "technician finished")
 		T.ok(j.verdict and j.verdict.fixed, "fixed by the technician")
+	end)
+
+	T.test("server: settings are checked and the difficulty changes the numbers", function()
+		local Config = Engine.mod("ReplicatedStorage.Shared.Config")
+		local p = DataService.get(player)
+		T.eq(CustomerService.difficultyOf(player).pay, 1, "normal by default")
+		T.ok(request("settings.set", { difficulty = "hard", music = 0.2, fov = 80, help = "off", shadows = false }).ok, "settings.set")
+		T.eq(p.settings.difficulty, "hard", "hard")
+		T.eq(CustomerService.difficultyOf(player).pay, Config.Difficulty.hard.pay, "hard pays more")
+		T.ok(CustomerService.difficultyOf(player).spawn < 1, "hard brings customers faster")
+		T.eq(p.settings.music, 0.2, "volume")
+		T.eq(p.settings.fov, 80, "fov")
+		T.eq(p.settings.help, "off", "help")
+		T.eq(p.settings.shadows, false, "a switch")
+		-- nonsense is ignored
+		request("settings.set", { difficulty = "impossible", fov = 5000, music = "loud", help = {}, quality = 7 })
+		T.eq(p.settings.difficulty, "hard", "unknown difficulty ignored")
+		T.eq(p.settings.fov, 80, "fov out of range ignored")
+		T.eq(p.settings.music, 0.2, "bad volume ignored")
+		T.eq(p.settings.quality, nil, "bad quality ignored")
+		request("settings.set", { difficulty = "normal", help = "guided" })
+		request("settings.set", { help = "bogus" })
+		T.eq(p.settings.help, "guided", "help back")
 	end)
 
 	T.test("server: thieves can be caught", function()

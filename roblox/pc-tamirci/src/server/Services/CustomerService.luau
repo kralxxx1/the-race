@@ -160,9 +160,17 @@ local function comfortOf(player: Player): number
 	return sumItems(player, "comfort") + Employees.effect(p and p.staff, "comfort")
 end
 
+-- The difficulty the player chose (Settings), with the numbers that go with it.
+local function difficultyOf(player: Player)
+	local p = DataService.get(player)
+	local name = p and p.settings and p.settings.difficulty
+	return Config.Difficulty[name or "normal"] or Config.Difficulty.normal
+end
+CustomerService.difficultyOf = difficultyOf
+
 local function patienceSeconds(cust, player: Player): number
 	local r = Config.CustomerPatienceMinutes
-	local base = Rand.range(rng, r[1], r[2]) * 60 * (cust.arch.patience or 1)
+	local base = Rand.range(rng, r[1], r[2]) * 60 * (cust.arch.patience or 1) * difficultyOf(player).patience
 	return base * (1 + math.max(-20, comfortOf(player)) / 120) * (1 + sumItems(player, "patience"))
 end
 
@@ -289,11 +297,17 @@ local function spawnCustomer(player: Player)
 	}
 	-- the device and what's wrong with it are decided now
 	if arch.special ~= "stolen_offer" then
+		local diff = difficultyOf(player)
+		local learning = (p.stats.repairs or 0) < Config.LearningRepairs
 		local profile = {
 			laptopChance = arch.device and arch.device.laptopChance,
 			tiers = arch.device and arch.device.tiers,
 			classes = arch.device and arch.device.classes,
-			extraFaultChance = arch.extraFaultChance,
+			extraFaultChance = math.max(0, (arch.extraFaultChance or 0) + diff.extraFaults),
+			-- the first customers bring simple desktops with well-known faults
+			device = if learning then "desktop" else nil,
+			requestChance = if learning then 0 else nil,
+			onlyFaults = if learning then Config.EasyFaults else nil,
 			builds = arch.id == "gamer_teen" or arch.id == "streamer" or arch.id == "rich" or arch.id == "esports",
 		}
 		local ok, job = pcall(DeviceGen.forJob, rng, profile, p.level)
@@ -608,10 +622,10 @@ local function pay(player: Player, cust, job)
 			RepairService.removeJob(player, job.id)
 			return
 		end
-		-- step-by-step hints cost a share of the price (and the tip)
-		local pay = job.price
+		-- step-by-step hints cost a share of the price (and the tip); the difficulty scales the pay
+		local pay = math.floor(job.price * difficultyOf(player).pay)
 		if (job.assist or 0) > 0 then
-			pay = math.floor(job.price * (1 - 0.08 * job.assist))
+			pay = math.floor(pay * (1 - 0.08 * job.assist))
 			tip = 0
 		end
 		DataService.money(player, pay + tip, "repair")
@@ -801,10 +815,16 @@ local function tick()
 		end
 		local lvl = Upgrades.levels[p.shop.level]
 		-- (nobody comes before the grand opening)
-		if p.opened ~= false and not player:GetAttribute("PowerCut") and now >= s.next and active < (lvl and lvl.queue or 2) + 1 and total < Config.MaxCustomersPerServer then
+		-- the first repairs are done one at a time: no new customer while a job is still waiting
+		local gated = (p.stats.repairs or 0) < Config.LearningRepairs - 1 and next(RepairService.jobs(player)) ~= nil
+		if p.opened ~= false and not gated and not player:GetAttribute("PowerCut") and now >= s.next and active < (lvl and lvl.queue or 2) + 1 and total < Config.MaxCustomersPerServer then
 			local attract = sumItems(player, "attract")
 			local speed = (1 + attract / 40 + (p.rep - 50) / 100 + (p.shop.level - 1) * 0.08) * (1 + Employees.effect(p.staff, "customers"))
-			local interval = math.max(Config.CustomerSpawnMin, Config.CustomerSpawnBase / math.max(0.3, speed)) * Rand.range(rng, 0.7, 1.3)
+			local interval = math.max(Config.CustomerSpawnMin, Config.CustomerSpawnBase / math.max(0.3, speed)) * Rand.range(rng, 0.7, 1.3) * difficultyOf(player).spawn
+			-- a newcomer gets time to learn: the first repairs come slowly
+			if (p.stats.repairs or 0) < Config.LearningRepairs then
+				interval *= 1.8
+			end
 			s.next = now + interval
 			task.spawn(spawnCustomer, player)
 		end
