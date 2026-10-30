@@ -236,10 +236,10 @@ function OuterProps.villa(parent: Instance, cf: CFrame, lotW: number, lotD: numb
 	-- street wall with a gate and a drive
 	local gateX = lotW / 2 - 9
 	local wl = (lotW - 2) / 2 + gateX - 5
-	B.box(m, cf * CFrame.new(-(lotW - 2) / 2 + wl / 2, 2.4, 1.5), Vector3.new(wl, 4.8, 0.8), wallCol, M.Concrete)
+	B.box(m, cf * CFrame.new(-(lotW - 2) / 2 + wl / 2, 2.4, 1.5), Vector3.new(wl, 4.8, 0.8), wallCol, M.SmoothPlastic)
 	B.box(m, cf * CFrame.new(gateX, 2.2, 1.6), Vector3.new(10, 4.4, 0.3), Color3.fromRGB(50, 50, 54), M.Metal)
-	B.box(m, cf * CFrame.new(gateX + 5.6 + 0.6, 2.4, 1.5), Vector3.new(1.2, 4.8, 0.8), wallCol, M.Concrete)
-	B.box(m, cf * CFrame.new(gateX, 0.25, 12), Vector3.new(9, 0.1, 21), Color3.fromRGB(170, 166, 158), M.Concrete)
+	B.box(m, cf * CFrame.new(gateX + 5.6 + 0.6, 2.4, 1.5), Vector3.new(1.2, 4.8, 0.8), wallCol, M.SmoothPlastic)
+	B.box(m, cf * CFrame.new(gateX, 0.25, 12), Vector3.new(9, 0.1, 21), Color3.fromRGB(170, 166, 158), M.SmoothPlastic)
 	-- the house: a long ground floor and an upper volume cantilevered across it
 	local hw = math.min(lotW - 26, Rand.range(rng, 34, 42))
 	local hd = Rand.range(rng, 16, 20)
@@ -248,8 +248,8 @@ function OuterProps.villa(parent: Instance, cf: CFrame, lotW: number, lotD: numb
 	local hc = cf * CFrame.new(hx, 0.2, hz)
 	B.box(m, hc * CFrame.new(0, 5, hd / 2), Vector3.new(hw, 10, hd), white, M.Plaster)
 	B.box(m, hc * CFrame.new(-hw * 0.12, 0.2 + 10 + 4.5, hd / 2 - 1), Vector3.new(hw * 0.7, 9, hd + 2), white, M.Plaster)
-	B.box(m, hc * CFrame.new(0, 10.2, hd / 2), Vector3.new(hw + 2, 0.5, hd + 2), Color3.fromRGB(80, 80, 84), M.Concrete)
-	B.box(m, hc * CFrame.new(-hw * 0.12, 19.45, hd / 2 - 1), Vector3.new(hw * 0.7 + 2, 0.6, hd + 4), Color3.fromRGB(80, 80, 84), M.Concrete)
+	B.box(m, hc * CFrame.new(0, 10.2, hd / 2), Vector3.new(hw + 2, 0.5, hd + 2), Color3.fromRGB(80, 80, 84), M.SmoothPlastic)
+	B.box(m, hc * CFrame.new(-hw * 0.12, 19.45, hd / 2 - 1), Vector3.new(hw * 0.7 + 2, 0.6, hd + 4), Color3.fromRGB(80, 80, 84), M.SmoothPlastic)
 	B.box(m, hc * CFrame.new(hw * 0.1, 4.6, -0.1), Vector3.new(hw * 0.6, 8, 0.3), Color3.fromRGB(60, 90, 110), M.Glass, { Transparency = 0.35 })
 	B.box(m, hc * CFrame.new(-hw * 0.12, 14.6, -2.1), Vector3.new(hw * 0.5, 6.6, 0.3), Color3.fromRGB(60, 90, 110), M.Glass, { Transparency = 0.35 })
 	B.box(m, hc * CFrame.new(-hw / 2 + 3, 5, -0.2), Vector3.new(5, 9.6, 0.4), wood, M.WoodPlanks)
@@ -259,7 +259,7 @@ function OuterProps.villa(parent: Instance, cf: CFrame, lotW: number, lotD: numb
 	local px = hx + Rand.range(rng, -4, 4)
 	local pz = math.max(14, hz - 12)
 	local pw = math.min(hw - 6, 24)
-	B.box(m, cf * CFrame.new(px, 0.3, pz), Vector3.new(pw + 3, 0.4, 11), Color3.fromRGB(236, 232, 222), M.Concrete)
+	B.box(m, cf * CFrame.new(px, 0.3, pz), Vector3.new(pw + 3, 0.4, 11), Color3.fromRGB(236, 232, 222), M.SmoothPlastic)
 	local water = B.box(m, cf * CFrame.new(px, 0.42, pz), Vector3.new(pw, 0.4, 8), Color3.fromRGB(60, 180, 210), M.Glass, nc({ Transparency = 0.15, Reflectance = 0.1, Name = "PoolWater" }))
 	water.CanCollide = true
 	for i = 0, 1 do

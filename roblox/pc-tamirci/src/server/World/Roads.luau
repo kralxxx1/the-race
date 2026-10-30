@@ -32,13 +32,18 @@ end
 
 local function sidewalkMaterial(district: string)
 	if district == "OLD" then
-		return M.Concrete, Color3.fromRGB(170, 160, 146)
+		return M.SmoothPlastic, Color3.fromRGB(170, 160, 146)
 	elseif district == "SEA" or district == "CST" then
-		return M.Concrete, Color3.fromRGB(214, 206, 190)
+		return M.SmoothPlastic, Color3.fromRGB(214, 206, 190)
 	elseif district == "IND" or district == "HAR" or district == "SCR" or district == "DAT" then
-		return M.Concrete, Color3.fromRGB(160, 160, 158)
+		return M.SmoothPlastic, Color3.fromRGB(160, 160, 158)
 	end
-	return M.Concrete, P.sidewalk
+	return M.SmoothPlastic, P.sidewalk
+end
+
+-- sidewalk colour as laid: slightly darker than the swatch (flat light colours glare in the sun)
+local function laid(color: Color3): Color3
+	return color:Lerp(Color3.new(0, 0, 0), 0.2)
 end
 
 -- Entrances along the streets (landmark doors and shop plot fronts): lamps, trees and benches keep
@@ -95,8 +100,9 @@ local function segment(folder: Instance, L, road, rng: Random)
 		local off = right * side * (cw / 2 + sw / 2)
 		local probe = mid + right * side * (road.width / 2 + 20)
 		local mat, col = sidewalkMaterial(CityLayout.districtAt(probe))
+	col = laid(col)
 		flat(m, mid + off + Vector3.new(0, WALK_Y / 2, 0), dir, Vector3.new(sw, WALK_Y, len), col, mat)
-		flat(m, mid + right * side * (cw / 2 + 0.25) + Vector3.new(0, WALK_Y / 2 + 0.03, 0), dir, Vector3.new(0.5, WALK_Y + 0.06, len), P.curb, M.Concrete)
+		flat(m, mid + right * side * (cw / 2 + 0.25) + Vector3.new(0, WALK_Y / 2 + 0.03, 0), dir, Vector3.new(0.5, WALK_Y + 0.06, len), P.curb, M.SmoothPlastic)
 	end
 
 	-- markings
@@ -208,6 +214,7 @@ local function intersection(folder: Instance, L, node, rng: Random)
 		B.box(m, CFrame.new(cx, y, cz), Vector3.new(sx, h, sz), col, mat)
 	end
 	local mat, col = sidewalkMaterial(CityLayout.districtAt(Vector3.new(X + Wv, 0, Z + Wh)))
+	col = laid(col)
 	if has.N or has.S then
 		pad(X, Z, cwV, Wh, P.asphalt, M.Asphalt, ROAD_Y - 0.25, 0.5)
 	end
@@ -293,7 +300,7 @@ local function promenade(folder: Instance, rng: Random)
 	local z1 = CityLayout.BEACH_Z + 6
 	local x0, x1 = CityLayout.COAST_X0 - 20, CityLayout.COAST_X1 + 30
 	local depth = z1 - zRoad
-	B.box(m, CFrame.new((x0 + x1) / 2, WALK_Y / 2, zRoad + depth / 2), Vector3.new(x1 - x0, WALK_Y, depth), Color3.fromRGB(222, 212, 192), M.Concrete)
+	B.box(m, CFrame.new((x0 + x1) / 2, WALK_Y / 2, zRoad + depth / 2), Vector3.new(x1 - x0, WALK_Y, depth), Color3.fromRGB(222, 212, 192), M.SmoothPlastic)
 	-- railing along the beach edge with gaps for stairs
 	local railCol = Color3.fromRGB(236, 236, 232)
 	local x = x0
@@ -306,7 +313,7 @@ local function promenade(folder: Instance, rng: Random)
 		end
 		-- stairs down to the sand
 		for s = 0, 3 do
-			B.box(m, CFrame.new(x + segLen + 6, WALK_Y - s * 0.25, z1 + 1 + s * 1.6), Vector3.new(10, 0.5, 1.6), Color3.fromRGB(210, 200, 180), M.Concrete)
+			B.box(m, CFrame.new(x + segLen + 6, WALK_Y - s * 0.25, z1 + 1 + s * 1.6), Vector3.new(10, 0.5, 1.6), Color3.fromRGB(210, 200, 180), M.SmoothPlastic)
 		end
 		x += segLen + 12
 	end

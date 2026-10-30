@@ -52,7 +52,7 @@ local function facade(model: Instance, faceCf: CFrame, width: number, floors: nu
 	local sill = opts.sill or 3.2
 	local lintel = opts.lintel or 2.4
 	local wallCol = opts.wall
-	local wallMat = opts.wallMat or M.Concrete
+	local wallMat = opts.wallMat or M.SmoothPlastic
 	local glassCol = opts.glass or Color3.fromRGB(60, 96, 120)
 	local startFloor = opts.startFloor or 0
 	local depth = opts.depth or 1
@@ -143,10 +143,10 @@ end
 local function roofClutter(model: Instance, cf: CFrame, w: number, d: number, y: number, rng: Random, style: string)
 	-- parapet
 	local pc = Color3.fromRGB(150, 150, 150)
-	B.box(model, cf * CFrame.new(0, y + 0.8, 0.5), Vector3.new(w, 1.6, 1), pc, M.Concrete)
-	B.box(model, cf * CFrame.new(0, y + 0.8, d - 0.5), Vector3.new(w, 1.6, 1), pc, M.Concrete)
-	B.box(model, cf * CFrame.new(-w / 2 + 0.5, y + 0.8, d / 2), Vector3.new(1, 1.6, d), pc, M.Concrete)
-	B.box(model, cf * CFrame.new(w / 2 - 0.5, y + 0.8, d / 2), Vector3.new(1, 1.6, d), pc, M.Concrete)
+	B.box(model, cf * CFrame.new(0, y + 0.8, 0.5), Vector3.new(w, 1.6, 1), pc, M.SmoothPlastic)
+	B.box(model, cf * CFrame.new(0, y + 0.8, d - 0.5), Vector3.new(w, 1.6, 1), pc, M.SmoothPlastic)
+	B.box(model, cf * CFrame.new(-w / 2 + 0.5, y + 0.8, d / 2), Vector3.new(1, 1.6, d), pc, M.SmoothPlastic)
+	B.box(model, cf * CFrame.new(w / 2 - 0.5, y + 0.8, d / 2), Vector3.new(1, 1.6, d), pc, M.SmoothPlastic)
 	local n = rng:NextInteger(1, 3)
 	for _ = 1, n do
 		local x, z = Rand.range(rng, -w / 2 + 4, w / 2 - 4), Rand.range(rng, 4, d - 4)
@@ -160,7 +160,7 @@ local function roofClutter(model: Instance, cf: CFrame, w: number, d: number, y:
 			B.cylY(model, cf * CFrame.new(x, y + 2.2, z), 4.4, 4, Color3.fromRGB(230, 230, 230), M.SmoothPlastic)
 		elseif kind == 3 then
 			-- stair housing
-			B.box(model, cf * CFrame.new(x, y + 3, z), Vector3.new(6, 6, 6), Color3.fromRGB(180, 176, 168), M.Concrete)
+			B.box(model, cf * CFrame.new(x, y + 3, z), Vector3.new(6, 6, 6), Color3.fromRGB(180, 176, 168), M.SmoothPlastic)
 		elseif kind == 4 then
 			-- solar panels
 			-- tilted panels on a rack: the low edge sits on the roof, a post holds up the high one
@@ -203,7 +203,7 @@ function Buildings.building(parent: Instance, cf: CFrame, opts): Model
 		glass = B.color(opts.glassColor or Rand.pick(rng, GLASS))
 	elseif style == "office" then
 		wall = B.color(opts.wallColor or Rand.pick(rng, { { 210, 206, 196 }, { 180, 176, 170 }, { 226, 222, 214 } }))
-		wallMat = M.Concrete
+		wallMat = M.SmoothPlastic
 		glass = B.color(opts.glassColor or Rand.pick(rng, GLASS))
 	elseif style == "historic" then
 		wall = B.color(opts.wallColor or Rand.pick(rng, STONE))
@@ -218,7 +218,7 @@ function Buildings.building(parent: Instance, cf: CFrame, opts): Model
 	-- floor slabs and back/side shells (solid, cheap)
 	local shellCol = wall:Lerp(Color3.new(0, 0, 0), 0.06)
 	B.box(m, cf * CFrame.new(0, H / 2, d - 0.5), Vector3.new(w, H, 1), shellCol, wallMat)
-	B.box(m, cf * CFrame.new(0, H + 0.4, d / 2), Vector3.new(w, 0.8, d), Color3.fromRGB(120, 120, 124), M.Concrete)
+	B.box(m, cf * CFrame.new(0, H + 0.4, d / 2), Vector3.new(w, 0.8, d), Color3.fromRGB(120, 120, 124), M.SmoothPlastic)
 
 	-- ground floor on the street side
 	local groundH = fh
@@ -271,7 +271,7 @@ function Buildings.building(parent: Instance, cf: CFrame, opts): Model
 					local x = -w / 2 + pier + ww / 2 + c * (ww + pier)
 					local y = f * fh
 					if (c + f) % 2 == 0 and rng:NextNumber() < 0.8 then
-						B.box(m, cf * CFrame.new(x, y + 0.2, -1.8), Vector3.new(ww + 1.4, 0.4, 3.6), Color3.fromRGB(220, 216, 208), M.Concrete)
+						B.box(m, cf * CFrame.new(x, y + 0.2, -1.8), Vector3.new(ww + 1.4, 0.4, 3.6), Color3.fromRGB(220, 216, 208), M.SmoothPlastic)
 						B.box(m, cf * CFrame.new(x, y + 1.9, -3.5), Vector3.new(ww + 1.4, 3, 0.15), Color3.fromRGB(150, 190, 210), M.Glass, nc({ Transparency = 0.5 }))
 						B.box(m, cf * CFrame.new(x, y + 3.45, -3.5), Vector3.new(ww + 1.4, 0.2, 0.25), Color3.fromRGB(80, 84, 90), M.Metal, nc())
 						if rng:NextNumber() < 0.3 then
@@ -340,7 +340,7 @@ function Buildings.hall(parent: Instance, cf: CFrame, w: number, d: number, h: n
 	local t = 1
 	-- floor and roof
 	B.box(m, cf * CFrame.new(0, 0.1, d / 2), Vector3.new(w, 0.2, d), floorCol, floorMat).Name = "Floor"
-	B.box(m, cf * CFrame.new(0, h + 0.5, d / 2), Vector3.new(w + 1, 1, d + 1), Color3.fromRGB(120, 120, 124), M.Concrete).Name = "Roof"
+	B.box(m, cf * CFrame.new(0, h + 0.5, d / 2), Vector3.new(w + 1, 1, d + 1), Color3.fromRGB(120, 120, 124), M.SmoothPlastic).Name = "Roof"
 	B.box(m, cf * CFrame.new(0, h - 0.1, d / 2), Vector3.new(w - 2 * t, 0.2, d - 2 * t), Color3.fromRGB(246, 246, 244), M.SmoothPlastic, nc({ Name = "Ceiling" }))
 	-- back and side walls
 	B.box(m, cf * CFrame.new(0, h / 2, d - t / 2), Vector3.new(w, h, t), wall, wallMat).Name = "BackWall"
@@ -434,7 +434,7 @@ function Buildings.house(parent: Instance, cf: CFrame, lotW: number, lotD: numbe
 	B.box(m, cf * CFrame.new(0, 0.3, lotD / 2), Vector3.new(lotW - 2, 0.2, lotD - 2), P.grass, M.Grass, nc({ CanCollide = true }))
 	-- shell
 	B.box(m, hc * CFrame.new(0, H / 2 + 0.6, d / 2), Vector3.new(w, H, d), wall, M.Plaster)
-	B.box(m, hc * CFrame.new(0, 0.6, d / 2), Vector3.new(w + 1, 1.2, d + 1), Color3.fromRGB(170, 160, 150), M.Concrete)
+	B.box(m, hc * CFrame.new(0, 0.6, d / 2), Vector3.new(w + 1, 1.2, d + 1), Color3.fromRGB(170, 160, 150), M.SmoothPlastic)
 	-- windows
 	for f = 0, floors - 1 do
 		for i = -1, 1 do
@@ -465,7 +465,7 @@ function Buildings.house(parent: Instance, cf: CFrame, lotW: number, lotD: numbe
 	for s = -1, 1, 2 do
 		B.box(m, hc * CFrame.new(s * 3.2, 5, -3.7), Vector3.new(0.5, 8.8, 0.5), trim, M.Wood)
 	end
-	B.box(m, hc * CFrame.new(0, 0.8, -2.5), Vector3.new(6, 0.6, 3), Color3.fromRGB(180, 170, 160), M.Concrete)
+	B.box(m, hc * CFrame.new(0, 0.8, -2.5), Vector3.new(6, 0.6, 3), Color3.fromRGB(180, 170, 160), M.SmoothPlastic)
 	-- gable roof
 	local roofCol = B.color(Rand.pick(rng, { { 170, 70, 50 }, { 130, 60, 46 }, { 80, 84, 92 }, { 110, 90, 70 } }))
 	local rh = Rand.range(rng, 6, 9)
@@ -474,7 +474,7 @@ function Buildings.house(parent: Instance, cf: CFrame, lotW: number, lotD: numbe
 	B.wedge(m, hc * CFrame.new(0, ry, d * 0.75) * CFrame.Angles(0, math.pi, 0), Vector3.new(w + 2, rh, d / 2 + 1.2), roofCol, M.ClayRoofTiles)
 	B.box(m, hc * CFrame.new(w * 0.25, H + rh + 1, d * 0.6), Vector3.new(2.2, 5, 2.2), Color3.fromRGB(150, 80, 60), M.Brick)
 	-- garden: fence, driveway, tree, mailbox, flowers
-	B.box(m, cf * CFrame.new(lotW / 2 - 5, 0.42, setback / 2 + 4), Vector3.new(6, 0.1, setback + 8), Color3.fromRGB(150, 146, 140), M.Concrete, nc({ CanCollide = true }))
+	B.box(m, cf * CFrame.new(lotW / 2 - 5, 0.42, setback / 2 + 4), Vector3.new(6, 0.1, setback + 8), Color3.fromRGB(150, 146, 140), M.SmoothPlastic, nc({ CanCollide = true }))
 	Props.fence(m, (cf * CFrame.new(-lotW / 2 + 1, 0.4, 1.5)).Position, (cf * CFrame.new(lotW / 2 - 8.5, 0.4, 1.5)).Position, Rand.pick(rng, { "wood", "hedge", "metal", "wall" }), 3)
 	Props.tree(m, cf * CFrame.new(-lotW / 2 + 6, 0.4, setback * 0.5), Rand.pick(rng, { "oak", "oak", "birch", "cypress", "pine" }), rng)
 	if rng:NextNumber() < 0.6 then

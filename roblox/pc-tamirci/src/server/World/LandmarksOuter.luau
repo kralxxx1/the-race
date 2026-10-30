@@ -72,7 +72,7 @@ end
 local function hangar(parent: Instance, cf: CFrame, w: number, d: number, h: number, name: string, color: any)
 	local m = B.model("Hangar", parent)
 	local col = B.color(color)
-	B.box(m, cf * CFrame.new(0, 0.1, d / 2), Vector3.new(w, 0.2, d), Color3.fromRGB(190, 190, 186), M.Concrete)
+	B.box(m, cf * CFrame.new(0, 0.1, d / 2), Vector3.new(w, 0.2, d), Color3.fromRGB(190, 190, 186), M.SmoothPlastic)
 	B.box(m, cf * CFrame.new(0, h / 2, d - 0.5), Vector3.new(w, h, 1), col, M.Metal)
 	for _, sx in { -1, 1 } do
 		B.box(m, cf * CFrame.new(sx * (w / 2 - 0.5), h / 2, d / 2), Vector3.new(1, h, d), col, M.Metal)
@@ -87,8 +87,8 @@ end
 local function controlTower(parent: Instance, cf: CFrame)
 	local m = B.model("ControlTower", parent)
 	local concrete = Color3.fromRGB(226, 226, 222)
-	B.box(m, cf * CFrame.new(0, 5, 0), Vector3.new(18, 10, 18), concrete, M.Concrete)
-	B.cylY(m, cf * CFrame.new(0, 32, 0), 44, 9, concrete, M.Concrete)
+	B.box(m, cf * CFrame.new(0, 5, 0), Vector3.new(18, 10, 18), concrete, M.SmoothPlastic)
+	B.cylY(m, cf * CFrame.new(0, 32, 0), 44, 9, concrete, M.SmoothPlastic)
 	B.cylY(m, cf * CFrame.new(0, 54.5, 0), 1, 20, Color3.fromRGB(80, 84, 90), M.Metal)
 	B.cylY(m, cf * CFrame.new(0, 59, 0), 8, 18, Color3.fromRGB(60, 110, 130), M.Glass, { Transparency = 0.3 })
 	B.cylY(m, cf * CFrame.new(0, 63.6, 0), 1.2, 21, Color3.fromRGB(80, 84, 90), M.Metal)
@@ -145,7 +145,7 @@ local function airport(parent: Instance, poi, rng: Random)
 	end
 	-- the terminal (facing the road in the south) and the apron behind it
 	local front, td, tw = z1 - 60, 78, 220
-	slab(m, x0 + 60, tz + 8, x1 - 60, front - td, Y + 0.1, Color3.fromRGB(178, 178, 174), M.Concrete).Name = "Apron"
+	slab(m, x0 + 60, tz + 8, x1 - 60, front - td, Y + 0.1, Color3.fromRGB(178, 178, 174), M.SmoothPlastic).Name = "Apron"
 	local tcf = facing(cx, front, 0, 1)
 	local hall = Buildings.hall(m, tcf, tw, td, 22, {
 		name = "CITY AIRPORT  ✈  TERMINAL", accent = { 20, 70, 140 }, wall = { 226, 230, 236 }, wallMat = M.Metal,
@@ -279,13 +279,13 @@ local function shipyard(parent: Instance, poi, rng: Random)
 	local cx = (x0 + x1) / 2
 	local Y = WALK_Y
 	-- the quay wall and its bollards
-	B.box(m, CFrame.new(cx, -4, z1 - 1.5), Vector3.new(x1 - x0, 10, 3), Color3.fromRGB(150, 150, 150), M.Concrete)
+	B.box(m, CFrame.new(cx, -4, z1 - 1.5), Vector3.new(x1 - x0, 10, 3), Color3.fromRGB(150, 150, 150), M.SmoothPlastic)
 	for x = x0 + 12, x1 - 12, 32 do
 		B.cylY(m, CFrame.new(x, Y + 1, z1 - 4), 2, 1.6, Color3.fromRGB(40, 40, 44), M.Metal)
 	end
 	-- two slipways running down to the water, a hull on each
 	for i, sx in { x0 + 100, x0 + 220 } do
-		slab(m, sx - 26, z1 - 300, sx + 26, z1 - 2, Y + 0.1, Color3.fromRGB(120, 118, 114), M.Concrete)
+		slab(m, sx - 26, z1 - 300, sx + 26, z1 - 2, Y + 0.1, Color3.fromRGB(120, 118, 114), M.SmoothPlastic)
 		for _, rx in { -10, 10 } do
 			B.box(m, CFrame.new(sx + rx, Y + 0.3, z1 - 151), Vector3.new(1, 0.4, 296), Color3.fromRGB(70, 70, 74), M.Metal)
 		end
@@ -372,9 +372,9 @@ local function fishingVillage(parent: Instance, poi, rng: Random)
 			end
 		end
 	end
-	slab(m, cx - 60, cz - 40, cx + 60, cz + 40, Y + 0.12, Color3.fromRGB(214, 206, 188), M.Concrete)
+	slab(m, cx - 60, cz - 40, cx + 60, cz + 40, Y + 0.12, Color3.fromRGB(214, 206, 188), M.SmoothPlastic)
 	Props.tree(m, CFrame.new(cx, Y + 0.12, cz), "forest", rng)
-	B.cylY(m, CFrame.new(cx, Y + 0.6, cz), 1, 12, Color3.fromRGB(200, 196, 186), M.Concrete)
+	B.cylY(m, CFrame.new(cx, Y + 0.6, cz), 1, 12, Color3.fromRGB(200, 196, 186), M.SmoothPlastic)
 	-- the fountain on the north side of the square
 	local f = facing(cx, cz - 34, 0, 1, Y + 0.12)
 	B.box(m, f * CFrame.new(0, 4, 0), Vector3.new(8, 8, 2), Color3.fromRGB(236, 232, 222), M.Marble)
@@ -457,7 +457,7 @@ local function osb(parent: Instance, poi, rng: Random)
 	-- the weighbridge and its booth, the big sign at the corner
 	slab(m, s.x1 - 46, s.z0 + 60, s.x1 - 16, s.z0 + 74, Y + 0.2, Color3.fromRGB(90, 90, 96), M.DiamondPlate)
 	B.box(m, CFrame.new(s.x1 - 10, Y + 4, s.z0 + 67), Vector3.new(6, 8, 6), Color3.fromRGB(230, 230, 226), M.Plaster)
-	local mono = B.box(m, CFrame.new(s.x1 - 20, Y + 5, s.z0 + 20), Vector3.new(26, 10, 3), Color3.fromRGB(30, 60, 110), M.Concrete)
+	local mono = B.box(m, CFrame.new(s.x1 - 20, Y + 5, s.z0 + 20), Vector3.new(26, 10, 3), Color3.fromRGB(30, 60, 110), M.SmoothPlastic)
 	B.sign(mono, Enum.NormalId.Front, "CENTRAL INDUSTRIAL ESTATE", { color = Color3.new(1, 1, 1) })
 	B.sign(mono, Enum.NormalId.Back, "CENTRAL INDUSTRIAL ESTATE", { color = Color3.new(1, 1, 1), name = "SignBack" })
 	return m
@@ -492,9 +492,9 @@ local function teknopark(parent: Instance, poi, rng: Random)
 		end
 	end
 	-- the middle band: lawn, paths, the plaza with the giant chip, the R&D centre, the chip lab
-	slab(m, s.x0 + 4, cz - 4, s.x1 - 4, cz + 4, Y + 0.12, Color3.fromRGB(206, 200, 190), M.Concrete)
-	B.cylY(m, CFrame.new(cx, Y + 0.08, cz), 0.16, 70, Color3.fromRGB(216, 212, 204), M.Concrete)
-	B.box(m, CFrame.new(cx, Y + 1.5, cz), Vector3.new(8, 3, 8), Color3.fromRGB(60, 64, 70), M.Concrete)
+	slab(m, s.x0 + 4, cz - 4, s.x1 - 4, cz + 4, Y + 0.12, Color3.fromRGB(206, 200, 190), M.SmoothPlastic)
+	B.cylY(m, CFrame.new(cx, Y + 0.08, cz), 0.16, 70, Color3.fromRGB(216, 212, 204), M.SmoothPlastic)
+	B.box(m, CFrame.new(cx, Y + 1.5, cz), Vector3.new(8, 3, 8), Color3.fromRGB(60, 64, 70), M.SmoothPlastic)
 	B.box(m, CFrame.new(cx, Y + 4, cz) * CFrame.Angles(0, math.rad(45), 0), Vector3.new(20, 2, 20), Color3.fromRGB(40, 110, 70), M.SmoothPlastic)
 	local die = B.box(m, CFrame.new(cx, Y + 5.6, cz) * CFrame.Angles(0, math.rad(45), 0), Vector3.new(12, 1.2, 12), Color3.fromRGB(190, 196, 204), M.Metal)
 	B.sign(die, Enum.NormalId.Top, "TECH PARK\nCHIP", { color = Color3.fromRGB(30, 40, 60) })
@@ -767,7 +767,7 @@ local function villaClub(parent: Instance, poi, rng: Random)
 	-- two tennis courts in the north half
 	for k = 0, 1 do
 		local c = CFrame.new(s.x0 + 26 + k * 38, Y, s.z0 + 46)
-		B.box(m, c * CFrame.new(0, 0.1, 0), Vector3.new(34, 0.2, 72), Color3.fromRGB(70, 120, 90), M.Concrete)
+		B.box(m, c * CFrame.new(0, 0.1, 0), Vector3.new(34, 0.2, 72), Color3.fromRGB(70, 120, 90), M.SmoothPlastic)
 		B.box(m, c * CFrame.new(0, 0.2, 0), Vector3.new(28, 0.1, 64), Color3.fromRGB(40, 100, 160), M.SmoothPlastic)
 		for _, sx in { -14, 14 } do
 			paint(m, c * CFrame.new(sx, 0.25, 0), 0.4, 64)
@@ -783,7 +783,7 @@ local function villaClub(parent: Instance, poi, rng: Random)
 	end
 	-- the pool and its terrace
 	local px, pz = s.x1 - 46, s.z0 + 50
-	slab(m, px - 34, pz - 22, px + 34, pz + 22, Y + 0.3, Color3.fromRGB(236, 232, 222), M.Concrete)
+	slab(m, px - 34, pz - 22, px + 34, pz + 22, Y + 0.3, Color3.fromRGB(236, 232, 222), M.SmoothPlastic)
 	B.box(m, CFrame.new(px, Y + 0.35, pz), Vector3.new(50, 0.2, 22), Color3.fromRGB(60, 180, 210), M.Glass, { Transparency = 0.15, Reflectance = 0.1, Name = "PoolWater" })
 	for k = 0, 5 do
 		local lc = CFrame.new(px - 25 + k * 10, Y + 0.3, pz + 16)
@@ -810,7 +810,7 @@ local function summerSite(parent: Instance, poi, rng: Random)
 	local Y = WALK_Y
 	Buildings.building(m, facing(s.x0 + 30, s.z1 - 4, 0, 1), { w = 44, d = 26, floors = 1, floorH = 12, style = "apartment", rng = rng, ground = "shop", shops = 1, name = "BEACH CLUB", wallColor = { 246, 246, 242 }, blankSides = true })
 	Buildings.building(m, facing(s.x1 - 20, s.z1 - 4, 0, 1), { w = 26, d = 20, floors = 1, floorH = 11, style = "apartment", rng = rng, ground = "shop", shops = 1, name = "VILLAGE MARKET", wallColor = { 250, 236, 210 }, blankSides = true })
-	slab(m, cx - 44, cz - 30, cx + 40, cz + 8, Y + 0.3, Color3.fromRGB(236, 230, 214), M.Concrete)
+	slab(m, cx - 44, cz - 30, cx + 40, cz + 8, Y + 0.3, Color3.fromRGB(236, 230, 214), M.SmoothPlastic)
 	B.box(m, CFrame.new(cx - 2, Y + 0.35, cz - 12), Vector3.new(64, 0.2, 22), Color3.fromRGB(60, 180, 210), M.Glass, { Transparency = 0.15, Reflectance = 0.1, Name = "PoolWater" })
 	for k = 0, 6 do
 		local lc = CFrame.new(cx - 36 + k * 11, Y + 0.3, cz + 3)

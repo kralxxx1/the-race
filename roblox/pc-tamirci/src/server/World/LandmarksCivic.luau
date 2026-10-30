@@ -41,7 +41,7 @@ local function plaza(parent, poi, rng)
 	local center = CFrame.new(c.X, WALK_Y, c.Z)
 	local marble = Color3.fromRGB(236, 232, 222)
 	-- patterned paving rings
-	B.cylY(m, center * CFrame.new(0, 0.05, 0), 0.1, 92, Color3.fromRGB(196, 176, 150), M.Concrete, nc({ CanCollide = true }))
+	B.cylY(m, center * CFrame.new(0, 0.05, 0), 0.1, 92, Color3.fromRGB(196, 176, 150), M.SmoothPlastic, nc({ CanCollide = true }))
 	B.cylY(m, center * CFrame.new(0, 0.08, 0), 0.1, 74, Color3.fromRGB(226, 220, 206), M.Marble, nc({ CanCollide = true }))
 	-- fountain ring around the clock tower
 	B.cylY(m, center * CFrame.new(0, 1, 0), 2, 46, marble, M.Marble)
@@ -172,8 +172,8 @@ local function university(parent, poi, rng)
 	end
 	-- the quad: lawn paths, trees, statue, fountain
 	local quad = CFrame.new(cx, WALK_Y, cz - 30)
-	B.box(m, quad * CFrame.new(0, 0.05, 0), Vector3.new(14, 0.1, 220), Color3.fromRGB(200, 190, 170), M.Concrete, nc({ CanCollide = true }))
-	B.box(m, quad * CFrame.new(0, 0.05, 0), Vector3.new(220, 0.1, 14), Color3.fromRGB(200, 190, 170), M.Concrete, nc({ CanCollide = true }))
+	B.box(m, quad * CFrame.new(0, 0.05, 0), Vector3.new(14, 0.1, 220), Color3.fromRGB(200, 190, 170), M.SmoothPlastic, nc({ CanCollide = true }))
+	B.box(m, quad * CFrame.new(0, 0.05, 0), Vector3.new(220, 0.1, 14), Color3.fromRGB(200, 190, 170), M.SmoothPlastic, nc({ CanCollide = true }))
 	B.cylY(m, quad * CFrame.new(0, 1.5, 0), 3, 8, Color3.fromRGB(200, 196, 190), M.Granite)
 	B.box(m, quad * CFrame.new(0, 6, 0), Vector3.new(2, 6, 2), Color3.fromRGB(110, 90, 60), M.Metal)
 	B.ball(m, quad * CFrame.new(0, 10, 0), 3, Color3.fromRGB(110, 90, 60), M.Metal)
@@ -205,7 +205,7 @@ local function hospital(parent, poi, rng)
 	local m = Buildings.building(parent, cf, { w = w - 30, d = d - 30, floors = 8, floorH = 13, style = "office", ground = "lobby", name = "CITY HOSPITAL", rng = rng, wallColor = { 240, 242, 246 }, glassColor = { 70, 120, 150 } })
 	local H = 8 * 13
 	local roof = cf * CFrame.new(0, H + 1.4, (d - 30) / 2)
-	B.cylY(m, roof, 0.4, 30, Color3.fromRGB(80, 84, 90), M.Concrete)
+	B.cylY(m, roof, 0.4, 30, Color3.fromRGB(80, 84, 90), M.SmoothPlastic)
 	B.box(m, roof * CFrame.new(0, 0.25, 0), Vector3.new(4, 0.1, 18), Color3.fromRGB(240, 240, 240), M.SmoothPlastic, nc())
 	B.box(m, roof * CFrame.new(0, 0.25, 0), Vector3.new(14, 0.1, 4), Color3.fromRGB(240, 240, 240), M.SmoothPlastic, nc())
 	local cross = B.box(m, cf * CFrame.new(-(w - 30) / 2 + 10, H - 10, -0.5), Vector3.new(10, 10, 1), Color3.fromRGB(255, 255, 255), M.SmoothPlastic)
@@ -297,7 +297,7 @@ local function stadium(parent, poi, _rng)
 		for s = 0, 6 do
 			B.box(m, cf2 * CFrame.new(0, 1 + s * 1.6, s * 2.4), Vector3.new(length, 2, 2.6), if s % 2 == 0 then Color3.fromRGB(200, 30, 40) else Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
 		end
-		B.box(m, cf2 * CFrame.new(0, 7, 17), Vector3.new(length, 14, 1), Color3.fromRGB(170, 170, 176), M.Concrete)
+		B.box(m, cf2 * CFrame.new(0, 7, 17), Vector3.new(length, 14, 1), Color3.fromRGB(170, 170, 176), M.SmoothPlastic)
 	end
 	stand((center * CFrame.new(0, 0, pd / 2 + 10)).Position, pw + 10)
 	stand((center * CFrame.new(0, 0, -(pd / 2 + 10))).Position, pw + 10)

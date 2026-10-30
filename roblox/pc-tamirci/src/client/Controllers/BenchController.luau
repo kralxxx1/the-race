@@ -1086,6 +1086,7 @@ local function exit()
 		return
 	end
 	active = nil
+	BenchViews.pin(nil)
 	coreGui(true)
 	for _, c in conns do
 		c:Disconnect()
@@ -1127,6 +1128,7 @@ local function enter(data)
 		build()
 	end
 	active = { bench = data.bench, model = model, job = data.job }
+	BenchViews.pin(model)
 	if data.view then
 		BenchViews.apply(model, data.view, data.rev)
 	end

@@ -116,7 +116,16 @@ local function camPos(): Vector3
 	return if cam then cam.CFrame.Position else Vector3.zero
 end
 
+-- The bench you are sitting at always keeps its device, wherever the camera is.
+local pinned: Model? = nil
+function BenchViews.pin(bench: Model?)
+	pinned = bench
+end
+
 local function near(bench: Model, range: number): boolean
+	if bench == pinned then
+		return true
+	end
 	local anchor = bench:FindFirstChild("DeviceAnchor") :: BasePart?
 	return anchor ~= nil and (anchor.Position - camPos()).Magnitude < range
 end

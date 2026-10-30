@@ -47,7 +47,7 @@ local function park(parent, poi, rng)
 		local p0 = Vector3.new(lake.x + math.cos(a0) * r, PARK_Y + 0.06, lake.z + math.sin(a0) * r * 0.9)
 		local p1 = Vector3.new(lake.x + math.cos(a1) * r, PARK_Y + 0.06, lake.z + math.sin(a1) * r * 0.9)
 		local len = (p1 - p0).Magnitude
-		B.box(m, CFrame.lookAt((p0 + p1) / 2, p1), Vector3.new(8, 0.12, len + 1), path, M.Concrete, nc({ CanCollide = true }))
+		B.box(m, CFrame.lookAt((p0 + p1) / 2, p1), Vector3.new(8, 0.12, len + 1), path, M.SmoothPlastic, nc({ CanCollide = true }))
 		if i % 3 == 0 then
 			local out = ((p0 - Vector3.new(lake.x, p0.Y, lake.z)).Unit)
 			Props.bench(m, CFrame.lookAt(p0 + out * 6, Vector3.new(lake.x, p0.Y, lake.z)))
@@ -63,7 +63,7 @@ local function park(parent, poi, rng)
 		local len = (target - g).Magnitude - lake.radius - 26
 		if len > 4 then
 			local mid = g + dir * len / 2
-			B.box(m, CFrame.lookAt(Vector3.new(mid.X, PARK_Y + 0.06, mid.Z), Vector3.new(target.X, PARK_Y + 0.06, target.Z)), Vector3.new(8, 0.12, len), path, M.Concrete, nc({ CanCollide = true }))
+			B.box(m, CFrame.lookAt(Vector3.new(mid.X, PARK_Y + 0.06, mid.Z), Vector3.new(target.X, PARK_Y + 0.06, target.Z)), Vector3.new(8, 0.12, len), path, M.SmoothPlastic, nc({ CanCollide = true }))
 		end
 	end
 	-- arched wooden bridge across the narrow part of the lake
@@ -260,7 +260,7 @@ local function harbor(parent, poi, rng)
 	local m = B.model("ContainerPort", parent)
 	-- quay wall and bollards
 	local quayZ = s.z1
-	B.box(m, CFrame.new((s.x0 + s.x1) / 2, -4, quayZ - 1.5), Vector3.new(s.x1 - s.x0, 10, 3), Color3.fromRGB(150, 150, 150), M.Concrete)
+	B.box(m, CFrame.new((s.x0 + s.x1) / 2, -4, quayZ - 1.5), Vector3.new(s.x1 - s.x0, 10, 3), Color3.fromRGB(150, 150, 150), M.SmoothPlastic)
 	for x = s.x0 + 10, s.x1 - 10, 22 do
 		B.cylY(m, CFrame.new(x, WALK_Y + 1, quayZ - 3), 2, 1.6, Color3.fromRGB(40, 40, 44), M.Metal)
 	end
@@ -462,7 +462,7 @@ local function viewpoint(parent, poi, _rng)
 	local y = ground(p.X, p.Z)
 	local m = B.model("Viewpoint", parent)
 	local base = CFrame.new(p.X, y + 0.4, p.Z + 20)
-	B.box(m, base * CFrame.new(0, -0.2, 0), Vector3.new(50, 1, 30), Color3.fromRGB(196, 186, 170), M.Concrete)
+	B.box(m, base * CFrame.new(0, -0.2, 0), Vector3.new(50, 1, 30), Color3.fromRGB(196, 186, 170), M.SmoothPlastic)
 	-- railing facing the city (south)
 	for x = -24, 24, 4 do
 		B.box(m, base * CFrame.new(x, 1.8, 15), Vector3.new(0.4, 3.6, 0.4), Color3.fromRGB(60, 60, 64), M.Metal)
@@ -567,7 +567,7 @@ local function radioTower(parent, poi, _rng)
 	B.box(m, base * CFrame.new(0, h + 0.3, 0), Vector3.new(3.8, 0.4, 3.8), Color3.fromRGB(240, 240, 240), M.Metal)
 	local top = B.ball(m, base * CFrame.new(0, h + 1.3, 0), 1.6, Color3.fromRGB(255, 30, 30), M.Neon, nc())
 	top:AddTag("Beacon")
-	B.box(m, base * CFrame.new(16, 4, 0), Vector3.new(12, 8, 10), Color3.fromRGB(200, 200, 196), M.Concrete)
+	B.box(m, base * CFrame.new(16, 4, 0), Vector3.new(12, 8, 10), Color3.fromRGB(200, 200, 196), M.SmoothPlastic)
 	return m
 end
 

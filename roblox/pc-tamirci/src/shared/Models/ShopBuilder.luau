@@ -203,7 +203,7 @@ end
 function ShopBuilder.emptyLot(parent: Instance, cf: CFrame, plotW: number, plotD: number, plotId: number): Model
 	local m = B.model("Plot_" .. plotId .. "_Empty", parent)
 	-- a vacant lot is a lawn with a paved strip along the street, a few trees and flower beds
-	B.box(m, cf * CFrame.new(0, 0.06, SETBACK / 2), Vector3.new(plotW - 2, 0.12, SETBACK), Color3.fromRGB(200, 196, 188), M.Concrete, { Name = "LotPavement" })
+	B.box(m, cf * CFrame.new(0, 0.06, SETBACK / 2), Vector3.new(plotW - 2, 0.12, SETBACK), Color3.fromRGB(170, 168, 164), M.SmoothPlastic, { Name = "LotPavement" })
 	B.box(m, cf * CFrame.new(0, 0.06, SETBACK + (plotD - SETBACK) / 2), Vector3.new(plotW - 2, 0.12, plotD - SETBACK - 1), Color3.fromRGB(110, 150, 80), M.Grass, { Name = "LotGround" })
 	local lotRng = Random.new(plotId * 977)
 	for i = 1, math.clamp(math.floor(plotW / 28), 3, 7) do
@@ -231,7 +231,7 @@ function ShopBuilder.emptyLot(parent: Instance, cf: CFrame, plotW: number, plotD
 	-- a few construction props
 	Props.pallet(m, cf * CFrame.new(-plotW / 3, 0.1, plotD * 0.6))
 	Props.crate(m, cf * CFrame.new(plotW / 3, 0.1, plotD * 0.5), 3)
-	B.box(m, cf * CFrame.new(plotW / 4, 1.2, plotD * 0.7), Vector3.new(6, 2.4, 3), Color3.fromRGB(196, 186, 170), M.Concrete)
+	B.box(m, cf * CFrame.new(plotW / 4, 1.2, plotD * 0.7), Vector3.new(6, 2.4, 3), Color3.fromRGB(196, 186, 170), M.SmoothPlastic)
 	m:SetAttribute("Plot", plotId)
 	B.tag(m, "EmptyPlot")
 	return m
@@ -268,7 +268,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	end
 
 	-- forecourt and lot
-	B.box(shop, cf * CFrame.new(0, 0.06, SETBACK / 2), Vector3.new(plotW - 2, 0.12, SETBACK), Color3.fromRGB(200, 196, 188), M.Concrete)
+	B.box(shop, cf * CFrame.new(0, 0.06, SETBACK / 2), Vector3.new(plotW - 2, 0.12, SETBACK), Color3.fromRGB(170, 168, 164), M.SmoothPlastic)
 	B.box(shop, cf * CFrame.new(0, 0.06, SETBACK + D + (plotD - SETBACK - D) / 2), Vector3.new(plotW - 2, 0.12, math.max(1, plotD - SETBACK - D - 1)), Color3.fromRGB(110, 150, 80), M.Grass)
 	local front = cf * CFrame.new(0, 0.12, SETBACK)
 

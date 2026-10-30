@@ -21,42 +21,44 @@ local WALK_Y = CityLayout.WALK_Y
 
 local GROUND = {
 	SUB = { M.Grass, Color3.fromRGB(104, 146, 76) },
-	SCH = { M.Concrete, Color3.fromRGB(190, 186, 176) },
-	FIR = { M.Concrete, Color3.fromRGB(170, 168, 162) },
+	SCH = { M.SmoothPlastic, Color3.fromRGB(190, 186, 176) },
+	FIR = { M.SmoothPlastic, Color3.fromRGB(170, 168, 162) },
 	UNI = { M.Grass, Color3.fromRGB(104, 150, 78) },
 	PRK = { M.Grass, Color3.fromRGB(100, 150, 74) },
-	HOS = { M.Concrete, Color3.fromRGB(200, 198, 192) },
-	IND = { M.Concrete, Color3.fromRGB(150, 150, 146) },
+	HOS = { M.SmoothPlastic, Color3.fromRGB(200, 198, 192) },
+	IND = { M.SmoothPlastic, Color3.fromRGB(150, 150, 146) },
 	SCR = { M.Ground, Color3.fromRGB(110, 96, 80) },
-	DAT = { M.Concrete, Color3.fromRGB(160, 162, 166) },
-	OLD = { M.Concrete, Color3.fromRGB(176, 164, 146) },
-	DWN = { M.Concrete, Color3.fromRGB(196, 192, 184) },
+	DAT = { M.SmoothPlastic, Color3.fromRGB(160, 162, 166) },
+	OLD = { M.SmoothPlastic, Color3.fromRGB(176, 164, 146) },
+	DWN = { M.SmoothPlastic, Color3.fromRGB(196, 192, 184) },
 	PLZ = { M.Marble, Color3.fromRGB(226, 220, 206) },
-	TEC = { M.Concrete, Color3.fromRGB(190, 192, 196) },
-	TEP = { M.Concrete, Color3.fromRGB(190, 192, 196) },
-	DLR = { M.Concrete, Color3.fromRGB(196, 196, 194) },
+	TEC = { M.SmoothPlastic, Color3.fromRGB(190, 192, 196) },
+	TEP = { M.SmoothPlastic, Color3.fromRGB(190, 192, 196) },
+	DLR = { M.SmoothPlastic, Color3.fromRGB(196, 196, 194) },
 	SPT = { M.Grass, Color3.fromRGB(100, 150, 74) },
-	LUN = { M.Concrete, Color3.fromRGB(214, 200, 190) },
-	SEA = { M.Concrete, Color3.fromRGB(220, 212, 196) },
-	CST = { M.Concrete, Color3.fromRGB(226, 216, 196) },
-	HAR = { M.Concrete, Color3.fromRGB(140, 142, 144) },
+	LUN = { M.SmoothPlastic, Color3.fromRGB(214, 200, 190) },
+	SEA = { M.SmoothPlastic, Color3.fromRGB(220, 212, 196) },
+	CST = { M.SmoothPlastic, Color3.fromRGB(226, 216, 196) },
+	HAR = { M.SmoothPlastic, Color3.fromRGB(140, 142, 144) },
 	MAR = { M.WoodPlanks, Color3.fromRGB(170, 140, 100) },
 	HVL = { M.Grass, Color3.fromRGB(112, 152, 82) },
-	OSB = { M.Concrete, Color3.fromRGB(156, 154, 148) },
-	TRS = { M.Concrete, Color3.fromRGB(146, 146, 144) },
-	BLK = { M.Concrete, Color3.fromRGB(190, 182, 166) },
-	VIL = { M.Concrete, Color3.fromRGB(206, 200, 188) },
+	OSB = { M.SmoothPlastic, Color3.fromRGB(156, 154, 148) },
+	TRS = { M.SmoothPlastic, Color3.fromRGB(146, 146, 144) },
+	BLK = { M.SmoothPlastic, Color3.fromRGB(190, 182, 166) },
+	VIL = { M.SmoothPlastic, Color3.fromRGB(206, 200, 188) },
 	TKP = { M.Grass, Color3.fromRGB(106, 156, 80) },
 	CFT = { M.Grass, Color3.fromRGB(120, 140, 70) },
 	GLF = { M.Grass, Color3.fromRGB(92, 140, 66) },
 	KRV = { M.Grass, Color3.fromRGB(104, 148, 76) },
-	YZL = { M.Concrete, Color3.fromRGB(226, 216, 196) },
+	YZL = { M.SmoothPlastic, Color3.fromRGB(226, 216, 196) },
 }
 
 function Blocks.ground(parent: Instance, block)
 	local g = GROUND[block.district] or GROUND.DWN
 	local w, d = block.x1 - block.x0, block.z1 - block.z0
-	local base = B.box(parent, CFrame.new((block.x0 + block.x1) / 2, WALK_Y / 2, (block.z0 + block.z1) / 2), Vector3.new(w, WALK_Y, d), g[2], g[1])
+	-- (a little darker than the swatch: flat light colours glare like snow in the sun)
+	local color = if g[1] == Enum.Material.Grass then g[2] else g[2]:Lerp(Color3.new(0, 0, 0), 0.2)
+	local base = B.box(parent, CFrame.new((block.x0 + block.x1) / 2, WALK_Y / 2, (block.z0 + block.z1) / 2), Vector3.new(w, WALK_Y, d), color, g[1])
 	base.Name = "Ground"
 	return base
 end

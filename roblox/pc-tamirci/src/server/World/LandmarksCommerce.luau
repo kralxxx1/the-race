@@ -170,7 +170,7 @@ end
 
 local function usedMarket(parent, poi, rng)
 	local cf, w, d = Commerce.siteFrame(poi, 4)
-	local m = Buildings.hall(parent, cf, w - 16, d - 12, 15, { name = "SECOND-HAND MARKET ♻", accent = { 30, 140, 70 }, wall = { 220, 214, 196 }, floor = { 120, 110, 96 }, floorMat = M.Concrete, modelName = "UsedMarket" })
+	local m = Buildings.hall(parent, cf, w - 16, d - 12, 15, { name = "SECOND-HAND MARKET ♻", accent = { 30, 140, 70 }, wall = { 220, 214, 196 }, floor = { 120, 110, 96 }, floorMat = M.SmoothPlastic, modelName = "UsedMarket" })
 	-- bins full of used parts
 	for i = 0, 5 do
 		local x = -(w - 16) / 2 + 8 + i * ((w - 32) / 5)
@@ -220,7 +220,7 @@ end
 local function toolShop(parent, poi, rng)
 	local cf, w, d = Commerce.siteFrame(poi, 4)
 	local hw = math.min(w - 16, 64)
-	local m = Buildings.hall(parent, cf, hw, d - 14, 14, { name = "MASTER TOOLS & HARDWARE 🧰", accent = { 220, 140, 20 }, wall = { 70, 70, 76 }, wallMat = M.Concrete, floor = { 150, 150, 150 }, floorMat = M.Concrete, modelName = "ToolShop" })
+	local m = Buildings.hall(parent, cf, hw, d - 14, 14, { name = "MASTER TOOLS & HARDWARE 🧰", accent = { 220, 140, 20 }, wall = { 70, 70, 76 }, wallMat = M.SmoothPlastic, floor = { 150, 150, 150 }, floorMat = M.SmoothPlastic, modelName = "ToolShop" })
 	-- pegboard walls with tools
 	for side = -1, 1, 2 do
 		local board = B.box(m, cf * CFrame.new(side * (hw / 2 - 1.2), 7, (d - 14) / 2), Vector3.new(0.4, 9, d - 24), Color3.fromRGB(190, 160, 120), M.Wood)
@@ -343,7 +343,7 @@ local function scrapyard(parent, poi, rng)
 	end
 	-- office cabin with the counter
 	local cabin = CFrame.lookAt(Vector3.new(cx, WALK_Y, s.z0 + 26), Vector3.new(cx, WALK_Y, s.z0))
-	local hall = Buildings.hall(m, cabin, 26, 18, 11, { name = "JUNKYARD JOE", accent = { 120, 80, 40 }, wall = { 150, 140, 120 }, wallMat = M.CorrodedMetal, floor = { 110, 100, 90 }, floorMat = M.Concrete, modelName = "ScrapOffice" })
+	local hall = Buildings.hall(m, cabin, 26, 18, 11, { name = "JUNKYARD JOE", accent = { 120, 80, 40 }, wall = { 150, 140, 120 }, wallMat = M.CorrodedMetal, floor = { 110, 100, 90 }, floorMat = M.SmoothPlastic, modelName = "ScrapOffice" })
 	Commerce.servicePoint(hall, cabin * CFrame.new(0, 0.2, 12), "scrap", poi.id, "Buy a Junk PC", "Scrapyard", 8)
 	return m
 end
@@ -388,7 +388,7 @@ local function fuelStation(parent, poi, rng)
 		B.box(m, canopy * CFrame.new(k * 14, 7, 0), Vector3.new(1.2, 14, 1.2), Color3.fromRGB(200, 200, 200), M.Metal)
 		for p = -1, 1, 2 do
 			local pump = canopy * CFrame.new(k * 14 + p * 4, 0, 0)
-			B.box(m, pump * CFrame.new(0, 0.3, 0), Vector3.new(4, 0.6, 7), Color3.fromRGB(180, 180, 180), M.Concrete)
+			B.box(m, pump * CFrame.new(0, 0.3, 0), Vector3.new(4, 0.6, 7), Color3.fromRGB(180, 180, 180), M.SmoothPlastic)
 			B.box(m, pump * CFrame.new(0, 3, 0), Vector3.new(2, 5, 1.4), Color3.fromRGB(20, 120, 60), M.SmoothPlastic)
 			local screen = B.box(m, pump * CFrame.new(0, 4.2, -0.72), Vector3.new(1.4, 0.8, 0.05), Color3.fromRGB(10, 10, 10), M.Glass, nc())
 			B.sign(screen, Enum.NormalId.Front, "42.90", { glow = true, color = Color3.fromRGB(255, 80, 60), font = B.Fonts.Mono })
@@ -421,7 +421,7 @@ local function officeDesk(parent, poi, rng, service, title, action, accent, opts
 		Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, hd - 8), service, poi.id, action, title)
 	end
 	-- building mass above the hall
-	B.box(parent, cf * CFrame.new(0, 14 + 14, hd / 2), Vector3.new(hw, 28, hd), Rand.pick(rng, { Color3.fromRGB(210, 206, 198), Color3.fromRGB(180, 186, 196) }), M.Concrete)
+	B.box(parent, cf * CFrame.new(0, 14 + 14, hd / 2), Vector3.new(hw, 28, hd), Rand.pick(rng, { Color3.fromRGB(210, 206, 198), Color3.fromRGB(180, 186, 196) }), M.SmoothPlastic)
 	return m
 end
 
@@ -439,7 +439,7 @@ local function internetCafe(parent, poi, _rng)
 		end
 	end
 	Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, hd - 8), "contracts", poi.id, "Take Bulk Job", "Pixel Internet Cafe")
-	B.box(parent, cf * CFrame.new(0, 13 + 13, hd / 2), Vector3.new(hw, 26, hd), Color3.fromRGB(190, 190, 196), M.Concrete)
+	B.box(parent, cf * CFrame.new(0, 13 + 13, hd / 2), Vector3.new(hw, 26, hd), Color3.fromRGB(190, 190, 196), M.SmoothPlastic)
 	return m
 end
 
@@ -488,7 +488,7 @@ end
 local function cinema(parent, poi, _rng)
 	local cf, w, d = Commerce.siteFrame(poi, 4)
 	local m = B.model("Cinema", parent)
-	B.box(m, cf * CFrame.new(0, 14, d / 2), Vector3.new(w - 16, 28, d - 16), Color3.fromRGB(60, 30, 50), M.Concrete)
+	B.box(m, cf * CFrame.new(0, 14, d / 2), Vector3.new(w - 16, 28, d - 16), Color3.fromRGB(60, 30, 50), M.SmoothPlastic)
 	local marquee = B.box(m, cf * CFrame.new(0, 12, -2), Vector3.new(w - 20, 6, 4), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
 	B.sign(marquee, Enum.NormalId.Front, "STAR CINEMA  •  NOW SHOWING: 'THE LAST REPAIRMAN'", { color = Color3.fromRGB(255, 220, 90), glow = true, brightness = 2 })
 	for i = -3, 3 do
