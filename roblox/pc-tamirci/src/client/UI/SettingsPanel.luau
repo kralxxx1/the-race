@@ -6,7 +6,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Net = require(Shared.Net)
 local Config = require(Shared.Config)
 
 local UI = script.Parent
@@ -20,7 +19,6 @@ local SettingsPanel = {}
 
 local win = nil
 local lastTab = "audio"
-local actions: { [string]: () -> () } = {}
 
 local TABS = { "audio", "graphics", "game", "keys" }
 
@@ -252,26 +250,6 @@ local function gameTab(list: Instance)
 		{ "normal", S.t("set_d_normal") },
 		{ "hard", S.t("set_d_hard") },
 	})
-	local f = card(list, 94)
-	titleOf(f, S.t("set_language"), S.t("set_language_sub"))
-	local row = Kit.frame(f, { Name = "Choice_lang", BackgroundTransparency = 1, Size = UDim2.new(1, -28, 0, 34), Position = UDim2.fromOffset(14, 52) })
-	Kit.listLayout(row, 6, true)
-	for i, l in { { "en", "English" }, { "tr", "Türkçe" } } do
-		local on = S.lang() == l[1]
-		local b = Kit.button(row, l[2], function()
-			if S.lang() == l[1] then
-				return
-			end
-			S.setLang(l[1])
-			Net.request("settings.set", { lang = l[1] })
-			if actions.relabel then
-				actions.relabel()
-			end
-			SettingsPanel.open("game")
-		end, { Name = "Lang_" .. l[1], Size = UDim2.new(0.5, -3, 1, 0), LayoutOrder = i, TextSize = 14 })
-		Kit.setColor(b, if on then Theme.accent else Theme.bg)
-		b.TextColor3 = if on then Color3.new(1, 1, 1) else Theme.dim
-	end
 	local reset = Kit.button(list, S.t("set_reset"), function()
 		Prefs.setMany(Prefs.DEFAULTS)
 		App.report({ ok = true }, S.t("set_reset_done"))
@@ -303,12 +281,32 @@ local BUILDERS = {
 }
 
 ----------------------------------------------------------------------------------------------------
+-- The language bar along the top of the window: always visible, whatever tab is open.
+local function languageBar(c: Instance)
+	local bar = Kit.panel(c, { Name = "LangBar", Size = UDim2.new(1, 0, 0, 44), BackgroundColor3 = Theme.card })
+	Kit.label(bar, "🌐  Language / Dil", { Name = "Title", Size = UDim2.new(1, -250, 1, 0), Position = UDim2.fromOffset(14, 0), FontFace = Theme.bold, TextSize = 17, TextWrapped = false })
+	for i, l in { { "en", "English" }, { "tr", "Türkçe" } } do
+		local on = S.lang() == l[1]
+		local b = Kit.button(bar, l[2], function()
+			if S.lang() == l[1] then
+				return
+			end
+			Prefs.setLanguage(l[1])
+			SettingsPanel.open(lastTab)
+		end, { Name = "Lang_" .. l[1], Size = UDim2.fromOffset(104, 32), Position = UDim2.new(1, if i == 1 then -230 else -118, 0, 6), TextSize = 15 })
+		Kit.setColor(b, if on then Theme.accent else Theme.bg)
+		b.TextColor3 = if on then Color3.new(1, 1, 1) else Theme.dim
+	end
+	return bar
+end
+
 function SettingsPanel.open(tab: string?)
-	local w = Kit.window(App.screen :: ScreenGui, "⚙️ " .. S.t("set_title"), Vector2.new(660, 580), dropConnections)
+	local w = Kit.window(App.screen :: ScreenGui, "⚙️ " .. S.t("set_title"), Vector2.new(660, 620), dropConnections)
 	win = w
 	w.root.Name = "SettingsWindow"
 	local c = w.content
-	local pane = Kit.frame(c, { Name = "Pane", BackgroundTransparency = 1, Size = UDim2.new(1, -176, 1, 0), Position = UDim2.fromOffset(176, 0) })
+	languageBar(c)
+	local pane = Kit.frame(c, { Name = "Pane", BackgroundTransparency = 1, Size = UDim2.new(1, -176, 1, -52), Position = UDim2.fromOffset(176, 52) })
 	local list
 	local current = tab or lastTab
 	local function show(id: string)
@@ -329,7 +327,7 @@ function SettingsPanel.open(tab: string?)
 	for _, id in TABS do
 		table.insert(items, { id = id, text = S.t("set_tab_" .. id) })
 	end
-	local side = Kit.sidebar(c, items, show, { Size = UDim2.new(0, 164, 1, 0) })
+	local side = Kit.sidebar(c, items, show, { Size = UDim2.new(0, 164, 1, -52), Position = UDim2.fromOffset(0, 52) })
 	w.sidebar = side
 	side.select(current)
 	return w
@@ -345,11 +343,6 @@ end
 
 function SettingsPanel.isOpen(): boolean
 	return win ~= nil and win.isOpen()
-end
-
--- actions: relabel (rebuild text after a language change)
-function SettingsPanel.init(a: { [string]: () -> () })
-	actions = a
 end
 
 return SettingsPanel

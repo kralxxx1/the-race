@@ -863,16 +863,17 @@ end
 -- After a language change: the big map is drawn again on its next opening.
 function MapController.relabel()
 	if mapRoot then
-		mapRoot:Destroy()
-		mapRoot = nil
-		table.clear(nameLabels)
-		table.clear(districtLabels)
-		table.clear(plotMarks)
+		-- (the big map's route layers go with it; the minimap's stays)
 		for i = #routeFolders, 1, -1 do
 			if not routeFolders[i]:GetAttribute("Mini") then
 				table.remove(routeFolders, i)
 			end
 		end
+		mapRoot:Destroy()
+		mapRoot = nil
+		table.clear(nameLabels)
+		table.clear(districtLabels)
+		table.clear(plotMarks)
 	end
 end
 

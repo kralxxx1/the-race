@@ -221,6 +221,42 @@ return function(T)
 		T.ok(#problems == 0, #problems .. " problems:\n" .. table.concat(problems, "\n"))
 	end)
 
+	T.test("shop: the signs are English and the generic ones have a Turkish text", function()
+		local SignText = Engine.mod("ReplicatedStorage.Shared.Util.SignText")
+		local every = {}
+		for _, it in Upgrades.items do
+			every[it.id] = true
+		end
+		local function hasTurkish(text: string): boolean
+			for _, ch in { "ğ", "Ğ", "ş", "Ş", "ı", "İ" } do
+				if string.find(text, ch, 1, true) then
+					return true
+				end
+			end
+			return false
+		end
+		local missing, labels, turkish = {}, 0, 0
+		for _, level in { 1, #Upgrades.levels } do
+			local folder, shop = build(level, every, CFrame.new(0, 0.75, 0))
+			for _, d in shop:GetDescendants() do
+				if d:IsA("TextLabel") or d:IsA("TextButton") then
+					T.ok(not hasTurkish(d.Text), "Turkish left in a sign: " .. d.Text)
+					labels += 1
+					if SignText.turkish(d.Text) then
+						turkish += 1
+					end
+				elseif d:IsA("ProximityPrompt") then
+					if not SignText.turkish(d.ActionText) then
+						table.insert(missing, d.ActionText)
+					end
+				end
+			end
+			folder:Destroy()
+		end
+		T.ok(#missing == 0, "prompts without a Turkish text: " .. table.concat(missing, ", "))
+		T.ok(turkish >= 50 and turkish < labels, "most generic signs are translated: " .. turkish .. " of " .. labels)
+	end)
+
 	T.test("shop: empty lot has a claim prompt", function()
 		local folder = Instance.new("Folder")
 		folder.Parent = Engine.workspace

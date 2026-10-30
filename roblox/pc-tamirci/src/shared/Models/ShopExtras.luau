@@ -221,7 +221,7 @@ end
 
 LOOKS.neon_quote = function(m, c, k)
 	deco(m, c * CFrame.new(0, 0, 0.02), Vector3.new(7, 1.4, 0.06), C(20, 20, 26))
-	label(m, c * CFrame.new(0, 0, -0.04), Vector3.new(6.8, 1.2, 0.02), "Format atmadan olmaz", k.accent:Lerp(WHITE, 0.3), false, { glow = true, brightness = 2.2, font = B.Fonts.Hand })
+	label(m, c * CFrame.new(0, 0, -0.04), Vector3.new(6.8, 1.2, 0.02), "No fix without a reinstall", k.accent:Lerp(WHITE, 0.3), false, { glow = true, brightness = 2.2, font = B.Fonts.Hand })
 end
 
 LOOKS.figures = function(m, c)
@@ -411,7 +411,7 @@ LOOKS.queue_ticket = function(m, c)
 	B.cylY(m, c * CFrame.new(0, 1.7, 0), 3.4, 0.3, STEEL, M.Metal, nc({ CanCollide = true }))
 	cylY(m, c * CFrame.new(0, 0.05, 0), 0.1, 1.2, STEEL, M.Metal)
 	deco(m, c * CFrame.new(0, 3.7, 0), Vector3.new(0.9, 0.8, 0.6), RED)
-	label(m, c * CFrame.new(0, 3.85, -0.31), Vector3.new(0.8, 0.35, 0.02), "SIRA ALIN", WHITE, RED)
+	label(m, c * CFrame.new(0, 3.85, -0.31), Vector3.new(0.8, 0.35, 0.02), "TAKE A NUMBER", WHITE, RED)
 	deco(m, c * CFrame.new(0, 3.45, -0.35), Vector3.new(0.3, 0.2, 0.02), WHITE)
 end
 
@@ -592,7 +592,7 @@ LOOKS.ice_cream = function(m, c)
 	for i = 0, 3 do
 		deco(m, c * CFrame.new(-1.1 + i * 0.73, 2.7, 0), Vector3.new(0.65, 0.2, 1.2), tubs[i + 1])
 	end
-	label(m, c * CFrame.new(0, 1.4, -1.01), Vector3.new(2.6, 0.8, 0.02), "🍦 DONDURMA", C(200, 40, 120), WHITE)
+	label(m, c * CFrame.new(0, 1.4, -1.01), Vector3.new(2.6, 0.8, 0.02), "🍦 ICE CREAM", C(200, 40, 120), WHITE)
 end
 
 LOOKS.espresso_bar = function(m, c, k)
@@ -725,7 +725,7 @@ end
 LOOKS.cash_register = function(m, c)
 	deco(m, c * CFrame.new(0, 0.25, 0), Vector3.new(1, 0.5, 0.8), C(230, 226, 214))
 	deco(m, c * CFrame.new(0, 0.55, 0.15) * CFrame.Angles(math.rad(-15), 0, 0), Vector3.new(0.8, 0.12, 0.4), C(80, 80, 86))
-	label(m, c * CFrame.new(0, 0.85, 0.25), Vector3.new(0.6, 0.25, 0.04), "TOPLAM 0,00", C(80, 255, 120), C(10, 20, 10), { glow = true, font = B.Fonts.Mono })
+	label(m, c * CFrame.new(0, 0.85, 0.25), Vector3.new(0.6, 0.25, 0.04), "TOTAL 0.00", C(80, 255, 120), C(10, 20, 10), { glow = true, font = B.Fonts.Mono })
 	cylX(m, c * CFrame.new(0, 0.6, 0.35), 0.4, 0.2, WHITE)
 end
 
@@ -735,11 +735,11 @@ LOOKS.open_sign = function(m, c)
 end
 
 LOOKS.map_listing = function(m, c)
-	sticker(m, c, 1.6, 1.2, "📍 Bizi haritada\nbulun!\n★★★★★", C(30, 30, 30), WHITE)
+	sticker(m, c, 1.6, 1.2, "📍 Find us\non the map!\n★★★★★", C(30, 30, 30), WHITE)
 end
 
 LOOKS.social_media = function(m, c, k)
-	sticker(m, c, 1.8, 1.0, "📱 Bizi takip edin!\n@" .. k.handle, WHITE, C(200, 50, 140))
+	sticker(m, c, 1.8, 1.0, "📱 Follow us!\n@" .. k.handle, WHITE, C(200, 50, 140))
 end
 
 LOOKS.flag_banner = function(m, c, k)
@@ -835,7 +835,7 @@ end
 
 -- Safety --------------------------------------------------------------------------------------------
 LOOKS.license = function(m, c, k)
-	certificate(m, c, 2, 2.6, "BUSINESS\nOPERATING LICENCE\n\n" .. k.name .. "\nRuhsat No: 2026/" .. (100 + (k.plotId or 1)), C(200, 40, 40))
+	certificate(m, c, 2, 2.6, "BUSINESS\nOPERATING LICENCE\n\n" .. k.name .. "\nLicence No: 2026/" .. (100 + (k.plotId or 1)), C(200, 40, 40))
 end
 
 LOOKS.fire_extinguisher = function(m, c)
@@ -1086,7 +1086,7 @@ LOOKS.pallet_rack = function(m, c, k)
 			deco(m, c * CFrame.new(-2.6 + b * 2.6, y + 0.2 + size / 2, 0), Vector3.new(size * 1.4, size, 1.6), C(196, 160, 110), M.Cardboard)
 		end
 	end
-	label(m, c * CFrame.new(0, 9.2, -1.2), Vector3.new(1.6, 0.5, 0.02), "DEPO", WHITE, C(40, 80, 170))
+	label(m, c * CFrame.new(0, 9.2, -1.2), Vector3.new(1.6, 0.5, 0.02), "STOCK", WHITE, C(40, 80, 170))
 end
 
 LOOKS.bga_station = function(m, c)

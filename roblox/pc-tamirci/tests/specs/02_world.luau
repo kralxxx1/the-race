@@ -130,6 +130,43 @@ return function(T)
 		Engine.world = world
 	end)
 
+	T.test("world: every sign is written in English and every prompt has its Turkish text", function()
+		local SignText = Engine.mod("ReplicatedStorage.Shared.Util.SignText")
+		local function hasTurkish(text: string): boolean
+			for _, ch in { "ğ", "Ğ", "ş", "Ş", "ı", "İ" } do
+				if string.find(text, ch, 1, true) then
+					return true
+				end
+			end
+			return false
+		end
+		local texts, translated, prompts = 0, 0, 0
+		for _, d in Engine.world:GetDescendants() do
+			if d:IsA("TextLabel") or d:IsA("TextButton") then
+				T.ok(not hasTurkish(d.Text), "Turkish left in a sign: " .. d.Text)
+				texts += 1
+				if SignText.turkish(d.Text) then
+					translated += 1
+				end
+			elseif d:IsA("ProximityPrompt") then
+				T.ok(not hasTurkish(d.ActionText .. d.ObjectText), "Turkish left in a prompt: " .. d.ActionText)
+				prompts += 1
+				T.ok(SignText.turkish(d.ActionText) ~= nil, "no Turkish for the prompt '" .. d.ActionText .. "'")
+				if d.ObjectText ~= "" and not string.find(d.ObjectText, "^[%w%s%.%-]+$") then
+					T.ok(SignText.turkish(d.ObjectText) ~= nil or d.ObjectText == d.Name, "no Turkish for '" .. d.ObjectText .. "'")
+				end
+			end
+		end
+		T.ok(prompts >= 15 and texts > 300, "signs and prompts found")
+		T.ok(translated > 80, "the generic signs are translated: " .. translated)
+		-- names stay, generic words change, rich text and numbers survive
+		T.eq(SignText.turkish("OPEN"), "AÇIK", "plain word")
+		T.eq(SignText.turkish("Bench 3"), "Tezgâh 3", "numbered")
+		T.eq(SignText.turkish("<b>GAME WORLD</b>\n<font size=\"20\">At the mall</font>"), "<b>OYUN DÜNYASI</b>\n<font size=\"20\">AVM'de</font>", "rich text")
+		T.eq(SignText.turkish("Burger Bros"), nil, "a brand stays")
+		T.eq(SignText.turkish("Chip Lane  ✕  Beach Road"), nil, "street names stay")
+	end)
+
 	T.test("world: no empty lots and every service has its counter", function()
 		local world = Engine.world
 		local L = CityLayout.get()

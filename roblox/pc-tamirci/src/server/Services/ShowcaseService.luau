@@ -223,8 +223,8 @@ local function setup(player: Player, shop)
 		if typeof(slot) == "number" and pt:IsA("BasePart") then
 			local prompt = Instance.new("ProximityPrompt")
 			prompt.Name = "ShowcasePrompt"
-			prompt.ActionText = "Vitrin"
-			prompt.ObjectText = "PC Vitrini"
+			prompt.ActionText = "Showcase"
+			prompt.ObjectText = "PC Showcase"
 			prompt.HoldDuration = 0.3
 			prompt.MaxActivationDistance = 9
 			prompt.RequiresLineOfSight = false

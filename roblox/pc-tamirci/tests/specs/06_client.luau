@@ -222,6 +222,63 @@ return function(T)
 		noErrors("windows")
 	end)
 
+	T.test("client: the first start asks for a language; Türkçe also changes the signs and prompts of the world", function()
+		Mock.errors = {}
+		local Hud = cmod("UI.Hud")
+		local prompt = gui:FindFirstChild("LanguagePrompt")
+		T.ok(prompt ~= nil, "the language window is shown on the first start")
+		T.eq(S.lang(), "en", "English until somebody chooses")
+		local bench
+		for _, d in Engine.workspace:GetDescendants() do
+			if d:IsA("ProximityPrompt") and d.Name == "BenchPrompt" then
+				bench = d
+				break
+			end
+		end
+		T.ok(bench ~= nil and bench.ActionText == "Sit at Bench", "a bench prompt in English")
+
+		click(prompt, "Türkçe")
+		T.eq(S.lang(), "tr", "Turkish chosen")
+		T.ok(gui:FindFirstChild("LanguagePrompt") == nil, "the window is gone")
+		waitFor(function()
+			return bench.ActionText == "Tezgâha Otur"
+		end, 10, "the world's prompts in Turkish")
+		T.ok(string.find(bench.ObjectText, "^Tezgâh %d"), "numbered prompt: " .. bench.ObjectText)
+		waitFor(function()
+			return DataService.get(player).lang == "tr"
+		end, 3, "the language saved on the server")
+
+		-- a prompt that appears later is translated too, and a changed text is translated again
+		local later = roblox.Instance.new("ProximityPrompt")
+		later.ActionText = "Task Board"
+		later.Parent = Engine.workspace
+		Engine.workspace.DescendantAdded:Fire(later) -- (the headless engine does not raise it itself)
+		T.eq(later.ActionText, "Görev Panosu", "a new prompt")
+		later.ActionText = "Take Tech Job"
+		later:GetPropertyChangedSignal("ActionText"):Fire() -- (nor does it raise property signals)
+		T.eq(later.ActionText, "Teknik İş Al", "a changed prompt")
+		later.ActionText = "Some Brand"
+		later:GetPropertyChangedSignal("ActionText"):Fire()
+		T.eq(later.ActionText, "Some Brand", "unknown text is left alone")
+
+		-- the language sits at the top of Settings, on every tab, and switches back
+		Hud.buttons.settings.Activated:Fire()
+		local w = window()
+		T.ok(w.content:FindFirstChild("LangBar") ~= nil, "language bar")
+		click(w.content, S.t("set_tab_graphics")) -- (the tabs are in Turkish now)
+		T.ok(w.content:FindFirstChild("Lang_en", true) ~= nil and w.content:FindFirstChild("Lang_tr", true) ~= nil, "both languages on the graphics tab")
+		click(w.content, "English")
+		T.eq(S.lang(), "en", "English again")
+		T.eq(bench.ActionText, "Sit at Bench", "the bench prompt is back in English")
+		T.eq(later.ActionText, "Some Brand", "unknown text still alone")
+		waitFor(function()
+			return DataService.get(player).lang == "en"
+		end, 3, "English saved on the server")
+		Kit.closeWindow()
+		later:Destroy()
+		noErrors("language")
+	end)
+
 	T.test("client: the Settings window changes sound, graphics and help and saves them", function()
 		Mock.errors = {}
 		local Prefs = cmod("Prefs")

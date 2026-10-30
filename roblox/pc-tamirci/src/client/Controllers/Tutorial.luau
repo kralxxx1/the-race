@@ -39,6 +39,8 @@ local card: Frame
 local title: TextLabel
 local text: TextLabel
 
+local skipButton: TextButton? = nil
+
 local function name(): string?
 	return STEPS[step]
 end
@@ -71,6 +73,17 @@ local function advance(to: number)
 	show()
 end
 Tutorial.advance = advance
+
+-- The language changed: the card says it again in the new one.
+function Tutorial.relabel()
+	if skipButton then
+		skipButton.Text = S.t("tut_skip") .. " ✕"
+	end
+	if card and card.Visible and step < DONE then
+		title.Text = S.t("tut_step", { n = step, total = #STEPS })
+		text.Text = S.t("tut_" .. STEPS[step])
+	end
+end
 
 function Tutorial.step(): number
 	return step
@@ -178,7 +191,7 @@ function Tutorial.init()
 	Kit.padding(card, 12)
 	title = Kit.label(card, "", { Size = UDim2.new(1, -84, 0, 18), TextSize = 13, FontFace = Theme.bold, TextColor3 = Theme.accent2 })
 	text = Kit.label(card, "", { Size = UDim2.new(1, -84, 0, 0), Position = UDim2.fromOffset(0, 22), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 17, FontFace = Theme.bold })
-	Kit.button(card, S.t("tut_skip") .. " ✕", function()
+	skipButton = Kit.button(card, S.t("tut_skip") .. " ✕", function()
 		advance(DONE)
 		MapController.clearRoute()
 	end, { Size = UDim2.fromOffset(72, 28), Position = UDim2.new(1, -72, 0, 0), TextSize = 13 }, "ghost")

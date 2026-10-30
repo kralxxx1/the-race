@@ -233,7 +233,7 @@ local function toolShop(parent, poi, rng)
 	for i = -1, 1, 2 do
 		Props.shelf(m, cf * CFrame.new(i * hw / 5, 0.2, (d - 14) / 2) * CFrame.Angles(0, math.pi / 2, 0), 12, 8, 3, rng)
 	end
-	Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, d - 24), "tools", poi.id, "Alet Al", "Usta Alet-Edevat")
+	Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, d - 24), "tools", poi.id, "Buy Tools", "Master Tools & Hardware")
 	return m
 end
 
@@ -268,7 +268,7 @@ end
 
 local function teahouse(parent, poi, rng)
 	local cf, w = Commerce.siteFrame(poi, 2)
-	local m = Buildings.building(parent, cf * CFrame.new(-w / 4, 0, 4), { w = w / 2 - 8, d = 30, floors = 2, floorH = 12, style = "historic", ground = "shop", name = "KAHVEHANE", rng = rng, accent = { 120, 40, 30 }, roof = "gable", blankSides = true })
+	local m = Buildings.building(parent, cf * CFrame.new(-w / 4, 0, 4), { w = w / 2 - 8, d = 30, floors = 2, floorH = 12, style = "historic", ground = "shop", name = "COFFEE HOUSE", rng = rng, accent = { 120, 40, 30 }, roof = "gable", blankSides = true })
 	for i = 0, 5 do
 		local c = cf * CFrame.new(w / 8 + (i % 3) * 10, 0, 6 + math.floor(i / 3) * 9)
 		B.box(m, c * CFrame.new(0, 2.4, 0), Vector3.new(4, 0.25, 4), Color3.fromRGB(110, 70, 40), M.Wood)
@@ -505,7 +505,7 @@ end
 
 local function arena(parent, poi, _rng)
 	local cf, w, d = Commerce.siteFrame(poi, 4)
-	local m = Buildings.hall(parent, cf, math.min(w - 20, 70), d - 14, 18, { name = "E-SPOR ARENASI", accent = { 200, 30, 90 }, wall = { 26, 26, 34 }, wallMat = M.SmoothPlastic, floor = { 30, 30, 40 }, floorMat = M.Carpet, modelName = "Arena" })
+	local m = Buildings.hall(parent, cf, math.min(w - 20, 70), d - 14, 18, { name = "ESPORTS ARENA", accent = { 200, 30, 90 }, wall = { 26, 26, 34 }, wallMat = M.SmoothPlastic, floor = { 30, 30, 40 }, floorMat = M.Carpet, modelName = "Arena" })
 	local stage = cf * CFrame.new(0, 0.2, d - 26)
 	B.box(m, stage * CFrame.new(0, 1.5, 0), Vector3.new(36, 3, 12), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
 	local screen = B.box(m, stage * CFrame.new(0, 9, 5.8), Vector3.new(30, 12, 0.4), Color3.fromRGB(10, 10, 12), M.SmoothPlastic)
@@ -573,7 +573,7 @@ function Commerce.build(parent: Instance, L, yieldFn: (() -> ())?)
 		gas_north = fuelStation,
 		gas_west = fuelStation,
 		staff_agency = function(p, poi, r)
-			return officeDesk(p, poi, r, "staff", "PERSONEL AJANSI", "Personel Bul", { 120, 70, 200 })
+			return officeDesk(p, poi, r, "staff", "STAFFING AGENCY", "Find Staff", { 120, 70, 200 })
 		end,
 		realty = function(p, poi, r)
 			return officeDesk(p, poi, r, "realty", "REAL ESTATE 🔑", "Find a Shop", { 30, 120, 90 })
@@ -588,7 +588,7 @@ function Commerce.build(parent: Instance, L, yieldFn: (() -> ())?)
 		datacenter = datacenter,
 		cargo = function(p, poi, r)
 			local cf, w, d = Commerce.siteFrame(poi, 6)
-			return Buildings.warehouse(p, cf, w - 16, math.min(d - 16, 60), r, { sign = "HIZLI KARGO DEPOSU", color = { 230, 150, 30 } })
+			return Buildings.warehouse(p, cf, w - 16, math.min(d - 16, 60), r, { sign = "EXPRESS CARGO DEPOT", color = { 230, 150, 30 } })
 		end,
 		industrial = function(p, poi, r)
 			local s = poi.site

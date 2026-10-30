@@ -288,7 +288,7 @@ local function visit(player: Player)
 			return
 		end
 		t.phase = "steal"
-		addCatchPrompt(model, if lang == "en" then "Catch!" else "Yakala!")
+		addCatchPrompt(model, "Catch!")
 		local stealTime = Config.ThiefStealSeconds * (if prof.shop.items.alarm then 1.6 else 1)
 		if prof.shop.items.alarm then
 			local shopModel = shop.model
@@ -354,7 +354,6 @@ local function burgle(player: Player)
 	end
 	local it = prof.shop.items
 	local _, protect = security(player)
-	local lang = DataService.lang(player)
 	local name, gender = Customers.randomName(rng, false, NpcService.pickGender("thief", rng))
 	local model = NpcService.spawn({ look = "thief", gender = gender, name = name, cf = street.CFrame * CFrame.new(Rand.range(rng, -40, 40), 3, 0), speed = 8 })
 	model:SetAttribute("Thief", true)
@@ -387,7 +386,7 @@ local function burgle(player: Player)
 		end
 		-- forcing the shutter and the door
 		t.phase = "break"
-		addCatchPrompt(model, if lang == "en" then "Catch!" else "Yakala!")
+		addCatchPrompt(model, "Catch!")
 		local breakTime = ThiefService.breakSeconds * (if it.shutter then 3 else 1) * (if it.steel_door then 1.8 else 1) + (if it.smart_lock then ThiefService.breakSeconds * 0.75 else 0)
 		NpcService.say(model, "🔧", breakTime)
 		playAt(door, "forcing", math.min(breakTime, 11))
@@ -531,7 +530,7 @@ function ThiefService.start()
 	-- scammers who run off get the same prompt
 	CustomerService.robbed:Connect(function(player, cust)
 		if cust.model then
-			addCatchPrompt(cust.model, if DataService.lang(player) == "en" then "Catch!" else "Yakala!")
+			addCatchPrompt(cust.model, "Catch!")
 			Net.push(player, "toast", { key = "scammer_running", vars = { name = cust.name } })
 		end
 	end)

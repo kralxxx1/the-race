@@ -10,6 +10,7 @@ local Net = require(Shared.Net)
 local Signal = require(Shared.Util.Signal)
 
 local State = require(script.Parent.State)
+local S = require(script.Parent.Strings)
 
 local Prefs = {}
 
@@ -49,6 +50,7 @@ Prefs.PRESETS = {
 local SEND_DELAY = 0.35
 
 Prefs.changed = Signal.new() -- (changed keys: { [string]: true })
+Prefs.languageChanged = Signal.new() -- ("en" | "tr")
 
 local values: { [string]: any } = table.clone(Prefs.DEFAULTS)
 local dirty: { [string]: any } = {} -- changed here, not yet confirmed by the server
@@ -143,6 +145,28 @@ end
 
 function Prefs.set(key: string, v: any)
 	Prefs.setMany({ [key] = v })
+end
+
+-- The game's language ("en" | "tr"): applied here at once, saved with the player.
+function Prefs.setLanguage(lang: string)
+	lang = if lang == "tr" then "tr" else "en"
+	S.setLang(lang)
+	local d = State.data
+	if d then
+		d.lang = lang
+	end
+	task.spawn(function()
+		pcall(function()
+			Net.request("settings.set", { lang = lang })
+		end)
+	end)
+	Prefs.languageChanged:Fire(lang)
+end
+
+-- Has this player ever chosen a language? (The first start asks.)
+function Prefs.languageChosen(): boolean
+	local d = State.data
+	return d ~= nil and (d.lang == "tr" or d.lang == "en")
 end
 
 -- Graphics preset: sets the quality word and every switch it stands for.

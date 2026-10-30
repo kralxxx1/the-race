@@ -25,6 +25,7 @@ local JobsPanel = require(UI.JobsPanel)
 local Inventory = require(UI.Inventory)
 local Phone = require(UI.Phone)
 local SettingsPanel = require(UI.SettingsPanel)
+local LanguagePrompt = require(UI.LanguagePrompt)
 local BillsPanel = require(UI.BillsPanel)
 local ContractsPanel = require(UI.ContractsPanel)
 local Controllers = Client.Controllers
@@ -38,6 +39,7 @@ local Tutorial = require(Controllers.Tutorial)
 local Traffic = require(Controllers.Traffic)
 local Sky = require(Controllers.Sky)
 local Display = require(Controllers.Display)
+local WorldText = require(Controllers.WorldText)
 
 S.detect()
 State.init()
@@ -153,13 +155,14 @@ ContractsPanel.init()
 local function relabel()
 	MapController.relabel()
 	Guide.relabel()
+	Tutorial.relabel()
+	WorldText.setLanguage(S.lang())
 end
 Phone.init({
 	map = MapController.open,
 	home = home,
 	relabel = relabel,
 })
-SettingsPanel.init({ relabel = relabel })
 BenchViews.init()
 BenchController.init(screen, Hud)
 MapController.init()
@@ -170,7 +173,13 @@ Sky.init()
 Guide.init()
 Tutorial.init()
 Prefs.init()
+Prefs.languageChanged:Connect(relabel)
 Display.init()
+WorldText.init()
+-- the first start asks for the language (it can be changed at the top of Settings later)
+if not Prefs.languageChosen() then
+	LanguagePrompt.show()
+end
 if State.data then
 	if State.data.daily and State.data.daily.day ~= Market.day() then
 		task.delay(6, function()
