@@ -372,9 +372,9 @@ local function fishingVillage(parent: Instance, poi, rng: Random)
 			end
 		end
 	end
-	slab(m, cx - 60, cz - 40, cx + 60, cz + 40, Y + 0.12, Color3.fromRGB(214, 206, 188), M.Cobblestone)
+	slab(m, cx - 60, cz - 40, cx + 60, cz + 40, Y + 0.12, Color3.fromRGB(214, 206, 188), M.Concrete)
 	Props.tree(m, CFrame.new(cx, Y + 0.12, cz), "forest", rng)
-	B.cylY(m, CFrame.new(cx, Y + 0.6, cz), 1, 12, Color3.fromRGB(200, 196, 186), M.Cobblestone)
+	B.cylY(m, CFrame.new(cx, Y + 0.6, cz), 1, 12, Color3.fromRGB(200, 196, 186), M.Concrete)
 	-- the fountain on the north side of the square
 	local f = facing(cx, cz - 34, 0, 1, Y + 0.12)
 	B.box(m, f * CFrame.new(0, 4, 0), Vector3.new(8, 8, 2), Color3.fromRGB(236, 232, 222), M.Marble)
@@ -492,8 +492,8 @@ local function teknopark(parent: Instance, poi, rng: Random)
 		end
 	end
 	-- the middle band: lawn, paths, the plaza with the giant chip, the R&D centre, the chip lab
-	slab(m, s.x0 + 4, cz - 4, s.x1 - 4, cz + 4, Y + 0.12, Color3.fromRGB(206, 200, 190), M.Pavement)
-	B.cylY(m, CFrame.new(cx, Y + 0.08, cz), 0.16, 70, Color3.fromRGB(216, 212, 204), M.Pavement)
+	slab(m, s.x0 + 4, cz - 4, s.x1 - 4, cz + 4, Y + 0.12, Color3.fromRGB(206, 200, 190), M.Concrete)
+	B.cylY(m, CFrame.new(cx, Y + 0.08, cz), 0.16, 70, Color3.fromRGB(216, 212, 204), M.Concrete)
 	B.box(m, CFrame.new(cx, Y + 1.5, cz), Vector3.new(8, 3, 8), Color3.fromRGB(60, 64, 70), M.Concrete)
 	B.box(m, CFrame.new(cx, Y + 4, cz) * CFrame.Angles(0, math.rad(45), 0), Vector3.new(20, 2, 20), Color3.fromRGB(40, 110, 70), M.SmoothPlastic)
 	local die = B.box(m, CFrame.new(cx, Y + 5.6, cz) * CFrame.Angles(0, math.rad(45), 0), Vector3.new(12, 1.2, 12), Color3.fromRGB(190, 196, 204), M.Metal)
@@ -783,7 +783,7 @@ local function villaClub(parent: Instance, poi, rng: Random)
 	end
 	-- the pool and its terrace
 	local px, pz = s.x1 - 46, s.z0 + 50
-	slab(m, px - 34, pz - 22, px + 34, pz + 22, Y + 0.3, Color3.fromRGB(236, 232, 222), M.Pavement)
+	slab(m, px - 34, pz - 22, px + 34, pz + 22, Y + 0.3, Color3.fromRGB(236, 232, 222), M.Concrete)
 	B.box(m, CFrame.new(px, Y + 0.35, pz), Vector3.new(50, 0.2, 22), Color3.fromRGB(60, 180, 210), M.Glass, { Transparency = 0.15, Reflectance = 0.1, Name = "PoolWater" })
 	for k = 0, 5 do
 		local lc = CFrame.new(px - 25 + k * 10, Y + 0.3, pz + 16)
@@ -810,7 +810,7 @@ local function summerSite(parent: Instance, poi, rng: Random)
 	local Y = WALK_Y
 	Buildings.building(m, facing(s.x0 + 30, s.z1 - 4, 0, 1), { w = 44, d = 26, floors = 1, floorH = 12, style = "apartment", rng = rng, ground = "shop", shops = 1, name = "BEACH CLUB", wallColor = { 246, 246, 242 }, blankSides = true })
 	Buildings.building(m, facing(s.x1 - 20, s.z1 - 4, 0, 1), { w = 26, d = 20, floors = 1, floorH = 11, style = "apartment", rng = rng, ground = "shop", shops = 1, name = "VILLAGE MARKET", wallColor = { 250, 236, 210 }, blankSides = true })
-	slab(m, cx - 44, cz - 30, cx + 40, cz + 8, Y + 0.3, Color3.fromRGB(236, 230, 214), M.Pavement)
+	slab(m, cx - 44, cz - 30, cx + 40, cz + 8, Y + 0.3, Color3.fromRGB(236, 230, 214), M.Concrete)
 	B.box(m, CFrame.new(cx - 2, Y + 0.35, cz - 12), Vector3.new(64, 0.2, 22), Color3.fromRGB(60, 180, 210), M.Glass, { Transparency = 0.15, Reflectance = 0.1, Name = "PoolWater" })
 	for k = 0, 6 do
 		local lc = CFrame.new(cx - 36 + k * 11, Y + 0.3, cz + 3)

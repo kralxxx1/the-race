@@ -70,6 +70,7 @@ local Config = {
 
 	-- Tamir
 	PasteIdealRange = { 0.42, 0.62 }, -- macun miktarı (0-1) için ideal aralık
+	NpcSpeedScale = 1, -- walking speed of everybody in the city (tests run the world faster)
 	EsdDamageChance = 0.12, -- bileklik takılı değilken hassas parçaya dokunma başına
 	HoldActionSeconds = {
 		unscrew = 0.5,

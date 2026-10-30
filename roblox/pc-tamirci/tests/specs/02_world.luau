@@ -10,15 +10,15 @@ return function(T)
 	local CityLayout = Engine.mod("ReplicatedStorage.Shared.World.CityLayout")
 	local Locations = Engine.mod("ReplicatedStorage.Shared.Data.Locations")
 
-	T.test("layout: 66 plots that don't overlap and face a road", function()
+	T.test("layout: 34 wide plots (three times the old ones) that don't overlap and face a road", function()
 		local L = CityLayout.get()
-		T.eq(#L.plots, 66, "plot count")
+		T.eq(#L.plots, 34, "plot count")
 		for i, a in L.plots do
-			T.ok(a.width >= 55 and a.depth >= 70, "plot " .. i .. " too small: " .. a.width .. "x" .. a.depth)
+			T.ok(a.width >= 150 and a.depth >= 70, "plot " .. i .. " too small: " .. a.width .. "x" .. a.depth)
 			for j = i + 1, #L.plots do
 				local b = L.plots[j]
 				local d = (a.cf.Position - b.cf.Position).Magnitude
-				T.ok(d > 30, string.format("plots %d and %d overlap (%.1f)", i, j, d))
+				T.ok(d > 80, string.format("plots %d and %d overlap (%.1f)", i, j, d))
 			end
 			local road, _, dist = CityLayout.nearestRoad(a.cf.Position)
 			T.ok(road ~= nil and dist < 40, "plot " .. i .. " is far from any road")
@@ -315,7 +315,7 @@ return function(T)
 		T.ok(#bad == 0, #bad .. " parts lie on grass terrain, e.g. " .. tostring(bad[1]))
 		-- and the countryside and the park are still green
 		T.eq(Engine.terrainMaterialAt(Vector3.new(-860, TerrainB.groundHeight(-860, -1380) - 1, -1380)), "Grass", "a hill")
-		T.eq(Engine.terrainMaterialAt(Vector3.new(0, -1, 0)), "Pavement", "under the city: paved, never brown dirt")
+		T.eq(Engine.terrainMaterialAt(Vector3.new(0, -1, 0)), "Concrete", "under the city: paved with plain concrete, never brown dirt or cobbles")
 		local lawn = TerrainB.lawns()[1]
 		T.ok(lawn ~= nil, "a park lawn")
 	end)

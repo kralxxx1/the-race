@@ -41,7 +41,7 @@ local function plaza(parent, poi, rng)
 	local center = CFrame.new(c.X, WALK_Y, c.Z)
 	local marble = Color3.fromRGB(236, 232, 222)
 	-- patterned paving rings
-	B.cylY(m, center * CFrame.new(0, 0.05, 0), 0.1, 92, Color3.fromRGB(196, 176, 150), M.Cobblestone, nc({ CanCollide = true }))
+	B.cylY(m, center * CFrame.new(0, 0.05, 0), 0.1, 92, Color3.fromRGB(196, 176, 150), M.Concrete, nc({ CanCollide = true }))
 	B.cylY(m, center * CFrame.new(0, 0.08, 0), 0.1, 74, Color3.fromRGB(226, 220, 206), M.Marble, nc({ CanCollide = true }))
 	-- fountain ring around the clock tower
 	B.cylY(m, center * CFrame.new(0, 1, 0), 2, 46, marble, M.Marble)
@@ -172,8 +172,8 @@ local function university(parent, poi, rng)
 	end
 	-- the quad: lawn paths, trees, statue, fountain
 	local quad = CFrame.new(cx, WALK_Y, cz - 30)
-	B.box(m, quad * CFrame.new(0, 0.05, 0), Vector3.new(14, 0.1, 220), Color3.fromRGB(200, 190, 170), M.Pavement, nc({ CanCollide = true }))
-	B.box(m, quad * CFrame.new(0, 0.05, 0), Vector3.new(220, 0.1, 14), Color3.fromRGB(200, 190, 170), M.Pavement, nc({ CanCollide = true }))
+	B.box(m, quad * CFrame.new(0, 0.05, 0), Vector3.new(14, 0.1, 220), Color3.fromRGB(200, 190, 170), M.Concrete, nc({ CanCollide = true }))
+	B.box(m, quad * CFrame.new(0, 0.05, 0), Vector3.new(220, 0.1, 14), Color3.fromRGB(200, 190, 170), M.Concrete, nc({ CanCollide = true }))
 	B.cylY(m, quad * CFrame.new(0, 1.5, 0), 3, 8, Color3.fromRGB(200, 196, 190), M.Granite)
 	B.box(m, quad * CFrame.new(0, 6, 0), Vector3.new(2, 6, 2), Color3.fromRGB(110, 90, 60), M.Metal)
 	B.ball(m, quad * CFrame.new(0, 10, 0), 3, Color3.fromRGB(110, 90, 60), M.Metal)

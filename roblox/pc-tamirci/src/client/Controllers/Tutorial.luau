@@ -118,8 +118,12 @@ end
 local function watch()
 	local s = name()
 	if not s then
+		card.Visible = false
 		return
 	end
+	-- at the bench the Coach card does the talking, and a window (phone, shop...) covers the screen:
+	-- this card waits out of the way
+	card.Visible = not BenchController.active() and Kit.currentWindow() == nil
 	local elapsed = os.clock() - stepStarted
 	if s == "open" then
 		if State.data and State.data.opened then
@@ -134,6 +138,10 @@ local function watch()
 		Guide.point(myBench(), 6)
 	elseif s == "diagnose" or s == "finish" then
 		Guide.clear()
+		-- (the Coach guides the repair itself; a step nobody finishes does not hang around)
+		if elapsed > 150 and not BenchController.active() then
+			advance(step + 1)
+		end
 	elseif s == "parts" then
 		local poi = CityLayout.get().poiById.megastore
 		if poi then
@@ -168,12 +176,12 @@ function Tutorial.init()
 	Kit.outline(card, Theme.accent2, 2, 0)
 	Hud.register(card)
 	Kit.padding(card, 12)
-	title = Kit.label(card, "", { Size = UDim2.new(1, -70, 0, 18), TextSize = 13, FontFace = Theme.bold, TextColor3 = Theme.accent2 })
-	text = Kit.label(card, "", { Size = UDim2.new(1, -70, 0, 0), Position = UDim2.fromOffset(0, 22), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 17, FontFace = Theme.bold })
-	Kit.button(card, S.t("tut_skip"), function()
+	title = Kit.label(card, "", { Size = UDim2.new(1, -84, 0, 18), TextSize = 13, FontFace = Theme.bold, TextColor3 = Theme.accent2 })
+	text = Kit.label(card, "", { Size = UDim2.new(1, -84, 0, 0), Position = UDim2.fromOffset(0, 22), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 17, FontFace = Theme.bold })
+	Kit.button(card, S.t("tut_skip") .. " ✕", function()
 		advance(DONE)
 		MapController.clearRoute()
-	end, { Size = UDim2.fromOffset(60, 28), Position = UDim2.new(1, -60, 0, 0), TextSize = 13 }, "ghost")
+	end, { Size = UDim2.fromOffset(72, 28), Position = UDim2.new(1, -72, 0, 0), TextSize = 13 }, "ghost")
 
 	step = State.data and State.data.tutorial or 1
 	if step < 1 then

@@ -22,6 +22,7 @@ local Employees = require(Shared.Data.Employees)
 local DeviceGen = require(Shared.Repair.DeviceGen)
 
 local DataService = require(script.Parent.DataService)
+local MarketingService = require(script.Parent.MarketingService)
 local PlotService = require(script.Parent.PlotService)
 local RepairService = require(script.Parent.RepairService)
 local QuestService = require(script.Parent.QuestService)
@@ -144,14 +145,35 @@ end
 ----------------------------------------------------------------------------------------------------
 -- spawning and movement
 ----------------------------------------------------------------------------------------------------
-local function pickArchetype(level: number)
-	local pool = {}
-	for _, a in Customers.archetypes do
+-- Who comes through the door: weights by level, with big-spenders following the shop's fame and
+-- campaigns, and difficult customers coming more often while customers are unhappy.
+local function pickArchetype(level: number, player: Player?)
+	local bias = if player then MarketingService.richBias(player) else 1
+	local p = player and DataService.get(player)
+	local sat = (p and p.brand and p.brand.sat) or 70
+	local total, weights = 0, {}
+	for i, a in Customers.archetypes do
+		local w = 0
 		if (a.level or 1) <= level then
-			table.insert(pool, a)
+			w = a.weight or 1
+			if a.big then
+				w *= bias
+			end
+			if a.difficult and sat < 55 then
+				w *= 1 + (55 - sat) / 40
+			end
+		end
+		weights[i] = w
+		total += w
+	end
+	local r = rng:NextNumber() * total
+	for i, w in weights do
+		r -= w
+		if r <= 0 and w > 0 then
+			return Customers.archetypes[i]
 		end
 	end
-	return Rand.weighted(rng, pool)
+	return Customers.archetypes[1]
 end
 
 -- Comfort of the shop: its furniture and its staff (cleaner, tea maker, friendly faces).
@@ -283,7 +305,7 @@ local function spawnCustomer(player: Player)
 		return
 	end
 	local s = shopState(player)
-	local arch = pickArchetype(p.level)
+	local arch = pickArchetype(p.level, player)
 	nextId += 1
 	local name, gender = Customers.randomName(rng, arch.id == "tourist", arch.gender)
 	local cust = {
@@ -330,7 +352,9 @@ local function spawnCustomer(player: Player)
 	cust.model = NpcService.spawn({ look = arch.look, gender = gender, name = name, cf = start, tag = "Customer", speed = if arch.id == "hurry" then 14 else Rand.range(rng, 8.5, 11) })
 	cust.model:SetAttribute("CustomerId", cust.id)
 	cust.model:SetAttribute("Shop", player.UserId)
-	NpcService.tag(cust.model, name)
+	-- the name tag says what kind of customer this is (gold for the wealthy, red for the difficult)
+	local kindName = if cust.lang == "en" then arch.name.en else arch.name.tr
+	NpcService.tag(cust.model, string.format("%s • %s", name, kindName), if arch.big then Color3.fromRGB(255, 214, 90) elseif arch.difficult then Color3.fromRGB(255, 120, 110) else nil)
 	byId[cust.id] = cust
 	table.insert(s.list, cust)
 	total += 1
@@ -657,11 +681,13 @@ local function pay(player: Player, cust, job)
 			end)
 		end
 		DataService.review(player, stars, text, cust.name)
+		MarketingService.cheer(player, stars)
 		Net.push(player, "paid", { name = cust.name, price = pay, tip = tip, stars = stars, text = text, assisted = job.assist or 0 })
 	else
 		local text = say(cust, "notFixed", nil, 6)
 		DataService.rep(player, -4 * (1 + harsh))
 		DataService.review(player, 1, text, cust.name)
+		MarketingService.cheer(player, 1)
 		p.stats.failed += 1
 		Net.push(player, "paid", { name = cust.name, price = 0, tip = 0, stars = 1, text = text, failed = true, verdict = verdict })
 	end
@@ -825,7 +851,7 @@ local function tick()
 		local gated = (p.stats.repairs or 0) < Config.LearningRepairs - 1 and next(RepairService.jobs(player)) ~= nil
 		if p.opened ~= false and not gated and not player:GetAttribute("PowerCut") and now >= s.next and active < (lvl and lvl.queue or 2) + 1 and total < Config.MaxCustomersPerServer then
 			local attract = sumItems(player, "attract")
-			local speed = (1 + attract / 40 + (p.rep - 50) / 100 + (p.shop.level - 1) * 0.08) * (1 + Employees.effect(p.staff, "customers"))
+			local speed = (1 + attract / 40 + (p.rep - 50) / 100 + (p.shop.level - 1) * 0.08) * (1 + Employees.effect(p.staff, "customers")) * MarketingService.flow(player)
 			local interval = math.max(Config.CustomerSpawnMin, Config.CustomerSpawnBase / math.max(0.3, speed)) * Rand.range(rng, 0.7, 1.3) * difficultyOf(player).spawn
 			-- a newcomer gets time to learn: the first repairs come slowly
 			if (p.stats.repairs or 0) < Config.LearningRepairs then

@@ -89,12 +89,14 @@ CityLayout.Districts = {
 	YZL = { name = { tr = "Yazlıklar", en = "Beach Cottages" }, color = { 240, 214, 170 } },
 }
 
--- Blocks that hold player shop plots (6 per block = 66 plots)
+-- Blocks that hold player shop plots (2 per block, one on each side, each as wide as the block:
+-- 34 plots of about 190 x 84 studs)
 local PLOT_BLOCKS = {
 	{ 3, 9 }, { 3, 10 }, { 4, 9 }, { 4, 10 }, { 4, 11 }, { 5, 9 }, -- Tech Bazaar
 	{ 3, 7 }, { 5, 10 }, -- Downtown
 	{ 5, 6 }, -- Old Bazaar
 	{ 6, 10 }, { 7, 8 }, -- Seaside
+	{ 3, 12 }, { 5, 11 }, { 5, 13 }, { 6, 13 }, { 7, 13 }, { 8, 13 }, -- the former suburbs: shop rows
 }
 
 -- POI sites: { id, row, col, part }  part = "n" | "s" | "full" | "group"
@@ -333,10 +335,10 @@ function CityLayout.get()
 		local b = L.blockAt[rc[1] .. "_" .. rc[2]]
 		b.plots = {}
 		local margin = 4
-		local w = (b.x1 - b.x0 - margin * 2) / 3
+		local w = b.x1 - b.x0 - margin * 2
 		local depth = (b.z1 - b.z0 - 8) / 2
 		for side = 1, 2 do
-			for k = 1, 3 do
+			for k = 1, 1 do
 				local cx = b.x0 + margin + w * (k - 0.5)
 				local front, look
 				if side == 1 then

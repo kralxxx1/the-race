@@ -111,7 +111,6 @@ function Terrain.build()
 		terrain:SetMaterialColor(M.LeafyGrass, Color3.fromRGB(86, 128, 62))
 		terrain:SetMaterialColor(M.Sand, Color3.fromRGB(230, 212, 168))
 		terrain:SetMaterialColor(M.Ground, Color3.fromRGB(120, 100, 76))
-		terrain:SetMaterialColor(M.Pavement, Color3.fromRGB(158, 157, 152))
 		terrain:SetMaterialColor(M.Concrete, Color3.fromRGB(146, 147, 150))
 		terrain:SetMaterialColor(M.Rock, Color3.fromRGB(130, 126, 120))
 		terrain:SetMaterialColor(M.Mud, Color3.fromRGB(96, 80, 62))
@@ -133,7 +132,7 @@ function Terrain.build()
 	local landDepth = seaZ - b.minZ
 	terrain:FillBlock(CFrame.new(0, -6, b.minZ + landDepth / 2), Vector3.new(b.maxX - b.minX, 12, landDepth), M.Grass)
 	local u = Terrain.urbanRect()
-	terrain:FillBlock(CFrame.new((u.x0 + u.x1) / 2, -6, (u.z0 + u.z1) / 2), Vector3.new(u.x1 - u.x0, 12, u.z1 - u.z0), M.Pavement)
+	terrain:FillBlock(CFrame.new((u.x0 + u.x1) / 2, -6, (u.z0 + u.z1) / 2), Vector3.new(u.x1 - u.x0, 12, u.z1 - u.z0), M.Concrete)
 	for _, lawn in Terrain.lawns() do
 		terrain:FillBlock(CFrame.new((lawn.x0 + lawn.x1) / 2, -6, (lawn.z0 + lawn.z1) / 2), Vector3.new(lawn.x1 - lawn.x0, 12, lawn.z1 - lawn.z0), M.Grass)
 	end

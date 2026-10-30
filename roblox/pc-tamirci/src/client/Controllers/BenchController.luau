@@ -921,6 +921,8 @@ end
 
 -- A small name tag over every part of the device (and over the empty slots), so a newcomer can read
 -- what each thing is. Rebuilt whenever the device changes; positions follow the part models.
+local LABEL_RANK = { cpu = 1, gpu = 1, mobo = 1, ram = 1, psu = 1, storage = 2, cooler = 2, fan = 3 }
+
 local function refreshLabels()
 	local v, h = view(), handle()
 	clearLabels()
@@ -960,10 +962,58 @@ local function refreshLabels()
 			t.BackgroundTransparency = 0.35
 			t.BackgroundColor3 = Color3.fromRGB(16, 20, 30)
 			Kit.corner(t, UDim.new(0, 5))
-			labels[id] = { gui = g, anchor = a }
+			-- the big parts first; small ones (capacitors, screws' neighbours) only if there is room
+			labels[id] = { gui = g, anchor = a, rank = LABEL_RANK[tn.cat or ""] or (if tn.kind == "panel" then 2 else 4), width = 150 }
+			g.Size = UDim2.fromOffset(150, 22)
 		end
 	end
 	labelClock = 1
+end
+
+-- Tags that would sit on top of each other on screen: only the most important one stays. Runs a
+-- few times a second (the camera orbits, the parts move).
+local function declutterLabels()
+	local cam = Workspace.CurrentCamera
+	if not cam or not next(labels) then
+		return
+	end
+	local items = {}
+	for id, l in labels do
+		local ok, p, onScreen = pcall(function()
+			local sp, on = cam:WorldToViewportPoint(l.anchor.Position)
+			return sp, on
+		end)
+		if ok and p and onScreen then
+			table.insert(items, { id = id, l = l, x = p.X, y = p.Y, d = p.Z })
+		else
+			l.gui.Enabled = ok == false -- (no screen maths: leave them all on)
+		end
+	end
+	table.sort(items, function(a, b)
+		if a.l.rank ~= b.l.rank then
+			return a.l.rank < b.l.rank
+		end
+		return a.d < b.d
+	end)
+	local taken = {}
+	local shown = 0
+	for _, it in items do
+		local w, h = it.l.width + 8, 26
+		local ok = shown < 9
+		if ok then
+			for _, r in taken do
+				if math.abs(it.x - r.x) < (w + r.w) / 2 and math.abs(it.y - r.y) < (h + r.h) / 2 then
+					ok = false
+					break
+				end
+			end
+		end
+		it.l.gui.Enabled = ok
+		if ok then
+			shown += 1
+			table.insert(taken, { x = it.x, y = it.y, w = w, h = h })
+		end
+	end
 end
 
 local function placeLabels()
@@ -1000,6 +1050,7 @@ local function updateCamera(dt: number?)
 		if labelClock > 0.2 or h:busy() then
 			labelClock = 0
 			placeLabels()
+			declutterLabels()
 		end
 	end
 end

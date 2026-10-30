@@ -70,6 +70,7 @@ local function defaults()
 		last = 0,
 		daily = { day = 0, streak = 0 },
 		quests = { day = 0, list = {} },
+		brand = { fame = 5, sat = 70, ads = {} }, -- brand awareness, customer satisfaction, running campaigns
 		settings = {
 			master = 1,
 			music = 0.5,

@@ -474,7 +474,7 @@ function Buildings.house(parent: Instance, cf: CFrame, lotW: number, lotD: numbe
 	B.wedge(m, hc * CFrame.new(0, ry, d * 0.75) * CFrame.Angles(0, math.pi, 0), Vector3.new(w + 2, rh, d / 2 + 1.2), roofCol, M.ClayRoofTiles)
 	B.box(m, hc * CFrame.new(w * 0.25, H + rh + 1, d * 0.6), Vector3.new(2.2, 5, 2.2), Color3.fromRGB(150, 80, 60), M.Brick)
 	-- garden: fence, driveway, tree, mailbox, flowers
-	B.box(m, cf * CFrame.new(lotW / 2 - 5, 0.42, setback / 2 + 4), Vector3.new(6, 0.1, setback + 8), Color3.fromRGB(150, 146, 140), M.Pavement, nc({ CanCollide = true }))
+	B.box(m, cf * CFrame.new(lotW / 2 - 5, 0.42, setback / 2 + 4), Vector3.new(6, 0.1, setback + 8), Color3.fromRGB(150, 146, 140), M.Concrete, nc({ CanCollide = true }))
 	Props.fence(m, (cf * CFrame.new(-lotW / 2 + 1, 0.4, 1.5)).Position, (cf * CFrame.new(lotW / 2 - 8.5, 0.4, 1.5)).Position, Rand.pick(rng, { "wood", "hedge", "metal", "wall" }), 3)
 	Props.tree(m, cf * CFrame.new(-lotW / 2 + 6, 0.4, setback * 0.5), Rand.pick(rng, { "oak", "oak", "birch", "cypress", "pine" }), rng)
 	if rng:NextNumber() < 0.6 then

@@ -23,12 +23,12 @@ local function N(tr, en)
 end
 
 Upgrades.levels = {
-	{ level = 1, name = N("Küçük Dükkân", "Small Shop"), cost = 0, req = 1, w = 28, d = 30, benches = 1, queue = 2, seats = 2, staff = 2, storage = 40 },
-	{ level = 2, name = N("Esnaf Dükkânı", "Local Shop"), cost = 4000, req = 3, w = 34, d = 36, benches = 2, queue = 3, seats = 3, staff = 3, storage = 80 },
-	{ level = 3, name = N("Servis Merkezi", "Service Centre"), cost = 15000, req = 6, w = 42, d = 42, benches = 3, queue = 4, seats = 4, staff = 5, storage = 150 },
-	{ level = 4, name = N("Büyük Servis", "Big Service Centre"), cost = 45000, req = 10, w = 48, d = 50, benches = 4, queue = 5, seats = 6, staff = 7, storage = 250 },
-	{ level = 5, name = N("Teknoloji Mağazası", "Tech Store"), cost = 120000, req = 15, w = 54, d = 56, benches = 6, queue = 6, seats = 8, staff = 10, storage = 400 },
-	{ level = 6, name = N("Mega Teknoloji Merkezi", "Mega Tech Centre"), cost = 350000, req = 22, w = 56, d = 60, benches = 8, queue = 8, seats = 10, staff = 14, storage = 700, floors = 2 },
+	{ level = 1, name = N("Küçük Dükkân", "Small Shop"), cost = 0, req = 1, w = 56, d = 42, benches = 1, queue = 2, seats = 2, staff = 2, storage = 40 },
+	{ level = 2, name = N("Esnaf Dükkânı", "Local Shop"), cost = 4000, req = 3, w = 68, d = 50, benches = 2, queue = 3, seats = 3, staff = 3, storage = 80 },
+	{ level = 3, name = N("Servis Merkezi", "Service Centre"), cost = 15000, req = 6, w = 84, d = 58, benches = 3, queue = 4, seats = 4, staff = 5, storage = 150 },
+	{ level = 4, name = N("Büyük Servis", "Big Service Centre"), cost = 45000, req = 10, w = 96, d = 66, benches = 4, queue = 5, seats = 6, staff = 7, storage = 250 },
+	{ level = 5, name = N("Teknoloji Mağazası", "Tech Store"), cost = 120000, req = 15, w = 108, d = 70, benches = 6, queue = 6, seats = 8, staff = 10, storage = 400 },
+	{ level = 6, name = N("Mega Teknoloji Merkezi", "Mega Tech Centre"), cost = 350000, req = 22, w = 112, d = 72, benches = 8, queue = 8, seats = 10, staff = 14, storage = 700, floors = 2 },
 }
 
 Upgrades.items = {

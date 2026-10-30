@@ -23,6 +23,8 @@ end
 return function(T)
 	Engine.context = "server"
 	local game = Engine.load("build/PCTamirci.rbxlx")
+	-- (the people of the city walk ten times as fast: a test should not wait for a stroll)
+	Engine.mod("ReplicatedStorage.Shared.Config").NpcSpeedScale = 10
 	local pps = game:GetService("ProximityPromptService")
 	local CS = game:GetService("CollectionService")
 	local player

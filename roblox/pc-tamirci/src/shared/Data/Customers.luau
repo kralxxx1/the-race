@@ -43,7 +43,7 @@ Customers.archetypes = {
 		},
 	},
 	{
-		id = "streamer", weight = 4, level = 4, name = { tr = "Yayıncı", en = "Streamer" },
+		id = "streamer", big = true, weight = 4, level = 4, name = { tr = "Yayıncı", en = "Streamer" },
 		device = { laptopChance = 0.1, tiers = { "high", "enthusiast" }, classes = { "gaming17" } },
 		budget = 1.6, patience = 0.6, haggle = 0.1, tip = 0.55, harsh = 0.6, look = "streamer", extraFaultChance = 0.25,
 		lines = {
@@ -95,7 +95,7 @@ Customers.archetypes = {
 		},
 	},
 	{
-		id = "business", weight = 7, level = 2, name = { tr = "İş İnsanı", en = "Businessperson" },
+		id = "business", big = true, weight = 7, level = 2, name = { tr = "İş İnsanı", en = "Businessperson" },
 		device = { laptopChance = 0.8, tiers = { "mid", "high", "office" }, classes = { "business14", "ultra14" } },
 		budget = 1.45, patience = 0.6, haggle = 0.1, tip = 0.35, harsh = 0.6, look = "business",
 		lines = {
@@ -147,7 +147,7 @@ Customers.archetypes = {
 		},
 	},
 	{
-		id = "annoying", weight = 9, level = 1, name = { tr = "Gıcık Müşteri", en = "Annoying Customer" },
+		id = "annoying", difficult = true, weight = 9, level = 1, name = { tr = "Gıcık Müşteri", en = "Annoying Customer" },
 		device = { laptopChance = 0.45, tiers = { "budget", "mid", "office" }, classes = { "budget15", "gaming15" } },
 		budget = 0.85, patience = 0.55, haggle = 0.85, tip = 0.02, harsh = 0.9, look = "annoying", nag = 14, extraFaultChance = 0.2,
 		lines = {
@@ -160,7 +160,7 @@ Customers.archetypes = {
 		},
 	},
 	{
-		id = "knowitall", weight = 7, level = 1, name = { tr = "Ukala Bilgiç", en = "Know-it-all" },
+		id = "knowitall", difficult = true, weight = 7, level = 1, name = { tr = "Ukala Bilgiç", en = "Know-it-all" },
 		device = { laptopChance = 0.35, tiers = { "mid", "budget", "high" }, classes = { "gaming15", "budget15" } },
 		budget = 0.95, patience = 0.85, haggle = 0.5, tip = 0.1, harsh = 0.7, look = "knowitall", nag = 22,
 		lines = {
@@ -199,7 +199,7 @@ Customers.archetypes = {
 		},
 	},
 	{
-		id = "cheapskate", weight = 7, level = 1, name = { tr = "Cimri", en = "Cheapskate" },
+		id = "cheapskate", difficult = true, weight = 7, level = 1, name = { tr = "Cimri", en = "Cheapskate" },
 		device = { laptopChance = 0.4, tiers = { "retro", "office", "budget" }, classes = { "budget15" } },
 		budget = 0.6, patience = 1.1, haggle = 0.95, tip = 0, harsh = 0.5, look = "cheap", acceptsUsed = true,
 		lines = {
@@ -212,7 +212,7 @@ Customers.archetypes = {
 		},
 	},
 	{
-		id = "rich", weight = 4, level = 3, name = { tr = "Zengin", en = "Wealthy" },
+		id = "rich", big = true, weight = 6, level = 3, name = { tr = "Zengin", en = "Wealthy" },
 		device = { laptopChance = 0.4, tiers = { "enthusiast", "high" }, classes = { "gaming17", "ultra14" } },
 		budget = 2.2, patience = 0.8, haggle = 0, tip = 0.7, harsh = 0.45, look = "rich", builds = true, requestChance = 0.35,
 		lines = {
@@ -225,7 +225,7 @@ Customers.archetypes = {
 		},
 	},
 	{
-		id = "influencer", weight = 3, level = 4, name = { tr = "Fenomen", en = "Influencer" },
+		id = "influencer", big = true, weight = 3, level = 4, name = { tr = "Fenomen", en = "Influencer" },
 		device = { laptopChance = 0.6, tiers = { "high", "mid" }, classes = { "ultra14", "gaming15" } },
 		budget = 1.3, patience = 0.75, haggle = 0.2, tip = 0.35, harsh = 0.65, look = "influencer", viral = true,
 		lines = {
@@ -342,7 +342,7 @@ Customers.archetypes = {
 		},
 	},
 	{
-		id = "esports", weight = 3, level = 5, name = { tr = "E-sporcu", en = "Esports Pro" },
+		id = "esports", big = true, weight = 3, level = 5, name = { tr = "E-sporcu", en = "Esports Pro" },
 		device = { laptopChance = 0.2, tiers = { "enthusiast", "high" }, classes = { "gaming17" } },
 		budget = 1.7, patience = 0.6, haggle = 0.15, tip = 0.45, harsh = 0.75, look = "gamer", builds = true, extraFaultChance = 0.2,
 		lines = {
@@ -365,6 +365,50 @@ Customers.archetypes = {
 			nag = L({ "Soundcheck yaklaşıyor.", "Şu ritim bitene kadar biter mi?" }, { "Soundcheck is close.", "Done by the end of this beat?" }),
 			happy = L({ "Sessiz ve hızlı, tam istediğim gibi!", "Konsere davetlisin!" }, { "Quiet and fast, exactly what I wanted!", "You're invited to the gig!" }),
 			angry = L({ "Soundcheck'i kaçırdım." }, { "I missed soundcheck." }),
+		},
+	},
+	{
+		id = "vip", big = true, weight = 3, level = 6, name = { tr = "VIP Müşteri", en = "VIP Client" },
+		device = { laptopChance = 0.3, tiers = { "enthusiast", "high" }, classes = { "gaming17", "ultra14" } },
+		budget = 2.8, patience = 0.45, haggle = 0, tip = 0.75, harsh = 0.85, look = "business", builds = true, requestChance = 0.4, extraFaultChance = 0.15,
+		lines = {
+			greet = L({ "Asistanım sizi önerdi. Hızlı ve kusursuz olsun.", "Bu cihaz yönetim kurulu sunumu için, hata kabul etmem." }, { "My assistant recommended you. Fast and flawless, please.", "This machine is for a board presentation. No mistakes." }),
+			nag = L({ "Zamanım çok değerli.", "Toplantıya geç kalıyorum." }, { "My time is very valuable.", "I'm going to be late for a meeting." }),
+			happy = L({ "Kusursuz. Üstü kalsın, kartvizitinizi alayım.", "Şirketle çalışmak ister misiniz?" }, { "Flawless. Keep the change, and give me your card.", "Would you like to work with my company?" }),
+			angry = L({ "Avukatım sizi arayacak." }, { "My lawyer will be calling you." }),
+		},
+	},
+	{
+		id = "demanding", difficult = true, weight = 8, level = 2, name = { tr = "Hak Arayan Müşteri", en = "Demanding Customer" }, gender = "f",
+		device = { laptopChance = 0.5, tiers = { "mid", "office", "budget" }, classes = { "budget15", "business14" } },
+		budget = 0.9, patience = 0.6, haggle = 0.7, tip = 0.03, harsh = 0.95, look = "casual", nag = 20, extraFaultChance = 0.2,
+		lines = {
+			greet = L({ "Yöneticinizle konuşmak istiyorum, bu cihaz garantideydi!", "Daha önce başka yerde de baktırdım ama beceremediler." }, { "I want to speak to the manager — this was under warranty!", "I took it somewhere else first, and they made it worse." }),
+			nag = L({ "Bu kadar uzun sürmemeli.", "Mağazanın puanını değerlendireceğim." }, { "This shouldn't take so long.", "I'll be rating your shop, you know." }),
+			happy = L({ "İdare eder. Yine de fiyat yüksek.", "Tamam, bu sefer şikâyet etmeyeceğim." }, { "It'll do. The price is still high.", "Fine, I won't complain this time." }),
+			angry = L({ "Şikâyet formunu istiyorum!" }, { "Give me the complaints form!" }),
+		},
+	},
+	{
+		id = "regular", weight = 6, level = 2, name = { tr = "Müdavim Müşteri", en = "Loyal Regular" },
+		device = { laptopChance = 0.4, tiers = { "budget", "mid", "office" }, classes = { "budget15", "business14" } },
+		budget = 1.1, patience = 1.6, haggle = 0.05, tip = 0.45, harsh = 0.12, look = "casual",
+		lines = {
+			greet = L({ "Yine ben! Sizden başkasına güvenmem.", "Geçen sefer çok memnun kalmıştım, yine buradayım." }, { "It's me again! I wouldn't trust anyone else.", "I was so happy last time, so I'm back." }),
+			nag = L({ "Acelem yok, bekleyebilirim.", "Çay içerken bekliyorum." }, { "No rush, I can wait.", "I'll wait with a cup of tea." }),
+			happy = L({ "Her zamanki gibi harika! Arkadaşlarıma söylerim.", "Müdavimi olduğuma değer." }, { "Wonderful, as always! I'll tell my friends.", "Being a regular here is worth it." }),
+			angry = L({ "Yazık... sizden bunu beklemezdim." }, { "What a shame... I didn't expect this from you." }),
+		},
+	},
+	{
+		id = "tycoon", big = true, weight = 2, level = 9, name = { tr = "Şirket Sahibi", en = "Company Owner" },
+		device = { laptopChance = 0.2, tiers = { "enthusiast", "high" }, classes = { "gaming17", "business14" } },
+		budget = 3.2, patience = 0.5, haggle = 0.05, tip = 0.8, harsh = 0.8, look = "business", builds = true, requestChance = 0.5,
+		lines = {
+			greet = L({ "Şirketin sunucuları bile bu kadar önemli değil. İşimi halledin.", "Fiyat sorun değil, yeter ki bugün biter." }, { "Even the company servers aren't this important. Handle it.", "Price is no object, as long as it's done today." }),
+			nag = L({ "Saniyeler para demek.", "Yönetim kurulu bekliyor." }, { "Seconds are money.", "The board is waiting." }),
+			happy = L({ "Mükemmel. Size yıllık bakım sözleşmesi öneririm.", "Çok iyi. Bir ödül hak ettiniz." }, { "Excellent. I'd like to offer you a yearly maintenance contract.", "Very good. You deserve a bonus." }),
+			angry = L({ "Bunu unutmayacağım." }, { "I won't forget this." }),
 		},
 	},
 }

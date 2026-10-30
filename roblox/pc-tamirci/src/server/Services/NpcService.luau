@@ -6,11 +6,13 @@
 -- A pool of street avatars goes to ReplicatedStorage.Avatars for the clients' pedestrians.
 
 local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
 local Workspace = game:GetService("Workspace")
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
 local B = require(Shared.Util.Builder)
 local Rand = require(Shared.Util.Rand)
 local Avatars = require(Shared.Data.Avatars)
@@ -490,6 +492,7 @@ function NpcService.spawn(opts: { [string]: any }): Model
 		model:AddTag(opts.tag)
 	end
 	model:SetAttribute("Npc", true)
+	model:AddTag("NpcModel")
 	model:SetAttribute("Gender", gender)
 	model.Parent = opts.parent or folder
 	pcall(function()
@@ -623,44 +626,92 @@ function NpcService.emote(model: Model?, name: string, seconds: number?)
 end
 
 -- Walks to a position; yields until arrived or timeout. Teleports the last bit if stuck.
+-- People walk by being moved along their path in small steps, snapped to the ground under them,
+-- instead of through the physics engine: they never get stuck on a kerb, a chair leg or a door
+-- frame, never fall through a gap and never slide off a slope. (Anchored all the way, so a crowd
+-- costs the server next to nothing.)
+local groundParams = RaycastParams.new()
+groundParams.FilterType = Enum.RaycastFilterType.Exclude
+groundParams.RespectCanCollide = true
+groundParams.IgnoreWater = true
+local ignoreList: { Instance } = {}
+local ignoreStamp = 0
+
+local function refreshIgnore()
+	local now = os.clock()
+	if now - ignoreStamp < 1 then
+		return
+	end
+	ignoreStamp = now
+	table.clear(ignoreList)
+	for _, m in CollectionService:GetTagged("NpcModel") do
+		table.insert(ignoreList, m)
+	end
+	for _, pl in Players:GetPlayers() do
+		if pl.Character then
+			table.insert(ignoreList, pl.Character)
+		end
+	end
+	groundParams.FilterDescendantsInstances = ignoreList
+end
+
+-- Height of the walkable surface under (x, z), looking down from just above `fromY`.
+local function groundAt(x: number, fromY: number, z: number): number?
+	refreshIgnore()
+	local hit = Workspace:Raycast(Vector3.new(x, fromY + 1.5, z), Vector3.new(0, -16, 0), groundParams)
+	return hit and hit.Position.Y or nil
+end
+
+local WALK_STEP = 0.05
+
 function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: boolean?): boolean
 	local hum = model:FindFirstChildOfClass("Humanoid")
 	local root = model.PrimaryPart
 	if not hum or not root or not model.Parent then
 		return false
 	end
-	setAnchored(model, false)
 	if hum.SeatPart then
 		hum.Sit = false
-		hum.Jump = true
 		task.wait(0.2)
 	end
+	setAnchored(model, true)
+	local speed = math.max(4, hum.WalkSpeed) * (Config.NpcSpeedScale or 1)
 	NpcService.play(model, if run then "run" else "walk", if run then 1 else hum.WalkSpeed / 12)
-	local limit = timeout or ((root.Position - pos).Magnitude / math.max(4, hum.WalkSpeed) + 3)
-	local done = false
-	local reached = false
-	local conn = hum.MoveToFinished:Connect(function(r)
-		done = true
-		reached = r
-	end)
-	hum:MoveTo(pos)
-	local t0 = os.clock()
-	while not done and os.clock() - t0 < limit and model.Parent do
-		task.wait(0.1)
-		-- MoveTo expires after 8 s; keep nudging
-		if not done and os.clock() - t0 > 7 then
-			hum:MoveTo(pos)
+	local start = root.Position
+	local flat = Vector3.new(pos.X - start.X, 0, pos.Z - start.Z)
+	local dist = flat.Magnitude
+	local dir = if dist > 0.01 then flat / dist else root.CFrame.LookVector
+	local hip = hum.HipHeight + root.Size.Y / 2
+	local limit = timeout or (dist / speed + 4)
+	local travelled, y = 0, start.Y
+	local targetY, nextSample = y, 0
+	local t0, last = os.clock(), os.clock()
+	while travelled < dist and model.Parent and os.clock() - t0 < limit do
+		task.wait(WALK_STEP)
+		local now = os.clock()
+		local dt = math.min(now - last, 0.25)
+		travelled = math.min(dist, travelled + speed * dt)
+		last = now
+		local x, z = start.X + dir.X * travelled, start.Z + dir.Z * travelled
+		-- the ground is looked at every few studs, not every step; in between the height eases over
+		if travelled >= nextSample then
+			local g = groundAt(x, y, z)
+			if g then
+				targetY = g + hip
+			end
+			nextSample = travelled + 3
 		end
+		y += (targetY - y) * math.min(1, dt * 14)
+		model:PivotTo(CFrame.lookAt(Vector3.new(x, y, z), Vector3.new(x + dir.X, y, z + dir.Z)))
 	end
-	conn:Disconnect()
-	if model.Parent and (root.Position - pos).Magnitude > 3 then
-		model:PivotTo(CFrame.new(pos + Vector3.new(0, hum.HipHeight + root.Size.Y / 2, 0)) * root.CFrame.Rotation)
-	end
+	local reached = travelled >= dist - 0.01
 	if model.Parent then
-		NpcService.play(model, "idle")
-		if not hum.SeatPart then
-			setAnchored(model, true)
+		if not reached then
+			-- ran out of time: stand at the target anyway
+			local g = groundAt(pos.X, math.max(y, pos.Y), pos.Z)
+			model:PivotTo(CFrame.new(pos.X, (g or pos.Y) + hip, pos.Z) * root.CFrame.Rotation)
 		end
+		NpcService.play(model, "idle")
 	end
 	return reached
 end

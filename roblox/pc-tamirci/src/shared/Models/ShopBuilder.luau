@@ -16,7 +16,7 @@ local ShopBuilder = {}
 local M = Enum.Material
 
 local SETBACK = 7
-local WALL_H = 16
+local WALL_H = 28
 
 local function nc(extra)
 	local t = { CanCollide = false, CanTouch = false }
@@ -202,7 +202,7 @@ end
 -- Empty plot available for rent.
 function ShopBuilder.emptyLot(parent: Instance, cf: CFrame, plotW: number, plotD: number, plotId: number): Model
 	local m = B.model("Plot_" .. plotId .. "_Empty", parent)
-	B.box(m, cf * CFrame.new(0, 0.06, plotD / 2), Vector3.new(plotW - 2, 0.12, plotD - 2), Color3.fromRGB(150, 140, 126), M.Pebble, { Name = "LotGround" })
+	B.box(m, cf * CFrame.new(0, 0.06, plotD / 2), Vector3.new(plotW - 2, 0.12, plotD - 2), Color3.fromRGB(150, 140, 126), M.Concrete, { Name = "LotGround" })
 	-- construction hoarding along the front with a gap
 	local hoard = Color3.fromRGB(230, 230, 226)
 	B.box(m, cf * CFrame.new(-plotW / 4 - 4, 3, 2), Vector3.new(plotW / 2 - 10, 6, 0.4), hoard, M.SmoothPlastic)
@@ -239,7 +239,10 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	local accent = Color3.fromRGB(accentRGB[1], accentRGB[2], accentRGB[3])
 	local plotW, plotD = opts.plotWidth or 62, opts.plotDepth or 84
 	local W, D = L.w, L.d
-	local H = if (L.floors or 1) > 1 then 26 else WALL_H
+	-- the shop stands in the middle of a much wider lot: the things that belong beside it (sign
+	-- pylon, bench, parking) keep close to the building, not out at the edge of the lot
+	local halfLot = math.min(plotW / 2, W / 2 + 24)
+	local H = if (L.floors or 1) > 1 then 46 else WALL_H
 
 	local shop = B.model("Shop", parent)
 	shop:SetAttribute("Level", level)
@@ -255,7 +258,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	end
 
 	-- forecourt and lot
-	B.box(shop, cf * CFrame.new(0, 0.06, SETBACK / 2), Vector3.new(plotW - 2, 0.12, SETBACK), Color3.fromRGB(200, 196, 188), M.Pavement)
+	B.box(shop, cf * CFrame.new(0, 0.06, SETBACK / 2), Vector3.new(plotW - 2, 0.12, SETBACK), Color3.fromRGB(200, 196, 188), M.Concrete)
 	B.box(shop, cf * CFrame.new(0, 0.06, SETBACK + D + (plotD - SETBACK - D) / 2), Vector3.new(plotW - 2, 0.12, math.max(1, plotD - SETBACK - D - 1)), Color3.fromRGB(110, 150, 80), M.Grass)
 	local front = cf * CFrame.new(0, 0.12, SETBACK)
 
@@ -745,8 +748,8 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	-- everything else from the catalogue: wall, floor, ceiling, counter, bench shelf, forecourt, roof,
 	-- window (Models/ShopExtras)
 	local outsideA, outsideB = {}, {}
-	table.insert(outsideB, { plotW / 2 - 7.4, plotW / 2 - 0.6 }) -- the pylon sign
-	table.insert(outsideB, { -plotW / 2 + 3, -plotW / 2 + 9 }) -- the bench
+	table.insert(outsideB, { halfLot - 7.4, halfLot - 0.6 }) -- the pylon sign
+	table.insert(outsideB, { -halfLot + 3, -halfLot + 9 }) -- the bench
 	if items.plants then
 		for side = -1, 1, 2 do
 			local iv = { side * (W / 2 - 2) - 1.8, side * (W / 2 - 2) + 1.8 }
@@ -763,12 +766,12 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		shop = shop, plan = plan, walls = walls, wallItem = wallItem, at = at, facing = facing, local2 = local2,
 		front = front, cf = cf, W = W, D = D, H = H, inner = inner, fz = fz,
 		counterCf = counterCf, counterW = counterW, benches = benchList, accent = accent, rng = rng, items = items,
-		level = level, plotW = plotW, setback = SETBACK, points = points, highClaims = highClaims,
+		level = level, plotW = halfLot * 2, setback = SETBACK, points = points, highClaims = highClaims,
 		outside = { A = outsideA, B = outsideB }, roof = roofClaims, name = opts.name, plotId = opts.plotId,
 	})
-	point("ThiefExit", cf * CFrame.new(if rng:NextNumber() < 0.5 then -plotW / 2 - 20 else plotW / 2 + 20, 0.5, -10))
+	point("ThiefExit", cf * CFrame.new(if rng:NextNumber() < 0.5 then -halfLot - 20 else halfLot + 20, 0.5, -10))
 	-- outside: pylon sign, bench, parking marker
-	local pylon = cf * CFrame.new(plotW / 2 - 4, 0.12, 2)
+	local pylon = cf * CFrame.new(halfLot - 4, 0.12, 2)
 	B.box(shop, pylon * CFrame.new(0, 5, 0), Vector3.new(0.6, 10, 0.6), Color3.fromRGB(60, 60, 64), M.Metal)
 	local pylonSign = B.box(shop, pylon * CFrame.new(0, 10.5, 0), Vector3.new(6, 4, 0.8), accent, if items.neon then M.Neon else M.SmoothPlastic)
 	B.sign(pylonSign, Enum.NormalId.Front, "🔧 " .. (opts.name or "Repair"), { color = Color3.new(1, 1, 1), glow = true })
@@ -777,17 +780,17 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		local lb = B.box(shop, front * CFrame.new(0, H + 5.6, -0.2), Vector3.new(math.min(W - 4, 30), 3, 1), Color3.fromRGB(250, 250, 250), M.SmoothPlastic)
 		B.sign(lb, Enum.NormalId.Front, "COMPUTERS • LAPTOPS • REPAIR", { color = accent, glow = true, brightness = 1.6 })
 	end
-	Props.bench(shop, cf * CFrame.new(-plotW / 2 + 6, 0.12, 2) * CFrame.Angles(0, 0, 0))
-	point("Parking", cf * CFrame.new(-plotW / 4, 0.5, -16) * CFrame.Angles(0, math.pi / 2, 0), { Parking = true })
+	Props.bench(shop, cf * CFrame.new(-halfLot + 6, 0.12, 2) * CFrame.Angles(0, 0, 0))
+	point("Parking", cf * CFrame.new(-halfLot / 2, 0.5, -16) * CFrame.Angles(0, math.pi / 2, 0), { Parking = true })
 	if items.parking then
 		for k = 0, 1 do
-			B.box(shop, cf * CFrame.new(-plotW / 4 - 10 + k * 20, 0.12, -16), Vector3.new(0.4, 0.04, 9), Color3.new(1, 1, 1), M.SmoothPlastic, nc())
+			B.box(shop, cf * CFrame.new(-halfLot / 2 - 10 + k * 20, 0.12, -16), Vector3.new(0.4, 0.04, 9), Color3.new(1, 1, 1), M.SmoothPlastic, nc())
 		end
 	end
 	if opts.owner then
 		-- the owner's nameplate stuck on the shop window
 		local ownerTag = B.box(shop, front * CFrame.new(-W / 2 + 4, 6, 0.25), Vector3.new(5, 1.2, 0.2), Color3.fromRGB(240, 240, 236), M.SmoothPlastic, nc())
-		B.sign(ownerTag, Enum.NormalId.Front, "Sahibi: " .. opts.owner, { color = Color3.fromRGB(30, 30, 30), font = B.Fonts.Medium })
+		B.sign(ownerTag, Enum.NormalId.Front, "Owner: " .. opts.owner, { color = Color3.fromRGB(30, 30, 30), font = B.Fonts.Medium })
 	end
 	B.tag(shop, "PlayerShop")
 	return shop, { front = front, counter = counterCf, width = W, depth = D, height = H }

@@ -8,6 +8,8 @@ local task = require("@lune/task")
 return function(T)
 	Engine.context = "server"
 	local game = Engine.load("build/PCTamirci.rbxlx")
+	-- (the people of the city walk ten times as fast: a test should not wait for a stroll)
+	Engine.mod("ReplicatedStorage.Shared.Config").NpcSpeedScale = 10
 	local pushes = {}
 	Engine.onFireClient = function(_, player, channel, data)
 		table.insert(pushes, { player = player, channel = channel, data = data })
@@ -271,6 +273,49 @@ return function(T)
 		local paid = request("repair.hint", { level = 3 })
 		T.ok(not paid.learning and paid.assist == 1 and job.assist == 1, "a step hint is counted")
 		request("bench.unload")
+	end)
+
+	T.test("marketing: campaigns bring customers and fame, satisfaction follows the stars, new customer types", function()
+		local Marketing = Engine.mod("ReplicatedStorage.Shared.Data.Marketing")
+		local Customers = Engine.mod("ReplicatedStorage.Shared.Data.Customers")
+		local MarketingService = Engine.require(Services.MarketingService)
+		local p = DataService.get(player)
+		p.level, p.money = 14, 200000
+		p.brand = { fame = 5, sat = 70, ads = {} }
+		local before = MarketingService.flow(player)
+		local bias = MarketingService.richBias(player)
+		local r = rf.OnServerInvoke(player, "marketing.buy", { id = "flyers" })
+		T.ok(r.ok, "flyers bought")
+		T.ok(MarketingService.flow(player) > before, "more customers")
+		T.ok(p.brand.fame > 5, "awareness grows")
+		T.eq(rf.OnServerInvoke(player, "marketing.buy", { id = "flyers" }).err, "already_running", "one at a time")
+		T.ok(rf.OnServerInvoke(player, "marketing.buy", { id = "tv" }).ok, "tv commercial")
+		T.ok(MarketingService.richBias(player) > bias, "richer people come")
+		p.level = 1
+		T.eq(rf.OnServerInvoke(player, "marketing.buy", { id = "sponsor" }).err, "level", "too early")
+		T.eq(rf.OnServerInvoke(player, "marketing.buy", { id = "nonsense" }).err, "bad_request", "unknown campaign")
+		p.level, p.money = 14, 10
+		T.eq(rf.OnServerInvoke(player, "marketing.buy", { id = "sponsor" }).err, "money", "no money")
+		-- a campaign that ran out stops counting
+		p.brand.ads.flyers = os.time() - 5
+		T.ok(Marketing.active(p.brand, os.time()).flyers == nil, "expired")
+		-- stars move satisfaction
+		p.brand.sat = 70
+		MarketingService.cheer(player, 1)
+		T.ok(p.brand.sat < 70, "a bad review hurts")
+		for _ = 1, 40 do
+			MarketingService.cheer(player, 5)
+		end
+		T.ok(p.brand.sat > 90, "good work wins them back")
+		-- the cast of customers has the rich, the demanding and the difficult
+		local ids = {}
+		for _, a in Customers.archetypes do
+			ids[a.id] = a
+		end
+		for _, id in { "rich", "vip", "tycoon", "annoying", "demanding", "regular" } do
+			T.ok(ids[id] ~= nil, "customer type " .. id)
+		end
+		T.ok(ids.vip.budget > ids.rich.budget and ids.demanding.harsh > 0.9, "vip pays more, the demanding rate harshly")
 	end)
 
 	T.test("business: daily tasks progress and pay out once", function()
