@@ -212,7 +212,7 @@ elseif what == "shop" then
 			items[id] = true
 		end
 	end
-	local shopModel = ShopBuilder.build(folder, front, { level = level, name = "Kral Bilgisayar", wall = "brick", floor = "parquet", accent = 1, items = items, plotWidth = 62, plotDepth = 84, plotId = 12 })
+	local shopModel = ShopBuilder.build(folder, front, { level = level, name = "Pixel PC Repair", wall = "brick", floor = "parquet", accent = 1, items = items, plotWidth = 62, plotDepth = 84, plotId = 12 })
 	if process.args[3] == "showcase" then
 		-- the same placement ShowcaseService uses
 		local DeviceGen = Engine.mod("ReplicatedStorage.Shared.Repair.DeviceGen")

@@ -434,6 +434,11 @@ return function(T)
 		end
 		local first = if v.kind == "desktop" then "sp_s1" else nil
 		if first then
+			-- (the view is rebuilt when the server pushes a bench change: wait for it to be back)
+			local back = pcall(waitFor, function()
+				return Bench.active() and Bench._view()
+			end, 3, "the bench view")
+			T.ok(back, string.format("the bench view is gone (active %s, handle %s, session %s, job %s)", tostring(Bench.active()), tostring(Views.handle(benchModel) ~= nil), tostring(RepairService.session(player) ~= nil), tostring(PlotService.shopOf(player) and RepairService.benchJob(player, 1) ~= nil)))
 			-- the screw whirs while it's held, and stops with it (the engine's hold loop doesn't
 			-- yield, so listen through App.loop)
 			local App = cmod("UI.App")

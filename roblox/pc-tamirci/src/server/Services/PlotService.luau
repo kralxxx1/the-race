@@ -47,7 +47,7 @@ local function shopName(player: Player, p): string
 	if p.shop.name and #p.shop.name > 0 then
 		return p.shop.name
 	end
-	return player.DisplayName .. " Bilgisayar"
+	return player.DisplayName .. "'s PC Repair"
 end
 
 -- A new shop opens with a ceremony: a red ribbon on two posts across the doorway, a "grand
