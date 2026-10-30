@@ -140,6 +140,13 @@ Hud.toast("🎉 Level up! Level 7", "good")
 Hud.toast("🏢 Contract: machine 2/3 delivered (+$75)", "info")
 if scene == "phone" then
 	cmod("UI.Phone").open()
+elseif scene == "marketing" then
+	local p = DataService.get(player)
+	p.level = 9
+	p.brand = { fame = 34, sat = 82, ads = { radio = os.time() + 1500 } }
+	DataService.touch(player)
+	task.wait(0.3)
+	cmod("UI.MarketingPanel").open()
 elseif string.sub(scene, 1, 9) == "settings_" then
 	cmod("UI.SettingsPanel").open(string.sub(scene, 10))
 elseif scene == "bills" then
@@ -309,7 +316,7 @@ elseif scene == "parts_gpu" then
 	end
 	press("Graphics Cards")
 	press("NVIDIA")
-elseif scene ~= "hud" and string.sub(scene, 1, 9) ~= "settings_" then
+elseif scene ~= "hud" and scene ~= "marketing" and string.sub(scene, 1, 9) ~= "settings_" then
 	service(if scene == "dealer" then "cars" elseif scene == "staff" then "staff" else scene)
 end
 task.wait(0.4)

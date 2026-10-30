@@ -45,7 +45,7 @@ local function build(content: Instance, rebuild: () -> ())
 		local left = active[c.id]
 		local locked = (d and d.level or 1) < c.level
 		local sub = S.t("mk_effect", { boost = math.floor(c.boost * 100 + 0.5), minutes = c.minutes, fame = c.fame })
-		local row, right = Kit.row(list, c.icon, S.pick(c.name), S.pick(c.desc) .. "  •  " .. sub, { LayoutOrder = i, Name = "Campaign_" .. c.id }, 150)
+		local row, right = Kit.row(list, c.icon, S.pick(c.name), sub, { LayoutOrder = i, Name = "Campaign_" .. c.id }, 150)
 		if left then
 			Kit.pill(right, "▶ " .. Format.duration(left), Theme.good, { Size = UDim2.fromOffset(130, 32), Name = "Running" })
 		elseif locked then
