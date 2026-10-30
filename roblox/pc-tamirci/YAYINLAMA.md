@@ -1,4 +1,4 @@
-# PC Tamircisi Simülatörü — Kurulum ve Yayınlama Rehberi
+# PC Repair Tycoon — Kurulum ve Yayınlama Rehberi
 
 Bu rehber, oyunu Roblox Studio'da açmaktan herkese açık yayına kadar her adımı anlatır.
 Toplam süre yaklaşık 20–30 dakika (yaş doğrulaması hariç).
@@ -84,9 +84,9 @@ Toplam süre yaklaşık 20–30 dakika (yaş doğrulaması hariç).
    |---|---|
    | Icon | `publish/icon.png` |
    | Thumbnail | `publish/thumbnail_1.jpg` |
-   | Name | `PC Tamircisi Simülatörü` |
+   | Name | `PC Repair Tycoon` |
    | Genre / Subgenre | **Simulation** / **Tycoon** |
-   | Description | 8. bölümdeki Türkçe metin |
+   | Description | 8. bölümdeki İngilizce metin (oyun İngilizce açılır) |
    | Devices | **Computer**, **Phone**, **Tablet** (Console kapalı kalsın) |
 
 3. **Save** (veya **Create**) düğmesine bas. Oyun Roblox'a yüklenir ama henüz **gizlidir**.
@@ -97,11 +97,12 @@ Toplam süre yaklaşık 20–30 dakika (yaş doğrulaması hariç).
 
 ## 5. Oyun ayarları
 
-1. **Sunucu boyutu: 60.** Creator Dashboard → oyun → **Configurations → Places** → yeri seç →
-   **Access** sekmesinde **Max Players** (veya **Server Size**) değerini `60` yap ve kaydet.
+1. **Sunucu boyutu: 20.** Creator Dashboard → oyun → **Configurations → Places** → yeri seç →
+   **Access** sekmesinde **Max Players** (veya **Server Size**) değerini `20` yap ve kaydet. (Yer dosyasında
+   zaten 20 yazılıdır; Dashboard'daki değer Studio'dan yapılan yayınla birlikte güncellenir, yine de kontrol et.)
    - Studio'dan yapmak istersen: **File → Experience Settings → Places** → yerin yanındaki **⋯** →
      **Edit**.
-   - Şehirde 66 dükkân arsası var. 60 kişide herkese bir dükkân düşer.
+   - Şehirde 66 dükkân arsası var. 20 kişide kişi başı 3'ten fazla arsa düşer; arsa hep bulunur.
 2. **Avatar:** **File → Experience Settings → Avatar** → **R15**. NPC animasyonları R15'e göre.
 3. **API Services** (yalnızca Studio'da kayıt denemek için): **File → Experience Settings →
    Security** → **Enable Studio Access to API Services** açık.
@@ -172,7 +173,37 @@ son hali için: <https://create.roblox.com/docs/production/publishing/kids-and-s
 
 ## 8. Oyun sayfası metinleri
 
-**Ad (Türkçe):** `PC Tamircisi Simülatörü`
+Oyun İngilizce açıldığı için sayfa metni de İngilizce olmalı.
+
+**Ad (ana dil, English):** `PC Repair Tycoon`
+
+**Açıklama (English):**
+
+```
+🔧 Open your own computer repair shop and become the best technician in town!
+
+Customers bring broken desktops and laptops: hear them out, haggle, then strip the machine down
+on your bench like a real technician, find the fault and fix it. Pick the right screwdriver bit,
+blow out the dust, apply thermal paste, reseat the RAM and listen for the POST beep!
+
+⭐ Never opened a PC? A built-in Coach walks you through every repair, step by step
+⭐ 300+ real parts: graphics cards, CPUs, motherboards, RAM, SSDs, PSUs…
+⭐ 30+ realistic faults; diagnose with a multimeter, POST card and thermal camera
+⭐ Grow your shop: up to 8 benches, 200+ items, a showcase
+⭐ Hire staff from 22 professions; earn even while you're away
+⭐ Build a factory, make your own brand, sell PC setups
+⭐ Bills, taxes and night-time burglars: cameras, alarms, a bat!
+⭐ A huge city: airport, shipyard, technopark, villas, beach
+⭐ Buy cars and motorbikes and explore (M: map)
+⭐ Leaderboards, daily tasks, corporate contracts
+
+Relaxing music, a day/night cycle and rainy days while you work. 🎧
+```
+
+
+**Türkçe çeviri** (Dashboard → oyun → **Localization**'dan eklenir; oyuncu Türkçe seçtiyse görür):
+
+**Ad (Türkçe, isteğe bağlı çeviri):** `PC Tamir Tycoon`
 
 **Açıklama (Türkçe):**
 
@@ -199,28 +230,6 @@ Rahatlatıcı müzik, gece-gündüz döngüsü ve yağmur eşliğinde tamir keyf
 **İngilizce sürüm:** Dashboard → oyun → **Localization** bölümünden İngilizce ad ve açıklama
 eklenebilir. Oyunun kendisi zaten Türkçe ve İngilizce.
 
-- **Name:** `PC Repair Shop Simulator`
-- **Description:**
-
-```
-🔧 Open your own computer repair shop and become the best technician in town!
-
-Customers bring broken desktops and laptops: hear them out, haggle, then strip the machine down
-on your bench like a real technician, find the fault and fix it. Pick the right screwdriver bit,
-blow out the dust, apply thermal paste, reseat the RAM and listen for the POST beep!
-
-⭐ 300+ real parts: graphics cards, CPUs, motherboards, RAM, SSDs, PSUs…
-⭐ 30+ realistic faults; diagnose with a multimeter, POST card and thermal camera
-⭐ Grow your shop: up to 8 benches, 200+ items, a showcase
-⭐ Hire staff from 22 professions; earn even while you're away
-⭐ Build a factory, make your own brand, sell PC setups
-⭐ Bills, taxes and night-time burglars: cameras, alarms, a bat!
-⭐ A huge city: airport, shipyard, technopark, villas, beach
-⭐ Buy cars and motorbikes and explore (M: map)
-⭐ Leaderboards, daily tasks, corporate contracts
-
-Relaxing music, a day/night cycle and rainy days while you work. 🎧
-```
 
 ## 9. Güncelleme yayınlamak
 
@@ -241,4 +250,4 @@ Kodu dosyalardan (Rojo ile) geliştiriyorsan `README.md` dosyasındaki **Gelişt
 | Arkadaşlarım giremiyor | 6b'deki **Friends** kapalı mı? Oyuncunun yaş doğrulaması var mı (16+)? |
 | Bir ses çalmıyor | **View → Output**'ta "Failed to load sound" uyarısına bak. `src/shared/Config.luau` dosyasındaki `Sounds` bölümünde o sesin kimliğini değiştir ya da boş bırak. |
 | Telefonda düğmeler küçük | Oyun dokunmatiği destekler. Studio'da **Test → Device** menüsünden telefon görünümünü deneyebilirsin. |
-| Türkiye'den girilemiyor | Türkiye'de 2024'ten beri Roblox'a erişim engeli vardı. 2026'da kalkıp kalkmadığına dair haberler çelişkili; sorun buysa oyunla ilgili değildir. Oyun İngilizce de oynanabilir. |
+| Türkiye'den girilemiyor | Türkiye'de 2024'ten beri Roblox'a erişim engeli vardı. 2026'da kalkıp kalkmadığına dair haberler çelişkili; sorun buysa oyunla ilgili değildir. Oyun İngilizce açılır, Türkçe Ayarlar'dan seçilir. |

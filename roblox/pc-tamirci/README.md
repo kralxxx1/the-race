@@ -1,4 +1,4 @@
-# PC Tamircisi Simülatörü (Roblox)
+# PC Repair Tycoon (Roblox)
 
 Bilgisayar tamircisi simülatörü + tycoon. Müşteriyle pazarlık edip arızalı masaüstü ve laptopları
 tezgâhında gerçek bir teknisyen gibi sökersin, arızayı bulur, parçayı değiştirir, toplar ve test
@@ -8,10 +8,19 @@ vergiyi ve gece hırsızlarını da sen idare edersin.
 
 Şehir 16 × 9 bloktan oluşur. Eski şehirde merkez, teknoloji çarşısı, eski çarşı, sahil ve liman var;
 çevresinde havalimanı, organize sanayi, tersane, balıkçı köyü, villa tepesi, teknopark, çiftlikler,
-golf kulübü, karavan parkı ve yazlıklar yer alır. Toplam 60'tan fazla mekân var. 60 kişilik sunucu
-için 66 dükkân arsası hazır; liderlik tabloları en zenginleri ve en değerli işletmeleri gösterir.
+golf kulübü, karavan parkı ve yazlıklar yer alır. Toplam 60'tan fazla mekân var. Sunucu 20 kişiliktir;
+66 dükkân arsası hazırdır (kişi başı 3'ten fazla), liderlik tabloları en zenginleri ve en değerli
+işletmeleri gösterir.
 
-Oyun Türkçe ve İngilizce'dir (oyuncunun diline göre otomatik, telefondaki Ayarlar'dan değişir).
+Oyun **İngilizce** açılır; yer, dükkân, kişi ve marka adları yabancıdır. Türkçe, **Ayarlar** penceresinden
+(O tuşu) seçilebilir ve kayıtla birlikte saklanır. Ayarlar penceresi ses (ana, müzik, efekt, şehir
+sesleri; hepsi açılıp kapanır), görüntü (hazır kalite düzeyleri, gölge, parlama, güneş ışınları,
+derinlik bulanıklığı, bulut, parlaklık, görüş açısı, arayüz boyutu, sokak yoğunluğu, isim
+etiketleri) ve oyun (yardım seviyesi, zorluk, dil) ayarlarını içerir.
+
+Hiç bilgisayar bilmeyenler için tezgâhta bir **Koç** kartı vardır: sıradaki adımı söyler, parçayı oklarla
+gösterir, parçaların ne işe yaradığını anlatır. Yardım seviyesi (adım adım / sadece ipucu / kapalı)
+Ayarlar'dan değişir. İlk üç tamir kolaydır; müşteri sayısı yavaş başlar ve zorluk seçilebilir.
 
 ---
 
@@ -34,9 +43,9 @@ Studio'ya yansır.
 
 ---
 
-## Yayınlama (herkese açık, 60 kişilik sunucu)
+## Yayınlama (herkese açık, 20 kişilik sunucu)
 
-Adım adım rehber: **[YAYINLAMA.md](YAYINLAMA.md)**. Rehber Studio kurulumunu, yüklemeyi, 60 kişilik
+Adım adım rehber: **[YAYINLAMA.md](YAYINLAMA.md)**. Rehber Studio kurulumunu, yüklemeyi, 20 kişilik
 sunucuyu, herkese açmayı, içerik anketini, çocuk hesaplarını, sayfa metinlerini, güncellemeyi ve
 sorun gidermeyi anlatır. Simge ve kapak görselleri `publish/` klasöründe hazır.
 
@@ -46,7 +55,7 @@ Kısaca:
    kapak olarak `publish/thumbnail_1.jpg` yükle. Adı, türü (Simulation / Tycoon) ve açıklamayı yazıp
    **Save**'e bas.
 2. [Creator Dashboard](https://create.roblox.com/dashboard/creations) → oyun → **Configurations →
-   Places** → yer → **Access**: **Max Players** değerini `60` yap.
+   Places** → yer → **Access**: **Max Players** değerini `20` yap (yer dosyasında zaten 20 yazılı; Studio'da ilk yayında bu değer kullanılır).
 3. Studio'da tekrar **File → Publish → Continue**. Yaşa kısıtlı içerik sorusuna **No** deyip
    **Publish**'e bas.
 4. Dashboard → **Publish settings → Manage Audience → Manage access → Public**: **Friends**
@@ -62,8 +71,9 @@ Sesler hazır gelir. `src/shared/Config.luau` → `Sounds` bölümünde şunlar 
 
 Hepsi Roblox'un lisanslı kütüphanesinden (Pro Sound Effects, APM Music, Roblox) ve her oyunda
 ücretsiz kullanılabilir. Bir sesi değiştirmek istersen Creator Store → Audio'dan kimliğini kopyala
-(`"rbxassetid://123..."`); boş bırakılan ses çalınmaz. Oyuncular müzik ve efekt seviyesini telefondaki
-**Ayarlar**'dan değiştirir.
+(`"rbxassetid://123..."`); boş bırakılan ses çalınmaz. Oyuncular sesi (müzik, efekt, şehir sesi),
+görüntüyü ve yardımı **Ayarlar** penceresinden (O tuşu, soldaki ⚙️ düğmesi ya da Telefon → Ayarlar)
+değiştirir.
 
 ### Şehri Studio'da görünür yapmak (isteğe bağlı)
 
@@ -88,12 +98,13 @@ Sonra yeri kaydet. Sunucu bir dahaki açılışta hazır şehri kullanır. (Dosy
 | **J** | İş listesi |
 | **B** | Envanter (parçalar, sarf malzemesi, aletler) |
 | **P** | Telefon (dükkân, ekip, garaj, günlük ödül, istatistik, yorumlar, ayarlar, yardım) |
+| **O** | Ayarlar (ses, görüntü, oyun, tuşlar) |
 | **H** | Dükkâna dön (bekleme süreli) |
 | **F** | Hırsızı / kaçan dolandırıcıyı yakala |
 
 **Tezgâhta:** `1–0` alet seç · parçanın üzerine gel (yeşil = yapılabilir, kırmızı = neden yapılamadığını
 yazar) · **sol tık** uygula (söküm, lehim, toz üflemek basılı tutmalıdır) · **sağ tık** o parçayla
-yapılabilecek her şeyin menüsü · **sağ tık sürükle / Q, E** kamerayı döndür · **tekerlek** yakınlaştır ·
+yapılabilecek her şeyin menüsü · **sağ tık sürükle / Q, E** kamerayı döndür · **tekerlek** imlecin olduğu yere yakınlaştır · **R** kamerayı sıfırla · **L** parça etiketleri ·
 sağ paneldeki **Güç, Stres Testi, POST kartı, PSU testi, termal kamera, USB araçları** ile test et ·
 **Boşluk** veya **Kalk** ile tezgâhtan kalk. Termal macun: basılı tut, yeşil bölgede bırak.
 
@@ -207,8 +218,11 @@ src/shared/            ReplicatedStorage.Shared — veri, şehir düzeni, 3B mod
 src/server/            ServerScriptService.Server — dünya kurucu ve servisler (kayıt, arsa, müşteri,
                        tamir, pazar, çalışan, hırsız, araç, sözleşme, vitrin, fatura, fabrika,
                        liderlik, görev, zaman)
-src/client/            StarterPlayerScripts.Client — HUD, pencereler, tezgâh, harita/GPS, araç,
-                       trafik ve yayalar, ortam, öğretici
+src/client/            StarterPlayerScripts.Client — HUD, pencereler (Ayarlar dahil), tezgâh ve Koç,
+                       harita/GPS, araç, trafik ve yayalar, ortam, öğretici; Prefs (ayarlar) ve
+                       Controllers/Display (ayarları uygular)
+assets/                Roblox'un resmî paketlerinden ayıklanmış modeller (şehir, bitki örtüsü, mobilya,
+                       araçlar); tools/assets/curate.luau ile üretilir
 tests/                 Lune ile Studio'suz testler
 tools/                 Önizleme araçları (3B ve arayüz görüntüleri)
 ```
@@ -240,7 +254,8 @@ onarabilmesi. Faturalar, gece güvenliği, ekip, fabrika ve liderlik tabloları 
 havada kalan parça, çimden çıkan ince parça, boş arsa ya da tezgâhı eksik mekân kalmaması da
 denetlenir. Belirli bir dosya için: `lune run tests/run.luau client`.
 
-Şehrin parça bütçesi için: `lune run tools/worldstats.luau`.
+Şehrin parça bütçesi için: `lune run tools/worldstats.luau`. Oyundaki yazılar için (Türkçe kalıp
+kalmadığına): `lune run tools/scantext.luau world` ve `lune run tools/uidump.luau <sahne>`.
 
 Görsel önizleme (Chromium + Playwright):
 
