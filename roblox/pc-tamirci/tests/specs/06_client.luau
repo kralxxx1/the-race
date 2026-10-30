@@ -671,7 +671,7 @@ return function(T)
 	T.test("client: ambience loops and a never-ending music playlist", function()
 		local SoundService = game:GetService("SoundService")
 		local Sounds = Engine.mod("ReplicatedStorage.Shared.Config").Sounds
-		for _, name in { "day", "night", "rain", "rainIn", "sea" } do
+		for _, name in { "day", "night", "rain", "rain2", "rainIn", "sea" } do
 			local loop = SoundService:FindFirstChild("Amb_" .. name)
 			T.ok(loop ~= nil and loop.Looped and loop.IsPlaying, name .. " loop")
 		end
@@ -695,20 +695,51 @@ return function(T)
 		T.ok(music.decks[music.cur].IsPlaying, "still playing after a full round")
 	end)
 
-	T.test("client: rain falls outside and drums on the roof inside", function()
+	T.test("client: rain streaks fall around the camera, the sky closes over, a storm flashes and rumbles, and indoors the rain is muffled", function()
 		local SoundService = game:GetService("SoundService")
+		local Lighting = game:GetService("Lighting")
 		local ws = game:GetService("Workspace")
 		local cam = ws.CurrentCamera
-		local rain = ws:FindFirstChild("RainBox"):FindFirstChild("Rain")
+		local Weather = cmod("Controllers.Weather")
+		local streaks = ws:FindFirstChild("RainStreaks")
+		T.ok(streaks ~= nil and #streaks:GetChildren() >= 100, "a pool of rain streaks")
+		T.eq(Weather.activeStreaks(), 0, "dry: no streaks")
+		local clouds = ws.Terrain:FindFirstChild("AmbClouds")
+		local dryCover = clouds.Cover
+		local dryBrightness = Lighting.Brightness
 		Engine.context = "client"
 		Engine.setAttribute(ws, "Raining", true)
 		-- out in the open, far above everything
 		cam.CFrame = roblox.CFrame.new(0, 400, 0)
 		task.wait(0.35)
-		Engine.step(30, 1 / 10)
-		T.ok(rain.Rate > 0, "rain falls outside")
+		Engine.step(120, 1 / 10)
+		T.ok(Weather.wet() > 0.95, "the rain has set in: " .. Weather.wet())
+		T.ok(Weather.activeStreaks() >= 100, "streaks fall: " .. Weather.activeStreaks())
+		local around = 0
+		for _, p in streaks:GetChildren() do
+			if p.Position.Y > -900 and (p.Position - cam.CFrame.Position).Magnitude < 70 then
+				around += 1
+			end
+		end
+		T.ok(around >= 100, "the streaks are around the camera: " .. around)
+		-- the sky closes over: more and darker cloud, dimmer light
+		T.ok(clouds.Cover > 0.95 and clouds.Cover > dryCover, "thick cloud: " .. clouds.Cover)
+		T.ok(clouds.Color.R < 0.5, "dark cloud")
+		T.ok(Lighting.Brightness < dryBrightness * 0.7, "dimmer light: " .. Lighting.Brightness)
+		T.ok(SoundService.Amb_rain.Volume > 1 and SoundService.Amb_rain2.Volume > 1, "two rain recordings")
 		T.ok(SoundService.Amb_rain.Volume > SoundService.Amb_rainIn.Volume, "outdoor rain sound")
-		-- under a roof
+		-- a storm: lightning flashes the screen and thunder follows
+		Engine.setAttribute(ws, "Storm", true)
+		Weather.strike(false)
+		local flash = player.PlayerGui:FindFirstChild("LightningFlash"):FindFirstChild("Flash")
+		Engine.step(2, 1 / 20)
+		T.ok(flash.BackgroundTransparency < 0.9, "the screen flashes white: " .. flash.BackgroundTransparency)
+		Engine.step(60, 1 / 10)
+		T.ok(flash.BackgroundTransparency > 0.99, "and the flash fades")
+		local thunder = SoundService:FindFirstChild("Thunder")
+		T.ok(thunder ~= nil and thunder.IsPlaying and thunder.Volume > 0, "the thunder follows")
+		Engine.setAttribute(ws, "Storm", false)
+		-- under a roof: no streaks, the rain is muffled and drums on the roof instead
 		local roof = roblox.Instance.new("Part")
 		roof.Anchored = true
 		roof.Size = roblox.Vector3.new(40, 1, 40)
@@ -717,10 +748,21 @@ return function(T)
 		Engine.invalidateRaycasts()
 		task.wait(0.35)
 		Engine.step(60, 1 / 10)
-		T.eq(rain.Rate, 0, "no rain indoors")
+		T.eq(Weather.activeStreaks(), 0, "no rain indoors")
 		T.ok(SoundService.Amb_rainIn.Volume > SoundService.Amb_rain.Volume, "rain on the roof instead")
+		local muffle = SoundService.Amb_rain:FindFirstChild("Muffle")
+		if muffle then
+			T.ok(muffle.HighGain < -30, "the rain heard from indoors has no high end: " .. muffle.HighGain)
+		end
 		roof:Destroy()
+		Engine.invalidateRaycasts()
+		-- the rain stops and the sky clears again
 		Engine.setAttribute(ws, "Raining", false)
+		task.wait(0.35)
+		Engine.step(160, 1 / 10)
+		T.ok(Weather.wet() < 0.02, "dry again")
+		T.eq(Weather.activeStreaks(), 0, "streaks gone")
+		T.ok(clouds.Cover < 0.58, "the clouds thin out: " .. clouds.Cover)
 	end)
 	_ = RepairService
 end

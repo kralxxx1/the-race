@@ -12,6 +12,7 @@ local Prefs = require(Client.Prefs)
 local App = require(Client.UI.App)
 local Ambience = require(script.Parent.Ambience)
 local Traffic = require(script.Parent.Traffic)
+local Weather = require(script.Parent.Weather)
 
 local Display = {}
 
@@ -29,6 +30,7 @@ local function applyGraphics()
 		clouds = Prefs.get("clouds"),
 	})
 	Ambience.setTrim(Prefs.get("brightness"))
+	Weather.setQuality(Prefs.get("quality"))
 end
 
 local function applyNames()

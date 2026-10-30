@@ -447,7 +447,8 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Cable routes
 ----------------------------------------------------------------------------------------------------
-local ROUTE_Y = { atx24 = 0.24, eps = 0.3, pcie = 1.3, sata_power = 0.26, sata_data = 0.22, fan = 0.2 }
+-- Heights the runs travel at, above the board and the parts (the PC is twice the size it was).
+local ROUTE_Y = { atx24 = 0.5, eps = 0.6, pcie = 1.5, sata_power = 0.5, sata_data = 0.45, fan = 0.45 }
 
 function DesktopLayout.cables(view, g)
 	local BL = g.board
@@ -456,7 +457,13 @@ function DesktopLayout.cables(view, g)
 		local s = view.nodes[id]
 		return s and s.st
 	end
-	local function cable(id: string, style: string, src: (any) -> Vector3?, dst: (any) -> CFrame?, viaFront: boolean?)
+	-- The power cables come up through the rubber grommets in the tray beside the board (the PSU is
+	-- "behind" it): only the short run from the grommet to its plug shows, so nothing crosses the
+	-- board or the card.
+	local function grommet(k: number): Vector3
+		return Vector3.new(-g.dims.X / 2 + cm(12.5), 0.03, -g.dims.Z / 2 + cm(9) + k * cm(9))
+	end
+	local function cable(id: string, style: string, src: ((any) -> Vector3?)?, dst: (any) -> CFrame?)
 		if not Rules.available(view, id) then
 			return
 		end
@@ -470,27 +477,38 @@ function DesktopLayout.cables(view, g)
 			id = id,
 			style = style,
 			route = function(h)
-				local w0 = src(h)
 				local head = dst(h)
-				if not w0 or not head then
+				if not head then
 					return nil
 				end
 				local headH = PCParts.CableStyle[style].head[2]
 				if not plugged then
 					-- pulled off: the plug hangs above its socket
-					head = CFrame.new(0, 0.32, 0) * head * CFrame.new(0.06, 0, 0.08) * CFrame.Angles(math.rad(25), 0, math.rad(15))
+					head = CFrame.new(0, 0.64, 0) * head * CFrame.new(0.12, 0, 0.16) * CFrame.Angles(math.rad(25), 0, math.rad(15))
 				end
 				-- route in the device frame, then back to the world
 				local R = h.root
-				local a = R:PointToObjectSpace(w0)
 				local top = (R:ToObjectSpace(head) * CFrame.new(0, headH, 0)).Position
-				local y = ROUTE_Y[style] or 0.3
-				local pts = { a, Vector3.new(a.X, math.max(a.Y, y), a.Z) }
-				if viaFront then
-					local fx = R:PointToObjectSpace(((h:worldOf("mobo") or R) * BL.at(BL.W + 1.6, 0)).Position).X
-					table.insert(pts, Vector3.new(fx, math.max(a.Y, y), a.Z))
-					table.insert(pts, Vector3.new(fx, math.max(a.Y, y), top.Z))
+				local y = ROUTE_Y[style] or 0.5
+				local a
+				if src then
+					local w0 = src(h)
+					if not w0 then
+						return nil
+					end
+					a = R:PointToObjectSpace(w0)
+				else
+					-- out of the grommet nearest the plug
+					local zl = h.base:PointToObjectSpace(top).Z
+					local best = 0
+					for k = 1, 2 do
+						if math.abs(grommet(k).Z - zl) < math.abs(grommet(best).Z - zl) then
+							best = k
+						end
+					end
+					a = h.base * grommet(best)
 				end
+				local pts = { a, Vector3.new(a.X, math.max(a.Y, y), a.Z) }
 				-- square runs: along Z first, then across X
 				local last = pts[#pts]
 				table.insert(pts, Vector3.new(last.X, last.Y, top.Z))
@@ -510,24 +528,14 @@ function DesktopLayout.cables(view, g)
 			return w and w * rel or nil
 		end
 	end
-	local function psuOut(rel: Vector3): (any) -> Vector3?
-		return function(h)
-			local w = h:worldOf("psu")
-			if not w then
-				return nil
-			end
-			local d = g.psuSize
-			return (w * CFrame.new(-d.X / 2 - 0.02 + rel.X, rel.Y, rel.Z)).Position
-		end
-	end
 
-	cable("c24", "atx24", psuOut(Vector3.new(0, 0.1, -0.15)), on("mobo", BL.atx24 * CFrame.new(0, cm(1.1), 0)), true)
-	cable("ceps", "eps", psuOut(Vector3.new(0, 0.25, 0)), on("mobo", BL.eps * CFrame.new(0, cm(1), 0)), true)
+	cable("c24", "atx24", nil, on("mobo", BL.atx24 * CFrame.new(0, cm(1.1), 0)))
+	cable("ceps", "eps", nil, on("mobo", BL.eps * CFrame.new(0, cm(1), 0)))
 	local gpuPart = partOf(view, "gpu")
 	local sockets = if gpuPart then PCParts.gpuSockets(gpuPart, Parts.gpuConnectors(gpuPart)) else {}
 	for i = 1, 3 do
 		if sockets[i] then
-			cable("cpcie" .. i, "pcie", psuOut(Vector3.new(0, 0.3, 0.12 * i)), on("gpu", sockets[i]))
+			cable("cpcie" .. i, "pcie", nil, on("gpu", sockets[i]))
 		end
 	end
 	local coolerPart = partOf(view, "cooler")
@@ -559,12 +567,12 @@ function DesktopLayout.cables(view, g)
 		local f = driveSocket(id, z)
 		return function(h)
 			local c = f(h)
-			return c and (c * CFrame.new(0, 0.06, 0)).Position or nil
+			return c and (c * CFrame.new(0, 0.12, 0)).Position or nil
 		end
 	end
-	cable("csp_hdd1", "sata_power", psuOut(Vector3.new(0, 0.15, 0.25)), driveSocket("hdd1", -0.15))
+	cable("csp_hdd1", "sata_power", nil, driveSocket("hdd1", -0.15))
 	cable("csd_hdd1", "sata_data", driveSrc("hdd1", 0.25), on("mobo", BL.sata[1] * CFrame.new(0, cm(1), 0)))
-	cable("csp_ssd1", "sata_power", psuOut(Vector3.new(0, 0.2, 0.3)), driveSocket("ssd1", -0.15))
+	cable("csp_ssd1", "sata_power", nil, driveSocket("ssd1", -0.15))
 	cable("csd_ssd1", "sata_data", driveSrc("ssd1", 0.2), on("mobo", BL.sata[2] * CFrame.new(0, cm(1), 0)))
 	return list
 end
@@ -591,7 +599,7 @@ function DesktopLayout.decorate(handle, view)
 			if id == "c24" or id == "ceps" then
 				local head = m:FindFirstChild("Head") :: BasePart?
 				if head then
-					PCParts.box(m, head.CFrame * CFrame.new(0, 0, 0.3), Vector3.new(0.2, 0.09, 0.02), Color3.fromRGB(240, 240, 240), Enum.Material.SmoothPlastic, { Name = "Tie" })
+					PCParts.box(m, head.CFrame * CFrame.new(0, 0, 0.6), Vector3.new(0.4, 0.18, 0.04), Color3.fromRGB(240, 240, 240), Enum.Material.SmoothPlastic, { Name = "Tie" })
 				end
 			end
 		end

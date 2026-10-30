@@ -22,6 +22,7 @@ function TimeService.init()
 	Lighting.ClockTime = 9.5
 	Workspace:SetAttribute("Day", 1)
 	Workspace:SetAttribute("Raining", false)
+	Workspace:SetAttribute("Storm", false)
 end
 
 function TimeService.start()
@@ -45,15 +46,19 @@ function TimeService.start()
 			Lighting.ClockTime = nt % 24
 		end
 	end)
-	-- weather: occasional showers, rarely at night
+	-- weather: the first shower comes early (so players see it), then one every few minutes; about
+	-- two in five turn into a storm with lightning
 	task.spawn(function()
+		task.wait(rng:NextInteger(100, 200))
 		while true do
-			task.wait(rng:NextInteger(240, 600))
-			if rng:NextNumber() < 0.35 then
+			if rng:NextNumber() < 0.7 then
+				Workspace:SetAttribute("Storm", rng:NextNumber() < 0.4)
 				Workspace:SetAttribute("Raining", true)
-				task.wait(rng:NextInteger(90, 240))
+				task.wait(rng:NextInteger(100, 260))
 				Workspace:SetAttribute("Raining", false)
+				Workspace:SetAttribute("Storm", false)
 			end
+			task.wait(rng:NextInteger(180, 420))
 		end
 	end)
 end

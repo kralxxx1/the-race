@@ -3,7 +3,7 @@
 
 local Config = {
 	GameName = "PC Repair Tycoon",
-	Version = "2026.10.30-e", -- shown in Settings > Controls and printed when the server starts, to tell which file is running
+	Version = "2026.10.30-f", -- shown in Settings > Controls and printed when the server starts, to tell which file is running
 
 	-- Para birimi sembolü (ör. "$", "₺", "€")
 	CurrencySymbol = "$",
@@ -108,8 +108,17 @@ local Config = {
 		-- ortam sesleri; volume: kısık kayıtları dengeler (ölçülen ses düzeyine göre)
 		AmbienceDay = { id = "rbxassetid://9112831284", volume = 3 }, -- gündüz: kuş cıvıltısı (Morning Birds 1)
 		AmbienceNight = { id = "rbxassetid://9112764573", volume = 6 }, -- gece: cırcır böcekleri (Crickets Night 3)
-		Rain = { id = "rbxassetid://9112794265", volume = 1.6 }, -- dışarıda yağmur (Heavy Rain 1, beton üstüne)
-		RainIndoor = { id = "rbxassetid://9112853554", volume = 8 }, -- içeride: çatıya vuran yağmur (Rain Hitting Roof 1)
+		-- yağmur: iki ayrı kayıt üst üste çalar (Rain: Heavy Rain 1 = ince "ş" sesi, Rain2: Roblox'un
+		-- "Rain Effect" kaydı = damla ve gümbür); içerideyse aynı yağmur boğuklaşır (EqualizerSoundEffect)
+		-- ve üstüne çatıdaki alçak gümbürtü eklenir. Kayıtlar kısık (-33 dBFS), volume bunu dengeler.
+		Rain = { id = "rbxassetid://9112794265", volume = 4 },
+		Rain2 = { id = "rbxassetid://1516791621", volume = 4 },
+		RainIndoor = { id = "rbxassetid://9112853554", volume = 6 }, -- çatıya vuran yağmur (alçak frekanslı kayıt)
+		-- gök gürültüsü (Roblox kayıtları); fırtınada şimşekten birkaç saniye sonra çalar
+		Thunder = {
+			{ id = "rbxassetid://12222030", volume = 1.1 }, -- HalloweenThunder
+			{ id = "rbxassetid://12222019", volume = 0.8 }, -- HalloweenLightning
+		},
 		Sea = { id = "rbxassetid://9119677305", volume = 0.8 }, -- sahilde dalgalar (Surf Ocean Wave, Zuma Beach)
 		-- rahatlatıcı arka plan müziği: liste karışık sırayla, kesintisiz çalar (APM Music)
 		Music = {

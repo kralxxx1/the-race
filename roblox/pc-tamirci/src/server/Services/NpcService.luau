@@ -38,6 +38,11 @@ local EMOTES = {
 	point = { "rbxassetid://507770453" },
 	cheer = { "rbxassetid://507770677" },
 	laugh = { "rbxassetid://507770818" },
+	-- the chat emotes: a shrug (puzzled, disappointed), a tilt of the head, a salute, a hello
+	shrug = { "rbxassetid://3576968026" },
+	tilt = { "rbxassetid://3360692915" },
+	salute = { "rbxassetid://3360689775" },
+	hello = { "rbxassetid://3576686446" },
 	dance = {
 		"rbxassetid://507771019", "rbxassetid://507771955", "rbxassetid://507772104",
 		"rbxassetid://507776043", "rbxassetid://507776720", "rbxassetid://507776879",

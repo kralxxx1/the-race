@@ -144,7 +144,7 @@ function Hud.init(screen: ScreenGui, actions: { [string]: () -> () })
 	task.spawn(function()
 		while gui.Parent do
 			local t = Lighting.ClockTime
-			local icon = if Workspace:GetAttribute("Raining") then "🌧️" elseif t >= 19.5 or t < 6 then "🌙" else "☀️"
+			local icon = if Workspace:GetAttribute("Raining") then (if Workspace:GetAttribute("Storm") then "⛈️" else "🌧️") elseif t >= 19.5 or t < 6 then "🌙" else "☀️"
 			clockLabel.Text = string.format("%s %s • %s", icon, fmtClock(t), S.t("day", { d = Workspace:GetAttribute("Day") or 1 }))
 			task.wait(0.5)
 		end

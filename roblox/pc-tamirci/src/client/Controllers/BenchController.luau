@@ -54,8 +54,10 @@ local busy = false
 local holding = nil :: any
 -- The camera looks at the middle of the device from close up and above; zooming in with the wheel
 -- drifts the focus towards the part under the mouse (off follows offT smoothly).
-local CAM_FOCUS = Vector3.new(-0.4, 0.55, 0)
-local CAM_START = { yaw = 0, pitch = 1.02, dist = 4.8 }
+local CAM_FOCUS = Vector3.new(-0.5, 1.2, 0)
+local CAM_START = { yaw = 0, pitch = 1.02, dist = 8.4 }
+local CAM_MIN, CAM_MAX = 2.6, 26
+local TOOL_SCALE = 2
 local orbit = { yaw = 0, pitch = CAM_START.pitch, dist = CAM_START.dist, off = Vector3.zero, offT = Vector3.zero }
 local labelsOn = true
 local labelFolder: Folder? = nil
@@ -306,6 +308,10 @@ local function selectTool(id: string)
 	local t = Tools.get(id)
 	if t and active then
 		toolModel = ToolModels.build(t.model or "hand", Workspace)
+		-- the device is twice as big as it used to be, so is the tool in your hand
+		pcall(function()
+			(toolModel :: Model):ScaleTo(TOOL_SCALE)
+		end)
 	end
 	if ui.toolName then
 		ui.toolName.Text = (t and t.icon or "") .. " " .. (t and S.pick(t.name) or "")
@@ -628,16 +634,16 @@ local function emitter(kind: string, pos: Vector3, normal: Vector3): BasePart
 	if kind == "dust" then
 		-- a grey cloud blown out of the heatsink
 		pe.Color = ColorSequence.new(Color3.fromRGB(150, 145, 135))
-		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.15), NumberSequenceKeypoint.new(1, 1.1) })
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 2.2) })
 		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 1) })
 		pe.Lifetime = NumberRange.new(0.5, 1.1)
 		pe.Rate = 70
-		pe.Speed = NumberRange.new(3, 7)
+		pe.Speed = NumberRange.new(5, 11)
 		pe.SpreadAngle = Vector2.new(55, 55)
 		pe.Drag = 3
 	elseif kind == "fluff" then
 		pe.Color = ColorSequence.new(Color3.fromRGB(170, 165, 155))
-		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(1, 0.3) })
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 0.6) })
 		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 1) })
 		pe.Lifetime = NumberRange.new(0.4, 0.8)
 		pe.Rate = 25
@@ -647,7 +653,7 @@ local function emitter(kind: string, pos: Vector3, normal: Vector3): BasePart
 	else
 		-- solder smoke curling up
 		pe.Color = ColorSequence.new(Color3.fromRGB(235, 235, 240))
-		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(1, 0.5) })
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) })
 		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1) })
 		pe.Lifetime = NumberRange.new(1.2, 2)
 		pe.Rate = 16
@@ -954,7 +960,7 @@ local function refreshLabels()
 			g.AlwaysOnTop = true
 			g.Size = UDim2.fromOffset(150, 22)
 			g.StudsOffsetWorldSpace = Vector3.new(0, 0.5, 0)
-			g.MaxDistance = 24
+			g.MaxDistance = 50
 			g.LightInfluence = 0
 			g.Parent = a
 			local t = Kit.label(g, nodeLabel(v, id), { Size = UDim2.fromScale(1, 1), TextSize = 13, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Center, TextStrokeTransparency = 0.3, TextColor3 = Color3.fromRGB(255, 248, 210) })
@@ -1508,7 +1514,7 @@ function BenchController.init(screen: ScreenGui, hudModule)
 			orbit.pitch = math.clamp(orbit.pitch + input.Delta.Y * 0.006, 0.15, 1.45)
 		elseif input.UserInputType == Enum.UserInputType.MouseWheel then
 			local dir = input.Position.Z
-			orbit.dist = math.clamp(orbit.dist - dir * 0.5, 1.4, 12)
+			orbit.dist = math.clamp(orbit.dist - dir * 1, CAM_MIN, CAM_MAX)
 			local root = active and BenchViews.rootOf(active.model)
 			if dir > 0 and hover and hover.pos and root then
 				-- zooming in: the part under the mouse drifts to the middle of the view
@@ -1524,7 +1530,7 @@ function BenchController.init(screen: ScreenGui, hudModule)
 	end)
 	UserInputService.TouchPinch:Connect(function(_, scale, _, state)
 		if active and state == Enum.UserInputState.Change then
-			orbit.dist = math.clamp(orbit.dist / scale, 1.4, 12)
+			orbit.dist = math.clamp(orbit.dist / scale, CAM_MIN, CAM_MAX)
 		end
 	end)
 end

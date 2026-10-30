@@ -96,8 +96,13 @@ function WallRun:rect(t: number, len: number, depth: number): { number }
 	return { math.min(x0, x1), math.min(z0, z1), math.max(x0, x1), math.max(z0, z1) }
 end
 
--- workbench footprint: 10 along the wall, origin 2.9 off it, stool reaching 7.8 into the room
-local BENCH_LEN, BENCH_BACK, BENCH_DEPTH = 10, 2.9, 7.8
+-- Workbench: the desk is 22 along the wall and 10.4 deep (the PC on it is twice the old size, with
+-- a free area to its right for the parts that come out); the stool is a seat-length in front of it.
+local DESK_W, DESK_D = 22, 10.4
+local ANCHOR_X = 1.6 -- the device's origin, in the desk's x
+local STOOL_X, STOOL_Z = 2.1, -(DESK_D / 2 + 1.7)
+-- footprint along the wall: the desk, its back 0.5 off the wall, the stool reaching into the room
+local BENCH_LEN, BENCH_BACK, BENCH_DEPTH = DESK_W, DESK_D / 2 + 0.5, DESK_D + 0.5 + 3.3
 
 local POSTERS = {
 	"RTX 5090\nIN STOCK!",
@@ -117,22 +122,24 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 	local top = B.color(st.color)
 	local legs = B.color(st.legs)
 	local drawerCol = B.color(st.drawers)
+	local W, Dp = DESK_W, DESK_D
 	-- desk (top surface at y = 3.4)
-	B.box(m, cf * CFrame.new(0, 3.25, 0), Vector3.new(10, 0.3, 4.6), top, material(st.material or "Metal"))
+	B.box(m, cf * CFrame.new(0, 3.25, 0), Vector3.new(W, 0.3, Dp), top, material(st.material or "Metal"))
 	for x = -1, 1, 2 do
-		B.box(m, cf * CFrame.new(x * 4.7, 1.55, 0), Vector3.new(0.4, 3.1, 4.2), legs, M.Metal)
+		B.box(m, cf * CFrame.new(x * (W / 2 - 0.6), 1.55, 0), Vector3.new(0.6, 3.1, Dp - 0.4), legs, M.Metal)
 	end
-	B.box(m, cf * CFrame.new(0, 2.2, 2), Vector3.new(9, 2, 0.3), legs, M.Metal)
-	-- drawers
-	B.box(m, cf * CFrame.new(3.4, 2, -0.2), Vector3.new(2.4, 2.4, 3.8), drawerCol, M.Metal)
+	B.box(m, cf * CFrame.new(0, 2.2, Dp / 2 - 0.4), Vector3.new(W - 1.6, 2, 0.3), legs, M.Metal)
+	-- drawers under the end beyond the parts area
+	local dx = W / 2 - 3.2
+	B.box(m, cf * CFrame.new(dx, 2, -0.2), Vector3.new(4.4, 2.4, Dp - 0.8), drawerCol, M.Metal)
 	for k = 0, 2 do
-		B.box(m, cf * CFrame.new(3.4, 1.2 + k * 0.8, -2.15), Vector3.new(2.2, 0.6, 0.1), drawerCol:Lerp(Color3.new(0, 0, 0), 0.15), M.Metal, nc())
+		B.box(m, cf * CFrame.new(dx, 1.2 + k * 0.8, -Dp / 2 + 0.35), Vector3.new(4.2, 0.6, 0.1), drawerCol:Lerp(Color3.new(0, 0, 0), 0.15), M.Metal, nc())
 	end
-	-- ESD mat
+	-- ESD mat under the device and the parts area
 	local matCol = if items.bench_mat then Color3.fromRGB(40, 110, 200) else Color3.fromRGB(110, 114, 120)
-	B.box(m, cf * CFrame.new(-0.6, 3.42, 0), Vector3.new(7, 0.05, 3.8), matCol, M.Rubber, nc({ Name = "Mat" }))
-	-- test monitor on the back right
-	Props.monitor(m, cf * CFrame.new(3.1, 3.4, 1.4) * CFrame.Angles(0, math.rad(-12), 0), "", Color3.fromRGB(10, 30, 50))
+	B.box(m, cf * CFrame.new(-0.9, 3.42, 0), Vector3.new(15.4, 0.05, Dp - 1.6), matCol, M.Rubber, nc({ Name = "Mat" }))
+	-- test monitor on the back, beyond the device
+	Props.monitor(m, cf * CFrame.new(8.6, 3.4, Dp / 2 - 1.8) * CFrame.Angles(0, math.rad(-12), 0), "", Color3.fromRGB(10, 30, 50))
 	local mon = m:FindFirstChild("Monitor")
 	if mon then
 		mon.Name = "BenchMonitor"
@@ -141,28 +148,30 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 			screen:SetAttribute("BenchScreen", true)
 		end
 	end
-	-- magnifier lamp clamped to the back edge (clear of the parts area), arm leaning over the mat
-	B.box(m, cf * CFrame.new(-4.3, 3.6, 2.05), Vector3.new(0.5, 0.5, 0.45), legs, M.Metal)
-	local armLen = math.sqrt(1.15 ^ 2 + 2.7 ^ 2)
-	B.box(m, cf * CFrame.new(-4.3, 5.2, 1.48) * CFrame.Angles(-math.atan2(1.15, 2.7), 0, 0), Vector3.new(0.2, armLen, 0.2), legs, M.Metal, nc())
-	local lampHead = B.cyl(m, cf * CFrame.new(-4.2, 6.6, 0.8) * CFrame.Angles(0, 0, math.pi / 2), 0.3, 1.6, legs, M.Metal, nc())
-	lampHead.Name = "LampHead"
+	-- magnifier lamp clamped to the back right corner, its arm leaning over the parts area
+	local lampBase = Vector3.new(-9.8, 3.7, Dp / 2 - 0.5)
+	local lampHead = Vector3.new(-5.4, 8.2, Dp / 2 - 2.6)
+	B.box(m, cf * CFrame.new(lampBase), Vector3.new(0.7, 0.6, 0.6), legs, M.Metal)
+	local armLen = (lampHead - lampBase).Magnitude
+	B.box(m, cf * CFrame.lookAt((lampBase + lampHead) / 2, lampHead), Vector3.new(0.25, 0.25, armLen), legs, M.Metal, nc())
+	local head = B.cyl(m, cf * CFrame.new(lampHead) * CFrame.Angles(0, 0, math.pi / 2), 0.4, 2.2, legs, M.Metal, nc())
+	head.Name = "LampHead"
 	if items.bench_led then
-		local led = B.cylY(m, cf * CFrame.new(-4.2, 6.42, 0.8), 0.06, 1.4, Color3.fromRGB(255, 250, 240), M.Neon, nc())
-		B.spotLight(led, Enum.NormalId.Bottom, 10, 70, 1.4, Color3.fromRGB(255, 250, 240), false)
+		local led = B.cylY(m, cf * CFrame.new(lampHead.X, lampHead.Y - 0.22, lampHead.Z), 0.08, 2, Color3.fromRGB(255, 250, 240), M.Neon, nc())
+		B.spotLight(led, Enum.NormalId.Bottom, 16, 70, 1.4, Color3.fromRGB(255, 250, 240), false)
 	end
 	-- the light every bench has: a soft fill over the device (it lights the inside of an open case,
 	-- which would be black otherwise) and a beam from the lamp onto the mat
-	local fill = B.box(m, cf * CFrame.new(-0.6, 8.2, -0.4), Vector3.new(0.3, 0.2, 0.3), Color3.new(1, 1, 1), M.SmoothPlastic, nc({ Transparency = 1, Name = "WorkLight", CastShadow = false }))
-	B.pointLight(fill, 15, 1.7, Color3.fromRGB(255, 246, 232), false)
+	local fill = B.box(m, cf * CFrame.new(ANCHOR_X - 0.5, 10.5, -0.4), Vector3.new(0.3, 0.2, 0.3), Color3.new(1, 1, 1), M.SmoothPlastic, nc({ Transparency = 1, Name = "WorkLight", CastShadow = false }))
+	B.pointLight(fill, 28, 2.1, Color3.fromRGB(255, 246, 232), false)
 	if not items.bench_led then
-		local beam = B.box(m, cf * CFrame.new(-4.2, 6.35, 0.8), Vector3.new(0.3, 0.1, 0.3), Color3.new(1, 1, 1), M.SmoothPlastic, nc({ Transparency = 1, Name = "LampBeam", CastShadow = false }))
-		B.spotLight(beam, Enum.NormalId.Bottom, 12, 75, 1.2, Color3.fromRGB(255, 250, 240), false)
+		local beam = B.box(m, cf * CFrame.new(lampHead.X, lampHead.Y - 0.3, lampHead.Z), Vector3.new(0.3, 0.1, 0.3), Color3.new(1, 1, 1), M.SmoothPlastic, nc({ Transparency = 1, Name = "LampBeam", CastShadow = false }))
+		B.spotLight(beam, Enum.NormalId.Bottom, 18, 75, 1.2, Color3.fromRGB(255, 250, 240), false)
 	end
 	-- magnetic screw bowl, where PCModel drops the screws (device frame TRAY)
-	B.cylY(m, cf * CFrame.new(2.6, 3.5, -1.2), 0.2, 1.2, Color3.fromRGB(150, 150, 156), M.Metal, nc({ Name = "ScrewTray" }))
+	B.cylY(m, cf * CFrame.new(ANCHOR_X + 5.8, 3.5, -2.4), 0.3, 2.2, Color3.fromRGB(150, 150, 156), M.Metal, nc({ Name = "ScrewTray" }))
 	-- stool
-	local stool = cf * CFrame.new(0, 0, -3.6)
+	local stool = cf * CFrame.new(STOOL_X, 0, STOOL_Z)
 	B.cylY(m, stool * CFrame.new(0, 1.2, 0), 2.4, 0.4, legs, M.Metal)
 	B.cylY(m, stool * CFrame.new(0, 0.1, 0), 0.2, 2, legs, M.Metal)
 	local seat = Instance.new("Seat")
@@ -175,26 +184,26 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 	seat.CFrame = stool * CFrame.new(0, 2.5, 0) * CFrame.Angles(0, math.pi, 0)
 	seat.Parent = m
 	-- the device sits here; LookVector faces the technician
-	local anchor = B.marker(m, "DeviceAnchor", cf * CFrame.new(-0.6, 3.45, 0))
+	local anchor = B.marker(m, "DeviceAnchor", cf * CFrame.new(ANCHOR_X, 3.45, 0))
 	anchor:SetAttribute("Bench", index)
-	local camAnchor = B.marker(m, "CameraAnchor", cf * CFrame.new(-0.6, 9.5, -6.5))
+	local camAnchor = B.marker(m, "CameraAnchor", cf * CFrame.new(ANCHOR_X, 17, STOOL_Z - 5))
 	camAnchor:SetAttribute("Bench", index)
-	local prompt = B.prompt(B.marker(m, "PromptAnchor", stool * CFrame.new(0, 3, 0)), "Sit at Bench", "Bench " .. index, { distance = 8, name = "BenchPrompt" })
+	local prompt = B.prompt(B.marker(m, "PromptAnchor", stool * CFrame.new(0, 3, 0)), "Sit at Bench", "Bench " .. index, { distance = 10, name = "BenchPrompt" })
 	prompt:SetAttribute("Bench", index)
 	m:SetAttribute("Bench", index)
 	B.tag(m, "Workbench")
 	-- pegboard with tools on the wall behind the bench
 	if items.tool_wall then
-		local board = B.box(m, cf * CFrame.new(0, 7.6, 2.6), Vector3.new(9, 5, 0.3), Color3.fromRGB(196, 168, 124), M.Wood)
+		local board = B.box(m, cf * CFrame.new(0, 8.4, Dp / 2 + 0.3), Vector3.new(W - 3, 5, 0.3), Color3.fromRGB(196, 168, 124), M.Wood)
 		board.Name = "ToolWall"
 		local toolCols = { Color3.fromRGB(220, 40, 30), Color3.fromRGB(30, 100, 200), Color3.fromRGB(240, 170, 20), Color3.fromRGB(40, 40, 44) }
-		for k = 0, 7 do
-			B.box(m, cf * CFrame.new(-3.8 + k * 1.1, 7.6 + ((k % 2) * 0.6 - 0.3), 2.4), Vector3.new(0.25, Rand.range(rng, 1.4, 2.6), 0.2), toolCols[(k % 4) + 1], M.SmoothPlastic, nc())
+		for k = 0, 13 do
+			B.box(m, cf * CFrame.new(-(W - 6) / 2 + k * (W - 6) / 13, 8.4 + ((k % 2) * 0.6 - 0.3), Dp / 2 + 0.1), Vector3.new(0.25, Rand.range(rng, 1.4, 2.6), 0.2), toolCols[(k % 4) + 1], M.SmoothPlastic, nc())
 		end
 	end
 	if items.microscope and index == 1 then
-		B.cylY(m, cf * CFrame.new(-2.6, 3.9, 1.2), 1, 1.4, Color3.fromRGB(230, 230, 230), M.SmoothPlastic, nc())
-		B.cylY(m, cf * CFrame.new(-2.6, 5.2, 1.0), 1.8, 0.5, Color3.fromRGB(40, 40, 44), M.Metal, nc())
+		B.cylY(m, cf * CFrame.new(-9, 3.9, 0.4), 1, 1.4, Color3.fromRGB(230, 230, 230), M.SmoothPlastic, nc())
+		B.cylY(m, cf * CFrame.new(-9, 5.2, 0.2), 1.8, 0.5, Color3.fromRGB(40, 40, 44), M.Metal, nc())
 	end
 	return m
 end
@@ -466,7 +475,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 			local bcf = facing(c.x, c.z, c.run.ix, c.run.iz)
 			ShopBuilder.workbench(shop, bcf, placed, items, rng, styleById(Upgrades.benchStyles, opts.bench or "steel"))
 			table.insert(benchList, { cf = bcf, index = placed })
-			point("Staff_" .. placed, bcf * CFrame.new(0, 0.4, -3.6), { Bench = placed })
+			point("Staff_" .. placed, bcf * CFrame.new(STOOL_X, 0.4, STOOL_Z), { Bench = placed })
 		end
 	end
 	shop:SetAttribute("Benches", placed)

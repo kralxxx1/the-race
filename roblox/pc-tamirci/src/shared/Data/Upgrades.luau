@@ -28,7 +28,7 @@ Upgrades.levels = {
 	{ level = 3, name = N("Servis Merkezi", "Service Centre"), cost = 15000, req = 6, w = 84, d = 58, benches = 3, queue = 4, seats = 4, staff = 5, storage = 150 },
 	{ level = 4, name = N("Büyük Servis", "Big Service Centre"), cost = 45000, req = 10, w = 96, d = 66, benches = 4, queue = 5, seats = 6, staff = 7, storage = 250 },
 	{ level = 5, name = N("Teknoloji Mağazası", "Tech Store"), cost = 120000, req = 15, w = 108, d = 70, benches = 6, queue = 6, seats = 8, staff = 10, storage = 400 },
-	{ level = 6, name = N("Mega Teknoloji Merkezi", "Mega Tech Centre"), cost = 350000, req = 22, w = 112, d = 72, benches = 8, queue = 8, seats = 10, staff = 14, storage = 700, floors = 2 },
+	{ level = 6, name = N("Mega Teknoloji Merkezi", "Mega Tech Centre"), cost = 350000, req = 22, w = 136, d = 72, benches = 8, queue = 8, seats = 10, staff = 14, storage = 700, floors = 2 },
 }
 
 Upgrades.items = {

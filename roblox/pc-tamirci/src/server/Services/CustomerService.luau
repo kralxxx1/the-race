@@ -29,6 +29,10 @@ local QuestService = require(script.Parent.QuestService)
 local NpcService = require(script.Parent.NpcService)
 
 local CustomerService = {}
+
+-- what somebody waiting around does now and then (see NpcService.Emotes)
+local FIDGET_YOUNG = { "dance", "laugh", "tilt", "cheer", "point" }
+local FIDGET_GROWN = { "laugh", "point", "shrug", "tilt", "salute", "hello" }
 CustomerService.atCounter = Signal.new() -- (player, cust) someone is waiting to be served
 CustomerService.robbed = Signal.new() -- (player, cust) a scammer ran off
 
@@ -672,6 +676,8 @@ local function pay(player: Player, cust, job)
 			NpcService.emote(cust.model, "cheer")
 		elseif stars == 4 then
 			NpcService.emote(cust.model, "wave")
+		elseif stars <= 2 then
+			NpcService.emote(cust.model, "shrug")
 		end
 		if tip > 0 then
 			task.delay(2.5, function()
@@ -902,7 +908,8 @@ local function tick()
 						c.nextFidget = now + 15 + rng:NextNumber() * 40
 					elseif now > c.nextFidget then
 						c.nextFidget = now + 25 + rng:NextNumber() * 50
-						local kind = if c.arch.look == "kid" or c.arch.look == "gamer" or c.arch.look == "streamer" then (if rng:NextNumber() < 0.5 then "dance" else "laugh") else (if rng:NextNumber() < 0.5 then "laugh" else "point")
+						local young = c.arch.look == "kid" or c.arch.look == "gamer" or c.arch.look == "streamer"
+						local kind = Rand.pick(rng, if young then FIDGET_YOUNG else FIDGET_GROWN)
 						NpcService.emote(c.model, kind)
 					end
 				end

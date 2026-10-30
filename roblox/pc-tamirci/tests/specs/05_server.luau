@@ -544,6 +544,9 @@ return function(T)
 		T.ok(npc:FindFirstChildWhichIsA("Accessory") ~= nil, "wears catalog items")
 		-- gestures: a wave and a dance play once and the person goes back to standing around
 		T.eq(#NpcService.Emotes.dance, 9, "nine dance takes")
+		for _, name in { "wave", "point", "cheer", "laugh", "shrug", "tilt", "salute", "hello" } do
+			T.ok(NpcService.Emotes[name] ~= nil and #NpcService.Emotes[name] >= 1, "emote " .. name)
+		end
 		NpcService.emote(npc, "wave", 0.3)
 		T.eq(npc:GetAttribute("Anim"), "emote:wave", "waving")
 		NpcService.emote(npc, "dance", 0.3)

@@ -37,8 +37,8 @@ return function(T)
 				if rec.model then
 					T.ok(rec.model:GetAttribute("NodeId") == id, label .. ": NodeId attribute on " .. id)
 					local p = handle.root:PointToObjectSpace(rec.world.Position)
-					-- everything stays on the desk (desk spans about x -5.6..4.4, z -2.3..2.3 in the device frame)
-					T.ok(p.X > -5.7 and p.X < 4.6 and p.Z > -2.8 and p.Z < 2.5 and p.Y > -0.2 and p.Y < 4, string.format("%s: %s left the bench (%.2f, %.2f, %.2f)", label, id, p.X, p.Y, p.Z))
+					-- everything stays on the desk (desk spans about x -9.4..12.6, z -5.2..5.2 in the device frame)
+					T.ok(p.X > -9.5 and p.X < 12.8 and p.Z > -5.4 and p.Z < 5.4 and p.Y > -0.2 and p.Y < 9, string.format("%s: %s left the bench (%.2f, %.2f, %.2f)", label, id, p.X, p.Y, p.Z))
 				end
 			end
 		end

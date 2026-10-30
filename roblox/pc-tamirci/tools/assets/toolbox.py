@@ -42,10 +42,12 @@ def details(ids):
     return out
 
 
-def search(keyword, pages=1):
+def search(keyword, pages=1, sort=''):
     ids, cursor = [], ''
     for _ in range(pages):
         url = 'https://apis.roblox.com/toolbox-service/v1/marketplace/10?num=30&keyword=' + urllib.parse.quote(keyword)
+        if sort:
+            url += '&sortType=' + sort
         if cursor:
             url += '&cursor=' + urllib.parse.quote(cursor)
         r = get(url)
@@ -65,7 +67,8 @@ def search(keyword, pages=1):
         t = a.get('modelTechnicalDetails', {})
         tris = t.get('objectMeshSummary', {}).get('triangles', 0)
         mp = t.get('instanceCounts', {}).get('meshPart', 0)
-        rows.append((i, tris, mp, a.get('scriptCount', 0), d['creator']['name'], a['name']))
+        v = d.get('voting', {})
+        rows.append((i, tris, mp, a.get('scriptCount', 0), d['creator']['name'], a['name'], v.get('upVotes', 0), v.get('downVotes', 0)))
     return rows
 
 
@@ -114,8 +117,8 @@ def fetch(i):
 if __name__ == '__main__':
     cmd = sys.argv[1]
     if cmd == 'search':
-        for r in search(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 1):
-            print(f'{r[0]:>16} {r[1]:>7} tris {r[2]:>3} mesh {r[3]:>2} scr  {r[4][:18]:<18} {r[5][:50]}')
+        for r in search(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 1, sys.argv[4] if len(sys.argv) > 4 else ''):
+            print(f'{r[0]:>16} {r[1]:>7} tris {r[2]:>3} mesh {r[3]:>2} scr  +{r[6]:<5}-{r[7]:<4} {r[4][:16]:<16} {r[5][:46]}')
     elif cmd == 'sheet':
         sheet(sys.argv[2], [int(x) for x in sys.argv[3:]])
     elif cmd == 'get':

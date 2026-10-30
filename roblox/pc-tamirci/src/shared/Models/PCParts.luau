@@ -8,7 +8,7 @@ local B = require(script.Parent.Parent.Util.Builder)
 local PCParts = {}
 local M = Enum.Material
 
-local S = 0.075 -- studs per centimetre
+local S = 0.15 -- studs per centimetre
 PCParts.S = S
 
 local function cm(v: number): number
@@ -231,11 +231,13 @@ function PCParts.chassis(cf: CFrame, casePart): (Model, Vector3)
 	local lx, ly, lz = dims.X, dims.Y, dims.Z
 	local body = PCParts.caseColor(casePart)
 	-- (a light-grey inside, so the dark parts stand out against the floor and walls of the case)
-	local inner = if body.R + body.G + body.B < 0.6 then Color3.fromRGB(78, 80, 88) else body:Lerp(Color3.new(0, 0, 0), 0.12)
+	local dark = body.R + body.G + body.B < 0.6
+	local inner = if dark then Color3.fromRGB(122, 126, 136) else body:Lerp(Color3.new(0, 0, 0), 0.12)
+	local innerMat = if dark then M.SmoothPlastic else M.Metal
 	local t = 0.035
 	local style = casePart and casePart.style or "airflow"
 	-- motherboard tray (now the floor)
-	box(m, cf * CFrame.new(0, t / 2, 0), Vector3.new(lx, t, lz), inner, M.Metal, { Name = "Tray" })
+	box(m, cf * CFrame.new(0, t / 2, 0), Vector3.new(lx, t, lz), inner, innerMat, { Name = "Tray" })
 	-- cable grommets beside the board
 	for k = 0, 2 do
 		box(m, cf * CFrame.new(-lx / 2 + cm(12.5), t + 0.002, -lz / 2 + cm(9) + k * cm(9)), Vector3.new(cm(1.4), 0.004, cm(5)), DARK, M.Rubber)
@@ -259,7 +261,7 @@ function PCParts.chassis(cf: CFrame, casePart): (Model, Vector3)
 	cyl(m, cf * CFrame.new(-lx / 2 + cm(1.2), ly - 0.01, -lz / 2 + cm(3)), "Y", 0.02, cm(1.6), Color3.fromRGB(70, 70, 74), M.Metal, { Name = "PowerButton" })
 	box(m, cf * CFrame.new(-lx / 2 + cm(1.2), ly - 0.01, -lz / 2 + cm(5)), Vector3.new(0.03, 0.02, 0.03), Color3.fromRGB(60, 200, 255), M.Neon, { Name = "PowerLed", Transparency = 0.7 })
 	-- rear panel with I/O cut-out, expansion slot covers and PSU opening
-	box(m, cf * CFrame.new(lx / 2 - t / 2, ly / 2, 0), Vector3.new(t, ly, lz), inner, M.Metal, { Name = "RearPanel" })
+	box(m, cf * CFrame.new(lx / 2 - t / 2, ly / 2, 0), Vector3.new(t, ly, lz), inner, innerMat, { Name = "RearPanel" })
 	for k = 0, 6 do
 		box(m, cf * CFrame.new(lx / 2 + 0.003, ly * 0.5, cm(1.5) + k * cm(2.03) - lz / 2 + cm(19.5)), Vector3.new(0.006, ly * 0.55, cm(1.7)), Color3.fromRGB(70, 72, 76), M.Metal)
 	end
@@ -267,6 +269,12 @@ function PCParts.chassis(cf: CFrame, casePart): (Model, Vector3)
 	local topWall = box(m, cf * CFrame.new(0, ly / 2, -lz / 2 + t / 2), Vector3.new(lx, ly, t), body, M.Metal, { Name = "TopPanel" })
 	topWall:SetAttribute("Detail", "top")
 	box(m, cf * CFrame.new(0, ly / 2, lz / 2 - t / 2), Vector3.new(lx, ly, t), body, M.Metal, { Name = "BottomPanel" })
+	-- a dark case is light grey inside: the black parts stand out against it
+	if dark then
+		box(m, cf * CFrame.new(0, ly / 2, -lz / 2 + t + 0.004), Vector3.new(lx - t * 2, ly, 0.008), inner, innerMat, { Name = "LinerTop" })
+		box(m, cf * CFrame.new(0, ly / 2, lz / 2 - t - 0.004), Vector3.new(lx - t * 2, ly, 0.008), inner, innerMat, { Name = "LinerBottom" })
+		box(m, cf * CFrame.new(-lx / 2 + cm(2.4) + 0.004, ly / 2, 0), Vector3.new(0.008, ly, lz - t * 2), inner, innerMat, { Name = "LinerFront" })
+	end
 	-- PSU intake vent under the power supply
 	box(m, cf * CFrame.new(lx / 2 - cm(8), ly * 0.4, lz / 2 + 0.002), Vector3.new(cm(12), cm(11), 0.004), Color3.fromRGB(14, 14, 16), M.Metal)
 	-- feet on the old bottom
@@ -276,7 +284,7 @@ function PCParts.chassis(cf: CFrame, casePart): (Model, Vector3)
 	-- PSU shroud (front half) and the drive cage under it
 	if style ~= "sff" and style ~= "office" and style ~= "retro" and style ~= "itx" then
 		local sz = lz / 2 - cm(10.5)
-		box(m, cf * CFrame.new(-lx / 4, ly / 2, sz), Vector3.new(lx / 2, ly, t), inner, M.Metal, { Name = "Shroud" })
+		box(m, cf * CFrame.new(-lx / 4, ly / 2, sz), Vector3.new(lx / 2, ly, t), inner, innerMat, { Name = "Shroud" })
 		box(m, cf * CFrame.new(-lx / 4, ly - 0.01, sz + cm(0.5)), Vector3.new(lx / 2 - cm(2), 0.012, cm(1)), body:Lerp(Color3.new(1, 1, 1), 0.2), M.Metal)
 	end
 	-- RGB strip on showcase/glass cases
@@ -1397,14 +1405,14 @@ end
 -- style: "atx24" | "eps" | "pcie" | "sata_power" | "sata_data" | "fan"
 ----------------------------------------------------------------------------------------------------
 local CABLE_STYLE = {
-	atx24 = { w = 0.14, t = 0.05, color = { 22, 22, 24 }, head = { 0.1, 0.09, 0.4 } },
-	eps = { w = 0.08, t = 0.045, color = { 22, 22, 24 }, head = { 0.16, 0.08, 0.09 } },
-	pcie = { w = 0.08, t = 0.045, color = { 22, 22, 24 }, head = { 0.14, 0.07, 0.07 } },
-	sata_power = { w = 0.06, t = 0.02, color = { 20, 20, 22 }, head = { 0.16, 0.05, 0.05 } },
-	sata_data = { w = 0.04, t = 0.012, color = { 200, 40, 40 }, head = { 0.09, 0.05, 0.05 } },
-	fan = { w = 0.025, t = 0.02, color = { 24, 24, 26 }, head = { 0.075, 0.05, 0.035 } },
-	ribbon = { w = 0.12, t = 0.006, color = { 196, 150, 70 }, head = { 0.14, 0.03, 0.06 } },
-	thin = { w = 0.02, t = 0.012, color = { 30, 30, 32 }, head = { 0.05, 0.03, 0.04 } },
+	atx24 = { w = 0.26, t = 0.07, color = { 46, 48, 54 }, head = { 0.2, 0.18, 0.8 } },
+	eps = { w = 0.16, t = 0.06, color = { 46, 48, 54 }, head = { 0.32, 0.16, 0.18 } },
+	pcie = { w = 0.16, t = 0.06, color = { 46, 48, 54 }, head = { 0.28, 0.14, 0.14 } },
+	sata_power = { w = 0.12, t = 0.03, color = { 38, 38, 42 }, head = { 0.32, 0.1, 0.1 } },
+	sata_data = { w = 0.08, t = 0.025, color = { 200, 40, 40 }, head = { 0.18, 0.1, 0.1 } },
+	fan = { w = 0.05, t = 0.035, color = { 44, 44, 48 }, head = { 0.15, 0.1, 0.07 } },
+	ribbon = { w = 0.24, t = 0.012, color = { 196, 150, 70 }, head = { 0.28, 0.06, 0.12 } },
+	thin = { w = 0.04, t = 0.024, color = { 30, 30, 32 }, head = { 0.1, 0.06, 0.08 } },
 }
 PCParts.CableStyle = CABLE_STYLE
 
@@ -1425,7 +1433,7 @@ function PCParts.cable(points: { Vector3 }, style: string, headCf: CFrame?): Mod
 	if headCf then
 		local h = st.head
 		box(m, headCf * CFrame.new(0, h[2] / 2, 0), Vector3.new(h[1], h[2], h[3]), Color3.fromRGB(30, 30, 32), M.SmoothPlastic, { Name = "Head" })
-		box(m, headCf * CFrame.new(0, h[2] / 2, 0), Vector3.new(math.max(h[1], 0.16), math.max(h[2], 0.1), math.max(h[3], 0.16)), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
+		box(m, headCf * CFrame.new(0, h[2] / 2, 0), Vector3.new(math.max(h[1], 0.32), math.max(h[2], 0.2), math.max(h[3], 0.32)), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
 	end
 	return m
 end

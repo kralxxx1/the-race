@@ -19,12 +19,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 
+local Weather = require(script.Parent.Weather)
+
 local Ambience = {}
 
 local NIGHT_ON, NIGHT_OFF = 18.4, 6.3
 
 local night = nil :: boolean?
-local raining = false
 local fx = {} :: { [string]: any }
 local tagged: { [string]: { [Instance]: any } } = {}
 
@@ -167,61 +168,6 @@ local function setupEffects()
 		fx.clouds.Density = 0.6
 	end
 	fx.atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
-	-- rain: a particle curtain that follows the camera
-	local box = Instance.new("Part")
-	box.Name = "RainBox"
-	box.Anchored = true
-	box.CanCollide = false
-	box.CanQuery = false
-	box.CanTouch = false
-	box.Transparency = 1
-	box.Size = Vector3.new(140, 1, 140)
-	box.Parent = Workspace
-	local rain = Instance.new("ParticleEmitter")
-	rain.Name = "Rain"
-	rain.Texture = "rbxasset://textures/particles/smoke_main.dds"
-	rain.Color = ColorSequence.new(Color3.fromRGB(214, 224, 236))
-	rain.LightEmission = 0.15
-	rain.LightInfluence = 0.6
-	rain.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.55), NumberSequenceKeypoint.new(0.2, 0.25), NumberSequenceKeypoint.new(1, 0.35) })
-	rain.Size = NumberSequence.new(0.16)
-	rain.Squash = NumberSequence.new(5.5)
-	rain.Orientation = Enum.ParticleOrientation.VelocityParallel
-	rain.Speed = NumberRange.new(100, 120)
-	rain.EmissionDirection = Enum.NormalId.Bottom
-	rain.Acceleration = Vector3.new(3, 0, 1.5)
-	rain.Lifetime = NumberRange.new(0.6, 0.75)
-	rain.Rate = 0
-	rain.SpreadAngle = Vector2.new(3, 3)
-	rain.Parent = box
-	-- little splashes where the drops land
-	local splashBox = Instance.new("Part")
-	splashBox.Name = "RainSplashes"
-	splashBox.Anchored = true
-	splashBox.CanCollide = false
-	splashBox.CanQuery = false
-	splashBox.CanTouch = false
-	splashBox.Transparency = 1
-	splashBox.Size = Vector3.new(70, 0.2, 70)
-	splashBox.Parent = Workspace
-	local splash = Instance.new("ParticleEmitter")
-	splash.Name = "Splash"
-	splash.Texture = "rbxasset://textures/particles/smoke_main.dds"
-	splash.Color = ColorSequence.new(Color3.fromRGB(226, 234, 244))
-	splash.LightInfluence = 0.7
-	splash.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 1) })
-	splash.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 0.45) })
-	splash.Speed = NumberRange.new(1.5, 3)
-	splash.SpreadAngle = Vector2.new(70, 70)
-	splash.EmissionDirection = Enum.NormalId.Top
-	splash.Acceleration = Vector3.new(0, -14, 0)
-	splash.Lifetime = NumberRange.new(0.15, 0.25)
-	splash.Rate = 0
-	splash.Parent = splashBox
-	fx.rainBox = box
-	fx.rain = rain
-	fx.splashBox = splashBox
-	fx.splash = splash
 end
 
 -- Colour keys through the day: { hour, ambient, outdoor, tint, brightness, exposure }
@@ -245,29 +191,35 @@ local function mood(t: number)
 		end
 	end
 	local f = (t - a[1]) / math.max(0.001, b[1] - a[1])
-	local wet = if raining then 1 else 0
+	local wet = Weather.wet()
 	Lighting.Ambient = a[2]:Lerp(b[2], f)
-	Lighting.OutdoorAmbient = a[3]:Lerp(b[3], f):Lerp(Color3.fromRGB(110, 116, 128), wet * 0.4)
-	Lighting.Brightness = lerp(a[5], b[5], f) * (1 - wet * 0.35)
-	Lighting.ExposureCompensation = lerp(a[6], b[6], f) + trim * 0.9
+	Lighting.OutdoorAmbient = a[3]:Lerp(b[3], f):Lerp(Color3.fromRGB(96, 102, 114), wet * 0.55)
+	Lighting.Brightness = lerp(a[5], b[5], f) * (1 - wet * 0.5)
+	Lighting.ExposureCompensation = lerp(a[6], b[6], f) - wet * 0.15 + trim * 0.9
+	Lighting.EnvironmentDiffuseScale = 1 - wet * 0.35
 	if fx.cc then
-		fx.cc.TintColor = a[4]:Lerp(b[4], f):Lerp(Color3.fromRGB(220, 228, 240), wet * 0.5)
-		fx.cc.Saturation = 0.08 - wet * 0.12
+		fx.cc.TintColor = a[4]:Lerp(b[4], f):Lerp(Color3.fromRGB(206, 218, 236), wet * 0.6)
+		fx.cc.Saturation = 0.08 - wet * 0.26
+		fx.cc.Contrast = 0.06 + wet * 0.08
 	end
 	if fx.bloom then
 		fx.bloom.Intensity = if isNight(t) then 0.9 else 0.5
 	end
 	if fx.rays then
-		fx.rays.Intensity = if raining or isNight(t) then 0 else 0.05
+		fx.rays.Intensity = if wet > 0.1 or isNight(t) then 0 else 0.05
 	end
+	-- the sky closes over: thick dark cloud, haze, no glare (wet eases in and out over seconds)
 	if fx.clouds then
-		fx.clouds.Cover = lerp(fx.clouds.Cover, if raining then 0.9 else 0.55, 0.02)
-		fx.clouds.Density = lerp(fx.clouds.Density, if raining then 0.95 else 0.6, 0.02)
-		fx.clouds.Color = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(120, 124, 134), if raining then 1 else 0)
+		fx.clouds.Cover = lerp(0.55, 1, wet)
+		fx.clouds.Density = lerp(0.6, 1, wet)
+		fx.clouds.Color = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(88, 94, 106), wet)
 	end
 	if fx.atmosphere then
-		fx.atmosphere.Density = lerp(fx.atmosphere.Density, if raining then 0.42 else 0.3, 0.02)
-		fx.atmosphere.Haze = lerp(fx.atmosphere.Haze, if raining then 2.4 else 1.4, 0.02)
+		fx.atmosphere.Density = lerp(0.3, 0.5, wet)
+		fx.atmosphere.Haze = lerp(1.4, 4.2, wet)
+		fx.atmosphere.Glare = lerp(0.35, 0, wet)
+		fx.atmosphere.Color = Color3.fromRGB(199, 189, 168):Lerp(Color3.fromRGB(150, 158, 170), wet)
+		fx.atmosphere.Decay = Color3.fromRGB(107, 112, 125):Lerp(Color3.fromRGB(70, 76, 88), wet)
 	end
 end
 
@@ -410,6 +362,8 @@ end
 ----------------------------------------------------------------------------------------------------
 local loops: { [string]: Sound } = {}
 local gains: { [string]: number } = {}
+local muffles: { [string]: EqualizerSoundEffect } = {}
+local indoor = 0 -- 0 outside .. 1 under a roof, eased
 
 -- A Config.Sounds entry is an id, or { id = ..., volume = ... } (volume evens out quiet recordings).
 local function spec(v: any): (string?, number)
@@ -496,6 +450,7 @@ local volumes = { music = 0.5, ambience = 0.8 }
 function Ambience.setMix(musicVol: number?, ambienceVol: number?)
 	volumes.music = musicVol or volumes.music
 	volumes.ambience = ambienceVol or volumes.ambience
+	Weather.setMix(volumes.ambience)
 end
 
 function Ambience.setEffects(flags: { bloom: boolean?, rays: boolean?, dof: boolean?, clouds: boolean? })
@@ -512,7 +467,7 @@ function Ambience.setTrim(v: number)
 end
 
 -- Is the camera under a roof? (rain stays outside; you hear it drumming on the roof instead)
-local indoors, lastRoofCheck, lastGroundCheck = false, 0, 0
+local indoors, lastRoofCheck = false, 0
 local roofParams = RaycastParams.new()
 roofParams.FilterType = Enum.RaycastFilterType.Exclude
 roofParams.IgnoreWater = true
@@ -526,7 +481,7 @@ local function underRoof(): boolean
 	if not cam then
 		return false
 	end
-	local ignore = { fx.rainBox, fx.splashBox }
+	local ignore = {}
 	local char = Players.LocalPlayer and Players.LocalPlayer.Character
 	if char then
 		table.insert(ignore, char)
@@ -545,13 +500,26 @@ local function mix(t: number)
 		end
 	end
 	local inside = underRoof()
+	indoor = lerp(indoor, if inside then 1 else 0, 0.2)
 	-- the surf grows louder towards the beach (sand starts at z 846)
 	local seaside = math.clamp((camPos().Z - 640) / 220, 0, 1)
 	local quiet = if inside then 0.35 else 1
-	set("day", if isNight(t) or raining then 0 else 0.6 * quiet)
-	set("night", if isNight(t) and not raining then 0.6 * quiet else 0)
-	set("rain", if raining and not inside then 0.8 else 0)
-	set("rainIn", if raining and inside then 0.8 else 0)
+	local w = Weather.wet()
+	set("day", if isNight(t) then 0 else 0.6 * quiet * (1 - w))
+	set("night", if isNight(t) then 0.6 * quiet * (1 - w) else 0)
+	-- rain: two recordings on top of each other; indoors the same rain is muffled (the high end
+	-- is cut) and a low drumming on the roof is added
+	set("rain", w * lerp(0.8, 0.3, indoor))
+	set("rain2", w * lerp(0.75, 0.25, indoor))
+	set("rainIn", w * indoor * 0.9)
+	for _, name in { "rain", "rain2" } do
+		local eq = muffles[name]
+		if eq then
+			eq.HighGain = lerp(0, -42, indoor)
+			eq.MidGain = lerp(0, -10, indoor)
+			eq.LowGain = lerp(0, 2, indoor)
+		end
+	end
 	set("sea", seaside * 0.7 * quiet)
 	-- music decks: the current one fades in, the other fades out
 	local cur = music.decks[music.cur]
@@ -573,12 +541,6 @@ local function mix(t: number)
 			nextTrack()
 		end
 	end
-	-- rain falls outside only
-	if fx.rain then
-		local rate = if raining and not inside then 520 else 0
-		fx.rain.Rate = rate
-		fx.splash.Rate = if rate > 0 then 160 else 0
-	end
 end
 
 Ambience._music = music
@@ -588,6 +550,7 @@ Ambience._nextTrack = nextTrack
 function Ambience.init()
 	setupEffects()
 	applyFx()
+	Weather.init()
 	for _, tag in NIGHT_TAGS do
 		track(tag, function(inst)
 			if night ~= nil then
@@ -650,14 +613,23 @@ function Ambience.init()
 	loop("day", sounds.AmbienceDay)
 	loop("night", sounds.AmbienceNight)
 	loop("rain", sounds.Rain)
+	local second = loop("rain2", sounds.Rain2)
+	if second then
+		second.PlaybackSpeed = 0.97 -- (so the two never line up)
+	end
 	loop("rainIn", sounds.RainIndoor)
+	-- the muffler for rain heard from indoors
+	for _, name in { "rain", "rain2" } do
+		local s = loops[name]
+		local ok, eq = pcall(Instance.new, "EqualizerSoundEffect")
+		if s and ok and eq then
+			eq.Name = "Muffle"
+			eq.Parent = s
+			muffles[name] = eq
+		end
+	end
 	loop("sea", sounds.Sea)
 	playlist(sounds.Music)
-
-	raining = Workspace:GetAttribute("Raining") == true
-	Workspace:GetAttributeChangedSignal("Raining"):Connect(function()
-		raining = Workspace:GetAttribute("Raining") == true
-	end)
 
 	local slow = 0
 	RunService.RenderStepped:Connect(function(dt)
@@ -669,18 +641,8 @@ function Ambience.init()
 			night = n
 			switchNight(n)
 		end
-		-- rain follows the camera
-		local cam = Workspace.CurrentCamera
-		if cam and fx.rainBox then
-			local cp = cam.CFrame.Position
-			fx.rainBox.CFrame = CFrame.new(cp + Vector3.new(0, 40, 0))
-			-- splashes on whatever is below the camera (looked up with the roof check)
-			if raining and now - lastGroundCheck > 0.3 then
-				lastGroundCheck = now
-				local hit = Workspace:Raycast(cp, Vector3.new(0, -120, 0), roofParams)
-				fx.splashBox.CFrame = CFrame.new(if hit then hit.Position + Vector3.new(0, 0.1, 0) else Vector3.new(cp.X, 0.8, cp.Z))
-			end
-		end
+		-- rain, thunder and the flash of lightning
+		Weather.step(dt, Workspace.CurrentCamera, underRoof())
 		-- continuous movers
 		for wheel, info in ferris do
 			if type(info) == "table" and wheel.Parent and near(wheel, 900) then
