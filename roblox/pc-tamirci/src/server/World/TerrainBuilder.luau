@@ -131,8 +131,18 @@ function Terrain.build()
 	-- land: grass around the city, pavement under it, lawns in the park
 	local landDepth = seaZ - b.minZ
 	terrain:FillBlock(CFrame.new(0, -6, b.minZ + landDepth / 2), Vector3.new(b.maxX - b.minX, 12, landDepth), M.Grass)
+	-- Terrain lives on a grid of 4-stud cells centred on multiples of 4, so a block whose top is at
+	-- y = 0 cuts right through the middle of a cell and Roblox rounds it UP: the surface came out
+	-- about 2 studs above 0 and buried the roads (top 0.25), the pavements (0.75), the markings and
+	-- the wheels of the cars. Under the city the ground is therefore taken down to a cell edge:
+	-- the grass layer is cleared and a base of asphalt ends at y = -2, safely under every road,
+	-- slab and floor (which all start at y = 0).
 	local u = Terrain.urbanRect()
-	terrain:FillBlock(CFrame.new((u.x0 + u.x1) / 2, -6, (u.z0 + u.z1) / 2), Vector3.new(u.x1 - u.x0, 12, u.z1 - u.z0), M.Asphalt)
+	local function pave(cx: number, cz: number, w: number, d: number)
+		terrain:FillBlock(CFrame.new(cx, 3.5, cz), Vector3.new(w, 9, d), M.Air)
+		terrain:FillBlock(CFrame.new(cx, -7, cz), Vector3.new(w, 12, d), M.Asphalt)
+	end
+	pave((u.x0 + u.x1) / 2, (u.z0 + u.z1) / 2, u.x1 - u.x0, u.z1 - u.z0)
 	for _, lawn in Terrain.lawns() do
 		terrain:FillBlock(CFrame.new((lawn.x0 + lawn.x1) / 2, -6, (lawn.z0 + lawn.z1) / 2), Vector3.new(lawn.x1 - lawn.x0, 12, lawn.z1 - lawn.z0), M.Grass)
 	end
@@ -159,7 +169,7 @@ function Terrain.build()
 		if blk.z1 > CityLayout.BEACH_Z then
 			local cx, w = (blk.x0 + blk.x1) / 2, blk.x1 - blk.x0 + 8
 			terrain:FillBlock(CFrame.new(cx, (SEA_LEVEL - 20) / 2, blk.z1 + 110), Vector3.new(w, SEA_LEVEL + 20, 220), M.Water)
-			terrain:FillBlock(CFrame.new(cx, -6, (CityLayout.BEACH_Z + blk.z1) / 2 + 4), Vector3.new(w, 12, blk.z1 - CityLayout.BEACH_Z + 8), M.Asphalt)
+			pave(cx, (CityLayout.BEACH_Z + blk.z1) / 2 + 4, w, blk.z1 - CityLayout.BEACH_Z + 8)
 		end
 	end
 	-- northern hills
