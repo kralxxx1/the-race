@@ -9,14 +9,20 @@ vergiyi ve gece hırsızlarını da sen idare edersin.
 Şehir 16 × 9 bloktan oluşur. Eski şehirde merkez, teknoloji çarşısı, eski çarşı, sahil ve liman var;
 çevresinde havalimanı, organize sanayi, tersane, balıkçı köyü, villa tepesi, teknopark, çiftlikler,
 golf kulübü, karavan parkı ve yazlıklar yer alır. Toplam 60'tan fazla mekân var. Sunucu 20 kişiliktir;
-66 dükkân arsası hazırdır (kişi başı 3'ten fazla), liderlik tabloları en zenginleri ve en değerli
-işletmeleri gösterir.
+34 geniş dükkân arsası hazırdır (her biri eskisinin 3 katı; dükkânlar da 2 kat geniş ve yüksek),
+liderlik tabloları en zenginleri ve en değerli işletmeleri gösterir.
 
 Oyun **İngilizce** açılır; yer, dükkân, kişi ve marka adları yabancıdır. Türkçe, **Ayarlar** penceresinden
 (O tuşu) seçilebilir ve kayıtla birlikte saklanır. Ayarlar penceresi ses (ana, müzik, efekt, şehir
 sesleri; hepsi açılıp kapanır), görüntü (hazır kalite düzeyleri, gölge, parlama, güneş ışınları,
 derinlik bulanıklığı, bulut, parlaklık, görüş açısı, arayüz boyutu, sokak yoğunluğu, isim
 etiketleri) ve oyun (yardım seviyesi, zorluk, dil) ayarlarını içerir.
+
+Telefon gerçek bir telefon gibidir (ekran, saat, uygulama simgeleri, rozetler). **Reklam** uygulamasından
+broşürden TV reklamına ve e-spor sponsorluğuna kadar kampanyalar başlatırsın: müşteri akışı ve marka
+bilinirliği artar, zengin müşteriler (VIP, şirket sahibi) gelir. Müşteri memnuniyeti de ayrı bir göstergedir;
+memnuniyet düşünce zor müşteriler (hak arayan, gıcık, ukala) daha sık gelir. Müşterinin türü isim
+etiketinde yazar (zenginler altın, zorlar kırmızı renkte).
 
 Hiç bilgisayar bilmeyenler için tezgâhta bir **Koç** kartı vardır: sıradaki adımı söyler, parçayı oklarla
 gösterir, parçaların ne işe yaradığını anlatır. Yardım seviyesi (adım adım / sadece ipucu / kapalı)

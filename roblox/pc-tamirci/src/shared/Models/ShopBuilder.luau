@@ -202,7 +202,17 @@ end
 -- Empty plot available for rent.
 function ShopBuilder.emptyLot(parent: Instance, cf: CFrame, plotW: number, plotD: number, plotId: number): Model
 	local m = B.model("Plot_" .. plotId .. "_Empty", parent)
-	B.box(m, cf * CFrame.new(0, 0.06, plotD / 2), Vector3.new(plotW - 2, 0.12, plotD - 2), Color3.fromRGB(150, 140, 126), M.Concrete, { Name = "LotGround" })
+	-- a vacant lot is a lawn with a paved strip along the street, a few trees and flower beds
+	B.box(m, cf * CFrame.new(0, 0.06, SETBACK / 2), Vector3.new(plotW - 2, 0.12, SETBACK), Color3.fromRGB(200, 196, 188), M.Concrete, { Name = "LotPavement" })
+	B.box(m, cf * CFrame.new(0, 0.06, SETBACK + (plotD - SETBACK) / 2), Vector3.new(plotW - 2, 0.12, plotD - SETBACK - 1), Color3.fromRGB(110, 150, 80), M.Grass, { Name = "LotGround" })
+	local lotRng = Random.new(plotId * 977)
+	for i = 1, math.clamp(math.floor(plotW / 28), 3, 7) do
+		local x = -plotW / 2 + plotW * (i - 0.5) / math.clamp(math.floor(plotW / 28), 3, 7) + (lotRng:NextNumber() - 0.5) * 8
+		Props.tree(m, cf * CFrame.new(x, 0.12, plotD - 5 - lotRng:NextNumber() * 10), nil, lotRng)
+		if i % 2 == 0 then
+			Props.flowerBed(m, cf * CFrame.new(x + 7, 0.12, 26 + lotRng:NextNumber() * 20), 8, 3, lotRng)
+		end
+	end
 	-- construction hoarding along the front with a gap
 	local hoard = Color3.fromRGB(230, 230, 226)
 	B.box(m, cf * CFrame.new(-plotW / 4 - 4, 3, 2), Vector3.new(plotW / 2 - 10, 6, 0.4), hoard, M.SmoothPlastic)
@@ -769,6 +779,87 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 		level = level, plotW = halfLot * 2, setback = SETBACK, points = points, highClaims = highClaims,
 		outside = { A = outsideA, B = outsideB }, roof = roofClaims, name = opts.name, plotId = opts.plotId,
 	})
+	-- The lot around the shop: trees, hedges and flower beds on the lawn behind it, lamps, planters and
+	-- bins along the pavement on either side (the lot is much wider than the building)
+	do
+		local lot = shop -- (each piece is its own model: nothing here spans the whole lot)
+		local function mark(m: Instance?)
+			if m then
+				m:SetAttribute("LotDecor", true)
+			end
+		end
+		local lawnZ0 = SETBACK + D + 3
+		local lawnD = plotD - SETBACK - D - 3
+		if lawnD >= 8 then
+			local n = math.clamp(math.floor(plotW / 26), 3, 7)
+			for i = 1, n do
+				local x = -plotW / 2 + plotW * (i - 0.5) / n + (rng:NextNumber() - 0.5) * 6
+				mark(Props.tree(lot, cf * CFrame.new(x, 0.12, lawnZ0 + lawnD - 3), nil, rng))
+				if i % 2 == 1 then
+					mark(Props.flowerBed(lot, cf * CFrame.new(x + 8, 0.12, lawnZ0 + 3), 9, 3.2, rng))
+				end
+			end
+		end
+		for side = -1, 1, 2 do
+			local x = side * (W / 2 + 12)
+			while math.abs(x) < plotW / 2 - 6 do
+				mark(Props.streetLamp(lot, cf * CFrame.new(x, 0.12, SETBACK - 1)))
+				mark(Props.planter(lot, cf * CFrame.new(x + side * 7, 0.12, SETBACK / 2), rng))
+				if rng:NextNumber() < 0.5 then
+					mark(Props.bin(lot, cf * CFrame.new(x + side * 13, 0.12, SETBACK / 2)))
+				end
+				x += side * 26
+			end
+		end
+	end
+
+	-- The shop's own fixtures, from the official furniture pack (placed after the catalogue items,
+	-- in whatever room is left): shelving and glass cases along the walls, display islands on the
+	-- floor, a cabinet and a clock. A bigger shop gets more of them.
+	do
+		local runs = { walls.leftFront, walls.rightFront, walls.leftWork, walls.rightWork, walls.back, walls.frontLeft }
+		local count = math.clamp(math.floor(W / 20), 2, 6)
+		local names = { "MetalShelf", "Bookcase", "DisplayTall", "Bookcase", "MetalShelf", "DisplayWide" }
+		for i = 1, count do
+			local name = names[(i - 1) % #names + 1]
+			wallItem(runs, 5.6, 1.5, 3.2, function(c)
+				Real.fit(shop, name, c, 5.2, 2.2, 8.4)
+			end)
+		end
+		wallItem(runs, 3, 1.2, 2.4, function(c)
+			Real.fit(shop, "GrandfatherClock", c, 2.8, 1.8, 8.5)
+		end)
+		wallItem({ walls.back, walls.leftWork, walls.rightWork }, 8, 1.4, 3.2, function(c)
+			Real.fit(shop, "Credenza", c, 7.6, 2.8, 3.6)
+			Real.fit(shop, "TableLamp", c * CFrame.new(-2.4, 3.6, 0), 1.2, 1.2, 2.2)
+		end)
+		wallItem(runs, 2.6, 1.3, 2.8, function(c)
+			Real.fit(shop, "FilingCabinet", c, 2.4, 2.3, 3)
+		end)
+		-- display islands in the customer area
+		local islands = math.clamp(math.floor(W / 24), 1, 4)
+		local made = 0
+		for _ = 1, 60 do
+			if made >= islands then
+				break
+			end
+			local x = (rng:NextNumber() * 2 - 1) * (inner - 9)
+			local z = 9 + rng:NextNumber() * math.max(1, fz - 14)
+			local w, d = 6.4, 3.2
+			local r = { x - w / 2 - 1.2, z - d / 2 - 1.2, x + w / 2 + 1.2, z + d / 2 + 1.2 }
+			if plan:free(r, "hard") then
+				plan:claim(r, "hard")
+				made += 1
+				local c = at(x, z)
+				if made % 2 == 0 then
+					Real.fit(shop, "DisplayWide", c, w, d, 8.4)
+				else
+					Real.fit(shop, "CoffeeTable", c, 5.4, 2.8, 2)
+					Real.fit(shop, "TableLamp", c * CFrame.new(1.6, 1.9, 0), 1.2, 1.2, 2.2)
+				end
+			end
+		end
+	end
 	point("ThiefExit", cf * CFrame.new(if rng:NextNumber() < 0.5 then -halfLot - 20 else halfLot + 20, 0.5, -10))
 	-- outside: pylon sign, bench, parking marker
 	local pylon = cf * CFrame.new(halfLot - 4, 0.12, 2)

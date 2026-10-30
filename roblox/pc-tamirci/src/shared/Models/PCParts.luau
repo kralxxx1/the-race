@@ -230,7 +230,8 @@ function PCParts.chassis(cf: CFrame, casePart): (Model, Vector3)
 	local dims = PCParts.caseDims(casePart)
 	local lx, ly, lz = dims.X, dims.Y, dims.Z
 	local body = PCParts.caseColor(casePart)
-	local inner = body:Lerp(Color3.new(0, 0, 0), 0.25)
+	-- (a light-grey inside, so the dark parts stand out against the floor and walls of the case)
+	local inner = if body.R + body.G + body.B < 0.6 then Color3.fromRGB(78, 80, 88) else body:Lerp(Color3.new(0, 0, 0), 0.12)
 	local t = 0.035
 	local style = casePart and casePart.style or "airflow"
 	-- motherboard tray (now the floor)
@@ -240,7 +241,7 @@ function PCParts.chassis(cf: CFrame, casePart): (Model, Vector3)
 		box(m, cf * CFrame.new(-lx / 2 + cm(12.5), t + 0.002, -lz / 2 + cm(9) + k * cm(9)), Vector3.new(cm(1.4), 0.004, cm(5)), DARK, M.Rubber)
 	end
 	-- front panel (thick, with mesh or glass) at -X
-	local frontMat = if style == "airflow" or style == "itx" then M.DiamondPlate else M.SmoothPlastic
+	local frontMat = if style == "airflow" or style == "itx" then M.Metal else M.SmoothPlastic
 	local front = box(m, cf * CFrame.new(-lx / 2 + cm(1.2), ly / 2, 0), Vector3.new(cm(2.4), ly, lz), body, frontMat, { Name = "FrontPanel" })
 	if style == "wood" then
 		for k = -3, 3 do
@@ -263,11 +264,11 @@ function PCParts.chassis(cf: CFrame, casePart): (Model, Vector3)
 		box(m, cf * CFrame.new(lx / 2 + 0.003, ly * 0.5, cm(1.5) + k * cm(2.03) - lz / 2 + cm(19.5)), Vector3.new(0.006, ly * 0.55, cm(1.7)), Color3.fromRGB(70, 72, 76), M.Metal)
 	end
 	-- top (-Z) and bottom (+Z) walls
-	local topWall = box(m, cf * CFrame.new(0, ly / 2, -lz / 2 + t / 2), Vector3.new(lx, ly, t), body, if style == "airflow" or style == "showcase" then M.DiamondPlate else M.Metal, { Name = "TopPanel" })
+	local topWall = box(m, cf * CFrame.new(0, ly / 2, -lz / 2 + t / 2), Vector3.new(lx, ly, t), body, M.Metal, { Name = "TopPanel" })
 	topWall:SetAttribute("Detail", "top")
 	box(m, cf * CFrame.new(0, ly / 2, lz / 2 - t / 2), Vector3.new(lx, ly, t), body, M.Metal, { Name = "BottomPanel" })
 	-- PSU intake vent under the power supply
-	box(m, cf * CFrame.new(lx / 2 - cm(8), ly * 0.4, lz / 2 + 0.002), Vector3.new(cm(12), cm(11), 0.004), Color3.fromRGB(14, 14, 16), M.DiamondPlate)
+	box(m, cf * CFrame.new(lx / 2 - cm(8), ly * 0.4, lz / 2 + 0.002), Vector3.new(cm(12), cm(11), 0.004), Color3.fromRGB(14, 14, 16), M.Metal)
 	-- feet on the old bottom
 	for _, x in { -lx / 2 + cm(5), lx / 2 - cm(5) } do
 		box(m, cf * CFrame.new(x, ly / 2, lz / 2 + cm(0.8)), Vector3.new(cm(4), ly * 0.7, cm(1.6)), Color3.fromRGB(40, 40, 44), M.Rubber)

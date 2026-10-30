@@ -40,7 +40,7 @@ local function footprints(shop, front)
 		end
 	end
 	for _, child in shop:GetChildren() do
-		if child:IsA("Model") and child.Name ~= "Building" and child.Name ~= "Planter" and child.Name ~= "Bench" then
+		if child:IsA("Model") and child.Name ~= "Building" and child.Name ~= "Planter" and child.Name ~= "Bench" and not child:GetAttribute("LotDecor") then
 			local parts = {}
 			for _, d in child:GetDescendants() do
 				if d:IsA("BasePart") then

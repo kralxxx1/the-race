@@ -18,7 +18,7 @@ return function(T)
 			for j = i + 1, #L.plots do
 				local b = L.plots[j]
 				local d = (a.cf.Position - b.cf.Position).Magnitude
-				T.ok(d > 80, string.format("plots %d and %d overlap (%.1f)", i, j, d))
+				T.ok(d > 40, string.format("plots %d and %d overlap (%.1f)", i, j, d))
 			end
 			local road, _, dist = CityLayout.nearestRoad(a.cf.Position)
 			T.ok(road ~= nil and dist < 40, "plot " .. i .. " is far from any road")

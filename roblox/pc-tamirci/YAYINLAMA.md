@@ -102,7 +102,7 @@ Toplam süre yaklaşık 20–30 dakika (yaş doğrulaması hariç).
    zaten 20 yazılıdır; Dashboard'daki değer Studio'dan yapılan yayınla birlikte güncellenir, yine de kontrol et.)
    - Studio'dan yapmak istersen: **File → Experience Settings → Places** → yerin yanındaki **⋯** →
      **Edit**.
-   - Şehirde 66 dükkân arsası var. 20 kişide kişi başı 3'ten fazla arsa düşer; arsa hep bulunur.
+   - Şehirde 34 geniş dükkân arsası var (20 kişi için yeterli, 14 boş arsa kalır).
 2. **Avatar:** **File → Experience Settings → Avatar** → **R15**. NPC animasyonları R15'e göre.
 3. **API Services** (yalnızca Studio'da kayıt denemek için): **File → Experience Settings →
    Security** → **Enable Studio Access to API Services** açık.
@@ -189,7 +189,8 @@ blow out the dust, apply thermal paste, reseat the RAM and listen for the POST b
 ⭐ Never opened a PC? A built-in Coach walks you through every repair, step by step
 ⭐ 300+ real parts: graphics cards, CPUs, motherboards, RAM, SSDs, PSUs…
 ⭐ 30+ realistic faults; diagnose with a multimeter, POST card and thermal camera
-⭐ Grow your shop: up to 8 benches, 200+ items, a showcase
+⭐ Grow your shop: a big lot, up to 8 benches, 200+ items, a showcase
+⭐ Advertise, build your brand and attract wealthy VIP clients — or keep the grumpy ones happy
 ⭐ Hire staff from 22 professions; earn even while you're away
 ⭐ Build a factory, make your own brand, sell PC setups
 ⭐ Bills, taxes and night-time burglars: cameras, alarms, a bat!
