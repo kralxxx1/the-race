@@ -251,4 +251,4 @@ Kodu dosyalardan (Rojo ile) geliştiriyorsan `README.md` dosyasındaki **Gelişt
 | Arkadaşlarım giremiyor | 6b'deki **Friends** kapalı mı? Oyuncunun yaş doğrulaması var mı (16+)? |
 | Bir ses çalmıyor | **View → Output**'ta "Failed to load sound" uyarısına bak. `src/shared/Config.luau` dosyasındaki `Sounds` bölümünde o sesin kimliğini değiştir ya da boş bırak. |
 | Telefonda düğmeler küçük | Oyun dokunmatiği destekler. Studio'da **Test → Device** menüsünden telefon görünümünü deneyebilirsin. |
-| Türkiye'den girilemiyor | Türkiye'de 2024'ten beri Roblox'a erişim engeli vardı. 2026'da kalkıp kalkmadığına dair haberler çelişkili; sorun buysa oyunla ilgili değildir. Oyun İngilizce açılır, Türkçe Ayarlar'dan seçilir. |
+| Türkiye'den girilemiyor | Türkiye'de 2024'ten beri Roblox'a erişim engeli vardı. 2026'da kalkıp kalkmadığına dair haberler çelişkili; sorun buysa oyunla ilgili değildir. Oyun ilk açılışta dil sorar (English / Türkçe); sonradan Ayarlar'ın en üstünden değişir. |

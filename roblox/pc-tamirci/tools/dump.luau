@@ -228,6 +228,25 @@ elseif what == "shop" then
 			end
 		end
 	end
+	if process.args[3] == "bench" or process.args[3] == "showcase" then
+		-- a PC on every bench (the placement BenchViews uses)
+		local DeviceGen = Engine.mod("ReplicatedStorage.Shared.Repair.DeviceGen")
+		local PCModel = Engine.mod("ReplicatedStorage.Shared.Models.PCModel")
+		local Rules = Engine.mod("ReplicatedStorage.Shared.Repair.RepairRules")
+		local Mock = require("../tests/lib/Mock")
+		local Technician = require("../tests/lib/Technician")
+		local n = 0
+		for _, bench in shopModel:GetChildren() do
+			local anchor = bench:FindFirstChild("DeviceAnchor")
+			if anchor then
+				n += 1
+				local dev = DeviceGen.desktop(Mock.Random.new(n * 5), "high")
+				local tech = Technician.new(Rules, Engine.mod("ReplicatedStorage.Shared.Data.Parts"), Engine.mod("ReplicatedStorage.Shared.Data.Tools"), dev, Mock.Random.new(n))
+				tech:ensure("remove", "side_panel")
+				PCModel.build(shopModel, Rules.view(dev), anchor.CFrame * roblox.CFrame.Angles(0, math.pi, 0), { animate = false })
+			end
+		end
+	end
 	result.parts = dumpParts(folder)
 	outName = "shop" .. level
 elseif what == "device" then

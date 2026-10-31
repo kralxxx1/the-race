@@ -12,8 +12,10 @@ golf kulübü, karavan parkı ve yazlıklar yer alır. Toplam 60'tan fazla mekâ
 34 geniş dükkân arsası hazırdır (her biri eskisinin 3 katı; dükkânlar da 2 kat geniş ve yüksek),
 liderlik tabloları en zenginleri ve en değerli işletmeleri gösterir.
 
-Oyun **İngilizce** açılır; yer, dükkân, kişi ve marka adları yabancıdır. Türkçe, **Ayarlar** penceresinden
-(O tuşu) seçilebilir ve kayıtla birlikte saklanır. Ayarlar penceresi ses (ana, müzik, efekt, şehir
+Oyun ilk açılışta **dil sorar** (English / Türkçe); sonradan **Ayarlar**'ın (O tuşu) en üstündeki dil
+satırından her sekmede değiştirilir ve kayıtla birlikte saklanır. Türkçede arayüzün yanında dünyadaki
+tabelalar, panolar ve etkileşim ipuçları da Türkçe olur (`src/shared/Data/WorldTextTR.luau`); yer, dükkân,
+kişi ve marka adları yabancı kalır. Ayarlar penceresi ses (ana, müzik, efekt, şehir
 sesleri; hepsi açılıp kapanır), görüntü (hazır kalite düzeyleri, gölge, parlama, güneş ışınları,
 derinlik bulanıklığı, bulut, parlaklık, görüş açısı, arayüz boyutu, sokak yoğunluğu, isim
 etiketleri) ve oyun (yardım seviyesi, zorluk, dil) ayarlarını içerir.
@@ -175,7 +177,9 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
 13. **Şehir hayatı:** Trafik sağdan akar, kırmızıda durur, yaya geçidini bekler. Kaldırımlarda
     yayalar yürür; martı ve güvercin sürüleri, gökyüzünden geçen uçaklar ve sıcak hava balonları
     görünür. Dönme dolap ve rüzgâr türbinleri döner; deniz feneri ve saat kulesi çalışır. Gece
-    pencereler ve sokak lambaları yanar, yağmur yağar. Gündüz kuşlar, gece cırcır böcekleri duyulur;
+    pencereler ve sokak lambaları yanar. Yağmurda kamera çevresinde yağmur çizgileri düşer, gökyüzü
+    kararır, fırtınada şimşek çakar ve birkaç saniye sonra gök gürültüsü gelir; kapalı mekânda yağmur
+    boğuklaşır. Gündüz kuşlar, gece cırcır böcekleri duyulur;
     sahile yaklaştıkça dalga sesi artar, arkada sakin lo-fi müzik çalar.
 14. **Olaylar:** Parayı vermeden kaçan dolandırıcı olur. "Kutusu yok faturası yok" çalıntı parça
     satan şüpheli tip gelir; polis gelebilir! Yağmur ve gün/gece döngüsü de var.
@@ -186,6 +190,25 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
     köyü var. Doğusunda villa tepesi, teknopark, çiftlikler, golf kulübü, karavan parkı ve
     yazlıklar yer alır. Haritadaki 🌍 düğmesi bütün şehri gösterir; uzaklaştıkça semt adları
     görünür.
+
+---
+
+## Hazır modeller (Toolbox) ve kendi yaptıklarımız
+
+Şehrin görünen büyük kısmı **hazır, yayınlanmış modellerdir**: binalar, sokak eşyaları, ağaçlar ve bahçe
+bitkileri, dükkân mobilyaları (raflar, vitrinler, koltuklar, masa eşyaları), araçlar ve oyuncu
+görünüşleri Roblox'un resmî paketlerinden gelir (`assets/`, `tools/assets/curate.luau` ayıklar; betikler
+ve sesler atılır). Gökyüzü sesleri, yağmur ve gök gürültüsü de Roblox'un kendi ses kütüphanesindendir.
+
+Kendi çizdiğimiz yerler: **PC'nin içi** (parçalar tamir mantığına bağlı — çıkar, takılır, tozlanır, bozulur —
+bu yüzden her parça kodla çizilir), **dükkân kabuğu** (6 seviye, 200+ yükseltme ve yerleşim planı seviyeye
+göre değişir) ve **yollar**. Toolbox'taki tam hazır bir dükkân ya da PC modeli sabit bir heykeldir; seviye
+atlayan dükkâna, tezgâh/kuyruk noktalarına ve parça parça tamire uymaz. Toolbox'ı taramak için:
+
+```bash
+python3 tools/assets/toolbox.py search "gaming pc case" 1
+python3 tools/assets/toolbox.py sheet out.png <id> <id> ...
+```
 
 ---
 
@@ -225,8 +248,8 @@ src/server/            ServerScriptService.Server — dünya kurucu ve servisler
                        tamir, pazar, çalışan, hırsız, araç, sözleşme, vitrin, fatura, fabrika,
                        liderlik, görev, zaman)
 src/client/            StarterPlayerScripts.Client — HUD, pencereler (Ayarlar dahil), tezgâh ve Koç,
-                       harita/GPS, araç, trafik ve yayalar, ortam, öğretici; Prefs (ayarlar) ve
-                       Controllers/Display (ayarları uygular)
+                       harita/GPS, araç, trafik ve yayalar, ortam, hava durumu (yağmur, şimşek),
+                       dünya yazıları (Türkçe), öğretici; Prefs (ayarlar) ve Controllers/Display
 assets/                Roblox'un resmî paketlerinden ayıklanmış modeller (şehir, bitki örtüsü, mobilya,
                        araçlar); tools/assets/curate.luau ile üretilir
 tests/                 Lune ile Studio'suz testler

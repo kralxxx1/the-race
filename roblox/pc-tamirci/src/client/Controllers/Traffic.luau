@@ -14,9 +14,11 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CityLayout = require(Shared.World.CityLayout)
 local Vehicles = require(Shared.Data.Vehicles)
 local Avatars = require(Shared.Data.Avatars)
+local DriverPose = require(Shared.Util.DriverPose)
 local VehicleModels = require(Shared.Models.VehicleModels)
 
 local Ambience = require(script.Parent.Ambience)
+local Weather = require(script.Parent.Weather)
 
 local Traffic = {}
 
@@ -271,6 +273,8 @@ local function spawnCar(): boolean
 		local sit = danim:LoadAnimation(SIT)
 		sit.Looped = true
 		sit:Play(0)
+		local joints = DriverPose.joints(driver)
+		c.joints = if joints.rs and joints.ls then joints else nil -- (a rig without arms has nothing to pose)
 	elseif driver then
 		driver:Destroy()
 	end
@@ -349,7 +353,7 @@ local function stepCar(c, dt: number, me: Vector3?)
 	end
 end
 
-local function placeCar(c)
+local function placeCar(c, dt: number)
 	local cf
 	if c.turn then
 		local tr = c.turn
@@ -362,6 +366,13 @@ local function placeCar(c)
 		cf = carCFrame(c)
 	end
 	c.model:PivotTo(cf * c.pivot)
+	-- how hard the wheel is turned: the rate the heading changes at (0.6 rad/s is full lock)
+	local look = cf.LookVector
+	if c.prevLook and dt > 0 then
+		local rate = c.prevLook:Cross(look).Y / dt
+		c.steer = (c.steer or 0) * 0.85 + math.clamp(rate / 0.6, -1, 1) * 0.15
+	end
+	c.prevLook = look
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -473,6 +484,57 @@ local function removePed(i: number)
 	table.remove(peds, i)
 end
 
+-- In the rain people on the street hold an umbrella over their head (a stick and two discs).
+local UMBRELLAS = {
+	Color3.fromRGB(200, 40, 50), Color3.fromRGB(30, 90, 190), Color3.fromRGB(30, 30, 34), Color3.fromRGB(240, 190, 30),
+	Color3.fromRGB(40, 150, 90), Color3.fromRGB(150, 60, 170), Color3.fromRGB(235, 120, 40), Color3.fromRGB(236, 236, 240),
+}
+
+local function disc(parent: Instance, name: string, size: Vector3, offset: Vector3, color: Color3, head: BasePart): BasePart
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Shape = Enum.PartType.Cylinder
+	p.Size = size
+	p.Color = color
+	p.Material = Enum.Material.Fabric
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	p.Massless = true
+	-- (a cylinder lies along X: turn it so its axis is up)
+	p.CFrame = head.CFrame * CFrame.new(offset) * CFrame.Angles(0, 0, math.rad(90))
+	p.Parent = parent
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = head
+	weld.Part1 = p
+	weld.Parent = p
+	return p
+end
+
+local function setUmbrella(p, on: boolean)
+	if on == (p.umbrella ~= nil) then
+		return
+	end
+	if not on then
+		p.umbrella:Destroy()
+		p.umbrella = nil
+		return
+	end
+	local head = p.model:FindFirstChild("Head") :: BasePart?
+	if not head then
+		return
+	end
+	local m = Instance.new("Model")
+	m.Name = "Umbrella"
+	local color = pick(UMBRELLAS)
+	disc(m, "Stick", Vector3.new(3.2, 0.14, 0.14), Vector3.new(0, 1.7, 0), Color3.fromRGB(50, 50, 54), head)
+	disc(m, "Canopy", Vector3.new(0.22, 4.6, 4.6), Vector3.new(0, 3.1, 0), color, head)
+	disc(m, "Crown", Vector3.new(0.3, 2.6, 2.6), Vector3.new(0, 3.3, 0), color:Lerp(Color3.new(1, 1, 1), 0.15), head)
+	m.Parent = p.model
+	p.umbrella = m
+end
+
 ----------------------------------------------------------------------------------------------------
 function Traffic.init()
 	L = CityLayout.get()
@@ -487,7 +549,15 @@ function Traffic.init()
 			end
 		end
 	end
-	local spawnClock = 0
+	local spawnClock, umbrellaClock = 0, 0
+	RunService.RenderStepped:Connect(function()
+		local cam = camPos()
+		for _, c in cars do
+			if c.joints and c.model.Parent and flatDist(c.model:GetPivot().Position, cam) < 130 then
+				DriverPose.apply(c.joints, c.steer or 0)
+			end
+		end
+	end)
 	RunService.Heartbeat:Connect(function(dt)
 		local cam = camPos()
 		local char = player.Character
@@ -512,7 +582,18 @@ function Traffic.init()
 				c.model:Destroy()
 				table.remove(cars, i)
 			else
-				placeCar(c)
+				placeCar(c, math.min(dt, 0.1))
+			end
+		end
+		-- umbrellas up while it rains (a few times a second is plenty)
+		umbrellaClock += dt
+		if umbrellaClock > 0.6 then
+			umbrellaClock = 0
+			local rainy = Weather.wet() > 0.35
+			for _, p in peds do
+				if flatDist(p.leg.start + p.leg.dir * p.t, cam) < 170 or not rainy then
+					setUmbrella(p, rainy)
+				end
 			end
 		end
 		local moved, cfs = {}, {}

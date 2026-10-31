@@ -6,8 +6,11 @@
 -- ground and the "Upright" AlignOrientation sets the heading (and a bike's lean).
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+
+local DriverPose = require(ReplicatedStorage:WaitForChild("Shared").Util.DriverPose)
 
 local Client = script.Parent.Parent
 local Kit = require(Client.UI.Kit)
@@ -188,6 +191,43 @@ local function animateWheels(dt: number)
 	end
 end
 
+-- Everybody at a wheel nearby (you included) holds it: the arms reach out and turn with the
+-- steering. Done every frame after the sit animation has let them hang.
+local driverState: { [Model]: { joints: any, steer: number } } = setmetatable({}, { __mode = "k" })
+
+local function poseDrivers(dt: number)
+	local folder = Workspace:FindFirstChild("Vehicles")
+	local cam = Workspace.CurrentCamera
+	if not folder or not cam then
+		return
+	end
+	local camPos = cam.CFrame.Position
+	local posed: { [Model]: boolean } = {}
+	for _, model in folder:GetChildren() do
+		local seat = model:IsA("Model") and model:FindFirstChild("Driver") :: VehicleSeat?
+		local occupant = seat and seat:IsA("VehicleSeat") and seat.Occupant
+		local char = occupant and occupant.Parent
+		if char and char:IsA("Model") and seat and (seat.Position - camPos).Magnitude < 120 then
+			local st = driverState[char]
+			if not st then
+				st = { joints = DriverPose.joints(char), steer = 0 }
+				driverState[char] = st
+			end
+			-- (SteerFloat: 1 is right, -1 left; the pose takes left as positive)
+			st.steer += (-seat.SteerFloat - st.steer) * math.min(1, dt * 8)
+			DriverPose.apply(st.joints, st.steer)
+			posed[char] = true
+		end
+	end
+	-- (somebody who got out lets the animation take the arms back)
+	for char, st in driverState do
+		if not posed[char] then
+			DriverPose.reset(st.joints)
+			driverState[char] = nil
+		end
+	end
+end
+
 local function watchCharacter(char: Model)
 	local hum = char:WaitForChild("Humanoid", 10) :: Humanoid?
 	if not hum then
@@ -214,7 +254,10 @@ function VehicleController.init()
 			drive(dt)
 		end
 	end)
-	RunService.RenderStepped:Connect(animateWheels)
+	RunService.RenderStepped:Connect(function(dt)
+		animateWheels(dt)
+		poseDrivers(dt)
+	end)
 end
 
 function VehicleController.driving(): boolean

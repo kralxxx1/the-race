@@ -183,6 +183,11 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 	seat.TopSurface = Enum.SurfaceType.Smooth
 	seat.CFrame = stool * CFrame.new(0, 2.5, 0) * CFrame.Angles(0, math.pi, 0)
 	seat.Parent = m
+	-- a lived-in desk: a phone, a notepad, a stack of paper and a cup (official furniture pack)
+	Real.fit(m, "Telephone", cf * CFrame.new(9.8, 3.4, 0.2) * CFrame.Angles(0, math.rad(15), 0), 1.6, 1.8, 1.1)
+	Real.fit(m, "PaperStack", cf * CFrame.new(9.0, 3.4, -2.8) * CFrame.Angles(0, math.rad(-12), 0), 1.8, 2.4, 0.7)
+	Real.fit(m, "Notepad", cf * CFrame.new(7.6, 3.4, -1.2) * CFrame.Angles(0, math.rad(8), 0), 1.4, 1.8, 0.3)
+	Real.fit(m, "CupWhite", cf * CFrame.new(6.0, 3.4, 3.6), 0.7, 0.7, 0.8)
 	-- the device sits here; LookVector faces the technician
 	local anchor = B.marker(m, "DeviceAnchor", cf * CFrame.new(ANCHOR_X, 3.45, 0))
 	anchor:SetAttribute("Bench", index)
@@ -244,6 +249,50 @@ function ShopBuilder.emptyLot(parent: Instance, cf: CFrame, plotW: number, plotD
 	m:SetAttribute("Plot", plotId)
 	B.tag(m, "EmptyPlot")
 	return m
+end
+
+-- The finishing touches that make the hall read as one designed room: wainscot panelling, a skirting
+-- board and a rail along the side and back walls, a cornice and ceiling beams, a runner from the
+-- door into the shop, a doormat, and a hazard line between the shop floor and the workshop.
+local function finishings(shop: Model, front: CFrame, W: number, D: number, H: number, accent: Color3, floorCol: Color3, fz: number)
+	local m = B.model("Finishings", shop)
+	local inner = W / 2 - 1.05
+	local panel = accent:Lerp(Color3.new(0, 0, 0), 0.5)
+	local skirt = Color3.fromRGB(34, 34, 38)
+	local rail = accent:Lerp(Color3.new(1, 1, 1), 0.7)
+	-- walls: { centre x, centre z, length along x, length along z }
+	local walls = {
+		{ -inner, (D - 1) / 2, 0.2, D - 2.1 },
+		{ inner, (D - 1) / 2, 0.2, D - 2.1 },
+		{ 0, D - 1.05, W - 2.1, 0.2 },
+	}
+	for _, w in walls do
+		B.box(m, front * CFrame.new(w[1], 0.2 + 1.8, w[2]), Vector3.new(w[3], 3.6, w[4]), panel, M.Wood, nc({ Name = "Wainscot" }))
+		B.box(m, front * CFrame.new(w[1], 0.2 + 0.35, w[2]), Vector3.new(w[3] + (if w[3] > 1 then 0 else 0.1), 0.7, w[4] + (if w[4] > 1 then 0 else 0.1)), skirt, M.SmoothPlastic, nc({ Name = "Skirting" }))
+		B.box(m, front * CFrame.new(w[1], 0.2 + 3.7, w[2]), Vector3.new(w[3] + (if w[3] > 1 then 0 else 0.15), 0.25, w[4] + (if w[4] > 1 then 0 else 0.15)), rail, M.SmoothPlastic, nc({ Name = "Rail" }))
+		-- cornice under the ceiling
+		B.box(m, front * CFrame.new(w[1], H - 0.45, w[2]), Vector3.new(w[3] + (if w[3] > 1 then 0 else 0.3), 0.5, w[4] + (if w[4] > 1 then 0 else 0.3)), Color3.fromRGB(240, 240, 236), M.SmoothPlastic, nc({ Name = "Cornice" }))
+	end
+	-- ceiling beams across the hall
+	for z = 12, D - 8, 14 do
+		B.box(m, front * CFrame.new(0, H - 0.65, z), Vector3.new(W - 2.1, 0.9, 0.7), Color3.fromRGB(58, 60, 66), M.Metal, nc({ Name = "Beam" }))
+	end
+	-- runner from the door into the shop, with a doormat at the entrance
+	local runnerEnd = math.min(fz - 2, 20)
+	B.box(m, front * CFrame.new(0, 0.215, 2 + (runnerEnd - 2) / 2), Vector3.new(5.2, 0.03, runnerEnd - 2), panel, M.Fabric, nc({ Name = "Runner" }))
+	for side = -1, 1, 2 do
+		B.box(m, front * CFrame.new(side * 2.45, 0.235, 2 + (runnerEnd - 2) / 2), Vector3.new(0.3, 0.03, runnerEnd - 2), rail, M.Fabric, nc({ Name = "RunnerEdge" }))
+	end
+	B.box(m, front * CFrame.new(0, 0.24, 1.9), Vector3.new(7, 0.05, 3), Color3.fromRGB(46, 48, 54), M.Fabric, nc({ Name = "Doormat" }))
+	-- the workshop floor is a shade darker, parted from the shop by a hazard line
+	local work = floorCol:Lerp(Color3.new(0, 0, 0), 0.14)
+	B.box(m, front * CFrame.new(0, 0.208, fz + (D - 1 - fz) / 2), Vector3.new(W - 2.1, 0.016, D - 1 - fz), work, M.SmoothPlastic, nc({ Name = "WorkFloor" }))
+	local n = math.floor((W - 4) / 6)
+	for k = 0, n - 1 do
+		local x = -(W - 4) / 2 + (k + 0.5) * (W - 4) / n
+		local col = if k % 2 == 0 then Color3.fromRGB(240, 190, 20) else Color3.fromRGB(30, 30, 34)
+		B.box(m, front * CFrame.new(x, 0.222, fz - 0.15), Vector3.new((W - 4) / n, 0.02, 0.35), col, M.SmoothPlastic, nc({ Name = "HazardLine" }))
+	end
 end
 
 -- Builds a player's shop. opts: level, name, owner, wall, floor, accent, items, plotWidth, plotDepth, plotId
@@ -322,6 +371,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 
 	-- zones: front (waiting + counter) up to fz, workshop behind it
 	local fz = math.clamp(D * 0.5, 14, 22)
+	finishings(shop, front, W, D, H, accent, B.color(floorStyle.color), fz)
 	local inner = W / 2 - 1
 	local plan = Plan.new(W, D)
 	local function at(x: number, z: number, y: number?): CFrame
@@ -600,16 +650,17 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	local showSpot = nil
 	if items.showcase and level >= 4 then
 		for i = 1, 3 do
-			local d = wallItem({ walls.frontLeft, walls.frontRight }, 5, 1.8, 3.6, function(c)
+			-- (the PCs on show are twice the old size, so are the stands)
+			local d = wallItem({ walls.frontLeft, walls.frontRight }, 10, 3.8, 7.6, function(c)
 				local m = B.model("Showcase", shop)
-				B.box(m, c * CFrame.new(0, 1.6, 0), Vector3.new(5, 3.2, 3.4), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
-				B.box(m, c * CFrame.new(0, 3.25, 0), Vector3.new(4.8, 0.1, 3.2), accent, M.Neon, nc())
+				B.box(m, c * CFrame.new(0, 1.6, 0), Vector3.new(10, 3.2, 7), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
+				B.box(m, c * CFrame.new(0, 3.25, 0), Vector3.new(9.8, 0.1, 6.8), accent, M.Neon, nc())
 			end)
 			if not d then
 				break
 			end
 			point("Showcase_" .. i, d * CFrame.new(0, 3.3, 0), { Showcase = i })
-			showSpot = showSpot or d * CFrame.new(2.4, 0, -3.6)
+			showSpot = showSpot or d * CFrame.new(5, 0, -6.4)
 		end
 	end
 	if items.plants then

@@ -638,9 +638,73 @@ return function(T)
 		end
 		T.ok(walkers >= 5, "avatar pedestrians: " .. walkers)
 		T.ok(drivers >= 3, "avatar drivers: " .. drivers)
+		-- the drivers hold the wheel: their arms are out in front, not hanging
+		local armsOn, jointed = 0, 0
+		for _, m in folder:GetChildren() do
+			local d = m:FindFirstChild("DriverAvatar")
+			local rs = d and d:FindFirstChild("RightShoulder", true)
+			if rs and rs:IsA("Motor6D") then
+				jointed += 1
+				if rs.Transform ~= roblox.CFrame.new() then
+					armsOn += 1
+				end
+			end
+		end
+		print(string.format("    drivers with arm joints: %d, arms on the wheel: %d", jointed, armsOn))
+		T.ok(armsOn == jointed, "every jointed driver has the arms on the wheel")
+		-- in the rain the people on the pavement put up umbrellas; when it stops they put them down
+		local ws = game:GetService("Workspace")
+		local function umbrellas()
+			local n = 0
+			for _, m in folder:GetChildren() do
+				if m:FindFirstChild("Umbrella") then
+					n += 1
+				end
+			end
+			return n
+		end
+		T.eq(umbrellas(), 0, "dry: no umbrellas")
+		Engine.setAttribute(ws, "Raining", true)
+		Engine.step(120, 1 / 10)
+		T.ok(umbrellas() >= 3, "umbrellas up in the rain: " .. umbrellas())
+		Engine.setAttribute(ws, "Raining", false)
+		Engine.step(250, 1 / 10)
+		T.eq(umbrellas(), 0, "umbrellas down again")
 		local sky = Engine.workspace:FindFirstChild("Sky")
 		T.ok(sky and #sky:GetChildren() > 40, "birds and balloons")
 		noErrors("traffic")
+	end)
+
+	T.test("client: a driver's arms reach out to the wheel and turn with the steering", function()
+		local DriverPose = Engine.mod("ReplicatedStorage.Shared.Util.DriverPose")
+		local rig = roblox.Instance.new("Model")
+		for _, name in { "RightShoulder", "LeftShoulder", "RightElbow", "LeftElbow", "Neck" } do
+			local j = roblox.Instance.new("Motor6D")
+			j.Name = name
+			j.Parent = rig
+		end
+		local joints = DriverPose.joints(rig)
+		T.ok(joints.rs ~= nil and joints.ls ~= nil and joints.neck ~= nil, "the joints are found")
+		DriverPose.apply(joints, 0)
+		local straight = joints.rs.Transform
+		T.ok(straight ~= roblox.CFrame.new(), "the arm is no longer hanging")
+		local ax = straight:ToEulerAnglesXYZ()
+		T.ok(math.abs(math.deg(ax) - 46) < 1, "reaching forward 46 degrees: " .. math.deg(ax))
+		DriverPose.apply(joints, 1)
+		local left = joints.rs.Transform
+		DriverPose.apply(joints, -1)
+		local right = joints.rs.Transform
+		T.ok(left ~= right and left ~= straight and right ~= straight, "the arms turn with the wheel")
+		T.ok(joints.neck.Transform ~= roblox.CFrame.new(), "and the head follows")
+		-- somebody working at a bench: hands out in front, head down, and the typing moves the arms
+		DriverPose.work(joints, 0, 0)
+		local a = joints.rs.Transform
+		T.ok(a ~= roblox.CFrame.new() and joints.neck.Transform ~= roblox.CFrame.new(), "at the bench: arms forward, head down")
+		DriverPose.work(joints, 0.1, 0)
+		T.ok(joints.rs.Transform ~= a, "typing moves the arms")
+		-- a rig without shoulders is left alone
+		DriverPose.apply(DriverPose.joints(roblox.Instance.new("Model")), 0.5)
+		DriverPose.work(DriverPose.joints(roblox.Instance.new("Model")), 0.5, 0)
 	end)
 
 	T.test("client: the city lights up at night", function()

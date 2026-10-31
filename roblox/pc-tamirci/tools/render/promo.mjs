@@ -1,7 +1,7 @@
 // Store images for the Roblox game page: renders views of the real game models with the previewer
 // (index.html), then lays the titles over them (promo.html).
 //   lune run tools/dump.luau world
-//   lune run tools/dump.luau shop 6 showcase
+//   lune run tools/dump.luau shop 6 bench
 //   lune run tools/dump.luau device desktop 3 high open
 //   node tools/render/promo.mjs        → publish/icon.png, publish/thumbnail_1..4.jpg
 import { chromium } from 'playwright';
@@ -20,7 +20,7 @@ const SHOTS = [
   { name: 'city', file: 'world', cam: '-500,260,1150', look: '200,0,300', fov: 50 },
   { name: 'fun', file: 'world', cam: '-2150,380,250', look: '-1100,0,-500', fov: 50 },
   { name: 'shop', file: 'shop6', cam: '-34,40,-8', look: '0,2,40', fov: 45, extra: 'clip=11&bg=none' },
-  { name: 'pc', file: 'device_desktop', cam: '2.8,7.6,5.6', look: '-0.6,0.9,-0.7', fov: 40, extra: 'bg=none&ground=shadow' },
+  { name: 'pc', file: 'device_desktop', cam: '5.6,15.2,11.2', look: '-1.2,1.8,-1.4', fov: 40, extra: 'bg=none&ground=shadow' },
 ];
 const CARDS = [
   { kind: 'icon', w: 512, h: 512, out: 'icon.png' },

@@ -136,6 +136,7 @@ local function customerJob()
 	return cust
 end
 
+cmod("UI.LanguagePrompt").close() -- (the first-start question would cover every scene)
 Hud.toast("🎉 Level up! Level 7", "good")
 Hud.toast("🏢 Contract: machine 2/3 delivered (+$75)", "info")
 if scene == "phone" then

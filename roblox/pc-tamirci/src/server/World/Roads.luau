@@ -128,6 +128,26 @@ local function segment(folder: Instance, L, road, rng: Random)
 		line(cw / 4, 0.35, P.lineWhite, true)
 	end
 
+	-- polish: solid edge lines on the big roads, manhole covers, storm drains at the kerb
+	local paint = { CanCollide = false, CanTouch = false, CastShadow = false }
+	if road.kind ~= "street" then
+		line(-(cw / 2 - 0.9), 0.28, P.lineWhite, false)
+		line(cw / 2 - 0.9, 0.28, P.lineWhite, false)
+	end
+	for k = 0, math.floor(len / 80) - 1 do
+		local pos = mid + dir * (-len / 2 + 80 * (k + 0.5)) + right * ((if k % 2 == 0 then -1 else 1) * cw * 0.2) + Vector3.new(0, markY, 0)
+		B.cylY(m, CFrame.new(pos), 0.05, 2.6, Color3.fromRGB(86, 88, 92), M.Metal, paint)
+		B.cylY(m, CFrame.new(pos + Vector3.new(0, 0.025, 0)), 0.04, 1.8, Color3.fromRGB(58, 60, 64), M.Metal, paint)
+	end
+	for k = 0, math.floor(len / 90) - 1 do
+		local side = if k % 2 == 0 then 1 else -1
+		local pos = mid + dir * (-len / 2 + 90 * (k + 0.5) + 20) + right * side * (cw / 2 - 0.7) + Vector3.new(0, markY, 0)
+		flat(m, pos, dir, Vector3.new(0.9, 0.05, 2.2), Color3.fromRGB(40, 42, 46), M.Metal, paint)
+		for j = -1, 1 do
+			flat(m, pos + dir * (j * 0.65), dir, Vector3.new(0.7, 0.07, 0.1), Color3.fromRGB(120, 122, 126), M.Metal, paint)
+		end
+	end
+
 	-- urban furniture
 	local districtL = CityLayout.districtAt(mid - right * (road.width / 2 + 20))
 	local districtR = CityLayout.districtAt(mid + right * (road.width / 2 + 20))
@@ -262,6 +282,14 @@ local function intersection(folder: Instance, L, node, rng: Random)
 		zebra(Vector3.new(X, y, Z + cwH / 2 + 3.5), Vector3.new(0, 0, 1), cwV)
 		zebra(Vector3.new(X - cwV / 2 - 3.5, y, Z), Vector3.new(1, 0, 0), cwH)
 		zebra(Vector3.new(X + cwV / 2 + 3.5, y, Z), Vector3.new(1, 0, 0), cwH)
+		-- stop lines before the zebras: right-hand traffic, each approach uses its own half
+		local function bar(bx: number, bz: number, sx: number, sz: number)
+			B.box(m, CFrame.new(bx, y, bz), Vector3.new(sx, 0.04, sz), stripe, M.SmoothPlastic, { CanCollide = false, CanTouch = false, CastShadow = false })
+		end
+		bar(X - cwV / 4, Z - cwH / 2 - 7.5, cwV / 2 - 0.8, 0.6)
+		bar(X + cwV / 4, Z + cwH / 2 + 7.5, cwV / 2 - 0.8, 0.6)
+		bar(X - cwV / 2 - 7.5, Z + cwH / 4, 0.6, cwH / 2 - 0.8)
+		bar(X + cwV / 2 + 7.5, Z - cwH / 4, 0.6, cwH / 2 - 0.8)
 	end
 	-- traffic lights: right-hand traffic, signal on the near-right corner of each approach
 	if four and kindV ~= "ring" and kindH ~= "ring" then

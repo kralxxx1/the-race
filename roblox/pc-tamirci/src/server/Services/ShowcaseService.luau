@@ -159,7 +159,7 @@ local function showModel(player: Player, slot: number, job)
 		end
 	end
 	-- a price card on the stand (a setup lists what comes with it)
-	local card = B.box(h.model, part.CFrame * CFrame.new(-1.75, 0.42, -1.35) * CFrame.Angles(math.rad(-15), 0, 0), Vector3.new(1.3, 0.75, 0.06), Color3.new(1, 1, 1), Enum.Material.SmoothPlastic, { CanCollide = false, CanQuery = false, CanTouch = false, Name = "PriceCard" })
+	local card = B.box(h.model, part.CFrame * CFrame.new(-3.5, 0.85, -2.7) * CFrame.Angles(math.rad(-15), 0, 0), Vector3.new(2.6, 1.5, 0.1), Color3.new(1, 1, 1), Enum.Material.SmoothPlastic, { CanCollide = false, CanQuery = false, CanTouch = false, Name = "PriceCard" })
 	local kinds = {}
 	for _, item in job.setup or {} do
 		local pp = Parts.get(item.part)

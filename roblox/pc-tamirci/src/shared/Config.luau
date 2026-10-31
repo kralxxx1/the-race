@@ -3,7 +3,7 @@
 
 local Config = {
 	GameName = "PC Repair Tycoon",
-	Version = "2026.10.30-f", -- shown in Settings > Controls and printed when the server starts, to tell which file is running
+	Version = "2026.10.31-a", -- shown in Settings > Controls and printed when the server starts, to tell which file is running
 
 	-- Para birimi sembolü (ör. "$", "₺", "€")
 	CurrencySymbol = "$",
