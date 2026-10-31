@@ -34,9 +34,16 @@ local function state(p)
 end
 BillsService.state = state
 
+-- The owner's auto-pay switch (phone > Bills) decides; until it has been touched the bank's order
+-- or an accountant on the staff turn it on by themselves.
 local function autopay(p): boolean
+	local b = state(p)
+	if b.auto ~= nil then
+		return b.auto == true
+	end
 	return (p.shop.items.autopay == true) or Employees.has(p.staff, "accountant")
 end
+BillsService.autopayOn = autopay
 
 -- Lights in the shop go out while the power is cut (and come back when it's paid).
 local function applyPower(player: Player)
@@ -107,7 +114,9 @@ local function review(player: Player, p, day: number)
 	applyPower(player)
 end
 
-local function pay(player: Player, p, bill, day: number): boolean
+local HISTORY = 40 -- how many paid bills the books remember
+
+local function pay(player: Player, p, bill, day: number, auto: boolean?): boolean
 	local amount = Bills.amountDue(bill, day)
 	if not DataService.money(player, -amount, if bill.kind == "tax" or bill.kind == "fine" then bill.kind else "bill") then
 		return false
@@ -117,8 +126,9 @@ local function pay(player: Player, p, bill, day: number): boolean
 	if i then
 		table.remove(b.list, i)
 	end
-	table.insert(b.paid, 1, { kind = bill.kind, amount = amount, day = day })
-	while #b.paid > 12 do
+	-- (the history remembers which bills the bank paid on its own)
+	table.insert(b.paid, 1, { kind = bill.kind, amount = amount, day = day, auto = auto == true or nil })
+	while #b.paid > HISTORY do
 		table.remove(b.paid)
 	end
 	return true
@@ -130,7 +140,7 @@ end
 
 -- Every morning the unpaid bills nag: the ones that fall due tomorrow, the ones that are late (and
 -- growing), and the electricity about to be cut. (One message for each, however many bills.)
-local function remind(player: Player, p, day: number)
+local function remind(player: Player, p, day: number, quiet: boolean?)
 	local b = state(p)
 	local soon, late = { n = 0, total = 0 }, { n = 0, total = 0 }
 	local cutTomorrow = false
@@ -147,10 +157,11 @@ local function remind(player: Player, p, day: number)
 			cutTomorrow = true
 		end
 	end
-	if soon.n > 0 then
+	-- (when the auto-pay order has just failed it has said so: not a second message about the same bills)
+	if soon.n > 0 and not quiet then
 		Net.push(player, "toast", { key = "bills_due_soon", important = true, vars = { n = soon.n, amount = soon.total } })
 	end
-	if late.n > 0 then
+	if late.n > 0 and not quiet then
 		Net.push(player, "toast", { key = "bills_overdue", important = true, vars = { n = late.n, amount = late.total } })
 	end
 	if cutTomorrow then
@@ -187,6 +198,38 @@ function BillsService.pay(player: Player, which: any): (number, string?)
 		DataService.touch(player)
 	end
 	return n, if n == 0 then "money" else nil
+end
+
+-- The auto-pay order: pays what the till can afford, the most urgent bill first, writes each into the
+-- history and tells the owner how it went (what was paid, what could not be). Returns paid, failed.
+function BillsService.autoPay(player: Player, p, day: number): (number, number)
+	local b = state(p)
+	if #b.list == 0 then
+		return 0, 0
+	end
+	local list = table.clone(b.list)
+	table.sort(list, function(x, y)
+		return x.due < y.due
+	end)
+	local paid, paidTotal, failed, failedTotal = 0, 0, 0, 0
+	for _, bill in list do
+		local amount = Bills.amountDue(bill, day)
+		if pay(player, p, bill, day, true) then
+			paid += 1
+			paidTotal += amount
+		else
+			failed += 1
+			failedTotal += amount
+		end
+	end
+	if paid > 0 then
+		Net.push(player, "toast", { key = "bills_autopaid", important = true, vars = { n = paid, amount = paidTotal } })
+		DataService.touch(player)
+	end
+	if failed > 0 then
+		Net.push(player, "toast", { key = "bills_autofail", important = true, vars = { n = failed, amount = failedTotal } })
+	end
+	return paid, failed
 end
 
 -- One morning for one shop: yesterday's utilities, the week's rent / SGK / tax every seventh
@@ -236,11 +279,13 @@ function BillsService.morning(player: Player, p, day: number)
 	if rep > 0 then
 		DataService.rep(player, rep)
 	end
+	local failed = 0
 	if autopay(p) then
-		BillsService.pay(player, "all")
+		local _, notPaid = BillsService.autoPay(player, p, day)
+		failed = notPaid
 	end
 	review(player, p, day)
-	remind(player, p, day)
+	remind(player, p, day, failed > 0)
 	DataService.touch(player)
 end
 
@@ -283,6 +328,19 @@ function BillsService.start()
 	end)
 	PlotService.built:Connect(function(player)
 		task.defer(applyPower, player)
+	end)
+	-- the owner's auto-pay switch
+	Net.handle("bills.auto", function(player, payload)
+		if not Net.V.tbl(payload) or not Net.V.bool(payload.on) then
+			return { ok = false, err = "bad_request" }
+		end
+		local p = DataService.get(player)
+		if not p then
+			return { ok = false, err = "no_profile" }
+		end
+		state(p).auto = payload.on
+		DataService.touch(player)
+		return { ok = true, on = payload.on }
 	end)
 	Net.handle("bills.pay", function(player, payload)
 		if not Net.V.tbl(payload) or not (payload.id == "all" or Net.V.int(payload.id, 1, 1e9)) then

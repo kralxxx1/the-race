@@ -33,8 +33,27 @@ function BillsPanel.totalDue(): number
 	return sum
 end
 
+-- Is the auto-pay order on? (The owner's switch; until it was touched the bank's order or an
+-- accountant on the staff turn it on.)
+function BillsPanel.autoOn(): boolean
+	local d = State.data
+	local b = d and d.bills
+	if b and b.auto ~= nil then
+		return b.auto == true
+	end
+	if d and d.shop and d.shop.items and d.shop.items.autopay == true then
+		return true
+	end
+	for _, st in d and d.staff or {} do
+		if st.role == "accountant" then
+			return true
+		end
+	end
+	return false
+end
+
 function BillsPanel.render(parent: Instance)
-	local head = Kit.frame(parent, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 96) })
+	local head = Kit.frame(parent, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 132) })
 	local weekLabel = Kit.label(head, "", { Size = UDim2.new(1, 0, 0, 22), TextSize = 15, FontFace = Theme.bold, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd })
 	local subLabel = Kit.label(head, "", { Size = UDim2.new(1, 0, 0, 36), Position = UDim2.fromOffset(0, 24), TextSize = 13, TextColor3 = Theme.dim, TextYAlignment = Enum.TextYAlignment.Top })
 	local payAll = Kit.button(head, "", function()
@@ -45,7 +64,16 @@ function BillsPanel.render(parent: Instance)
 			App.report(r)
 		end
 	end, { Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 64), TextSize = 14 }, "primary")
-	local list = Kit.list(parent, { Size = UDim2.new(1, 0, 1, -102), Position = UDim2.fromOffset(0, 102) }, 6)
+	-- the auto-pay switch: bills are paid the morning they arrive (and listed below, marked 🤖)
+	local autoBtn = Kit.button(head, "", function()
+		local r = Net.request("bills.auto", { on = not BillsPanel.autoOn() })
+		if r.ok then
+			Hud.toast(S.t(if r.on then "bills_auto_set_on" else "bills_auto_set_off"), if r.on then "good" else "info")
+		else
+			App.report(r)
+		end
+	end, { Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 98), TextSize = 14 }, "primary")
+	local list = Kit.list(parent, { Size = UDim2.new(1, 0, 1, -138), Position = UDim2.fromOffset(0, 138) }, 6)
 
 	local function fill()
 		Kit.clear(list)
@@ -68,10 +96,9 @@ function BillsPanel.render(parent: Instance)
 			local f = Kit.panel(list, { Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = Theme.bad, LayoutOrder = order })
 			Kit.label(f, S.t("bills_powercut"), { Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, FontFace = Theme.heavy, TextSize = 16 })
 		end
-		if d.shop and d.shop.items and d.shop.items.autopay then
-			order += 1
-			Kit.label(list, S.t("bills_auto"), { Size = UDim2.new(1, 0, 0, 22), TextColor3 = Theme.good, TextSize = 13, LayoutOrder = order })
-		end
+		local autoOn = BillsPanel.autoOn()
+		autoBtn.Text = S.t(if autoOn then "bills_auto_on" else "bills_auto_off")
+		Kit.setColor(autoBtn, if autoOn then Theme.good else Theme.card)
 		local unpaid = table.clone(b.list or {})
 		table.sort(unpaid, function(x, y)
 			return x.due < y.due
@@ -118,7 +145,7 @@ function BillsPanel.render(parent: Instance)
 			for _, pb in b.paid do
 				order += 1
 				local kind = Bills.kinds[pb.kind] or { icon = "🧾" }
-				Kit.label(list, kind.icon .. "  " .. S.t("bill_" .. pb.kind) .. "  —  " .. S.money(pb.amount) .. "  (" .. S.t("day", { d = pb.day }) .. ")", { Size = UDim2.new(1, 0, 0, 22), TextColor3 = Theme.dim, TextSize = 13, LayoutOrder = order })
+				Kit.label(list, (if pb.auto then "🤖 " else "") .. kind.icon .. "  " .. S.t("bill_" .. pb.kind) .. "  —  " .. S.money(pb.amount) .. "  (" .. S.t("day", { d = pb.day }) .. ")", { Size = UDim2.new(1, 0, 0, 22), TextColor3 = Theme.dim, TextSize = 13, LayoutOrder = order })
 			end
 		end
 	end

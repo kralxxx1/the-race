@@ -503,6 +503,62 @@ return function(T)
 		p.shop.items.autopay = nil
 	end)
 
+	T.test("business: the auto-pay switch pays the bills in the morning, lists them in the history and says whether it worked", function()
+		local p = DataService.get(player)
+		p.money = 100000
+		p.bills = nil
+		p.shop.items.autopay = nil
+		p.staff = {}
+		local b = BillsService.state(p)
+		-- off by default (no bank order, no accountant): the bill waits for its owner
+		pushes = {}
+		BillsService.morning(player, p, 4000)
+		T.eq(#b.list, 1, "the morning's bill waits")
+		T.ok(lastPush("toast", "bills_autopaid") == nil and lastPush("toast", "bills_autofail") == nil, "auto-pay says nothing while it is off")
+		-- switched on from the phone
+		T.ok(request("bills.auto", { on = true }).ok, "switched on")
+		T.eq(b.auto, true, "kept in the books")
+		T.ok(BillsService.autopayOn(p), "on")
+		pushes = {}
+		local money0 = p.money
+		BillsService.morning(player, p, 4001)
+		T.eq(#b.list, 0, "both bills were paid")
+		T.ok(p.money < money0, "money taken")
+		T.ok(#b.paid >= 2 and b.paid[1].auto == true and b.paid[2].auto == true, "the history marks what the bank paid")
+		local paid = lastPush("toast", "bills_autopaid")
+		T.ok(paid and paid.important and paid.vars.n == 2 and paid.vars.amount > 0, "told: paid")
+		T.ok(lastPush("toast", "bills_autofail") == nil, "and nothing failed")
+		-- a paid-by-hand bill is not marked
+		BillsService.morning(player, p, 4002)
+		T.eq(#b.list, 0, "paid again")
+		-- no money: it says so, the bills stay (and it does not nag a second time about the same bills)
+		p.money = 3
+		pushes = {}
+		BillsService.morning(player, p, 4003)
+		T.ok(#b.list >= 1, "bills left")
+		local fail = lastPush("toast", "bills_autofail")
+		T.ok(fail and fail.important and fail.vars.n >= 1 and fail.vars.amount > 3, "told: could not pay")
+		T.ok(lastPush("toast", "bills_autopaid") == nil, "nothing was paid")
+		-- off again: even an accountant does not pay then
+		p.money = 100000
+		p.staff = { { role = "accountant", name = "Muhasebeci", skill = 3, morale = 70 } }
+		T.ok(request("bills.auto", { on = false }).ok, "switched off")
+		T.ok(not BillsService.autopayOn(p), "off, accountant or not")
+		local before = #b.list
+		BillsService.morning(player, p, 4004)
+		T.ok(#b.list > before, "the bills wait")
+		-- an unset switch follows the bank's order / the accountant (older saves)
+		b.auto = nil
+		T.ok(BillsService.autopayOn(p), "the accountant turns it on by default")
+		p.staff = {}
+		T.ok(not BillsService.autopayOn(p), "nobody: off")
+		p.shop.items.autopay = true
+		T.ok(BillsService.autopayOn(p), "the bank's order turns it on by default")
+		p.shop.items.autopay = nil
+		T.eq(request("bills.auto", { on = "yes" }).err, "bad_request", "a bad request is refused")
+		p.staff = {}
+	end)
+
 	T.test("business: energy upgrades cut the electricity", function()
 		local plain = Bills.utilities(3, 3, {})
 		local green = Bills.utilities(3, 3, { solar = true, led_lighting = true })

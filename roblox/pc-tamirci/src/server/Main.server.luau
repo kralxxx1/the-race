@@ -56,17 +56,21 @@ end)
 local lastHome: { [Player]: number } = {}
 
 local function moveTo(player: Player, cf: CFrame)
-	local char = player.Character
-	local hum = char and char:FindFirstChildOfClass("Humanoid")
-	if not char or not hum then
-		return false
-	end
-	if hum.SeatPart then
-		hum.Sit = false
-		task.wait(0.15)
-	end
-	char:PivotTo(cf + Vector3.new(0, 3.5, 0))
-	return true
+	-- (the character may be gone by now: a respawn, or the player left)
+	local ok, moved = pcall(function()
+		local char = player.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if not char or not hum then
+			return false
+		end
+		if hum.SeatPart then
+			hum.Sit = false
+			task.wait(0.15)
+		end
+		char:PivotTo(cf + Vector3.new(0, 3.5, 0))
+		return true
+	end)
+	return ok and moved == true
 end
 
 local function shopDoor(player: Player): CFrame?
