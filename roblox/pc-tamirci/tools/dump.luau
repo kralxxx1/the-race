@@ -448,6 +448,26 @@ elseif what == "people" then
 	end
 	result.parts = dumpParts(folder)
 	outName = "people"
+elseif what == "police" then
+	-- the twenty police cars and the street-only vehicles: lune run tools/dump.luau police
+	local Vehicles = Engine.mod("ReplicatedStorage.Shared.Data.Vehicles")
+	local VehicleModels = Engine.mod("ReplicatedStorage.Shared.Models.VehicleModels")
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	for i, v in Vehicles.police do
+		VehicleModels.build(folder, v, roblox.CFrame.new((i - 1) % 10 * 26, 0, math.floor((i - 1) / 10) * 44), { color = 1, plate = "POL " .. i, static = true, procedural = i % 2 == 0, police = v })
+	end
+	for i, v in Vehicles.street do
+		VehicleModels.build(folder, v, roblox.CFrame.new((i - 1) * 30, 0, 110), { color = i, plate = "ST " .. i, static = true, procedural = true })
+	end
+	for i = 1, 8 do
+		local v = Vehicles.list[i + 8]
+		if v and v.kind == "car" then
+			VehicleModels.build(folder, v, roblox.CFrame.new((i - 1) * 28, 0, 160), { color = i, plate = "CAR " .. i, static = true, procedural = i % 2 == 1, decorate = true })
+		end
+	end
+	result.parts = dumpParts(folder)
+	outName = "police"
 elseif what == "guide" then
 	-- the tutorial's guide arrow
 	Engine.localPlayer = Engine.addPlayer("Viewer")

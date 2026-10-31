@@ -81,6 +81,7 @@ local LOOKS = {
 	technician = { shirt = { { 40, 110, 200 } }, pants = { { 36, 40, 50 } }, extras = { "lanyard" } },
 	thief = { shirt = { { 30, 30, 34 } }, pants = { { 30, 30, 34 } }, extras = { "beanie", "mask" } },
 	guard = { shirt = { { 30, 40, 70 } }, pants = { { 26, 28, 40 } }, extras = { "guardcap" } },
+	traffic_cop = { shirt = { { 236, 238, 242 } }, pants = { { 24, 32, 58 } }, extras = { "guardcap", "vest" } },
 	manager = { shirt = { { 34, 36, 44 } }, pants = { { 30, 32, 40 } }, extras = { "tie" } },
 	cleaner = { shirt = { { 90, 160, 120 } }, pants = { { 40, 60, 60 } }, extras = { "apron" } },
 	receptionist = { shirt = { { 200, 60, 70 }, { 240, 240, 240 } }, pants = { { 30, 30, 34 } }, extras = { "lanyard" } },
@@ -494,6 +495,13 @@ local function dress(model: Model, extras: { string }, hair: Color3, gender: str
 		-- a shoulder bag: strap across the chest, the bag at the hip
 		part(torso, CFrame.new(0, 0.05, 0) * CFrame.Angles(0, 0, math.rad(-38)), Vector3.new(0.12, torso.Size.Y * 1.25, torso.Size.Z * 1.08), Color3.fromRGB(70, 56, 44), Enum.Material.Leather)
 		part(torso, CFrame.new(-torso.Size.X * 0.62, -torso.Size.Y * 0.4, 0), Vector3.new(0.3, 0.62, 0.75), Color3.fromRGB(90, 70, 52), Enum.Material.Leather)
+	end
+	if has.vest then
+		-- a high-visibility vest with two silver bands
+		part(torso, CFrame.new(0, 0, 0), Vector3.new(torso.Size.X * 1.05, torso.Size.Y * 0.98, torso.Size.Z * 1.08), Color3.fromRGB(240, 190, 30), Enum.Material.Fabric)
+		for _, y in { 0.12, -0.22 } do
+			part(torso, CFrame.new(0, torso.Size.Y * y, -torso.Size.Z * 0.56), Vector3.new(torso.Size.X * 1.06, 0.14, 0.04), Color3.fromRGB(220, 224, 228), Enum.Material.SmoothPlastic)
+		end
 	end
 	-- hand items
 	if rightHand then
@@ -1110,9 +1118,14 @@ function NpcService.init()
 		task.spawn(function()
 			local rng = Random.new(20261031)
 			for i = 1, Config.StreetPeople do
-				local look = Avatars.STREET[(i - 1) % #Avatars.STREET + 1]
-				local gender = pickGender(look, rng)
+				-- (every fifteenth is a traffic officer, handed out only as officers)
+				local cop = i % 15 == 0
+				local look = if cop then "traffic_cop" else Avatars.STREET[(i - 1) % #Avatars.STREET + 1]
+				local gender = if cop then (if rng:NextNumber() < 0.7 then "m" else "f") else pickGender(look, rng)
 				local person = NpcService.plain(look, gender, rng)
+				if cop then
+					person:SetAttribute("Cop", true)
+				end
 				person.Name = "Street" .. i
 				local hum = person:FindFirstChildOfClass("Humanoid")
 				if hum then

@@ -669,6 +669,83 @@ return function(T)
 		end
 		print(string.format("    drivers with arm joints: %d, arms on the wheel: %d", jointed, armsOn))
 		T.ok(armsOn == jointed, "every jointed driver has the arms on the wheel")
+		-- the street's cars are big and the person at the wheel sits inside them
+		local cars = Traffic._cars()
+		local inside, measured = 0, 0
+		for _, c in cars do
+			local driver = c.model:FindFirstChild("DriverAvatar")
+			if driver then
+				local headTop, roofTop = -1e9, -1e9
+				for _, d in c.model:GetDescendants() do
+					if d:IsA("BasePart") and d.Transparency < 1 then
+						local top = d.Position.Y + d.Size.Y / 2
+						if d:IsDescendantOf(driver) then
+							headTop = math.max(headTop, top)
+						elseif not string.match(d.Name, "^Skid") and d.Name ~= "Chassis" then
+							roofTop = math.max(roofTop, top)
+						end
+					end
+				end
+				measured += 1
+				if headTop <= roofTop + 0.2 then
+					inside += 1
+				else
+					print(string.format("    driver sticks out: %s head %.2f roof %.2f", tostring(c.def.id or c.def.name), headTop, roofTop))
+				end
+			end
+		end
+		T.ok(measured >= 3 and inside >= measured - 1, string.format("cars with their driver inside: %d of %d", inside, measured))
+		-- their wheels roll with the road, the indicators blink before a turn, police cars flash
+		local rolled, signalled, blinked, police, flashing = 0, 0, 0, 0, 0
+		for _ = 1, 200 do
+			Engine.step(1, 1 / 10)
+			for _, c in Traffic._cars() do
+				if c.signal then
+					signalled += 1
+					for _, b in c.blinkers do
+						if b.on then
+							blinked += 1
+						end
+					end
+				end
+				if c.model:GetAttribute("Police") ~= nil then
+					police += 1
+					for _, l in c.polices do
+						if l.on then
+							flashing += 1
+						end
+					end
+				end
+			end
+		end
+		for _, c in Traffic._cars() do
+			if #c.wheels >= 4 and c.wheels[1].spin > 1 then
+				rolled += 1
+			end
+		end
+		T.ok(rolled >= 5, "cars whose wheels have turned: " .. rolled)
+		T.ok(signalled > 0 and blinked > 0, string.format("indicators: %d signalling samples, %d lit", signalled, blinked))
+		T.ok(police > 0, "police cars were seen on the street")
+		T.ok(flashing > 0, "their lights flash")
+		-- a traffic officer stands at a signalled junction near the camera
+		local CityLayout = Engine.mod("ReplicatedStorage.Shared.World.CityLayout")
+		local keys = {}
+		for key, n in L.nodes do
+			if #n.links == 4 and CityLayout.roadWidthV(n.i) ~= 52 and CityLayout.roadWidthH(n.j) ~= 52 then
+				table.insert(keys, key)
+			end
+		end
+		table.sort(keys)
+		T.ok(#keys > 4, "signalled junctions: " .. #keys)
+		local post = L.nodes[keys[1]]
+		cam.CFrame = roblox.CFrame.new(post.x, 30, post.z)
+		for _ = 1, 60 do
+			Engine.step(1, 1 / 10)
+		end
+		T.ok(#Traffic._cops() >= 1, "an officer at the junction")
+		for _, o in Traffic._cops() do
+			T.ok(o.model:GetAttribute("Cop") == true and o.model.Name == "TrafficOfficer", "an officer is a traffic officer")
+		end
 		-- in the rain the people on the pavement put up umbrellas; when it stops they put them down
 		local ws = game:GetService("Workspace")
 		local function umbrellas()

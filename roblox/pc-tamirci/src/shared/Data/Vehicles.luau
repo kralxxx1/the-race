@@ -39,6 +39,49 @@ for _, v in Vehicles.list do
 	Vehicles.byId[v.id] = v
 end
 
+-- Cars that only the street life drives (not for sale): a city bus, a box truck and a taxi-like
+-- van, in the colours of everyday traffic.
+Vehicles.street = {
+	{ id = "city_bus", kind = "car", body = "bus", name = N("Şehir Otobüsü", "City Bus"), speed = 60, accel = 14, turn = 1.6, seats = 1, colors = { { 40, 110, 200 }, { 200, 50, 40 }, { 240, 240, 240 }, { 30, 140, 90 } } },
+	{ id = "box_truck", kind = "car", body = "truck", name = N("Kasa Kamyon", "Box Truck"), speed = 64, accel = 16, turn = 1.8, seats = 1, colors = { { 240, 240, 240 }, { 230, 150, 30 }, { 60, 90, 160 }, { 150, 40, 40 } } },
+	{ id = "delivery_van", kind = "car", body = "van", name = N("Dağıtım Vanı", "Delivery Van"), speed = 70, accel = 22, turn = 2.2, seats = 1, colors = { { 240, 240, 240 }, { 40, 110, 200 }, { 230, 80, 40 }, { 250, 210, 50 } } },
+	{ id = "taxi_hatch", kind = "car", body = "hatch", name = N("Taksi (Hatchback)", "Taxi (Hatchback)"), speed = 76, accel = 30, turn = 2.8, seats = 1, colors = { { 250, 205, 40 } } },
+	{ id = "taxi_wagon", kind = "car", body = "wagon", name = N("Taksi (Station)", "Taxi (Wagon)"), speed = 72, accel = 27, turn = 2.4, seats = 1, colors = { { 250, 205, 40 } } },
+}
+
+-- Twenty kinds of police car (the street life drives them with their lights flashing): a body
+-- shape, a paint scheme (VehicleModels.LIVERIES), a light bar and the name on the doors.
+Vehicles.police = {
+	{ id = "patrol_sedan", body = "sedan", paint = "bw", bar = "full", text = "POLICE", name = N("Devriye Sedan", "Patrol Sedan") },
+	{ id = "patrol_classic", body = "classic", paint = "blueStripe", bar = "mini", text = "POLICE", name = N("Klasik Devriye", "Classic Patrol") },
+	{ id = "patrol_hatch", body = "hatch", paint = "checker", bar = "mini", text = "POLICE", name = N("Şehir Devriyesi (Hatchback)", "City Patrol (Hatchback)") },
+	{ id = "patrol_wagon", body = "wagon", paint = "bw", bar = "full", text = "POLICE", name = N("Devriye Station", "Patrol Wagon") },
+	{ id = "patrol_suv", body = "suv", paint = "navy", bar = "full", text = "POLICE", name = N("Devriye SUV", "Patrol SUV") },
+	{ id = "interceptor", body = "coupe", paint = "blackGold", bar = "grille", text = "INTERCEPTOR", name = N("Müdahale Aracı", "Interceptor") },
+	{ id = "highway", body = "sedan", paint = "yellow", bar = "full", text = "HIGHWAY PATROL", name = N("Otoyol Devriyesi", "Highway Patrol") },
+	{ id = "k9", body = "suv", paint = "bw", bar = "full", text = "K-9 UNIT", name = N("K-9 Köpek Birimi", "K-9 Unit") },
+	{ id = "swat", body = "van", paint = "black", bar = "full", text = "SWAT", name = N("Özel Harekât", "SWAT Van") },
+	{ id = "traffic", body = "sedan", paint = "whiteOrange", bar = "mini", text = "TRAFFIC POLICE", name = N("Trafik Polisi", "Traffic Police") },
+	{ id = "ranger", body = "pickup", paint = "greenWhite", bar = "full", text = "RANGER", name = N("Orman Polisi (Pikap)", "Ranger Pickup") },
+	{ id = "electric", body = "electric", paint = "whiteBlue", bar = "mini", text = "POLICE", name = N("Elektrikli Devriye", "Electric Patrol") },
+	{ id = "unmarked", body = "sedan", paint = "grey", bar = "dash", text = "", name = N("Sivil Araç", "Unmarked Sedan") },
+	{ id = "unmarked_suv", body = "suv", paint = "darkgrey", bar = "grille", text = "", name = N("Sivil SUV", "Unmarked SUV") },
+	{ id = "command", body = "van", paint = "whiteBlue", bar = "full", text = "COMMAND POST", name = N("Komuta Aracı", "Command Post") },
+	{ id = "supercar", body = "super", paint = "bw", bar = "grille", text = "POLICE", name = N("Süper Devriye", "Super Patrol") },
+	{ id = "transport", body = "minibus", paint = "bw", bar = "full", text = "PRISONER TRANSPORT", name = N("Nakil Aracı", "Prisoner Transport") },
+	{ id = "patrol_wagon_blue", body = "wagon", paint = "blueStripe", bar = "mini", text = "POLICE", name = N("Mavi Çizgi Station", "Blue Line Wagon") },
+	{ id = "patrol_coupe", body = "coupe", paint = "whiteBlue", bar = "full", text = "POLICE", name = N("Hızlı Devriye", "Fast Patrol") },
+	{ id = "chief", body = "limo", paint = "black", bar = "grille", text = "CHIEF OF POLICE", name = N("Polis Şefi Limuzini", "Chief's Limousine") },
+}
+for _, p in Vehicles.police do
+	p.kind = "car"
+	p.colors = { { 240, 240, 244 } }
+	p.seats = 2
+	p.speed = 92
+	p.accel = 34
+	p.turn = 2.6
+end
+
 Vehicles.dealers = {
 	cars = N("Oto Galeri", "Car Dealership"),
 	bikes = N("Motor Bayi", "Motorcycle Dealer"),

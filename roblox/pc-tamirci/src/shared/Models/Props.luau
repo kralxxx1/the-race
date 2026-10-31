@@ -410,6 +410,57 @@ function Props.streetSign(parent: Instance, cf: CFrame, text: string): Model
 	return m
 end
 
+-- Road signs on a galvanised pole. kind: "stop" (red octagon), "limit" (a number in a red ring),
+-- "crossing" (yellow diamond), "parking" (blue square with a P), "yield" (a red-edged triangle),
+-- "oneway" (a white arrow on black), "nostop" (no stopping). The face looks along cf's front, which
+-- should point at the traffic that reads it.
+function Props.roadSign(parent: Instance, cf: CFrame, kind: string, text: string?): Model
+	local m = B.model("RoadSign_" .. kind, parent)
+	local white, red = Color3.fromRGB(246, 246, 244), Color3.fromRGB(205, 30, 36)
+	B.cylY(m, cf * CFrame.new(0, 3.9, 0), 7.8, 0.22, Color3.fromRGB(152, 156, 162), M.Metal)
+	local face = cf * CFrame.new(0, 7.6, -0.2)
+	-- a clear carrier for the text, in front of the shape
+	local function words(size: Vector3, offset: CFrame, label: string, color: Color3, bg: Color3?)
+		local p = B.box(m, face * offset, size, bg or white, M.SmoothPlastic, noCollide())
+		if not bg then
+			p.Transparency = 1
+		end
+		B.sign(p, Enum.NormalId.Front, label, { color = color, font = B.Fonts.Heavy })
+		return p
+	end
+	if kind == "stop" then
+		B.box(m, face, Vector3.new(2.3, 2.3, 0.14), red, M.SmoothPlastic, noCollide())
+		B.box(m, face * CFrame.new(0, 0, 0.01) * CFrame.Angles(0, 0, math.rad(45)), Vector3.new(2.3, 2.3, 0.14), red, M.SmoothPlastic, noCollide())
+		B.box(m, face * CFrame.new(0, 0, -0.08), Vector3.new(2.0, 0.08, 0.02), white, M.SmoothPlastic, noCollide())
+		words(Vector3.new(2.2, 1.1, 0.04), CFrame.new(0, 0, -0.1), "STOP", white)
+	elseif kind == "limit" then
+		B.cylZ(m, face * CFrame.new(0, 0, 0.02), 0.12, 3.0, red, M.SmoothPlastic, noCollide())
+		B.cylZ(m, face * CFrame.new(0, 0, -0.04), 0.12, 2.2, white, M.SmoothPlastic, noCollide())
+		words(Vector3.new(2.0, 1.4, 0.04), CFrame.new(0, 0, -0.12), text or "50", Color3.fromRGB(20, 20, 24))
+	elseif kind == "crossing" then
+		B.box(m, face * CFrame.Angles(0, 0, math.rad(45)), Vector3.new(2.6, 2.6, 0.12), Color3.fromRGB(250, 214, 40), M.SmoothPlastic, noCollide())
+		B.box(m, face * CFrame.new(0, 0, -0.07) * CFrame.Angles(0, 0, math.rad(45)), Vector3.new(2.2, 2.2, 0.04), Color3.fromRGB(20, 20, 24), M.SmoothPlastic, noCollide())
+		B.box(m, face * CFrame.new(0, 0, -0.09) * CFrame.Angles(0, 0, math.rad(45)), Vector3.new(2.0, 2.0, 0.03), Color3.fromRGB(250, 214, 40), M.SmoothPlastic, noCollide())
+		words(Vector3.new(1.8, 1.8, 0.04), CFrame.new(0, 0, -0.12), text or "🚸", Color3.fromRGB(20, 20, 24))
+	elseif kind == "parking" then
+		B.box(m, face, Vector3.new(2.4, 2.4, 0.12), Color3.fromRGB(30, 80, 190), M.SmoothPlastic, noCollide())
+		words(Vector3.new(2.2, 2.2, 0.04), CFrame.new(0, 0, -0.08), text or "P", white)
+	elseif kind == "yield" then
+		B.box(m, face * CFrame.Angles(0, 0, math.rad(45)), Vector3.new(2.3, 2.3, 0.12), red, M.SmoothPlastic, noCollide())
+		B.box(m, face * CFrame.new(0, 0, -0.07) * CFrame.Angles(0, 0, math.rad(45)), Vector3.new(1.7, 1.7, 0.04), white, M.SmoothPlastic, noCollide())
+		words(Vector3.new(1.8, 1.0, 0.04), CFrame.new(0, 0, -0.12), text or "YIELD", red)
+	elseif kind == "oneway" then
+		B.box(m, face, Vector3.new(3.6, 1.3, 0.12), Color3.fromRGB(22, 22, 26), M.SmoothPlastic, noCollide())
+		words(Vector3.new(3.4, 1.1, 0.04), CFrame.new(0, 0, -0.08), text or "ONE WAY ➔", white)
+	else
+		-- no stopping: a blue disc with a red ring and a bar
+		B.cylZ(m, face, 0.12, 2.8, Color3.fromRGB(30, 80, 190), M.SmoothPlastic, noCollide())
+		B.cylZ(m, face * CFrame.new(0, 0, -0.04), 0.12, 2.1, Color3.fromRGB(30, 80, 190), M.SmoothPlastic, noCollide())
+		B.box(m, face * CFrame.new(0, 0, -0.1) * CFrame.Angles(0, 0, math.rad(45)), Vector3.new(0.3, 2.6, 0.06), red, M.SmoothPlastic, noCollide())
+	end
+	return m
+end
+
 function Props.billboard(parent: Instance, cf: CFrame, title: string, sub: string, color: any?): Model
 	local m = B.model("Billboard", parent)
 	local dark = Color3.fromRGB(50, 54, 60)

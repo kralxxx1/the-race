@@ -194,6 +194,22 @@ local function segment(folder: Instance, L, road, rng: Random)
 		local hp = mid + dir * (len * 0.3) + right * (cw / 2 + 1.2)
 		Props.hydrant(m, CFrame.new(hp + Vector3.new(0, WALK_Y, 0)))
 	end
+	-- speed limit signs along the longer stretches (one for each direction of travel), and parking
+	-- signs on the streets
+	if len > 130 then
+		local limit = if road.kind == "main" then "50" elseif road.kind == "ring" then "60" else "30"
+		local t = len * (0.3 + 0.1 * (road.id % 3))
+		for side = -1, 1, 2 do
+			local p = mid + dir * (-len / 2 + t) + right * side * (cw / 2 + 1.7)
+			-- (the sign faces the traffic that has this side on its right, coming towards it)
+			local face = -dir * side
+			Props.roadSign(m, CFrame.lookAt(p + Vector3.new(0, WALK_Y, 0), p + Vector3.new(0, WALK_Y, 0) + face), "limit", limit)
+		end
+		if road.kind == "street" and road.id % 2 == 0 then
+			local p = mid + dir * (-len / 2 + len * 0.62) + right * (cw / 2 + 1.7)
+			Props.roadSign(m, CFrame.lookAt(p + Vector3.new(0, WALK_Y, 0), p + Vector3.new(0, WALK_Y, 0) - right), "parking")
+		end
+	end
 	-- bus stops on the main roads
 	if road.kind == "main" and road.id % 2 == 0 then
 		local side = if road.id % 4 == 0 then 1 else -1
@@ -305,6 +321,31 @@ local function intersection(folder: Instance, L, node, rng: Random)
 		signal(X - ox, Z - oz, 0, -1, "NS") -- southbound from the north
 		signal(X - ox, Z + oz, -1, 0, "EW") -- eastbound arrives from the west
 		signal(X + ox, Z - oz, 1, 0, "EW") -- westbound from the east
+	end
+	-- road signs: a stop sign on each approach of a junction without lights, a speed limit (and, on
+	-- the big roads, a crossing sign) on the near-right corner of each approach of a signalled one
+	do
+		local ox2, oz2 = cwV / 2 + 1.7, cwH / 2 + 1.7
+		-- { present, corner x, corner z, facing x, facing z, along x, along z } per approach
+		local approaches = {
+			{ has.S, X + ox2, Z + oz2, 0, 1, 0, 1 },
+			{ has.N, X - ox2, Z - oz2, 0, -1, 0, -1 },
+			{ has.W, X - ox2, Z + oz2, -1, 0, -1, 0 },
+			{ has.E, X + ox2, Z - oz2, 1, 0, 1, 0 },
+		}
+		local signalled = four and kindV ~= "ring" and kindH ~= "ring"
+		for i, a in approaches do
+			if a[1] then
+				local kind = if i % 2 == 1 then kindV else kindH
+				if not signalled then
+					local p = Vector3.new(a[2], WALK_Y, a[3])
+					Props.roadSign(m, CFrame.lookAt(p, p + Vector3.new(a[4], 0, a[5])), "stop")
+				else
+					local p = Vector3.new(a[2] + a[6] * 6, WALK_Y, a[3] + a[7] * 6)
+					Props.roadSign(m, CFrame.lookAt(p, p + Vector3.new(a[4], 0, a[5])), if kind == "main" then "crossing" else "limit", if kind == "main" then nil else "30")
+				end
+			end
+		end
 	end
 	-- street name sign on one corner
 	if node.links[1] and rng:NextNumber() < 0.7 then

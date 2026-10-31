@@ -32,6 +32,9 @@ local CARS = {
 	coupe = { L = 14.0, W = 6.1, g = 0.7, hb = 1.8, hc = 1.6, wr = 1.15, wb = 8.4, hood = 4.4, trunk = 2.4, inset = 0.6 },
 	limo = { L = 24.0, W = 6.2, g = 0.8, hb = 2.0, hc = 2.0, wr = 1.15, wb = 17.0, hood = 3.8, trunk = 3.0, inset = 0.3 },
 	super = { L = 14.6, W = 6.6, g = 0.55, hb = 1.6, hc = 1.4, wr = 1.2, wb = 8.8, hood = 4.8, trunk = 3.0, inset = 0.9, wedge = true },
+	-- big ones for the street life: a city bus and a box truck (the cargo box stands on the rear)
+	bus = { L = 30, W = 8, g = 1.2, hb = 2.8, hc = 3.8, wr = 1.55, wb = 18, hood = 1.2, trunk = 0, inset = 0.12 },
+	truck = { L = 21, W = 7.2, g = 1.5, hb = 2.4, hc = 2.4, wr = 1.5, wb = 12.6, hood = 1.4, trunk = 11.4, inset = 0.3, box = true },
 }
 
 -- Two-wheelers: wheel radius, wheelbase, seat height
@@ -81,6 +84,21 @@ local function light(m: Model, cf: CFrame, size: Vector3, color: Color3, kind: s
 	local p = vis(m, cf, size, color, M.Neon, { Name = kind, CastShadow = false })
 	p:AddTag(kind)
 	return p
+end
+
+-- The four corner indicators: dim amber until a car signals (the street life blinks them).
+local AMBER_OFF = Color3.fromRGB(150, 92, 18)
+local AMBER_ON = Color3.fromRGB(255, 178, 30)
+VehicleModels.AMBER_OFF, VehicleModels.AMBER_ON = AMBER_OFF, AMBER_ON
+local function blinkers(m: Model, cf: CFrame, W: number, L: number, y: number)
+	for _, s in { -1, 1 } do
+		for _, e in { -1, 1 } do
+			local b = light(m, cf * CFrame.new(s * (W / 2 - 0.35), y, e * (L / 2 + 0.05)), Vector3.new(0.55, 0.28, 0.1), AMBER_OFF, "Blinker")
+			b.Material = M.SmoothPlastic
+			b:SetAttribute("Side", s) -- (-1 left, 1 right, seen from behind the car)
+			b:SetAttribute("End", e) -- (-1 front, 1 rear)
+		end
+	end
 end
 
 local function wheel(m: Model, cf: CFrame, r: number, width: number, front: boolean, name: string): BasePart
@@ -150,11 +168,29 @@ local function buildCar(m: Model, cf: CFrame, def, color: Color3, plateText: str
 		end
 		vis(m, cf * CFrame.new(0, g + hb + 0.5, L / 2 - 0.15), Vector3.new(W, 1, 0.3), color):AddTag("CarPaint")
 	end
+	-- a box truck: the cargo box on the rear frame, with ribs and a rear door
+	if S.box then
+		local bz = L / 2 - S.trunk / 2
+		local bh = hb + hc + 0.9
+		local panel = Color3.fromRGB(236, 236, 232)
+		local cargo = vis(m, cf * CFrame.new(0, g + 0.5 + bh / 2, bz), Vector3.new(W * 0.98, bh, S.trunk - 0.3), panel, M.SmoothPlastic, { Name = "CargoBox" })
+		cargo:AddTag("CarPaint")
+		for k = 1, 5 do
+			vis(m, cf * CFrame.new(0, g + 0.5 + bh / 2, bz - S.trunk / 2 + k * S.trunk / 6), Vector3.new(W * 0.99, bh * 0.96, 0.12), Color3.fromRGB(190, 192, 196), M.Metal)
+		end
+		vis(m, cf * CFrame.new(0, g + 0.35, bz), Vector3.new(W * 0.9, 0.3, S.trunk - 0.6), BLACK)
+	end
 	-- roof rails / taxi-style sign / minibus extras
 	if S.rails then
 		for _, s in { -1, 1 } do
 			vis(m, cf * CFrame.new(s * roofW * 0.4, g + hb + hc + 0.32, cz), Vector3.new(0.15, 0.15, cabinL - 1.6), CHROME, M.Metal)
 		end
+	end
+	if def.body == "bus" then
+		-- a lit destination board over the windscreen and a door strip
+		local board = vis(m, cf * CFrame.new(0, g + hb + hc - 0.5, -L / 2 + S.hood + 0.55), Vector3.new(roofW * 0.7, 0.8, 0.12), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
+		B.sign(board, Enum.NormalId.Front, "CITY CENTRE", { color = Color3.fromRGB(255, 170, 30), font = B.Fonts.Heavy, glow = true })
+		vis(m, cf * CFrame.new(W / 2 + 0.03, g + hb * 0.5 + 1.0, -L * 0.15), Vector3.new(0.05, hb + 1.8, 2.4), Color3.fromRGB(30, 34, 40), M.Glass)
 	end
 	if def.body == "minibus" then
 		local sign = vis(m, cf * CFrame.new(0, g + hb + hc + 0.55, cz - cabinL * 0.3), Vector3.new(2.6, 0.7, 0.8), Color3.fromRGB(240, 240, 240))
@@ -259,7 +295,7 @@ local function buildBike(m: Model, cf: CFrame, def, color: Color3, plateText: st
 		B.cyl(m, cf * CFrame.new(0.55, wr * 0.8, rz - 0.6) * CFrame.Angles(0, math.pi / 2, 0), 1.6, 0.3, CHROME, M.Metal, { CanCollide = false, CanTouch = false, CanQuery = false })
 		if def.box then
 			local box = vis(m, cf * CFrame.new(0, seatY + 0.8, rz - 0.3), Vector3.new(1.4, 1.2, 1.2), Color3.fromRGB(240, 60, 40), M.SmoothPlastic)
-			B.sign(box, Enum.NormalId.Back, "KURYE", { color = Color3.new(1, 1, 1), font = B.Fonts.Heavy })
+			B.sign(box, Enum.NormalId.Back, "COURIER", { color = Color3.new(1, 1, 1), font = B.Fonts.Heavy })
 		end
 		plate(m, cf * CFrame.new(0, wr + 0.5, rz + 0.1) * CFrame.Angles(0, math.pi, 0), plateText)
 	end
@@ -343,6 +379,8 @@ VehicleModels.PALETTE = {
 	{ 240, 240, 242 }, { 24, 24, 28 }, { 176, 180, 188 }, { 96, 100, 108 }, { 170, 28, 36 }, { 110, 20, 30 },
 	{ 30, 80, 170 }, { 18, 32, 80 }, { 30, 110, 70 }, { 20, 60, 44 }, { 244, 196, 40 }, { 230, 120, 30 },
 	{ 120, 84, 56 }, { 214, 196, 160 }, { 40, 150, 160 }, { 110, 60, 150 },
+	{ 150, 170, 196 }, { 200, 90, 60 }, { 86, 100, 56 }, { 226, 214, 186 }, { 60, 66, 76 }, { 196, 160, 60 },
+	{ 120, 190, 220 }, { 190, 50, 110 }, { 236, 232, 222 }, { 70, 90, 120 }, { 150, 150, 120 }, { 100, 40, 40 },
 }
 local RIM_COLORS = { rgb(190, 192, 198), rgb(40, 42, 46), rgb(120, 124, 132), rgb(212, 175, 55), rgb(235, 235, 238), rgb(180, 40, 40) }
 local TINTS = { 0.32, 0.5, 0.68 }
@@ -412,6 +450,184 @@ local function customize(m: Model, cf: CFrame, def, real, o: { [string]: any })
 end
 
 ----------------------------------------------------------------------------------------------------
+-- More variety for any car: stripes, a two-tone roof, an aerial, a roof beacon, stickers, a rear
+-- spoiler (seeded, so the same plate always gets the same car).
+----------------------------------------------------------------------------------------------------
+local function paintParts(m: Model, fn: (BasePart) -> ())
+	for _, d in m:GetDescendants() do
+		if d:IsA("BasePart") and (d:GetAttribute("Paint") or d.Name == "Body" or d.Name == "Hood" or d.Name == "Roof" or d.Name == "CargoBox") then
+			fn(d)
+		end
+	end
+end
+
+-- dim: { W, L, H (roof height), y (middle of the body) }
+local function decorate(m: Model, cf: CFrame, def, dim, color: Color3, r: Random, procedural: boolean)
+	local W, L, H, y = dim.W, dim.L, dim.H, dim.y
+	local function add(name: string, offset: CFrame, size: Vector3, col: Color3, mat: Enum.Material?)
+		local p = B.box(m, cf * offset, size, col, mat or M.SmoothPlastic, { Name = name, CanCollide = false, CanTouch = false, CanQuery = false })
+		p:AddTag("CarAddon")
+		return p
+	end
+	local bright = color:Lerp(Color3.new(1, 1, 1), 0.7)
+	local dark = color:Lerp(Color3.new(0, 0, 0), 0.65)
+	local contrast = if color.R + color.G + color.B > 1.6 then dark else bright
+	-- racing stripes over the hood and roof
+	if r:NextNumber() < 0.2 and def.body ~= "bus" and def.body ~= "truck" then
+		for _, x in { -0.45, 0.45 } do
+			add("Stripe", CFrame.new(x, y + dim.hoodY, -L * 0.28), Vector3.new(0.5, 0.05, L * 0.34), contrast)
+			add("Stripe", CFrame.new(x, H + 0.03, -L * 0.04), Vector3.new(0.5, 0.05, L * 0.3), contrast)
+		end
+	end
+	-- two-tone roof (the parts-built roof is a part of its own)
+	if procedural and r:NextNumber() < 0.3 then
+		local tone = if r:NextNumber() < 0.5 then Color3.fromRGB(24, 24, 28) else Color3.fromRGB(240, 240, 242)
+		for _, d in m:GetDescendants() do
+			if d:IsA("BasePart") and d.Name == "Roof" then
+				d.Color = tone
+				d:RemoveTag("CarPaint")
+			end
+		end
+	end
+	-- an aerial on a wing
+	if r:NextNumber() < 0.3 and def.body ~= "bus" then
+		B.cylY(m, cf * CFrame.new(W * 0.36, H + 0.7, L * 0.22), 1.4, 0.08, Color3.fromRGB(30, 30, 32), M.Metal, { CanCollide = false, CanTouch = false, CanQuery = false, Name = "Aerial" }):AddTag("CarAddon")
+	end
+	-- a beacon on the roof of service vans and trucks
+	if (def.body == "van" or def.body == "truck" or def.body == "pickup") and r:NextNumber() < 0.3 then
+		local b = add("Beacon", CFrame.new(0, H + 0.35, -L * 0.18), Vector3.new(0.6, 0.5, 0.6), Color3.fromRGB(255, 160, 20), M.Neon)
+		b:AddTag("Beacon")
+	end
+	-- a sticker on the rear window
+	if r:NextNumber() < 0.25 then
+		local col = ({ Color3.fromRGB(230, 60, 60), Color3.fromRGB(60, 140, 230), Color3.fromRGB(240, 200, 40), Color3.fromRGB(60, 190, 110) })[r:NextInteger(1, 4)]
+		add("Sticker", CFrame.new(-W * 0.3, H - 0.55, L / 2 + 0.06), Vector3.new(0.9, 0.5, 0.05), col)
+	end
+	-- a rear spoiler on the sporty ones
+	if procedural and (def.body == "sedan" or def.body == "hatch" or def.body == "electric") and not def.spoiler and r:NextNumber() < 0.2 then
+		add("Spoiler", CFrame.new(0, H - 0.2, L / 2 - 0.5), Vector3.new(W * 0.85, 0.1, 0.8), dark)
+		for _, x in { -1, 1 } do
+			add("SpoilerLeg", CFrame.new(x * W * 0.33, H - 0.5, L / 2 - 0.5), Vector3.new(0.12, 0.6, 0.25), dark)
+		end
+	end
+	-- a roof box (a family on a holiday), a hood scoop and side skirts
+	if r:NextNumber() < 0.1 and (def.body == "sedan" or def.body == "hatch" or def.body == "classic" or def.body == "electric") then
+		add("RoofBox", CFrame.new(0, H + 0.45, -L * 0.04), Vector3.new(W * 0.5, 0.8, L * 0.32), Color3.fromRGB(54, 58, 66))
+	end
+	if procedural and r:NextNumber() < 0.15 and (def.body == "coupe" or def.body == "sedan" or def.body == "super") then
+		add("Scoop", CFrame.new(0, y + dim.hoodY + 0.12, -L * 0.3), Vector3.new(W * 0.28, 0.25, L * 0.12), dark)
+	end
+	if r:NextNumber() < 0.15 then
+		for _, x in { -1, 1 } do
+			add("Skirt", CFrame.new(x * (W / 2 + 0.03), y - 0.55, 0), Vector3.new(0.08, 0.35, L * 0.42), contrast)
+		end
+	end
+	-- a tint strip across the top of the windscreen
+	if r:NextNumber() < 0.25 and procedural then
+		add("SunStrip", CFrame.new(0, H - 0.25, -L * 0.18), Vector3.new(W * 0.8, 0.28, 0.08), Color3.fromRGB(20, 30, 40), M.Glass)
+	end
+end
+
+----------------------------------------------------------------------------------------------------
+-- Police cars: twenty kinds (a body shape, a livery, a light bar, a name on the doors). The lights are
+-- tagged "PoliceLight" with the attribute Hue = "red" | "blue"; the street life flashes them.
+----------------------------------------------------------------------------------------------------
+VehicleModels.LIVERIES = {
+	bw = { base = { 24, 24, 28 }, panel = { 242, 242, 244 }, text = { 20, 20, 24 }, stripe = nil },
+	blueStripe = { base = { 244, 244, 246 }, panel = nil, text = { 20, 50, 130 }, stripe = { 30, 70, 170 } },
+	checker = { base = { 244, 244, 246 }, panel = nil, text = { 20, 50, 130 }, stripe = { 30, 70, 170 }, checker = true },
+	navy = { base = { 22, 38, 86 }, panel = nil, text = { 240, 240, 244 }, stripe = { 240, 240, 244 } },
+	blackGold = { base = { 22, 22, 26 }, panel = nil, text = { 230, 190, 70 }, stripe = { 220, 170, 50 } },
+	yellow = { base = { 244, 200, 40 }, panel = nil, text = { 20, 20, 24 }, stripe = { 24, 24, 28 }, checker = true },
+	whiteOrange = { base = { 244, 244, 246 }, panel = nil, text = { 230, 100, 20 }, stripe = { 240, 110, 20 } },
+	greenWhite = { base = { 22, 92, 62 }, panel = { 244, 244, 246 }, text = { 22, 92, 62 }, stripe = nil },
+	whiteBlue = { base = { 244, 244, 246 }, panel = { 30, 70, 170 }, text = { 255, 255, 255 }, stripe = nil, lower = true },
+	grey = { base = { 120, 124, 132 }, panel = nil, text = nil, stripe = nil },
+	darkgrey = { base = { 46, 50, 58 }, panel = nil, text = nil, stripe = nil },
+	black = { base = { 20, 20, 22 }, panel = nil, text = { 240, 240, 244 }, stripe = nil },
+}
+
+local function policeLivery(m: Model, cf: CFrame, dim, pol)
+	local lv = VehicleModels.LIVERIES[pol.paint] or VehicleModels.LIVERIES.bw
+	local base = c3(lv.base)
+	paintParts(m, function(d)
+		d.Color = base
+	end)
+	for _, d in m:GetDescendants() do
+		if d:IsA("BasePart") and d:HasTag("CarPaint") then
+			d.Color = base
+		end
+	end
+	local W, L, H, y = dim.W, dim.L, dim.H, dim.y
+	local function add(name: string, offset: CFrame, size: Vector3, col: Color3, mat: Enum.Material?, tag: string?)
+		local p = B.box(m, cf * offset, size, col, mat or M.SmoothPlastic, { Name = name, CanCollide = false, CanTouch = false, CanQuery = false })
+		p:AddTag("CarAddon")
+		if tag then
+			p:AddTag(tag)
+		end
+		return p
+	end
+	local bodyH = math.max(1.2, H * 0.36)
+	-- door panels in a second colour, or a stripe along the sides
+	for _, s in { -1, 1 } do
+		if lv.panel then
+			if lv.lower then
+				add("LiveryPanel", CFrame.new(s * (W / 2 + 0.03), y - bodyH * 0.25, 0), Vector3.new(0.06, bodyH * 0.5, L * 0.78), c3(lv.panel))
+			else
+				add("LiveryPanel", CFrame.new(s * (W / 2 + 0.03), y, L * 0.02), Vector3.new(0.06, bodyH, L * 0.34), c3(lv.panel))
+			end
+		end
+		if lv.stripe then
+			if lv.checker then
+				local n = 12
+				for k = 0, n - 1 do
+					add("Checker", CFrame.new(s * (W / 2 + 0.03), y - bodyH * 0.1, -L * 0.4 + k * (L * 0.8 / n)), Vector3.new(0.06, bodyH * 0.22, L * 0.8 / n), if k % 2 == 0 then c3(lv.stripe) else Color3.fromRGB(244, 244, 246))
+				end
+			else
+				add("Stripe", CFrame.new(s * (W / 2 + 0.03), y, 0), Vector3.new(0.06, bodyH * 0.24, L * 0.8), c3(lv.stripe))
+			end
+		end
+		-- the name on the doors
+		if lv.text and pol.text and pol.text ~= "" then
+			local face = if s > 0 then Enum.NormalId.Right else Enum.NormalId.Left
+			local label = add("PoliceText", CFrame.new(s * (W / 2 + 0.06), y + bodyH * 0.1, L * 0.02), Vector3.new(0.02, bodyH * 0.5, L * 0.34), c3(lv.base), M.SmoothPlastic)
+			label.Transparency = 1
+			B.sign(label, face, pol.text, { color = c3(lv.text), font = B.Fonts.Heavy })
+		end
+	end
+	-- the light bar
+	local function lamp(x: number, z: number, w: number, hue: string, y2: number?)
+		local col = if hue == "red" then Color3.fromRGB(255, 40, 40) else Color3.fromRGB(50, 110, 255)
+		local p = add("PoliceLight", CFrame.new(x, y2 or (H + 0.4), z), Vector3.new(w, 0.32, 0.55), col, M.Neon, "PoliceLight")
+		p:SetAttribute("Hue", hue)
+		return p
+	end
+	if pol.bar == "full" then
+		add("BarBase", CFrame.new(0, H + 0.18, -L * 0.02), Vector3.new(W * 0.66, 0.2, 1.0), Color3.fromRGB(26, 26, 30))
+		lamp(-W * 0.17, -L * 0.02, W * 0.3, "red")
+		lamp(W * 0.17, -L * 0.02, W * 0.3, "blue")
+	elseif pol.bar == "mini" then
+		add("BarBase", CFrame.new(0, H + 0.16, -L * 0.02), Vector3.new(W * 0.4, 0.18, 0.8), Color3.fromRGB(26, 26, 30))
+		lamp(-W * 0.1, -L * 0.02, W * 0.17, "red")
+		lamp(W * 0.1, -L * 0.02, W * 0.17, "blue")
+	elseif pol.bar == "grille" then
+		-- hidden lights: in the grille and over the rear window
+		lamp(-W * 0.28, -L / 2 - 0.08, 1.0, "red", y)
+		lamp(W * 0.28, -L / 2 - 0.08, 1.0, "blue", y)
+		lamp(-W * 0.2, L * 0.28, 0.8, "red", H - 0.2)
+		lamp(W * 0.2, L * 0.28, 0.8, "blue", H - 0.2)
+	else
+		-- the dashboard pair behind the windscreen
+		lamp(-W * 0.18, -L * 0.2, 0.7, "red", H - 0.4)
+		lamp(W * 0.18, -L * 0.2, 0.7, "blue", H - 0.4)
+	end
+	-- a push bar on the nose
+	if pol.bar == "full" or pol.body == "suv" or pol.body == "pickup" then
+		add("PushBar", CFrame.new(0, y - bodyH * 0.35, -L / 2 - 0.3), Vector3.new(W * 0.7, 0.55, 0.25), Color3.fromRGB(30, 30, 34), M.Metal)
+	end
+end
+
+----------------------------------------------------------------------------------------------------
 -- build
 ----------------------------------------------------------------------------------------------------
 -- opts: color (index or {r,g,b}), plate (text), static (display only), owner (UserId),
@@ -424,7 +640,8 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 	local color = if typeof(o.color) == "number" then c3(def.colors[o.color] or def.colors[1]) elseif o.color then c3(o.color) else c3(def.colors[1])
 	local plateText = o.plate or "PC 1001"
 	local isBike = def.kind ~= "car"
-	local real = if isBike then nil else buildOfficial(m, cf, def, color, plateText)
+	-- (the street life builds half of its cars from parts, so the silhouettes differ more)
+	local real = if isBike or o.procedural then nil else buildOfficial(m, cf, def, color, plateText)
 	local S = real or (if isBike then buildBike(m, cf, def, color, plateText) else buildCar(m, cf, def, color, plateText))
 	local wr = S.wr
 	local wb = S.wb
@@ -493,6 +710,20 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 
 	if real then
 		customize(m, cf, def, real, o)
+	end
+	if not isBike then
+		local CS = CARS[def.body] or CARS.sedan
+		local dim = if real
+			then { W = real.W, L = real.L, H = real.H, y = math.max(1.2, real.H * 0.34), hoodY = real.H * 0.28 }
+			else { W = CS.W, L = CS.L, H = CS.g + CS.hb + CS.hc, y = CS.g + CS.hb * 0.55, hoodY = CS.hb * 0.5 + 0.1 }
+		blinkers(m, cf, dim.W, dim.L, if real then math.max(1.0, real.H * 0.3) else CS.g + CS.hb * 0.45)
+		local r = Random.new(o.look or VehicleModels.seedOf(tostring(o.plate or def.id)))
+		if o.police then
+			policeLivery(m, cf, dim, o.police)
+			m:SetAttribute("Police", o.police.id)
+		elseif o.static or o.decorate then
+			decorate(m, cf, def, dim, color, r, real == nil)
+		end
 	end
 
 	if o.static then
