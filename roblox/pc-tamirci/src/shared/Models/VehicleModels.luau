@@ -90,11 +90,25 @@ end
 local AMBER_OFF = Color3.fromRGB(150, 92, 18)
 local AMBER_ON = Color3.fromRGB(255, 178, 30)
 VehicleModels.AMBER_OFF, VehicleModels.AMBER_ON = AMBER_OFF, AMBER_ON
-local function blinkers(m: Model, cf: CFrame, W: number, L: number, y: number)
+VehicleModels.BLINKER_OFF_TRANSPARENCY = 0.55
+-- lamps: where a ready-made car's own lamp units are (see LAMPS), else the plain corners
+local function blinkers(m: Model, cf: CFrame, W: number, L: number, y: number, lamps: { [string]: any }?)
 	for _, s in { -1, 1 } do
 		for _, e in { -1, 1 } do
-			local b = light(m, cf * CFrame.new(s * (W / 2 - 0.35), y, e * (L / 2 + 0.05)), Vector3.new(0.55, 0.28, 0.1), AMBER_OFF, "Blinker")
+			local spec = if lamps then (if e < 0 then lamps.f else lamps.r) else nil
+			local at, size
+			if spec then
+				-- (in the lamp unit itself: at its outer end, on the face of the body)
+				at = CFrame.new(s * spec.x, spec.y, spec.z)
+				size = Vector3.new(spec.w, spec.h, spec.d)
+			else
+				at = CFrame.new(s * (W / 2 - 0.35), y, e * (L / 2 + 0.05))
+				size = Vector3.new(0.55, 0.28, 0.1)
+			end
+			local b = light(m, cf * at, size, AMBER_OFF, "Blinker")
 			b.Material = M.SmoothPlastic
+			-- (switched off it is only a tint on the lamp: a see-through amber lens)
+			b.Transparency = VehicleModels.BLINKER_OFF_TRANSPARENCY
 			b:SetAttribute("Side", s) -- (-1 left, 1 right, seen from behind the car)
 			b:SetAttribute("End", e) -- (-1 front, 1 rear)
 		end
@@ -322,12 +336,28 @@ local OFFICIAL = {
 	limo = { "Sedan", 0.8 },
 }
 
+-- The indicators of every ready-made kind, measured on the real meshes: (x: how far out of the
+-- middle, y: height, z: front is negative), their size (w x h x d), in the kit's own studs (the
+-- build multiplies them by the body's scale). Each sits in the lamp unit itself.
+local LAMPS = {
+	Sedan = { f = { x = 3.36, y = 3.2, z = -9.2, w = 0.53, h = 0.28, d = 0.4 }, r = { x = 3.16, y = 4.2, z = 9.6, w = 0.53, h = 0.28, d = 0.4 } },
+	SUV = { f = { x = 3.51, y = 4.6, z = -9.6, w = 0.58, h = 0.3, d = 0.4 }, r = { x = 3.66, y = 5.15, z = 9.4, w = 0.58, h = 0.3, d = 0.4 } },
+	Pickup = { f = { x = 3.36, y = 5.3, z = -12.2, w = 0.68, h = 0.4, d = 0.4 }, r = { x = 3.46, y = 5.6, z = 12.6, w = 0.5, h = 0.5, d = 0.4 } },
+	Van = { f = { x = 3.2, y = 4.05, z = -11.9, w = 1.5, h = 0.34, d = 0.3 }, r = { x = 3.5, y = 4.5, z = 13.4, w = 1.3, h = 0.34, d = 0.3 } },
+	Sports = { f = { x = 3.56, y = 3.25, z = -8.9, w = 0.58, h = 0.26, d = 0.4 }, r = { x = 3.21, y = 3.5, z = 8.6, w = 0.53, h = 0.24, d = 0.4 } },
+	Police = { f = { x = 3.06, y = 3.25, z = -9.0, w = 0.58, h = 0.26, d = 0.4 }, r = { x = 3.06, y = 4.2, z = 9.5, w = 0.58, h = 0.28, d = 0.4 } },
+	Offroad = { f = { x = 2.46, y = 4.6, z = -9.6, w = 0.58, h = 0.36, d = 0.4 }, r = { x = 2.46, y = 4.4, z = 9.6, w = 0.58, h = 0.36, d = 0.4 } },
+}
+
 local function kitOf(def)
 	local spec = OFFICIAL[def.body]
 	if not spec then
 		return nil
 	end
-	return Assets.get("Vehicles", spec[1] .. "_white") or Assets.get("Vehicles", spec[1] .. "_std")
+	-- (the white one when there is one, else the first variant of the kind: the off-roader only comes in
+	-- black and two camouflages)
+	local first = Assets.names("Vehicles", spec[1] .. "_")[1]
+	return Assets.get("Vehicles", spec[1] .. "_white") or Assets.get("Vehicles", spec[1] .. "_std") or (first and Assets.get("Vehicles", first)) or nil
 end
 
 -- True when a ready-made model exists for this vehicle (the street only drives those).
@@ -363,6 +393,15 @@ local function buildOfficial(m: Model, cf: CFrame, def, color: Color3, plateText
 	end
 	local size = template:GetAttribute("Size") * scale
 	local seat = template:GetAttribute("Seat") * scale
+	-- the indicators in the real lamp units
+	local lamps = nil
+	local lampKit = LAMPS[spec[1]]
+	if lampKit then
+		lamps = {}
+		for end_, l in lampKit do
+			lamps[end_] = { x = l.x * scale, y = l.y * scale, z = l.z * scale, w = l.w * scale, h = l.h * scale, d = l.d * scale }
+		end
+	end
 	local front, back = template:GetAttribute("Front") * scale, template:GetAttribute("Back") * scale
 	-- number plates on the bumpers
 	plate(m, cf * CFrame.new(0, 1.1 * scale / 0.68, front - 0.04) * CFrame.Angles(0, 0, 0), plateText)
@@ -376,6 +415,7 @@ local function buildOfficial(m: Model, cf: CFrame, def, color: Color3, plateText
 		L = size.Z,
 		H = size.Y,
 		seat = seat,
+		lamps = lamps,
 	}
 end
 
@@ -730,7 +770,7 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 		local dim = if real
 			then { W = real.W, L = real.L, H = real.H, y = math.max(1.2, real.H * 0.34), hoodY = real.H * 0.28 }
 			else { W = CS.W, L = CS.L, H = CS.g + CS.hb + CS.hc, y = CS.g + CS.hb * 0.55, hoodY = CS.hb * 0.5 + 0.1 }
-		blinkers(m, cf, dim.W, dim.L, if real then math.max(1.0, real.H * 0.3) else CS.g + CS.hb * 0.45)
+		blinkers(m, cf, dim.W, dim.L, if real then math.max(1.0, real.H * 0.3) else CS.g + CS.hb * 0.45, if real then real.lamps else nil)
 		local r = Random.new(o.look or VehicleModels.seedOf(tostring(o.plate or def.id)))
 		if o.police then
 			policeLivery(m, cf, dim, o.police)

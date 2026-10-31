@@ -19,6 +19,7 @@ local Vehicles = require(Shared.Data.Vehicles)
 local Avatars = require(Shared.Data.Avatars)
 local DriverPose = require(Shared.Util.DriverPose)
 local VehicleModels = require(Shared.Models.VehicleModels)
+local Umbrella = require(Shared.Models.Umbrella)
 
 local Ambience = require(script.Parent.Ambience)
 local Weather = require(script.Parent.Weather)
@@ -773,13 +774,16 @@ local function stepCar(c, dt: number, me: Vector3?)
 end
 
 -- Indicators, brake lights and police lights.
-local function setLamp(l, on: boolean, onColor: Color3, offColor: Color3, offMaterial: Enum.Material)
+local function setLamp(l, on: boolean, onColor: Color3, offColor: Color3, offMaterial: Enum.Material, offTransparency: number?)
 	if l.on == on then
 		return
 	end
 	l.on = on
 	l.part.Material = if on then Enum.Material.Neon else offMaterial
 	l.part.Color = if on then onColor else offColor
+	if offTransparency then
+		l.part.Transparency = if on then 0 else offTransparency
+	end
 end
 
 local function updateLights(c, now: number)
@@ -787,7 +791,7 @@ local function updateLights(c, now: number)
 		local blink = (now * 2.4 + c.phase) % 1 < 0.5
 		for _, b in c.blinkers do
 			local want = blink and c.signal ~= nil and ((c.signal == "L" and b.side == -1) or (c.signal == "R" and b.side == 1))
-			setLamp(b, want, VehicleModels.AMBER_ON, VehicleModels.AMBER_OFF, Enum.Material.SmoothPlastic)
+			setLamp(b, want, VehicleModels.AMBER_ON, VehicleModels.AMBER_OFF, Enum.Material.SmoothPlastic, VehicleModels.BLINKER_OFF_TRANSPARENCY)
 		end
 	end
 	if #c.tails > 0 then
@@ -1012,55 +1016,18 @@ local function removePed(i: number)
 	table.remove(peds, i)
 end
 
--- In the rain people on the street hold an umbrella over their head (a stick and two discs).
-local UMBRELLAS = {
-	Color3.fromRGB(200, 40, 50), Color3.fromRGB(30, 90, 190), Color3.fromRGB(30, 30, 34), Color3.fromRGB(240, 190, 30),
-	Color3.fromRGB(40, 150, 90), Color3.fromRGB(150, 60, 170), Color3.fromRGB(235, 120, 40), Color3.fromRGB(236, 236, 240),
-}
-
-local function disc(parent: Instance, name: string, size: Vector3, offset: Vector3, color: Color3, head: BasePart): BasePart
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Shape = Enum.PartType.Cylinder
-	p.Size = size
-	p.Color = color
-	p.Material = Enum.Material.Fabric
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.CastShadow = false
-	p.Massless = true
-	-- (a cylinder lies along X: turn it so its axis is up)
-	p.CFrame = head.CFrame * CFrame.new(offset) * CFrame.Angles(0, 0, math.rad(90))
-	p.Parent = parent
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = head
-	weld.Part1 = p
-	weld.Parent = p
-	return p
-end
-
+-- In the rain people on the street carry an umbrella in their right hand, held up beside the head
+-- (Models/Umbrella: the arm reaches up to the handle).
 local function setUmbrella(p, on: boolean)
 	if on == (p.umbrella ~= nil) then
 		return
 	end
 	if not on then
-		p.umbrella:Destroy()
+		Umbrella.drop(p.model, p.umbrella)
 		p.umbrella = nil
 		return
 	end
-	local head = p.model:FindFirstChild("Head") :: BasePart?
-	if not head then
-		return
-	end
-	local m = Instance.new("Model")
-	m.Name = "Umbrella"
-	local color = pick(UMBRELLAS)
-	disc(m, "Stick", Vector3.new(3.2, 0.14, 0.14), Vector3.new(0, 1.7, 0), Color3.fromRGB(50, 50, 54), head)
-	disc(m, "Canopy", Vector3.new(0.22, 4.6, 4.6), Vector3.new(0, 3.1, 0), color, head)
-	disc(m, "Crown", Vector3.new(0.3, 2.6, 2.6), Vector3.new(0, 3.3, 0), color:Lerp(Color3.new(1, 1, 1), 0.15), head)
-	m.Parent = p.model
-	p.umbrella = m
+	p.umbrella = Umbrella.carry(p.model, pick(Umbrella.COLORS))
 end
 
 ----------------------------------------------------------------------------------------------------

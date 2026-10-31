@@ -203,6 +203,15 @@ local CITY_BUILDINGS, MODULAR_KIT = 6418277837, 13168370735
 
 local LIBRARIES = {
 	{
+		-- small things the clients build with themselves (ReplicatedStorage.Assets.Props): the dome of
+		-- the umbrellas people carry in the rain
+		name = "Props",
+		where = "shared",
+		items = {
+			{ FURNITURE, "Display_Cloche", "Dome", { noLights = true, collide = false, shadow = false } },
+		},
+	},
+	{
 		-- shop furniture and desk things from the House Furnishing and House Props packs (avatar
 		-- scale; lights are dropped, the shop has its own)
 		name = "Interior",

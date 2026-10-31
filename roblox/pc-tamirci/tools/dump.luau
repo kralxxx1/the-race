@@ -448,6 +448,28 @@ elseif what == "people" then
 	end
 	result.parts = dumpParts(folder)
 	outName = "people"
+elseif what == "umbrellas" then
+	-- people in the rain, each with an umbrella: lune run tools/dump.luau umbrellas
+	local Npc = Engine.mod("ServerScriptService.Server.Services.NpcService")
+	Npc.init()
+	local Umbrella = Engine.mod("ReplicatedStorage.Shared.Models.Umbrella")
+	local Mock = require("../tests/lib/Mock")
+	local rng = Mock.Random.new(5)
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	local names = {}
+	for name in Npc.Looks do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	for i = 1, 6 do
+		local person = Npc.plain(names[(i - 1) % #names + 1], if i % 2 == 0 then "m" else "f", rng)
+		person.Parent = folder
+		person:PivotTo(roblox.CFrame.new((i - 1) * 7 - 17, 3, 0) * roblox.CFrame.Angles(0, math.pi, 0))
+		Umbrella.carry(person, Umbrella.COLORS[i])
+	end
+	result.parts = dumpParts(folder)
+	outName = "umbrellas"
 elseif what == "workers" then
 	-- thieves in their masks (one with the loot sack), technicians with a tool in the hand, a clerk:
 	--   lune run tools/dump.luau workers
@@ -531,6 +553,26 @@ elseif what == "sky" then
 	balloon:PivotTo(roblox.CFrame.new(60, 30, 0))
 	result.parts = dumpParts(folder)
 	outName = "sky"
+elseif what == "carlights" then
+	-- one car of every ready-made kind in a row, nose to the south (+Z), indicators lit, to see where
+	-- the lamps sit: lune run tools/dump.luau carlights
+	local Vehicles = Engine.mod("ReplicatedStorage.Shared.Data.Vehicles")
+	local VehicleModels = Engine.mod("ReplicatedStorage.Shared.Models.VehicleModels")
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	local bodies = { "sedan", "suv", "pickup", "van", "coupe", "police", "offroad" }
+	for i, body in bodies do
+		local def = { id = "kit_" .. body, kind = "car", body = body, name = { tr = body, en = body }, price = 1, level = 1, speed = 60, accel = 20, turn = 2, seats = 4, colors = { { 190, 40, 40 } } }
+		local m = VehicleModels.build(folder, def, roblox.CFrame.new(i * 40 - 140, 0, 0), { color = 1, plate = "KX-" .. i, static = true })
+		for _, d in m:GetDescendants() do
+			if d:IsA("BasePart") and d.Name == "Blinker" then
+				d.Color = VehicleModels.AMBER_ON
+				d.Material = roblox.Enum.Material.Neon
+			end
+		end
+	end
+	result.parts = dumpParts(folder)
+	outName = "carlights"
 elseif what == "vehicles" then
 	local Vehicles = Engine.mod("ReplicatedStorage.Shared.Data.Vehicles")
 	local VehicleModels = Engine.mod("ReplicatedStorage.Shared.Models.VehicleModels")

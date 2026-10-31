@@ -113,6 +113,53 @@ return function(T)
 		T.ok(count(seen) >= 330, "different cars among " .. n .. ": " .. count(seen))
 	end)
 
+	T.test("traffic: an umbrella has a dome, trim, ribs, a shaft and a handle, and is carried beside the head with the arm reaching up to it", function()
+		local Umbrella = Engine.mod("ReplicatedStorage.Shared.Models.Umbrella")
+		local Npc = Engine.mod("ServerScriptService.Server.Services.NpcService")
+		Npc.init()
+		T.eq(#Umbrella.COLORS, 10, "ten colours")
+		local u = Umbrella.build(Umbrella.COLORS[3])
+		local counts = {}
+		for _, d in u:GetDescendants() do
+			if d:IsA("BasePart") then
+				counts[d.Name] = (counts[d.Name] or 0) + 1
+			end
+		end
+		T.eq(counts.Rib, 8, "eight ribs")
+		T.eq(counts.Trim, 8, "eight pieces of trim")
+		T.ok(counts.Shaft == 1 and counts.Handle == 1 and counts.Finial == 1, "shaft, handle and finial")
+		T.ok(counts.Canopy ~= nil and counts.Canopy >= 1, "a canopy")
+		T.ok(u.PrimaryPart ~= nil and u.PrimaryPart:FindFirstChild("GripPoint") ~= nil, "the grip point the hand is led to")
+		for _, d in u:GetDescendants() do
+			if d:IsA("BasePart") then
+				T.ok(not d.CanCollide and not d.CanQuery, d.Name .. " does not get in the way")
+			end
+		end
+		T.ok(u:GetAttribute("Height") > 2.5, "taller than a person's head")
+		u:Destroy()
+		-- carried: beside the head, the canopy above it, hanging from the head by welds
+		local rng = Mock.Random.new(3)
+		local person = Npc.plain("casual", "f", rng)
+		person.Parent = Engine.workspace
+		person:PivotTo(roblox.CFrame.new(0, 5, 0))
+		local m = Umbrella.carry(person, Umbrella.COLORS[1])
+		T.ok(m ~= nil and m.Parent == person, "in the person's hands")
+		local head = person:FindFirstChild("Head")
+		local canopy = m:FindFirstChild("Canopy")
+		T.ok(canopy.Position.Y > head.Position.Y + 1.2, "the canopy is over the head")
+		T.ok(math.abs(canopy.Position.X - head.Position.X) < 2, "and over it, not off to the side")
+		T.ok(m.PrimaryPart.Position.X - head.Position.X > 0.5, "the handle is beside the head, in the right hand")
+		local ik = person:FindFirstChildOfClass("Humanoid"):FindFirstChild("UmbrellaArm")
+		if ik then
+			T.eq(ik.EndEffector.Name, "RightHand", "the right hand")
+			T.eq(ik.Target.Name, "GripPoint", "goes to the handle")
+		end
+		Umbrella.drop(person, m)
+		T.ok(m.Parent == nil, "put away")
+		T.ok(person:FindFirstChildOfClass("Humanoid"):FindFirstChild("UmbrellaArm") == nil, "the arm is free again")
+		person:Destroy()
+	end)
+
 	T.test("traffic: road signs stand by the road, not in it", function()
 		local world = Engine.mod("ServerScriptService.Server.World.WorldBuilder").build({ bake = true })
 		local CityLayout = Engine.mod("ReplicatedStorage.Shared.World.CityLayout")

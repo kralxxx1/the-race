@@ -714,18 +714,10 @@ return function(T)
 		T.ok(longest >= 18, "the cars know how long they are: " .. longest)
 		T.eq(overlapped, 0, "cars sitting inside the car ahead")
 		-- their wheels roll with the road, the indicators blink before a turn, police cars flash
-		local rolled, signalled, blinked, police, flashing = 0, 0, 0, 0, 0
+		local rolled, police, flashing = 0, 0, 0
 		for _ = 1, 200 do
 			Engine.step(1, 1 / 10)
 			for _, c in Traffic._cars() do
-				if c.signal then
-					signalled += 1
-					for _, b in c.blinkers do
-						if b.on then
-							blinked += 1
-						end
-					end
-				end
 				if c.model:GetAttribute("Police") ~= nil then
 					police += 1
 					for _, l in c.polices do
@@ -742,7 +734,40 @@ return function(T)
 			end
 		end
 		T.ok(rolled >= 5, "cars whose wheels have turned: " .. rolled)
-		T.ok(signalled > 0 and blinked > 0, string.format("indicators: %d signalling samples, %d lit", signalled, blinked))
+		-- a car near the camera that signals left lights its two left lamps (in their lamp units) and
+		-- not the right ones, and puts them out again
+		local near, nearD = nil, 1e9
+		for _, c in Traffic._cars() do
+			local d = (c.pos - cam.CFrame.Position).Magnitude
+			if d < nearD and #c.blinkers == 4 then
+				near, nearD = c, d
+			end
+		end
+		T.ok(near ~= nil and nearD < 160, "a car near the camera: " .. tostring(nearD))
+		near.signal = "L"
+		local left, right = 0, 0
+		for _ = 1, 14 do
+			Engine.step(1, 0.1)
+			near.signal = "L"
+			for _, b in near.blinkers do
+				if b.on then
+					if b.side == -1 then
+						left += 1
+					else
+						right += 1
+					end
+				end
+			end
+		end
+		T.ok(left > 0 and right == 0, string.format("indicators: left lit %d times, right %d", left, right))
+		for _, b in near.blinkers do
+			T.ok(b.part:GetAttribute("End") ~= nil and b.part.Name == "Blinker", "a lamp of the car")
+		end
+		near.signal = nil
+		Engine.step(12, 0.1)
+		for _, b in near.blinkers do
+			T.ok(not b.on, "the indicators go out again")
+		end
 		T.ok(police > 0, "police cars were seen on the street")
 		T.ok(flashing > 0, "their lights flash")
 		-- a traffic officer stands at a signalled junction near the camera
