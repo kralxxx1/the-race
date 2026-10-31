@@ -1155,39 +1155,83 @@ return function(T)
 		T.ok(music.decks[music.cur].IsPlaying, "still playing after a full round")
 	end)
 
-	T.test("client: rain streaks fall around the camera, the sky closes over, a storm flashes and rumbles, and indoors the rain is muffled", function()
+	T.test("client: rain falls as streaks with fading tails down to the real ground and roofs, is seen through the windows from indoors, never falls under a roof, splashes where it lands, and the sky closes over with thunder", function()
 		local SoundService = game:GetService("SoundService")
 		local Lighting = game:GetService("Lighting")
 		local ws = game:GetService("Workspace")
 		local cam = ws.CurrentCamera
 		local Weather = cmod("Controllers.Weather")
 		local streaks = ws:FindFirstChild("RainStreaks")
-		T.ok(streaks ~= nil and #streaks:GetChildren() >= 100, "a pool of rain streaks")
+		T.ok(streaks ~= nil and #streaks:GetChildren() >= 100, "a pool of rain drops")
+		local withTrail = 0
+		for _, p in streaks:GetChildren() do
+			local t = p:FindFirstChildOfClass("Trail")
+			if t and t.Attachment0 and t.Attachment1 and t.Lifetime > 0.04 and t.Lifetime < 0.2 then
+				withTrail += 1
+			end
+		end
+		T.eq(withTrail, #streaks:GetChildren(), "every drop is a point with a trail behind it (the streak)")
 		T.eq(Weather.activeStreaks(), 0, "dry: no streaks")
 		local clouds = ws.Terrain:FindFirstChild("AmbClouds")
 		local dryCover = clouds.Cover
 		local dryBrightness = Lighting.Brightness
 		Engine.context = "client"
+		-- the ground: flat at 0, except under a roof 40 wide at height 20 (a shop). The height map
+		-- is given by hand here (a real ray costs the mock 15 ms; the next test casts real ones)
+		local function surface(x: number, z: number): number
+			if math.abs(x) < 20 and math.abs(z) < 20 then
+				return 20
+			end
+			return 0
+		end
+		Weather._setProbe(surface)
 		Engine.setAttribute(ws, "Raining", true)
-		-- out in the open, far above everything
+		-- high above everything: open sky for the sound and the clouds
 		cam.CFrame = roblox.CFrame.new(0, 400, 0)
 		task.wait(0.35)
 		Engine.step(120, 1 / 10)
 		T.ok(Weather.wet() > 0.95, "the rain has set in: " .. Weather.wet())
-		T.ok(Weather.activeStreaks() >= 100, "streaks fall: " .. Weather.activeStreaks())
-		local around = 0
-		for _, p in streaks:GetChildren() do
-			if p.Position.Y > -900 and (p.Position - cam.CFrame.Position).Magnitude < 70 then
-				around += 1
-			end
-		end
-		T.ok(around >= 100, "the streaks are around the camera: " .. around)
 		-- the sky closes over: more and darker cloud, dimmer light
 		T.ok(clouds.Cover > 0.95 and clouds.Cover > dryCover, "thick cloud: " .. clouds.Cover)
 		T.ok(clouds.Color.R < 0.5, "dark cloud")
 		T.ok(Lighting.Brightness < dryBrightness * 0.7, "dimmer light: " .. Lighting.Brightness)
 		T.ok(SoundService.Amb_rain.Volume > 1 and SoundService.Amb_rain2.Volume > 1, "two rain recordings")
 		T.ok(SoundService.Amb_rain.Volume > SoundService.Amb_rainIn.Volume, "outdoor rain sound")
+		-- down in the street, a street away from the shop
+		cam.CFrame = roblox.CFrame.new(70, 10, 0)
+		Engine.step(60, 1 / 10)
+		T.ok(Weather.activeStreaks() >= 100, "streaks fall: " .. Weather.activeStreaks())
+		local dxs, dys, dzs = Weather._drops()
+		local around, below, hung = 0, 0, 0
+		for i = 1, #dxs do
+			if dys[i] > -900 then
+				if (roblox.Vector3.new(dxs[i], dys[i], dzs[i]) - cam.CFrame.Position).Magnitude < 70 then
+					around += 1
+				end
+				-- (a drop is never below the ground under it, nor higher than the band above it)
+				local s = surface(dxs[i], dzs[i])
+				if dys[i] < s - 0.01 then
+					below += 1
+				end
+				if dys[i] > s + 60 then
+					hung += 1
+				end
+			end
+		end
+		T.ok(around >= 100, "the drops are around the camera: " .. around)
+		T.eq(below, 0, "no drop falls through the ground or a roof")
+		T.eq(hung, 0, "none hangs up in the sky")
+		-- they fall: a moment later they are lower (or have landed and started again)
+		local before = table.clone(dys)
+		Engine.step(3, 1 / 20)
+		local lower = 0
+		dxs, dys, dzs = Weather._drops()
+		for i = 1, #dys do
+			if before[i] > -900 and dys[i] < before[i] - 0.5 then
+				lower += 1
+			end
+		end
+		T.ok(lower >= Weather.activeStreaks() * 0.4, "the drops fall: " .. lower)
 		-- a storm: lightning flashes the screen and thunder follows
 		Engine.setAttribute(ws, "Storm", true)
 		Weather.strike(false)
@@ -1199,16 +1243,32 @@ return function(T)
 		local thunder = SoundService:FindFirstChild("Thunder")
 		T.ok(thunder ~= nil and thunder.IsPlaying and thunder.Volume > 0, "the thunder follows")
 		Engine.setAttribute(ws, "Storm", false)
-		-- under a roof: no streaks, the rain is muffled and drums on the roof instead
+		-- indoors, under the roof: the rain outside is still seen (through the windows), but not a
+		-- drop falls inside, and the rain is muffled and drums on the roof instead
 		local roof = roblox.Instance.new("Part")
 		roof.Anchored = true
 		roof.Size = roblox.Vector3.new(40, 1, 40)
-		roof.CFrame = roblox.CFrame.new(0, 420, 0)
+		roof.CFrame = roblox.CFrame.new(0, 20.5, 0)
 		roof.Parent = ws
+		cam.CFrame = roblox.CFrame.new(0, 8, 0)
 		Engine.invalidateRaycasts()
 		task.wait(0.35)
-		Engine.step(60, 1 / 10)
-		T.eq(Weather.activeStreaks(), 0, "no rain indoors")
+		Engine.step(80, 1 / 10)
+		dxs, dys, dzs = Weather._drops()
+		local outside, inside = 0, 0
+		for i = 1, #dxs do
+			if dys[i] > -900 then
+				if math.abs(dxs[i]) < 20 and math.abs(dzs[i]) < 20 then
+					if dys[i] < 19.9 then
+						inside += 1
+					end
+				else
+					outside += 1
+				end
+			end
+		end
+		T.ok(outside >= 50, "the rain outside is still there to see from indoors: " .. outside)
+		T.eq(inside, 0, "but nothing falls under the roof")
 		T.ok(SoundService.Amb_rainIn.Volume > SoundService.Amb_rain.Volume, "rain on the roof instead")
 		local muffle = SoundService.Amb_rain:FindFirstChild("Muffle")
 		if muffle then
@@ -1223,6 +1283,56 @@ return function(T)
 		T.ok(Weather.wet() < 0.02, "dry again")
 		T.eq(Weather.activeStreaks(), 0, "streaks gone")
 		T.ok(clouds.Cover < 0.58, "the clouds thin out: " .. clouds.Cover)
+		Weather._setProbe(nil)
+	end)
+
+	T.test("client: the rain's height map finds the real ground, a roof and the sea with rays, and skips glass-clear and invisible parts", function()
+		local ws = game:GetService("Workspace")
+		local Weather = cmod("Controllers.Weather")
+		Weather._setProbe(nil) -- (real rays)
+		local function surfaceAfter(x: number, z: number): number?
+			-- (the first ask only queues the cell; the rays are cast a few at a time each frame)
+			Weather._surfaceAt(x, z)
+			ws:SetAttribute("Raining", true)
+			for _ = 1, 40 do
+				Engine.step(1, 1 / 20)
+				local h = Weather._surfaceAt(x, z)
+				if h then
+					return h
+				end
+			end
+			return nil
+		end
+		-- a clean patch of the world with known things on it (far from the city)
+		local origin = roblox.Vector3.new(30000, 0, 30000)
+		local cam = ws.CurrentCamera
+		cam.CFrame = roblox.CFrame.new(origin + roblox.Vector3.new(0, 6, 0))
+		local ground = roblox.Instance.new("Part")
+		ground.Anchored = true
+		ground.Size = roblox.Vector3.new(200, 1, 200)
+		ground.CFrame = roblox.CFrame.new(origin + roblox.Vector3.new(0, -0.5, 0))
+		ground.Parent = ws
+		local roofPart = roblox.Instance.new("Part")
+		roofPart.Anchored = true
+		roofPart.Size = roblox.Vector3.new(12, 1, 12)
+		roofPart.CFrame = roblox.CFrame.new(origin + roblox.Vector3.new(30, 14.5, 0))
+		roofPart.Parent = ws
+		local invisible = roblox.Instance.new("Part")
+		invisible.Anchored = true
+		invisible.Transparency = 1
+		invisible.Size = roblox.Vector3.new(12, 1, 12)
+		invisible.CFrame = roblox.CFrame.new(origin + roblox.Vector3.new(-30, 8, 0))
+		invisible.Parent = ws
+		Engine.invalidateRaycasts()
+		T.ok(math.abs((surfaceAfter(origin.X + 2, origin.Z + 2) or -99) - 0) < 0.1, "the ground is at 0")
+		T.ok(math.abs((surfaceAfter(origin.X + 30, origin.Z) or -99) - 15) < 0.1, "a roof at 15 catches the rain")
+		T.ok(math.abs((surfaceAfter(origin.X - 30, origin.Z) or -99) - 0) < 0.1, "an invisible block does not")
+		ws:SetAttribute("Raining", false)
+		Engine.step(200, 1 / 10)
+		ground:Destroy()
+		roofPart:Destroy()
+		invisible:Destroy()
+		Engine.invalidateRaycasts()
 	end)
 	_ = RepairService
 end

@@ -51,6 +51,7 @@ local cars = {}
 local peds = {}
 local sinceCop = 0 -- cars put on the street since the last police car
 local nextCarId = 0 -- (the older car has the right of way where paths cross)
+local simTime = 0 -- seconds of street time
 
 ----------------------------------------------------------------------------------------------------
 -- Road geometry
@@ -1201,7 +1202,8 @@ function Traffic.init()
 				spawnPed()
 			end
 		end
-		local now = os.clock()
+		simTime += dt
+		local now = simTime -- (the indicators and the officers run on the frames' own clock)
 		-- every car decides from the same picture: where all of them and the people are right now
 		for _, c in cars do
 			refreshPose(c)
