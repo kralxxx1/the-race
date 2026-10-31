@@ -695,6 +695,21 @@ return function(T)
 			end
 		end
 		T.ok(measured >= 3 and inside >= measured - 1, string.format("cars with their driver inside: %d of %d", inside, measured))
+		-- queues keep their distance by the length of the cars (a bus is not a hatchback): nobody sits
+		-- inside the car ahead of them
+		local longest, overlapped = 0, 0
+		for i, a in cars do
+			longest = math.max(longest, a.len or 0)
+			for j, b in cars do
+				if i < j and not a.turn and not b.turn and a.leg.road == b.leg.road and a.leg.from == b.leg.from and a.lane == b.lane then
+					if math.abs(a.t - b.t) < (a.len + b.len) / 2 - 2 then
+						overlapped += 1
+					end
+				end
+			end
+		end
+		T.ok(longest >= 18, "the cars know how long they are: " .. longest)
+		T.eq(overlapped, 0, "cars sitting inside the car ahead")
 		-- their wheels roll with the road, the indicators blink before a turn, police cars flash
 		local rolled, signalled, blinked, police, flashing = 0, 0, 0, 0, 0
 		for _ = 1, 200 do
@@ -799,6 +814,158 @@ return function(T)
 		-- a rig without shoulders is left alone
 		DriverPose.apply(DriverPose.joints(roblox.Instance.new("Model")), 0.5)
 		DriverPose.work(DriverPose.joints(roblox.Instance.new("Model")), 0.5, 0)
+	end)
+
+	T.test("client: people at work move their hands for what they are doing", function()
+		local NpcPoses = cmod("Controllers.NpcPoses")
+		local DriverPose = Engine.mod("ReplicatedStorage.Shared.Util.DriverPose")
+		local cam = Engine.workspace.CurrentCamera
+		cam.CFrame = roblox.CFrame.new(0, 10, 0)
+		-- every motion is its own: no two kinds put the arms and head in the same place
+		local seen = {}
+		for _, kind in DriverPose.kinds() do
+			local p = DriverPose.workPose(kind, 1.3, 0.4)
+			local key = string.format("%.2f|%.2f|%.2f|%.2f|%.2f|%.2f", p.rs[1], p.rs[2], p.re, p.rw[2], p.neck[1], p.ls[1])
+			T.ok(not seen[key], kind .. " is the same as " .. tostring(seen[key]))
+			seen[key] = kind
+			for _, v in { p.rs[1], p.rs[2], p.ls[1], p.re, p.le, p.rw[1], p.rw[2], p.lw[1], p.neck[1], p.neck[2] } do
+				T.ok(v == v and math.abs(v) < math.rad(120), kind .. ": an arm out of the possible")
+			end
+		end
+		T.ok(#DriverPose.kinds() >= 10, "motions: " .. #DriverPose.kinds())
+		-- the steps of a repair give the hands something to do; whatever else is "tinkering"
+		T.eq(DriverPose.kindOf("unscrew"), "twist", "a screwdriver turns")
+		T.eq(DriverPose.kindOf("blow_dust"), "spray", "air is sprayed")
+		T.eq(DriverPose.kindOf("register"), "register", "a till is typed on")
+		T.eq(DriverPose.kindOf("something_new"), "type", "anything else is tinkering")
+		T.eq(DriverPose.kindOf(nil), nil, "nothing to do, nothing to pose")
+		-- a rig standing still with a step in its "Doing"
+		local function rig(role: string?, doing: string?)
+			local m = roblox.Instance.new("Model")
+			local root = roblox.Instance.new("Part")
+			root.Name = "HumanoidRootPart"
+			root.Position = roblox.Vector3.new(5, 3, 5)
+			root.Parent = m
+			m.PrimaryPart = root
+			for _, name in { "RightShoulder", "LeftShoulder", "RightElbow", "LeftElbow", "RightWrist", "LeftWrist", "Neck" } do
+				local j = roblox.Instance.new("Motor6D")
+				j.Name = name
+				j.Transform = roblox.CFrame.new()
+				j.Parent = m
+			end
+			m:AddTag("NpcModel")
+			m:SetAttribute("Staff", role)
+			m:SetAttribute("Doing", doing)
+			m.Parent = Engine.workspace
+			return m, root
+		end
+		local function joint(m, name)
+			return m:FindFirstChild(name, true)
+		end
+		local clock = os.clock() + 1000
+		local function run(seconds: number, each: (() -> ())?)
+			for _ = 1, math.floor(seconds / 0.1) do
+				clock += 0.1
+				if each then
+					each()
+				end
+				NpcPoses.step(clock)
+			end
+		end
+		local tech = rig("technician", "unscrew")
+		run(2.5)
+		local rolled = joint(tech, "RightWrist").Transform
+		T.ok(rolled ~= roblox.CFrame.new(), "the wrist turns the screwdriver")
+		T.ok(joint(tech, "LeftElbow").Transform ~= roblox.CFrame.new(), "the other arm holds on")
+		-- the next step is a different motion
+		tech:SetAttribute("Doing", "brush")
+		run(1.5)
+		local ax = joint(tech, "RightShoulder").Transform
+		tech:SetAttribute("Doing", "grab")
+		tech:SetAttribute("Doing", "remove")
+		run(1.5)
+		T.ok(joint(tech, "RightShoulder").Transform ~= ax, "a different step, a different movement")
+		-- the work is done: the arms are given back
+		tech:SetAttribute("Doing", nil)
+		run(0.5)
+		T.eq(joint(tech, "RightWrist").Transform, roblox.CFrame.new(), "the wrist is free again")
+		T.eq(joint(tech, "RightShoulder").Transform, roblox.CFrame.new(), "the arms are free again")
+		tech:Destroy()
+		-- somebody standing at their post does their chore: the cleaner wipes, the receptionist types
+		local cleaner = rig("cleaner", nil)
+		local recep = rig("receptionist", nil)
+		local guard = rig("security", nil)
+		run(1.5)
+		T.ok(joint(cleaner, "RightShoulder").Transform ~= roblox.CFrame.new(), "the cleaner wipes")
+		T.ok(joint(recep, "LeftShoulder").Transform ~= roblox.CFrame.new(), "the receptionist types")
+		T.eq(joint(guard, "RightShoulder").Transform, roblox.CFrame.new(), "the guard just stands")
+		-- walking is not a chore
+		local _, root = rig("cleaner", nil)
+		local walker = root.Parent
+		local x = 5
+		run(1.5, function()
+			x += 0.5
+			root.Position = roblox.Vector3.new(x, 3, 5)
+		end)
+		T.eq(joint(walker, "RightShoulder").Transform, roblox.CFrame.new(), "no wiping while walking")
+		for _, m in { cleaner, recep, guard, walker } do
+			m:Destroy()
+		end
+		run(0.3)
+	end)
+
+	T.test("client: important things (bills, thieves, the power) come as cards with an icon and a title; the rest stay small toasts", function()
+		local Net = Engine.mod("ReplicatedStorage.Shared.Net")
+		local pg = player.PlayerGui
+		local function alerts()
+			local out = {}
+			for _, d in pg:GetDescendants() do
+				if d.Name == "Alert" and d:IsA("Frame") then
+					table.insert(out, d)
+				end
+			end
+			return out
+		end
+		local function texts(card)
+			local out = {}
+			for _, d in card:GetDescendants() do
+				if d:IsA("TextLabel") then
+					table.insert(out, d.Text)
+				end
+			end
+			return table.concat(out, " | ")
+		end
+		local before = #alerts()
+		Net.push(player, "toast", { key = "bills_due_soon", important = true, vars = { n = 2, amount = 340 } })
+		waitFor(function()
+			return #alerts() > before
+		end, 3, "an alert card for the bills")
+		local card = alerts()[#alerts()]
+		local shown = texts(card)
+		T.ok(string.find(shown, "🧾", 1, true) ~= nil, "the bill icon: " .. shown)
+		T.ok(string.find(shown, "340", 1, true) ~= nil, "the amount: " .. shown)
+		T.ok(string.find(shown, "Bill", 1, true) ~= nil or string.find(shown, "Fatura", 1, true) ~= nil, "a title: " .. shown)
+		-- a new bill, the power and a thief are cards too; a pay day is only a toast
+		for _, key in { "bill_new", "power_cut", "thief_escaped", "alarm" } do
+			local known = {}
+			for _, c in alerts() do
+				known[c] = true
+			end
+			Net.push(player, "toast", { key = key, vars = { kind = "rent", amount = 90, cash = 120, part = "" } })
+			-- (at most four cards stay up: a new one is a card we have not seen yet)
+			waitFor(function()
+				for _, c in alerts() do
+					if not known[c] then
+						return true
+					end
+				end
+				return false
+			end, 3, key .. " as a card")
+		end
+		local n = #alerts()
+		Net.push(player, "toast", { key = "wages_paid", vars = { amount = 50 } })
+		task.wait(0.3)
+		T.eq(#alerts(), n, "wages are only a toast")
 	end)
 
 	T.test("client: the city lights up at night", function()

@@ -15,6 +15,47 @@ function Geometry.box(d)
 	return p - e, p + e
 end
 
+-- The lanes of every road as rectangles { x0, z0, x1, z1, id }, a pace in from the kerbs (the kerbside
+-- may have awnings, canopies and lamp arms over it).
+function Geometry.carriageways(layout): { { any } }
+	local function sidewalk(kind: string): number
+		return if kind == "main" then 10 elseif kind == "ring" then 6 else 9
+	end
+	local rects = {}
+	for _, r in layout.roads do
+		local cw = r.width - sidewalk(r.kind) * 2
+		local x0, x1 = math.min(r.a.X, r.b.X), math.max(r.a.X, r.b.X)
+		local z0, z1 = math.min(r.a.Y, r.b.Y), math.max(r.a.Y, r.b.Y)
+		if r.vertical then
+			table.insert(rects, { x0 - cw / 2 + 1.5, z0, x1 + cw / 2 - 1.5, z1, r.id })
+		else
+			table.insert(rects, { x0, z0 - cw / 2 + 1.5, x1, z1 + cw / 2 - 1.5, r.id })
+		end
+	end
+	return rects
+end
+
+-- Solid parts under `root` that stand up more than a kerb (roadY + 1.5) inside one of the rectangles:
+-- things across a lane. Returns descriptions and how many solid parts were looked at.
+function Geometry.solidsInRoad(root, rects, roadY: number): ({ string }, number)
+	local hits, checked = {}, 0
+	for _, d in root:GetDescendants() do
+		if d:IsA("BasePart") and d.Transparency < 1 and d.CanCollide then
+			local lo, hi = Geometry.box(d)
+			if hi.Y - roadY > 1.5 and (hi.X - lo.X) * (hi.Z - lo.Z) > 4 then
+				checked += 1
+				for _, rc in rects do
+					if hi.X > rc[1] and lo.X < rc[3] and hi.Z > rc[2] and lo.Z < rc[4] then
+						table.insert(hits, string.format("%s (%.0fx%.0fx%.0f) at (%.0f, %.0f) on road %s", d:GetFullName(), hi.X - lo.X, hi.Y - lo.Y, hi.Z - lo.Z, (lo.X + hi.X) / 2, (lo.Z + hi.Z) / 2, tostring(rc[5])))
+						break
+					end
+				end
+			end
+		end
+	end
+	return hits, checked
+end
+
 -- Visible parts under `root` that neither rest on the ground (groundAt(x, z) gives its height)
 -- nor touch another part: things hanging in the air. Returns them and how many parts were checked.
 function Geometry.floating(root, groundAt: (number, number) -> number, eps: number?): ({ any }, number)

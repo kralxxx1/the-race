@@ -60,6 +60,26 @@ local function deskRow(parent: Instance, cf: CFrame, n: number, rng: Random)
 	end
 end
 
+-- A tools corner inside a bigger shop: a pegboard of hand tools on the back wall, a hanging sign and
+-- a counter of its own (the same tools as the hardware store: screwdrivers, soldering, meters).
+function Commerce.toolsCorner(m: Instance, cf: CFrame, wallZ: number, counterBack: number, ceilingY: number, poi, rng: Random, title: string, width: number?)
+	local w = width or 8
+	local board = B.box(m, cf * CFrame.new(0, 7, wallZ - 1.2), Vector3.new(w + 10, 9, 0.4), Color3.fromRGB(190, 160, 120), M.Wood)
+	board.Name = "Pegboard"
+	for k = 0, 17 do
+		local x = -(w + 8) / 2 + k * (w + 8) / 17
+		B.box(m, cf * CFrame.new(x, Rand.range(rng, 4, 10), wallZ - 1.5), Vector3.new(0.5, Rand.range(rng, 1.2, 2.8), 0.3), Rand.pick(rng, { Color3.fromRGB(220, 40, 30), Color3.fromRGB(240, 170, 20), Color3.fromRGB(30, 100, 200), Color3.fromRGB(40, 40, 44), Color3.fromRGB(190, 194, 200) }), M.SmoothPlastic, nc())
+	end
+	-- the sign hangs from the ceiling on two rods, over the counter
+	local sign = B.box(m, cf * CFrame.new(0, ceilingY - 4, wallZ - counterBack + 1), Vector3.new(w + 4, 2.4, 0.4), Color3.fromRGB(220, 140, 20), M.SmoothPlastic)
+	sign.Name = "ToolsSign"
+	for k = -1, 1, 2 do
+		B.box(m, cf * CFrame.new(k * (w + 2) / 2, (ceilingY - 2.8 + ceilingY - 0.15) / 2, wallZ - counterBack + 1), Vector3.new(0.1, 2.65, 0.1), Color3.fromRGB(150, 150, 156), M.Metal, nc())
+	end
+	B.sign(sign, Enum.NormalId.Front, "🧰 " .. title, { color = Color3.fromRGB(30, 24, 20), font = B.Fonts.Heavy })
+	Commerce.servicePoint(m, cf * CFrame.new(0, 0, wallZ - counterBack), "tools", poi.id, "Buy Tools", title, w)
+end
+
 ----------------------------------------------------------------------------------------------------
 -- Parts megastore
 ----------------------------------------------------------------------------------------------------
@@ -90,6 +110,7 @@ local function megastore(parent, poi, rng)
 		B.sign(box, Enum.NormalId.Front, ({ "RTX\n5090", "RX\n9070 XT", "RTX\n4070", "ARC\nB580", "RTX\n5060" })[k + 3], { color = Color3.fromRGB(118, 185, 0), background = Color3.fromRGB(20, 20, 22) })
 	end
 	Commerce.servicePoint(m, cf * CFrame.new(hw / 4, 0.2, hd - 10), "parts", poi.id, "Shop", "Mega Parts Depot", 12)
+	Commerce.toolsCorner(m, cf * CFrame.new(-hw / 4, 0.2, 0), hd, 10, hh, poi, rng, "Tools & Hardware", 8)
 	-- trolley bay outside
 	for k = 0, 3 do
 		B.box(parent, cf * CFrame.new(hw / 2 - 6, 1.2, -4 - k * 1.2), Vector3.new(2.4, 2.4, 1), Color3.fromRGB(200, 40, 40), M.Metal, nc())
@@ -165,6 +186,7 @@ local function bazaarParts(parent, poi, rng)
 		Props.crate(m, cf * CFrame.new(Rand.range(rng, -hw / 2 + 4, hw / 2 - 4), 0.2, Rand.range(rng, 6, 12)), Rand.range(rng, 2, 3))
 	end
 	Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, d - 30), "parts_bazaar", poi.id, "Haggle", "Old Town Parts")
+	Commerce.toolsCorner(m, cf * CFrame.new(-hw / 2 + 14, 0.2, 0), d - 12, 18, 14, poi, rng, "Old Town Tools", 8)
 	return m
 end
 
@@ -596,7 +618,7 @@ function Commerce.build(parent: Instance, L, yieldFn: (() -> ())?)
 			return officeDesk(p, poi, r, "police", "POLICE STATION", "Claim Bounty", { 30, 50, 120 }, { wall = { 220, 226, 236 }, floor = { 200, 200, 204 }, floorMat = M.CeramicTiles })
 		end,
 		post = function(p, poi, r)
-			return officeDesk(p, poi, r, nil, "PTT POSTANE", "", { 250, 200, 20 })
+			return officeDesk(p, poi, r, nil, "POST OFFICE", "", { 250, 200, 20 })
 		end,
 		internet_cafe = internetCafe,
 		datacenter = datacenter,

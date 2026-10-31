@@ -720,7 +720,7 @@ local function pickup(player: Player, job)
 	end
 	cust.state = "pickup"
 	task.spawn(function()
-		if not cust.model or not cust.model.Parent then
+		if not cust.model or not NpcService.alive(cust.model) then
 			-- they stepped out: walk back in from the street
 			local street = point(player, "Street")
 			if not street then

@@ -295,6 +295,15 @@ return function(T)
 		end
 	end)
 
+	T.test("world: nothing solid stands in a carriageway (no building, truck or prop across a lane)", function()
+		local hits, checked = Geometry.solidsInRoad(Engine.world, Geometry.carriageways(CityLayout.get()), CityLayout.ROAD_Y)
+		for k = 1, math.min(#hits, 8) do
+			print("      in the road:", hits[k])
+		end
+		T.ok(checked > 8000, "solid parts checked: " .. checked)
+		T.ok(#hits == 0, #hits .. " solid parts stand in a carriageway")
+	end)
+
 	T.test("world: nothing hangs in the air (every part rests on the ground or touches another)", function()
 		local TerrainB = Engine.mod("ServerScriptService.Server.World.TerrainBuilder")
 		local floating, checked = Geometry.floating(Engine.world, function(x, z)

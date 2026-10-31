@@ -252,8 +252,9 @@ local function fireStation(parent, poi, _rng)
 	B.sign(sign, Enum.NormalId.Front, "FIRE DEPT 911", { color = Color3.fromRGB(200, 30, 30) })
 	-- drill tower
 	B.box(m, cf * CFrame.new(bw / 2 + 10, 25, 20), Vector3.new(12, 50, 12), brick, M.Brick)
-	-- fire truck parked out front
-	local truck = cf * CFrame.new(-22, 0, -14)
+	-- a fire truck parked beside the station, nose to the street (inside the lot: parked out in front
+	-- it stood across the carriageway)
+	local truck = cf * CFrame.new(-(bw / 2 + 10), 0, 18)
 	B.box(m, truck * CFrame.new(0, 4, 0), Vector3.new(9, 6, 26), Color3.fromRGB(200, 30, 30), M.Metal)
 	B.box(m, truck * CFrame.new(0, 6.6, -10.5), Vector3.new(8.6, 3.4, 4.6), Color3.fromRGB(150, 190, 220), M.Glass, { Transparency = 0.4 })
 	B.box(m, truck * CFrame.new(0, 7.5, 3), Vector3.new(2, 1, 20), Color3.fromRGB(200, 200, 205), M.Metal)

@@ -17,7 +17,7 @@ Bills.kinds = {
 	tax = { icon = "🏛️", name = N("Gelir Vergisi", "Income Tax") },
 	fine = { icon = "⚠️", name = N("Vergi Cezası", "Tax Penalty") },
 	insurance = { icon = "📄", name = N("Sigorta Primi", "Insurance Premium") },
-	inspection = { icon = "👮", name = N("Zabıta Cezası", "Municipal Inspection Fine") },
+	inspection = { icon = "👮", name = N("Denetim Cezası", "Municipal Inspection Fine") },
 }
 
 Bills.DueDays = 2 -- mornings to pay before it is late

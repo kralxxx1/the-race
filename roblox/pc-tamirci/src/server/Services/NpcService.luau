@@ -17,6 +17,7 @@ local B = require(Shared.Util.Builder)
 local Rand = require(Shared.Util.Rand)
 local Avatars = require(Shared.Data.Avatars)
 local PersonStyle = require(Shared.Data.PersonStyle)
+local ToolModels = require(Shared.Models.ToolModels)
 
 local NpcService = {}
 
@@ -73,13 +74,13 @@ local LOOKS = {
 	miner = { shirt = { { 240, 140, 30 } }, pants = { { 50, 50, 56 } }, extras = { "hardhat" } },
 	musician = { shirt = { { 30, 30, 32 }, { 110, 30, 30 } }, pants = { { 30, 30, 34 } }, extras = { "guitar", "long_hair" } },
 	rich = { shirt = { { 240, 236, 226 }, { 30, 30, 34 } }, pants = { { 240, 236, 226 }, { 30, 30, 34 } }, extras = { "sunglasses", "chain" } },
-	shady = { shirt = { { 26, 26, 28 } }, pants = { { 30, 30, 34 } }, extras = { "hood", "sunglasses" } },
+	shady = { shirt = { { 26, 26, 28 }, { 44, 44, 52 } }, pants = { { 30, 30, 34 } }, extras = { "balaclava", "gloves" } },
 	teacher = { shirt = { { 120, 90, 120 }, { 90, 120, 100 } }, pants = { { 60, 60, 70 } }, extras = { "glasses", "book" } },
 	tourist = { shirt = { { 250, 150, 60 }, { 60, 200, 200 } }, pants = { { 200, 190, 160 } }, extras = { "sunhat", "camera" } },
 	annoying = { shirt = { { 250, 60, 160 }, { 250, 230, 40 } }, pants = { { 120, 40, 200 } }, extras = { "sunglasses_up" } },
 	shopkeeper = { shirt = { { 240, 240, 240 } }, pants = { { 40, 40, 44 } }, extras = { "apron" } },
 	technician = { shirt = { { 40, 110, 200 } }, pants = { { 36, 40, 50 } }, extras = { "lanyard" } },
-	thief = { shirt = { { 30, 30, 34 } }, pants = { { 30, 30, 34 } }, extras = { "beanie", "mask" } },
+	thief = { shirt = { { 30, 30, 34 }, { 60, 34, 34 } }, pants = { { 30, 30, 34 } }, extras = { "balaclava", "gloves" } },
 	guard = { shirt = { { 30, 40, 70 } }, pants = { { 26, 28, 40 } }, extras = { "guardcap" } },
 	traffic_cop = { shirt = { { 236, 238, 242 } }, pants = { { 24, 32, 58 } }, extras = { "guardcap", "vest" } },
 	manager = { shirt = { { 34, 36, 44 } }, pants = { { 30, 32, 40 } }, extras = { "tie" } },
@@ -408,6 +409,32 @@ local function dress(model: Model, extras: { string }, hair: Color3, gender: str
 	end
 	if has.mask then
 		part(head, CFrame.new(0, -hs.Y * 0.12, -hs.Z * 0.5), Vector3.new(hs.X * 0.95, hs.Y * 0.45, 0.06), Color3.fromRGB(20, 20, 22), Enum.Material.Fabric)
+	end
+	if has.balaclava then
+		-- a knitted ski mask over the whole head: the knit above the brows and below the eyes, and a
+		-- slit for the eyes open at the front only
+		local knit = Color3.fromRGB(22, 22, 25)
+		local function named(p: BasePart): BasePart
+			p.Name = "Balaclava"
+			return p
+		end
+		named(part(head, CFrame.new(0, hs.Y * 0.39, 0), Vector3.new(hs.X * 1.09, hs.Y * 0.27, hs.Z * 1.09), knit, Enum.Material.Fabric))
+		named(part(head, CFrame.new(0, -hs.Y * 0.26, 0), Vector3.new(hs.X * 1.09, hs.Y * 0.54, hs.Z * 1.09), knit, Enum.Material.Fabric))
+		named(part(head, CFrame.new(0, hs.Y * 0.13, hs.Z * 0.52), Vector3.new(hs.X * 1.09, hs.Y * 0.27, 0.08), knit, Enum.Material.Fabric))
+		for _, sd in { -1, 1 } do
+			named(part(head, CFrame.new(sd * hs.X * 0.52, hs.Y * 0.13, 0), Vector3.new(0.08, hs.Y * 0.27, hs.Z * 1.09), knit, Enum.Material.Fabric))
+		end
+		-- the rolled edge round the eye slit
+		named(part(head, CFrame.new(0, hs.Y * 0.27, -hs.Z * 0.545), Vector3.new(hs.X * 1.0, 0.05, 0.05), Color3.fromRGB(40, 40, 46), Enum.Material.Fabric))
+		named(part(head, CFrame.new(0, -hs.Y * 0.01, -hs.Z * 0.545), Vector3.new(hs.X * 1.0, 0.05, 0.05), Color3.fromRGB(40, 40, 46), Enum.Material.Fabric))
+	end
+	if has.gloves then
+		for _, name in { "LeftHand", "RightHand" } do
+			local hand = model:FindFirstChild(name) :: BasePart?
+			if hand then
+				part(hand, CFrame.new(), hand.Size * 1.08, Color3.fromRGB(26, 26, 30), Enum.Material.Leather)
+			end
+		end
 	end
 	if has.headset then
 		for _, s in { -1, 1 } do
@@ -776,7 +803,7 @@ function NpcService.plain(lookName: string, gender: string, rng: Random): Model
 	local head = model:FindFirstChild("Head") :: BasePart?
 	local hidden = false
 	for _, e in st.extras do
-		if e == "hood" or e == "hardhat" or e == "scarf" then
+		if e == "hood" or e == "hardhat" or e == "scarf" or e == "balaclava" then
 			hidden = true
 		end
 	end
@@ -926,10 +953,26 @@ end
 
 local WALK_STEP = 0.05
 
+-- Is this person still in the world? (somebody sent home or a shop rebuilt takes them out while a
+-- walk is going on)
+local function alive(model: Model?): boolean
+	if not model then
+		return false
+	end
+	local ok, parent = pcall(function()
+		return model.Parent
+	end)
+	return ok and parent ~= nil
+end
+NpcService.alive = alive
+
 function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: boolean?): boolean
+	if not alive(model) then
+		return false
+	end
 	local hum = model:FindFirstChildOfClass("Humanoid")
 	local root = model.PrimaryPart
-	if not hum or not root or not model.Parent then
+	if not hum or not root then
 		return false
 	end
 	if hum.SeatPart then
@@ -948,8 +991,11 @@ function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: bo
 	local travelled, y = 0, start.Y
 	local targetY, nextSample = y, 0
 	local t0, last = os.clock(), os.clock()
-	while travelled < dist and model.Parent and os.clock() - t0 < limit do
+	while travelled < dist and alive(model) and os.clock() - t0 < limit do
 		task.wait(WALK_STEP)
+		if not alive(model) then
+			break
+		end
 		local now = os.clock()
 		local dt = math.min(now - last, 0.25)
 		travelled = math.min(dist, travelled + speed * dt)
@@ -967,7 +1013,7 @@ function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: bo
 		model:PivotTo(CFrame.lookAt(Vector3.new(x, y, z), Vector3.new(x + dir.X, y, z + dir.Z)))
 	end
 	local reached = travelled >= dist - 0.01
-	if model.Parent then
+	if alive(model) then
 		if not reached then
 			-- ran out of time: stand at the target anyway
 			local g = groundAt(pos.X, math.max(y, pos.Y), pos.Z)
@@ -978,16 +1024,35 @@ function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: bo
 	return reached
 end
 
+-- Puts somebody on the ground at cf's spot, facing the way cf looks (a clerk behind a counter).
+function NpcService.stand(model: Model, cf: CFrame)
+	local hum = model:FindFirstChildOfClass("Humanoid")
+	local root = model.PrimaryPart
+	if not hum or not root then
+		return
+	end
+	local hip = hum.HipHeight + root.Size.Y / 2
+	local g = groundAt(cf.X, cf.Y + 4, cf.Z)
+	local p = Vector3.new(cf.X, (g or cf.Y) + hip, cf.Z)
+	local look = cf.LookVector
+	model:PivotTo(CFrame.lookAt(p, p + Vector3.new(look.X, 0, look.Z)))
+end
+
 -- Follows a list of points (Vector3 or CFrame or marker parts).
 function NpcService.walkPath(model: Model, points: { any }, run: boolean?): boolean
 	for _, p in points do
-		local pos = if typeof(p) == "Vector3" then p elseif typeof(p) == "CFrame" then p.Position else (p :: BasePart).Position
-		if not model.Parent then
+		-- (a marker may be gone by now: the shop was rebuilt while somebody was on their way)
+		local ok, pos = pcall(function()
+			return if typeof(p) == "Vector3" then p elseif typeof(p) == "CFrame" then p.Position else (p :: BasePart).Position
+		end)
+		if not alive(model) then
 			return false
 		end
-		NpcService.walkTo(model, pos, nil, run)
+		if ok then
+			NpcService.walkTo(model, pos, nil, run)
+		end
 	end
-	return model.Parent ~= nil
+	return alive(model)
 end
 
 function NpcService.face(model: Model, pos: Vector3)
@@ -1085,6 +1150,125 @@ function NpcService.tag(model: Model, text: string, color: Color3?)
 	local l = (gui :: BillboardGui):FindFirstChild("Label") :: TextLabel
 	l.Text = text
 	l.TextColor3 = color or Color3.new(1, 1, 1)
+end
+
+-- Something carried in the right hand: "sack" (a bag of loot), or nil to put it down.
+function NpcService.carry(model: Model?, what: string?)
+	if not model or not NpcService.alive(model) then
+		return
+	end
+	local old = model:FindFirstChild("Carried")
+	if old then
+		old:Destroy()
+	end
+	local hand = model:FindFirstChild("RightHand") :: BasePart?
+	if not hand or what ~= "sack" then
+		return
+	end
+	local m = Instance.new("Model")
+	m.Name = "Carried"
+	m.Parent = model -- (in the world first, so the welds to the hand take the right offsets)
+	local cloth = Color3.fromRGB(96, 78, 52)
+	local function piece(offset: CFrame, size: Vector3, color: Color3, shape: string?, mat: Enum.Material?)
+		local p = part(hand, offset, size, color, mat or Enum.Material.Fabric, shape)
+		p.Parent = m
+		p.Massless = true
+		return p
+	end
+	-- a lumpy bag with a tied neck and a dollar sign on the belly
+	piece(CFrame.new(0, -1.25, 0), Vector3.new(1.15, 1.2, 1.0), cloth, "ball")
+	piece(CFrame.new(0, -0.6, 0), Vector3.new(0.3, 0.4, 0.3), cloth:Lerp(Color3.new(0, 0, 0), 0.25))
+	piece(CFrame.new(0, -0.82, 0), Vector3.new(0.5, 0.09, 0.5), Color3.fromRGB(150, 120, 60))
+	local mark = piece(CFrame.new(0, -1.3, -0.52), Vector3.new(0.5, 0.5, 0.04), Color3.fromRGB(70, 56, 36))
+	mark.Transparency = 1
+	B.sign(mark, Enum.NormalId.Front, "$", { color = Color3.fromRGB(230, 200, 80), font = B.Fonts.Heavy })
+end
+
+-- A small line under the name tag: what this person is up to right now ("" or nil: nothing).
+function NpcService.status(model: Model, text: string?)
+	local head = model:FindFirstChild("Head")
+	if not head then
+		return
+	end
+	local gui = head:FindFirstChild("StatusTag") :: BillboardGui?
+	if not text or text == "" then
+		if gui then
+			gui:Destroy()
+		end
+		return
+	end
+	if not gui then
+		local g = Instance.new("BillboardGui")
+		g.Name = "StatusTag"
+		g.Size = UDim2.fromOffset(190, 20)
+		g.StudsOffset = Vector3.new(0, 1.15, 0)
+		g.MaxDistance = 28
+		g.LightInfluence = 0
+		g:AddTag("NameTag") -- hidden together with the names in Settings
+		local l = Instance.new("TextLabel")
+		l.Name = "Label"
+		l.Size = UDim2.fromScale(1, 1)
+		l.BackgroundTransparency = 1
+		l.TextColor3 = Color3.fromRGB(190, 225, 255)
+		l.TextStrokeTransparency = 0.45
+		l.FontFace = B.Fonts.Medium
+		l.TextScaled = true
+		l.Parent = g
+		g.Parent = head
+		gui = g
+	end
+	((gui :: BillboardGui):FindFirstChild("Label") :: TextLabel).Text = text
+end
+
+-- Puts a hand tool (a ToolModels name) in the right hand, or takes it away (nil / "hand").
+function NpcService.hold(model: Model, toolModel: string?)
+	local old = model:FindFirstChild("HeldTool")
+	if old then
+		if old:GetAttribute("Tool") == toolModel then
+			return
+		end
+		old:Destroy()
+	end
+	local hand = model:FindFirstChild("RightHand") :: BasePart?
+	if not hand or not toolModel or toolModel == "hand" or toolModel == "strap" then
+		return
+	end
+	local tool = ToolModels.build(toolModel, nil)
+	tool.Name = "HeldTool"
+	tool:SetAttribute("Tool", toolModel)
+	-- a hand tool is about as long as a hand and a half: the handle in the fist, the tip out at the
+	-- fingers (the arm's pose points them at the work)
+	local _, size = tool:GetBoundingBox()
+	local length = math.max(size.Y, 0.3)
+	tool:ScaleTo(math.clamp(1.2 / length, 0.3, 1.3))
+	local _, scaled = tool:GetBoundingBox()
+	tool:PivotTo(hand.CFrame * CFrame.new(0, -0.25 - scaled.Y / 2, 0))
+	tool.Parent = model
+	for _, d in tool:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = false
+			d.Massless = true
+			d.CanCollide = false
+			d.CanQuery = false
+			d.CanTouch = false
+			local w = Instance.new("WeldConstraint")
+			w.Part0 = hand
+			w.Part1 = d
+			w.Parent = d
+		end
+	end
+end
+
+-- Somebody at work: the step they are on (a RepairRules action, or "register") drives the arms on
+-- every client (NpcPoses), the tool is in their hand and the line under the name says what it is.
+-- Everything is cleared with no action.
+function NpcService.work(model: Model?, action: string?, toolModel: string?, text: string?)
+	if not model or not NpcService.alive(model) then
+		return
+	end
+	model:SetAttribute("Doing", action)
+	NpcService.hold(model, if action then toolModel else nil)
+	NpcService.status(model, if action then text else nil)
 end
 
 function NpcService.despawn(model: Model)

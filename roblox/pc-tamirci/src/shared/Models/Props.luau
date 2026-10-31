@@ -543,7 +543,7 @@ function Props.mailbox(parent: Instance, cf: CFrame): Model
 	B.box(m, cf * CFrame.new(0, 2, 0), Vector3.new(0.4, 4, 0.4), Color3.fromRGB(40, 40, 40), M.Metal)
 	B.box(m, cf * CFrame.new(0, 4.7, 0), Vector3.new(2.2, 2.6, 1.8), yellow, M.Metal)
 	local face = B.box(m, cf * CFrame.new(0, 4.9, -0.95), Vector3.new(1.8, 1, 0.05), yellow, M.SmoothPlastic, noCollide())
-	B.sign(face, Enum.NormalId.Front, "PTT", { color = Color3.fromRGB(20, 40, 120), font = B.Fonts.Heavy })
+	B.sign(face, Enum.NormalId.Front, "POST", { color = Color3.fromRGB(20, 40, 120), font = B.Fonts.Heavy })
 	return m
 end
 

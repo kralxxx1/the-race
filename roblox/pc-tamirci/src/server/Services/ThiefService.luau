@@ -36,13 +36,32 @@ local nextVisit: { [Player]: number } = {}
 local thieves: { [Model]: { [string]: any } } = {}
 
 local LINES = {
-	tr = { caught = { "Tamam tamam, bırak!", "Açım abi, kusura bakma...", "Bir daha yapmam, söz!" }, enter = { "Şöyle bir bakınayım...", "Hmm, ne var ne yok?" } },
-	en = { caught = { "OK, OK, let go!", "I was hungry, sorry...", "I won't do it again, promise!" }, enter = { "Just browsing...", "Hmm, what's around here?" } },
+	tr = { caught = { "Tamam tamam, bırak!", "Açım abi, kusura bakma...", "Bir daha yapmam, söz!" } },
+	en = { caught = { "OK, OK, let go!", "I was hungry, sorry...", "I won't do it again, promise!" } },
 }
 
 local function point(player: Player, name: string): BasePart?
 	local shop = PlotService.shopOf(player)
 	return shop and shop.points and shop.points:FindFirstChild(name) or nil
+end
+
+-- The way behind the counter to the till and back out: round the end of the counter (never over
+-- the top of it). `at` is a spot beside the cashier's place, facing the register.
+local function tillRoute(player: Player)
+	local sideF, sideB, cash = point(player, "CounterSideF"), point(player, "CounterSideB"), point(player, "CashierSpot")
+	if not sideF or not sideB or not cash then
+		return nil
+	end
+	return { goIn = { sideF, sideB, cash.Position + cash.CFrame.RightVector * 1.0 }, goOut = { sideB, sideF } }
+end
+
+-- Creeping about: slowly, bent forward, looking around (the clients pose it, see NpcPoses).
+local function sneak(model: Model, on: boolean)
+	model:SetAttribute("Sneaking", if on then true else nil)
+	local hum = model:FindFirstChildOfClass("Humanoid")
+	if hum and on then
+		hum.WalkSpeed = 5
+	end
 end
 
 local function isNight(): boolean
@@ -122,6 +141,9 @@ local function caught(t, catcher: Player?, byGuard: string?)
 	t.done = true
 	local owner = t.owner
 	local lang = DataService.lang(owner)
+	-- (caught red-handed: the hands come out of the till, no more creeping)
+	NpcService.work(t.model, nil)
+	t.model:SetAttribute("Sneaking", nil)
 	NpcService.say(t.model, Rand.pick(rng, LINES[lang].caught), 4)
 	NpcService.play(t.model, "idle")
 	local hum = t.model:FindFirstChildOfClass("Humanoid")
@@ -171,7 +193,7 @@ local function escaped(t)
 		if prof then
 			prof.stats.robbed += 1
 		end
-		Net.push(owner, "toast", { key = "thief_escaped", vars = { cash = t.cash or 0, part = t.item and (Parts.get(t.item.part) or {}).name or "" } })
+		Net.push(owner, "toast", { key = "thief_escaped", important = true, vars = { cash = t.cash or 0, part = t.item and (Parts.get(t.item.part) or {}).name or "" } })
 		DataService.rep(owner, -1)
 		local it = items(owner)
 		local loss = lossOf(t)
@@ -261,7 +283,6 @@ local function visit(player: Player)
 		return
 	end
 	local _, protect = security(player)
-	local lang = DataService.lang(player)
 	local look = if rng:NextNumber() < 0.5 then "thief" else "shady"
 	local name, gender = Customers.randomName(rng, false, NpcService.pickGender(look, rng))
 	local model = NpcService.spawn({ look = look, gender = gender, name = name, cf = street.CFrame * CFrame.new(Rand.range(rng, -40, 40), 3, 0), speed = 9 })
@@ -269,26 +290,44 @@ local function visit(player: Player)
 	model:AddTag("Runner")
 	local t = { model = model, owner = player, phase = "sneak" }
 	thieves[model] = t
-	NpcService.tag(model, name)
 	task.spawn(function()
+		-- a stroll up to the door like anybody else, then creeping: slowly, bent over, looking about
 		NpcService.walkPath(model, { point(player, "Outside"), door })
 		if t.done then
 			return
 		end
+		sneak(model, true)
 		if prof.shop.items.camera or prof.shop.items.cctv_hd then
-			Net.push(player, "toast", { key = "camera_alert" })
+			Net.push(player, "toast", { key = "camera_alert", important = true })
 		end
-		NpcService.say(model, Rand.pick(rng, LINES[lang].enter), 3)
 		-- cash from the register, or a part from the shelf if the register is guarded by a safe
 		local shelf = point(player, "Shelf_1")
 		local goShelf = (protect >= 0.5 and rng:NextNumber() < 0.6 and #prof.inv > 0) or prof.money < 50
-		local target = if goShelf and shelf then shelf else register
-		NpcService.walkTo(model, target.Position)
+		local route = tillRoute(player)
+		local atShelf = goShelf and shelf ~= nil
+		local back = { door }
+		if atShelf then
+			NpcService.walkTo(model, (shelf :: BasePart).Position)
+		elseif route then
+			-- (a look round the shop floor first, then round the end of the counter to the till)
+			NpcService.walkPath(model, { route.goIn[1] })
+			task.wait(Rand.range(rng, 0.8, 1.6))
+			NpcService.walkPath(model, route.goIn)
+			back = route.goOut
+			table.insert(back, door)
+		else
+			NpcService.walkPath(model, { point(player, "CounterBack") })
+			back = { door }
+		end
 		if t.done then
 			return
 		end
 		t.phase = "steal"
+		NpcService.face(model, if atShelf then shelf.Position else register.Position)
 		addCatchPrompt(model, "Catch!")
+		NpcService.tag(model, "🚨", Color3.fromRGB(255, 90, 90))
+		-- quietly into the till (or off the shelf), glancing about
+		NpcService.work(model, "rummage")
 		local stealTime = Config.ThiefStealSeconds * (if prof.shop.items.alarm then 1.6 else 1)
 		if prof.shop.items.alarm then
 			local shopModel = shop.model
@@ -298,14 +337,14 @@ local function visit(player: Player)
 					playAt(d, "alarm", 11)
 				end
 			end
-			Net.push(player, "toast", { key = "alarm" })
+			Net.push(player, "toast", { key = "alarm", important = true })
 		end
 		sendGuards(t)
 		task.wait(stealTime)
 		if t.done then
 			return
 		end
-		if target == register then
+		if not atShelf then
 			-- (a cashier at the till keeps most of it out of reach)
 			local guard = math.min(0.9, protect + Employees.effect(prof.staff, "till"))
 			local amount = math.min(prof.money * Config.ThiefMaxStealFraction, Config.ThiefMaxStealCap) * (1 - guard)
@@ -318,13 +357,19 @@ local function visit(player: Player)
 			t.item = table.remove(prof.inv, i)
 			DataService.touch(player)
 		end
+		-- the loot in a bag, and off at a run, the way he came
 		t.phase = "run"
-		NpcService.say(model, "🏃", 2)
+		NpcService.work(model, nil)
+		sneak(model, false)
+		if t.cash or t.item then
+			NpcService.carry(model, "sack")
+		end
 		local hum = model:FindFirstChildOfClass("Humanoid")
 		if hum then
 			hum.WalkSpeed = if prof.shop.items.alarm then 13 else 16
 		end
-		NpcService.walkPath(model, { door, point(player, "Outside") }, true)
+		table.insert(back, point(player, "Outside"))
+		NpcService.walkPath(model, back, true)
 		if not t.done and not lastChance(t) then
 			NpcService.walkTo(model, exit.Position, 10)
 			escaped(t)
@@ -361,9 +406,9 @@ local function burgle(player: Player)
 	model:AddTag("Runner")
 	local t = { model = model, owner = player, phase = "sneak", night = true }
 	thieves[model] = t
-	NpcService.tag(model, name)
 	task.spawn(function()
 		NpcService.walkTo(model, outside.Position)
+		sneak(model, true)
 		if t.done then
 			return
 		end
@@ -382,13 +427,15 @@ local function burgle(player: Player)
 			end
 		end
 		if it.camera or it.cctv_hd then
-			Net.push(player, "toast", { key = "burglar_camera" })
+			Net.push(player, "toast", { key = "burglar_camera", important = true })
 		end
-		-- forcing the shutter and the door
+		-- forcing the shutter and the door with a crowbar
 		t.phase = "break"
 		addCatchPrompt(model, "Catch!")
+		NpcService.tag(model, "🚨", Color3.fromRGB(255, 90, 90))
+		NpcService.face(model, door.Position)
+		NpcService.work(model, "pry", "spudger")
 		local breakTime = ThiefService.breakSeconds * (if it.shutter then 3 else 1) * (if it.steel_door then 1.8 else 1) + (if it.smart_lock then ThiefService.breakSeconds * 0.75 else 0)
-		NpcService.say(model, "🔧", breakTime)
 		playAt(door, "forcing", math.min(breakTime, 11))
 		sendGuards(t)
 		local waited = 0
@@ -403,7 +450,7 @@ local function burgle(player: Player)
 						playAt(d, "alarm", 11)
 					end
 				end
-				Net.push(player, "toast", { key = "alarm" })
+				Net.push(player, "toast", { key = "alarm", important = true })
 				if rng:NextNumber() < 0.35 then
 					Net.push(player, "toast", { key = "burglar_scared" })
 					NpcService.walkTo(model, exit.Position, 12)
@@ -415,11 +462,24 @@ local function burgle(player: Player)
 		if t.done then
 			return
 		end
-		NpcService.walkPath(model, { door, register })
+		NpcService.work(model, nil)
+		-- inside: round the end of the counter to the till, never over it
+		local route = tillRoute(player)
+		local back = { door }
+		if route then
+			NpcService.walkTo(model, door.Position)
+			NpcService.walkPath(model, route.goIn)
+			back = route.goOut
+			table.insert(back, door)
+		else
+			NpcService.walkPath(model, { door, point(player, "CounterBack") })
+		end
 		if t.done then
 			return
 		end
 		t.phase = "steal"
+		NpcService.face(model, register.Position)
+		NpcService.work(model, "rummage")
 		task.wait(Config.ThiefStealSeconds)
 		if t.done then
 			return
@@ -441,12 +501,17 @@ local function burgle(player: Player)
 			DataService.touch(player)
 		end
 		t.phase = "run"
-		NpcService.say(model, "🏃", 2)
+		NpcService.work(model, nil)
+		sneak(model, false)
+		if t.cash or t.item then
+			NpcService.carry(model, "sack")
+		end
 		local hum = model:FindFirstChildOfClass("Humanoid")
 		if hum then
 			hum.WalkSpeed = 15
 		end
-		NpcService.walkPath(model, { door, outside }, true)
+		table.insert(back, outside)
+		NpcService.walkPath(model, back, true)
 		if not t.done and not lastChance(t) then
 			NpcService.walkTo(model, exit.Position, 10)
 			escaped(t)
@@ -531,7 +596,7 @@ function ThiefService.start()
 	CustomerService.robbed:Connect(function(player, cust)
 		if cust.model then
 			addCatchPrompt(cust.model, "Catch!")
-			Net.push(player, "toast", { key = "scammer_running", vars = { name = cust.name } })
+			Net.push(player, "toast", { key = "scammer_running", important = true, vars = { name = cust.name } })
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)

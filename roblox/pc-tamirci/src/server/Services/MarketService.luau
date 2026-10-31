@@ -3,6 +3,7 @@
 -- PCs, tools, consumables and everything for your own shop (levels, items, looks).
 
 local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,6 +15,7 @@ local Tools = require(Shared.Data.Tools)
 local Upgrades = require(Shared.Data.Upgrades)
 local Employees = require(Shared.Data.Employees)
 local Market = require(Shared.Economy.Market)
+local Customers = require(Shared.Data.Customers)
 local DeviceGen = require(Shared.Repair.DeviceGen)
 
 local DataService = require(script.Parent.DataService)
@@ -21,6 +23,7 @@ local PlotService = require(script.Parent.PlotService)
 local RepairService = require(script.Parent.RepairService)
 local QuestService = require(script.Parent.QuestService)
 local LeaderService = require(script.Parent.LeaderService)
+local NpcService = require(script.Parent.NpcService)
 
 local MarketService = {}
 MarketService.opened = Signal.new() -- (player, service, poi) for services owned by other modules
@@ -384,6 +387,70 @@ local function setStyle(player: Player, payload)
 end
 
 ----------------------------------------------------------------------------------------------------
+-- The clerks: somebody stands behind every counter where the player shops or signs a job, typing
+-- at the till, and says hello (with a wave) to whoever walks up
+----------------------------------------------------------------------------------------------------
+local CLERK_LOOK = {
+	parts = "shopkeeper",
+	parts_bazaar = "uncle",
+	used = "aunt",
+	scrap = "miner",
+	tools = "technician",
+	cars = "business",
+	bikes = "casual",
+	bicycles = "casual",
+	contracts = "receptionist",
+	factory = "manager",
+	staff = "receptionist",
+	realty = "business",
+}
+local HELLO = {
+	tr = { "Hoş geldiniz!", "Buyurun, nasıl yardımcı olayım?", "Merhaba! Bakın, her şey tezgâhta.", "Hoş geldin, ne lazım?" },
+	en = { "Welcome in!", "Hello! How can I help?", "Take a look, everything is on the counter.", "Hi there, what do you need?" },
+}
+local clerks: { [Instance]: Model } = {}
+
+local function spawnClerk(anchor: BasePart)
+	local at = anchor:GetAttribute("ClerkCF")
+	local service = anchor:GetAttribute("Service")
+	if typeof(at) ~= "CFrame" or typeof(service) ~= "string" then
+		return
+	end
+	local look = CLERK_LOOK[service] or "shopkeeper"
+	local gender = NpcService.pickGender(look, rng)
+	local name = Customers.randomName(rng, false, gender)
+	local model = NpcService.spawn({ look = look, gender = gender, name = name, cf = at * CFrame.new(0, 3.2, 0), tag = "Clerk" })
+	NpcService.stand(model, at)
+	model:SetAttribute("Clerk", service)
+	NpcService.tag(model, "🧾 " .. name)
+	NpcService.work(model, "register")
+	clerks[anchor] = model
+end
+
+local function greet(anchor: Instance, player: Player)
+	local clerk = clerks[anchor]
+	if not clerk or not clerk.Parent or clerk:GetAttribute("Greeting") then
+		return
+	end
+	clerk:SetAttribute("Greeting", true)
+	local lines = HELLO[DataService.lang(player)] or HELLO.en
+	NpcService.say(clerk, lines[rng:NextInteger(1, #lines)], 3.5)
+	-- (the hands leave the keyboard for the wave)
+	NpcService.work(clerk, nil)
+	NpcService.emote(clerk, "wave")
+	task.delay(3, function()
+		if clerk.Parent then
+			NpcService.work(clerk, "register")
+			clerk:SetAttribute("Greeting", nil)
+		end
+	end)
+end
+
+function MarketService.clerks(): { [Instance]: Model }
+	return clerks
+end
+
+----------------------------------------------------------------------------------------------------
 function MarketService.init() end
 
 function MarketService.start()
@@ -397,8 +464,18 @@ function MarketService.start()
 		if typeof(service) ~= "string" or typeof(poi) ~= "string" then
 			return
 		end
+		greet(anchor :: Instance, player)
 		MarketService.open(player, service, poi, (anchor :: BasePart).Position)
 	end)
+	-- somebody behind every counter
+	for _, anchor in CollectionService:GetTagged("ServicePoint") do
+		if anchor:IsA("BasePart") then
+			local ok, err = pcall(spawnClerk, anchor)
+			if not ok then
+				warn("[MarketService] no clerk for " .. anchor:GetFullName() .. ": " .. tostring(err))
+			end
+		end
+	end
 	Net.handle("market.buy", buyPart)
 	-- the depot's catalogue for a phone order, delivery included
 	Net.handle("market.catalog", function(player)

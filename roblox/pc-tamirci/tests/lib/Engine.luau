@@ -1270,7 +1270,19 @@ local function guarded(f)
 		return f
 	end
 	return function(...)
-		local ok, err = xpcall(f, debug.traceback, ...)
+		-- (debug.traceback cannot take a table: errors like { stopped = true } are described instead)
+		local ok, err = xpcall(f, function(e)
+			if type(e) == "string" then
+				return debug.traceback(e, 2)
+			end
+			local keys = {}
+			if type(e) == "table" then
+				for k, v in e do
+					table.insert(keys, tostring(k) .. "=" .. tostring(v))
+				end
+			end
+			return "error value " .. tostring(e) .. " {" .. table.concat(keys, ", ") .. "}\n" .. debug.traceback("", 2)
+		end, ...)
 		if not ok then
 			Mock.errors = Mock.errors or {}
 			table.insert(Mock.errors, tostring(err))

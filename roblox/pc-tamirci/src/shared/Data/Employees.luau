@@ -303,7 +303,7 @@ Employees.channels = {
 	{
 		id = "iskur", icon = "🏛️", fee = 0, count = 8, skill = { 1, 3 }, years = { 0, 6 }, lie = 0.1, refresh = 0, wageMul = 0.92,
 		roles = { "technician", "apprentice", "receptionist", "cashier", "tea_maker", "cleaner", "storekeeper", "courier", "security", "night_guard", "builder" },
-		name = N("İŞKUR", "State Employment Office"),
+		name = N("Devlet İstihdam Ofisi", "State Employment Office"),
 		desc = N("Devletin iş kurumu: ücretsiz, yeni başlayanlar ve ara elemanlar.", "The state employment office: free, newcomers and entry-level staff."),
 	},
 	{

@@ -428,10 +428,18 @@ return function(T)
 		T.eq(#b.list, 1, "no double bill")
 		-- late: +10 % a day, and three days overdue the power goes
 		T.eq(Bills.amountDue(bill, bill.due + 2), math.floor(bill.amount * 1.2 + 0.5), "late fee")
+		pushes = {}
 		for d = day0 + 1, bill.due + Bills.CutAfter do
 			BillsService.morning(player, p, d)
 		end
 		T.ok(b.cut == true and player:GetAttribute("PowerCut") == true, "power cut")
+		-- and they are told, in time, in a way that cannot be missed (the client shows them as cards)
+		local soon, late, warn, cut = lastPush("toast", "bills_due_soon"), lastPush("toast", "bills_overdue"), lastPush("toast", "power_cut_soon"), lastPush("toast", "power_cut")
+		T.ok(soon and soon.important and soon.vars.n == 1, "a reminder the day before it is due")
+		T.ok(late and late.important and late.vars.amount > bill.amount, "a nag once it is late, with the growing amount")
+		T.ok(warn and warn.important, "a warning the day before the power goes")
+		T.ok(cut and cut.important, "the power cut itself")
+		T.ok(lastPush("toast", "bill_new") == nil or lastPush("toast", "bill_new").important, "a new bill is important too")
 		local job = RepairService.createJob(player, { device = DeviceGen.desktop(Mock.Random.new(3), "mid"), faults = {}, kind = "repair", price = 100 })
 		RepairService.load(player, 1, job.id)
 		T.eq(RepairService.act(player, 1, "press_power", nil, {}, "hand").err, "power_cut", "no power tests in the dark")

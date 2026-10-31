@@ -460,6 +460,11 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	end
 	plan:claim({ xc - counterW / 2, zc + 1.4, xc + counterW / 2, zc + 3.6 }, "walk")
 	plan:claim({ xc - counterW / 2, zc - 4.2, xc + counterW / 2, zc - 1.6 }, "walk")
+	-- the way round the right-hand end of the counter, from the customers' side to the staff side:
+	-- whoever goes behind the counter (the staff, a thief) walks it, never over the counter top
+	plan:claim({ xc + counterW / 2 + 0.3, zc - 4.2, xc + counterW / 2 + 2.9, zc + 3.6 }, "walk")
+	point("CounterSideF", at(xc + counterW / 2 + 1.6, zc - 3, 0.5))
+	point("CounterSideB", at(xc + counterW / 2 + 1.6, zc + 2.6, 0.5))
 	point("CounterFront", at(xc, zc - 3, 0.5))
 	point("CounterBack", at(xc, zc + 2.6, 0.5), { Role = "receptionist" })
 	point("Register", counterCf * CFrame.new(counterW / 2 - 2, 4.5, 0.3))

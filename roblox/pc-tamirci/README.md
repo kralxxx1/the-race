@@ -131,32 +131,43 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
    ölçümle bul (güç, stres, POST kodu, multimetre, termal kamera, MemTest, S.M.A.R.T., antivirüs…).
    Kulak da ipucu verir: tek kısa bip = POST tamam, üç bip = bellek (ya da eğik soket pini),
    dört bip = ekran kartı, hiç ses yok = güç, anakart ya da işlemci.
-   30'dan fazla arıza: ölü PSU/GPU, bozuk RAM, kuruyup bitmiş termal macun, toz, ölü fan, ölen disk,
+   70'ten fazla arıza çeşidi (37 temel arıza ve her birinin kendi hikâyesi olan çeşitleri): ölü PSU/GPU, bozuk RAM, kuruyup bitmiş termal macun, toz, ölü fan, ölen disk,
    bozuk Windows, virüs, CMOS pili, şişmiş kondansatör, eğik soket pini, gevşek kablo, laptop batarya
    şişmesi, kırık ekran, sıvı teması, menteşe, şarj soketi… Ayrıca RAM/SSD/ekran kartı yükseltme,
    bakım ve sıfırdan PC toplama işleri.
 3. **Parça bul:** Mega Parça Deposu (300+ gerçek parça, günlük fiyat ve kampanyalar), Çarşı
    Parçacısı (eski nesil, ucuz), 2. El Pazarı ve Bit Pazarı (gizli arıza riski!), Hurdalık (hurda
-   kasa al, sök, sat). Aletler Usta Alet-Edevat'ta.
+   kasa al, sök, sat). Aletler Usta Alet-Edevat'ta; ayrıca Mega Parça Deposu'nun
+   "Alet & Hırdavat" köşesinde ve Çarşı Parçacısı'nın alet tezgâhında. Alışveriş yapılan her tezgâhın
+   arkasında bir **kasiyer** durur; yaklaşınca selam verir.
 4. **Teslim ve ödeme:** müşteri gelir, çalıştırır, öder; memnunsa bahşiş bırakır ve yorum yazar.
    Yorumlar itibarını, itibar da gelen müşteri sayısını belirler.
 5. **Büyü:** Emlak Ofisi/Telefon → Dükkân. 6 seviye var (1→8 tezgâh) ve 12 kategoride 200'den
    fazla eşya: dekor, bekleme salonu, mutfak, aydınlatma, iş, güvenlik, iş güvenliği, atölye, BT,
    enerji, personel odası ve dış cephe. Her eşya dükkânda görünür ve bir etki verir: daha çok
    müşteri, bahşiş, sabır, hız, kalite, depo, güvenlik, düşük fatura. Duvar, zemin, renk, tezgâh,
-   vitrin ve tente stilini sen seçersin. Zabıta haftada bir denetler; yangın tüpü, ilk yardım
+   vitrin ve tente stilini sen seçersin. Belediye haftada bir denetler; yangın tüpü, ilk yardım
    dolabı gibi zorunlu ekipman eksikse ceza keser.
 6. **Ekip:** 22 meslek var: teknisyen, çırak, ustabaşı, laptop teknisyeni, kart tamir uzmanı, veri
    kurtarma, sistem toplayıcı, kalite kontrol, resepsiyonist, kasiyer, satış danışmanı, çaycı,
    temizlikçi, depo sorumlusu, müdür, mali müşavir, sosyal medya, uzaktan destek, ağ teknisyeni,
-   kurye, güvenlik görevlisi ve gece bekçisi. Adayları 6 kanaldan bulursun: ajans, İŞKUR, kampüs,
+   kurye, güvenlik görevlisi ve gece bekçisi. Adayları 6 kanaldan bulursun: ajans, devlet istihdam ofisi, kampüs,
    ilan sitesi, headhunter ve tavsiye. 50 farklı kişilik özelliği var; mülakat yapar, işe alır,
    zam verir, gerekirse tazminatla çıkarırsın. Teknisyenler boş tezgâhta işleri kendileri bitirir,
-   öğrenir ve terfi eder.
-7. **Faturalar ve vergi:** Her sabah elektrik, su ve internet faturası gelir. Haftada bir kira, SGK,
-   sigorta ve haftalık kâr üzerinden gelir vergisi ödenir. Geciken fatura büyür; çok gecikirse
-   elektrik kesilir ve müşteri gelmez. Telefon → Faturalar.
-8. **Gece güvenliği:** Geceleri hırsızlar dükkâna girer. Kamera ve alarm uyarır; kepenk, çelik kasa
+   öğrenir ve terfi eder; işlerini **görünür** yaparlar: vidayı döndürür, toz üfler, fırçalar, macun
+   sürer, lehimler; elinde o adımın aleti olur, adının altında ne yaptığı yazar ("Vidaları söküyor").
+   Yeni biri işe alınınca çalışmakta olanların işi yarım kalmaz. Ön büro çalışanları (resepsiyonist,
+   kasiyer, müdür, satış danışmanı; yoksa boştaki bir teknisyen) sen yokken tezgâha yürüyüp müşterinin
+   cihazını teslim alır.
+7. **Faturalar ve vergi:** Her sabah elektrik, su ve internet faturası gelir. Haftada bir kira,
+   personel sigortası, dükkân sigortası ve haftalık kâr üzerinden gelir vergisi ödenir. Geciken fatura
+   büyür; çok gecikirse elektrik kesilir ve müşteri gelmez. Telefon → Faturalar. Önemli şeyler (yeni
+   fatura, son günden bir gün önce hatırlatma, gecikme, elektriğin kesilmesine bir gün kala uyarı,
+   hırsız, alarm, denetim cezası, işten ayrılan çalışan) küçük bildirim yerine ekranın üstünde
+   **büyük uyarı kartı** olarak, bir "ding" sesiyle çıkar.
+8. **Hırsızlar ve gece güvenliği:** Hırsızlar **kar maskesi** takar, kapıdan eğilerek ve etrafı
+   kollayarak girer, tezgâhın ucundan dolaşıp kasaya arkadan ulaşır (tezgâhın üstüne çıkmaz), parayı
+   sessizce çekmeceden alıp bir çuvala koyar ve koşarak kaçar. Geceleri hırsızlar dükkâna girer. Kamera ve alarm uyarır; kepenk, çelik kasa
    ve bekçi köpeği korur. Güvenlik görevlisi ve gece bekçisi hırsızı yakalar. Sen de beyzbol
    sopasıyla (Usta Alet-Edevat) kovalayabilir ya da **F** ile yakalayabilirsin; ödülü Polis
    Merkezi'nden alırsın.
@@ -174,7 +185,11 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
     telefonda da var. Oyuncu listesinde para, servet ve seviye görünür.
 12. **Kendi projelerin:** Hurda kasaları onar ya da boş kasa alıp PC topla. Sonra 2. el pazarına sat
     ya da dükkân vitrinine koy; vitrindeki PC'yi gelen alıcılar daha pahalıya alır.
-13. **Şehir hayatı:** Trafik sağdan akar, kırmızıda durur, yaya geçidini bekler. Kaldırımlarda
+13. **Şehir hayatı:** Trafik sağdan akar, kırmızıda durur, yaya geçidini bekler. Arabalar iri ve
+    sürücüleri içindedir (kafaları dışarı taşmaz); tekerlekler yolla birlikte döner, dönüşten önce sinyal
+    verilir, fren lambaları yanar; otobüs, kamyon, taksi dahil onlarca gövde ve 28 renk vardır. 20
+    çeşit polis arabası (çakarlı) dolaşır, kavşaklarda trafik polisleri durur, yollarda levhalar
+    (DUR, hız sınırı, yaya geçidi, park) bulunur. Kaldırımlarda
     yayalar yürür; martı ve güvercin sürüleri, gökyüzünden geçen uçaklar ve sıcak hava balonları
     görünür. Dönme dolap ve rüzgâr türbinleri döner; deniz feneri ve saat kulesi çalışır. Gece
     pencereler ve sokak lambaları yanar. Yağmurda kamera çevresinde yağmur çizgileri düşer, gökyüzü
@@ -195,10 +210,15 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
 
 ## Hazır modeller (Toolbox) ve kendi yaptıklarımız
 
-Şehrin görünen büyük kısmı **hazır, yayınlanmış modellerdir**: binalar, sokak eşyaları, ağaçlar ve bahçe
-bitkileri, dükkân mobilyaları (raflar, vitrinler, koltuklar, masa eşyaları), araçlar ve oyuncu
-görünüşleri Roblox'un resmî paketlerinden gelir (`assets/`, `tools/assets/curate.luau` ayıklar; betikler
-ve sesler atılır). Gökyüzü sesleri, yağmur ve gök gürültüsü de Roblox'un kendi ses kütüphanesindendir.
+Şehrin görünen büyük kısmı **hazır, yayınlanmış modellerdir**: binalar, sokak eşyaları, dükkân
+mobilyaları (raflar, vitrinler, koltuklar, masa eşyaları) ve araçların yarısı Roblox'un resmî
+paketlerinden gelir (`assets/`, `tools/assets/curate.luau` ayıklar; betikler ve sesler atılır).
+Gökyüzü sesleri, yağmur ve gök gürültüsü de Roblox'un kendi ses kütüphanesindendir.
+
+Ağaçlar, çiçekler, bitkiler ve **insanlar** ise kendi parçalarımızdan kurulur: hazır ağaçların soluk
+ağları havada parça gizliyordu, hazır gövdelerin yüzü de solgun ve donuktu. Her kişi saç stili, ten,
+üst, alt, ayakkabı ve aksesuar karışımıdır (`src/shared/Data/PersonStyle.luau`); binlerce farklı kişi
+çıkar.
 
 Kendi çizdiğimiz yerler: **PC'nin içi** (parçalar tamir mantığına bağlı — çıkar, takılır, tozlanır, bozulur —
 bu yüzden her parça kodla çizilir), **dükkân kabuğu** (6 seviye, 200+ yükseltme ve yerleşim planı seviyeye

@@ -81,7 +81,7 @@ local function issue(player: Player, p, kind: string, amount: number, day: numbe
 	b.nextId += 1
 	local bill = { id = b.nextId, kind = kind, amount = amount, issued = day, due = day + Bills.DueDays, detail = detail }
 	table.insert(b.list, bill)
-	Net.push(player, "toast", { key = "bill_new", vars = { kind = kind, amount = amount } })
+	Net.push(player, "toast", { key = "bill_new", important = true, vars = { kind = kind, amount = amount } })
 	return bill
 end
 BillsService.issue = issue
@@ -102,7 +102,7 @@ local function review(player: Player, p, day: number)
 	end
 	if cut ~= (b.cut == true) then
 		b.cut = cut
-		Net.push(player, "toast", { key = if cut then "power_cut" else "power_back" })
+		Net.push(player, "toast", { key = if cut then "power_cut" else "power_back", important = cut })
 	end
 	applyPower(player)
 end
@@ -127,6 +127,37 @@ end
 local function today(): number
 	return Workspace:GetAttribute("Day") or 1
 end
+
+-- Every morning the unpaid bills nag: the ones that fall due tomorrow, the ones that are late (and
+-- growing), and the electricity about to be cut. (One message for each, however many bills.)
+local function remind(player: Player, p, day: number)
+	local b = state(p)
+	local soon, late = { n = 0, total = 0 }, { n = 0, total = 0 }
+	local cutTomorrow = false
+	for _, bill in b.list do
+		local left = bill.due - day
+		if left == 1 then
+			soon.n += 1
+			soon.total += Bills.amountDue(bill, day)
+		elseif left < 0 then
+			late.n += 1
+			late.total += Bills.amountDue(bill, day)
+		end
+		if bill.kind == "utilities" and day - bill.due == Bills.CutAfter - 1 then
+			cutTomorrow = true
+		end
+	end
+	if soon.n > 0 then
+		Net.push(player, "toast", { key = "bills_due_soon", important = true, vars = { n = soon.n, amount = soon.total } })
+	end
+	if late.n > 0 then
+		Net.push(player, "toast", { key = "bills_overdue", important = true, vars = { n = late.n, amount = late.total } })
+	end
+	if cutTomorrow then
+		Net.push(player, "toast", { key = "power_cut_soon", important = true })
+	end
+end
+BillsService._remind = remind
 
 -- Pays one bill (id) or all of them ("all"); returns how many were paid.
 function BillsService.pay(player: Player, which: any): (number, string?)
@@ -195,7 +226,7 @@ function BillsService.morning(player: Player, p, day: number)
 		local missing = Bills.missing(p.shop.level, p.shop.items)
 		if #missing > 0 then
 			issue(player, p, "inspection", Bills.InspectionFine * p.shop.level * #missing, day, { missing = missing })
-			Net.push(player, "toast", { key = "inspection_fail", vars = { n = #missing } })
+			Net.push(player, "toast", { key = "inspection_fail", important = true, vars = { n = #missing } })
 		elseif p.shop.level >= 2 then
 			Net.push(player, "toast", { key = "inspection_ok" })
 		end
@@ -209,6 +240,7 @@ function BillsService.morning(player: Player, p, day: number)
 		BillsService.pay(player, "all")
 	end
 	review(player, p, day)
+	remind(player, p, day)
 	DataService.touch(player)
 end
 

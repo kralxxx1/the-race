@@ -65,6 +65,7 @@ return function(T)
 	local VehicleService = Engine.require(Services.VehicleService)
 	local DeviceGen = Engine.mod("ReplicatedStorage.Shared.Repair.DeviceGen")
 	local TechBot = Engine.mod("ReplicatedStorage.Shared.Repair.TechBot")
+	local Employees = Engine.mod("ReplicatedStorage.Shared.Data.Employees")
 	local rf = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes"):FindFirstChild("Request")
 	local pps = game:GetService("ProximityPromptService")
 
@@ -72,6 +73,36 @@ return function(T)
 	local function request(action: string, payload)
 		return rf.OnServerInvoke(player, action, payload)
 	end
+
+	T.test("server: somebody stands behind every counter where the player shops, types at the till and says hello", function()
+		local MarketService = Engine.require(game:GetService("ServerScriptService").Server.Services.MarketService)
+		local CS = game:GetService("CollectionService")
+		local clerks = MarketService.clerks()
+		local counters, services = 0, {}
+		for _, anchor in CS:GetTagged("ServicePoint") do
+			if anchor:GetAttribute("ClerkCF") ~= nil then
+				counters += 1
+				local clerk = clerks[anchor]
+				T.ok(clerk ~= nil and clerk.Parent ~= nil, "no clerk at " .. tostring(anchor:GetAttribute("Poi")) .. " / " .. tostring(anchor:GetAttribute("Service")))
+				if clerk then
+					services[anchor:GetAttribute("Service")] = true
+					local at = anchor:GetAttribute("ClerkCF").Position
+					local root = clerk.PrimaryPart
+					local flat = root.Position - roblox.Vector3.new(at.X, root.Position.Y, at.Z)
+					T.ok(flat.Magnitude < 1, "the clerk stands at the counter: " .. string.format("%.1f", flat.Magnitude))
+					-- on the floor behind the counter, not in the air or sunk in it
+					T.ok(root.Position.Y > at.Y + 1.5 and root.Position.Y < at.Y + 5, "the clerk is on the floor: " .. string.format("%.1f", root.Position.Y - at.Y))
+					-- facing the customers on the other side of the counter
+					T.ok(root.CFrame.LookVector:Dot(anchor:GetAttribute("ClerkCF").LookVector) > 0.9, "facing the customers")
+					T.eq(clerk:GetAttribute("Doing"), "register", "typing at the till")
+				end
+			end
+		end
+		T.ok(counters >= 12, "counters: " .. counters)
+		for _, need in { "parts", "parts_bazaar", "used", "tools", "scrap", "cars", "bikes", "bicycles", "contracts", "factory", "staff", "realty" } do
+			T.ok(services[need], "a clerk for the " .. need .. " counter")
+		end
+	end)
 
 	T.test("server: a joining player gets a save and a shop", function()
 		player = Engine.addPlayer("Kaan")
@@ -86,6 +117,17 @@ return function(T)
 			return lastPush("data")
 		end, 2, "data snapshot")
 		T.ok(player:FindFirstChild("leaderstats") ~= nil, "leaderstats")
+	end)
+
+	T.test("server: the shops and the lots for rent stay off the road", function()
+		local Geometry = require("../lib/Geometry")
+		local CityLayout = Engine.mod("ReplicatedStorage.Shared.World.CityLayout")
+		local hits, checked = Geometry.solidsInRoad(Engine.workspace.Plots, Geometry.carriageways(CityLayout.get()), CityLayout.ROAD_Y)
+		for k = 1, math.min(#hits, 8) do
+			print("      in the road:", hits[k])
+		end
+		T.ok(checked > 500, "solid parts of the plots checked: " .. checked)
+		T.ok(#hits == 0, #hits .. " solid parts of the plots stand in a carriageway")
 	end)
 
 	T.test("server: a new shop opens by cutting the ribbon, then customers come", function()
@@ -304,6 +346,138 @@ return function(T)
 		T.ok(j.verdict and j.verdict.fixed, "fixed by the technician")
 	end)
 
+	T.test("server: hiring or firing somebody does not strand the job another technician is working on", function()
+		local p = DataService.get(player)
+		p.money = 100000
+		p.tools.usb_boot = true
+		p.shop.level = 4
+		p.staff = {}
+		PlotService.build(player)
+		-- (a little time per step, so the first technician is in the middle of the repair when the next arrives)
+		EmployeeService.stepScale = 0.12
+		pushes = {}
+		EmployeeService.openAgency(player, "agency")
+		local people = {}
+		for _, c in lastPush("staff.open").candidates do
+			local role = Employees.roles[c.role]
+			if role and role.bench and (role.minShop or 1) <= 4 and not role.maxDifficulty and #people < 2 then
+				table.insert(people, c)
+			end
+		end
+		T.eq(#people, 2, "two bench workers to hire")
+		T.ok(request("staff.hire", { uid = people[1].uid }).ok, "the first hire")
+		-- what the people at work look like to everybody: the step they are on drives the hands, a tool
+		-- is in the hand and a line under the name says what they are doing
+		local CollectionService = game:GetService("CollectionService")
+		local doing, tools, lines = {}, {}, {}
+		local function watch()
+			for _, m in CollectionService:GetTagged("Staff") do
+				local d = m:GetAttribute("Doing")
+				if d then
+					doing[d] = true
+				end
+				local held = m:FindFirstChild("HeldTool")
+				if held then
+					tools[held:GetAttribute("Tool")] = true
+					T.ok(held:FindFirstChildWhichIsA("WeldConstraint", true) ~= nil, "the tool is attached to the hand")
+				end
+				local head = m:FindFirstChild("Head")
+				local tag = head and head:FindFirstChild("StatusTag")
+				local label = tag and tag:FindFirstChild("Label")
+				if label and label.Text ~= "" then
+					lines[label.Text] = true
+				end
+			end
+		end
+		local dev = DeviceGen.desktop(Mock.Random.new(11), "mid")
+		DeviceGen.applyFault(dev, "virus", Mock.Random.new(12))
+		local j = RepairService.createJob(player, { device = dev, faults = { "virus" }, kind = "repair", price = 80, customer = nil })
+		waitFor(function()
+			watch()
+			return j.status == "bench"
+		end, 20, "the first technician starts")
+		-- somebody else joins the team in the middle of it
+		T.ok(request("staff.hire", { uid = people[2].uid }).ok, "the second hire")
+		waitFor(function()
+			watch()
+			return j.status == "ready"
+		end, 40, "the job is finished by somebody")
+		T.ok(j.verdict and j.verdict.fixed, "fixed")
+		local n = 0
+		for _ in doing do
+			n += 1
+		end
+		T.ok(n >= 2, "the hands were given different steps to do: " .. n)
+		T.ok(next(tools) ~= nil, "a tool was in the hand")
+		T.ok(next(lines) ~= nil, "a line told what they were doing")
+		local known = {}
+		for _, phrase in EmployeeService.PHRASES do
+			known[phrase] = true
+		end
+		for line in lines do
+			T.ok(known[line], "an unknown line: " .. line)
+		end
+		-- afterwards the hands rest, the tool is down and the line is gone
+		task.wait(0.3)
+		for _, m in CollectionService:GetTagged("Staff") do
+			T.eq(m:GetAttribute("Doing"), nil, "nothing left to do")
+			T.ok(m:FindFirstChild("HeldTool") == nil, "the tool is put down")
+		end
+		-- both benches are free again, nobody is stuck at a bench with no one to work it
+		waitFor(function()
+			return RepairService.freeBench(player) == 1
+		end, 5, "the first bench is free")
+		EmployeeService.stepScale = 0
+		p.staff = {}
+		PlotService.build(player)
+	end)
+
+	T.test("server: front staff and free technicians come to the counter, face the customer and type while they serve", function()
+		local CollectionService = game:GetService("CollectionService")
+		local p = DataService.get(player)
+		p.shop.level = 4
+		local function rec(role: string, uid: string)
+			return { uid = uid, role = role, name = role, gender = "f", skill = 3, wage = 100, trait = "calm", trait2 = "punctual", edu = "highschool", morale = 70, days = 0, xp = 0, look = 7 }
+		end
+		local function staffModel(role: string)
+			for _, m in CollectionService:GetTagged("Staff") do
+				if m:GetAttribute("Staff") == role then
+					return m
+				end
+			end
+			return nil
+		end
+		local old = EmployeeService.counterDelay
+		EmployeeService.counterDelay = 2.5
+		for _, role in { "receptionist", "technician" } do
+			p.staff = { rec(role, role .. "_1") }
+			PlotService.build(player)
+			local who = waitFor(function()
+				return staffModel(role)
+			end, 5, role .. " in the shop")
+			local counterBack = PlotService.shopOf(player).points:FindFirstChild("CounterBack")
+			local customer = { state = "queue", arch = {}, model = nil }
+			CustomerService.atCounter:Fire(player, customer)
+			waitFor(function()
+				return who:GetAttribute("Doing") == "register"
+			end, 3, role .. " takes the counter")
+			local head = who:FindFirstChild("Head")
+			local label = head and head:FindFirstChild("StatusTag") and head.StatusTag:FindFirstChild("Label")
+			T.ok(label ~= nil and label.Text == "Serving a customer", role .. " says what they are doing")
+			-- (while serving they take no job from the queue)
+			T.ok(EmployeeService.counterStaff(player) == false, "the counter is taken")
+			-- after the customer is dealt with the hands rest and the person goes back
+			waitFor(function()
+				return who:GetAttribute("Doing") == nil
+			end, 8, role .. " is done at the counter")
+			T.ok(EmployeeService.counterStaff(player), role .. " is free again")
+			T.ok(counterBack ~= nil, "a counter to stand behind")
+		end
+		EmployeeService.counterDelay = old
+		p.staff = {}
+		PlotService.build(player)
+	end)
+
 	T.test("server: settings are checked and the difficulty changes the numbers", function()
 		local Config = Engine.mod("ReplicatedStorage.Shared.Config")
 		local p = DataService.get(player)
@@ -343,6 +517,112 @@ return function(T)
 		pps.PromptTriggered:Fire(thief.PrimaryPart.CatchPrompt, player)
 		T.ok(p.stats.caught >= 1, "caught counted")
 		T.ok(p.money >= 3000, "nothing lost")
+	end)
+
+	T.test("server: with a receptionist and a technician on duty a whole visit runs without the owner: counter, repair, pickup, payment", function()
+		local Config = Engine.mod("ReplicatedStorage.Shared.Config")
+		local p = DataService.get(player)
+		p.money = 5000
+		p.level = 5
+		p.shop.level = 4
+		p.opened = true
+		p.stats.repairs = math.max(p.stats.repairs or 0, Config.LearningRepairs)
+		local function rec(role: string, uid: string)
+			return { uid = uid, role = role, name = role, gender = "f", skill = 4, wage = 100, trait = "calm", trait2 = "punctual", edu = "highschool", morale = 80, days = 0, xp = 0, look = 9 }
+		end
+		p.staff = { rec("receptionist", "e2e_r"), rec("technician", "e2e_t") }
+		PlotService.build(player)
+		local old, oldDelay = EmployeeService.stepScale, EmployeeService.counterDelay
+		EmployeeService.stepScale = 0
+		EmployeeService.counterDelay = 0.5
+		-- the owner is nowhere near the counter
+		player.Character:PivotTo(roblox.CFrame.new(5000, 20, 5000))
+		local repairs0, money0 = p.stats.repairs, p.money
+		local s = CustomerService.ofShop(player)
+		s.next = 0
+		-- whoever comes (the odd seller of stolen goods is sent away), somebody ends up served and the
+		-- device repaired and paid for without the owner touching a thing
+		waitFor(function()
+			if p.stats.repairs > repairs0 then
+				return true
+			end
+			if (s.next or 0) > os.clock() + 20 then
+				s.next = 0
+			end
+			return false
+		end, 60, "a customer served, repaired and paid with nobody but the staff")
+		T.ok(p.money > money0 or p.stats.repairs > repairs0, "paid")
+		EmployeeService.stepScale, EmployeeService.counterDelay = old, oldDelay
+		p.staff = {}
+		PlotService.build(player)
+		player.Character:PivotTo(PlotService.shopOf(player).points.Outside.CFrame)
+	end)
+
+	T.test("server: a shoplifter wears a mask, creeps in round the end of the counter, rummages in the till quietly and runs with a sack", function()
+		local Config = Engine.mod("ReplicatedStorage.Shared.Config")
+		local p = DataService.get(player)
+		p.money = 3000
+		p.level = 3
+		local old = Config.ThiefStealSeconds
+		Config.ThiefStealSeconds = 0.8
+		local shop = PlotService.shopOf(player)
+		local floorY = shop.points.CounterFront.Position.Y
+		local robbed0, money0 = p.stats.robbed, p.money
+		-- (the last test's thief is still being led away)
+		local before = {}
+		for _, d in Engine.workspace.NPCs:GetChildren() do
+			before[d] = true
+		end
+		task.spawn(ThiefService.visit, player)
+		local thief = waitFor(function()
+			for _, d in Engine.workspace.NPCs:GetChildren() do
+				if d:GetAttribute("Thief") and not before[d] then
+					return d
+				end
+			end
+			return nil
+		end, 10, "a thief to turn up")
+		-- the face is behind a ski mask with a slit for the eyes
+		local knit = 0
+		for _, d in thief:GetDescendants() do
+			if d.Name == "Balaclava" then
+				knit += 1
+			end
+		end
+		T.ok(knit >= 5, "a balaclava on the head: " .. knit)
+		-- no name tag while creeping: nobody announces themselves
+		T.ok(thief.Head:FindFirstChild("NameTag") == nil, "no name above a thief")
+		local sneaked, rummaged, sack, tallest, spoke = false, false, false, 0, false
+		waitFor(function()
+			if not thief.Parent then
+				return true
+			end
+			if thief:GetAttribute("Sneaking") then
+				sneaked = true
+			end
+			if thief:GetAttribute("Doing") == "rummage" then
+				rummaged = true
+				T.ok(thief.PrimaryPart:FindFirstChild("CatchPrompt") ~= nil, "can be caught while at the till")
+			end
+			if thief:FindFirstChild("Carried") then
+				sack = true
+			end
+			if thief.Head:FindFirstChild("Bubble") then
+				spoke = true
+			end
+			if thief.PrimaryPart then
+				tallest = math.max(tallest, thief.PrimaryPart.Position.Y - floorY)
+			end
+			return false
+		end, 40, "the thief to be off")
+		Config.ThiefStealSeconds = old
+		T.ok(sneaked, "he crept in")
+		T.ok(rummaged, "he went through the till")
+		T.ok(sack, "he ran off with a sack")
+		T.ok(not spoke, "not a word while sneaking")
+		-- standing on the floor all the way: never up on the counter top
+		T.ok(tallest < 6, "he stayed off the counter: highest " .. string.format("%.1f", tallest))
+		T.ok(p.money < money0 and p.stats.robbed > robbed0, "he got away with some of the till")
 	end)
 
 	T.test("server: night security — the bat, floodlights, alarm, the dog, police footage, insurance", function()

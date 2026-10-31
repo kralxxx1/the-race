@@ -79,6 +79,25 @@ local BILL_KINDS = { utilities = true, rent = true, sgk = true, tax = true, fine
 local GOOD = { factory_done = true, inspection_ok = true, staff_promoted = true, qa_caught = true, staff_levelup = true, support_income = true, staff_restock = true, power_back = true, burglar_scared = true, police_recovered = true, insurance_paid = true, bat_hit = true, quest_done = true, offline_income = true, tech_done = true, caught_scammer = true, thief_caught = true, bounty = true, moved = true, manager_bought = true, contract_machine = true, contract_done = true, showcase_put = true, showcase_setup = true, showcase_sold = true }
 local BAD = { factory_stopped = true, inspection_fail = true, staff_quit_morale = true, staff_sticky = true, power_cut = true, police_fine = true, customer_left = true, scammer_escaped = true, thief_escaped = true, alarm = true, staff_quit = true, esd_zap = true, jobs_full = true, contract_machine_bad = true }
 
+-- messages that get a card of their own (Hud.alert) instead of a toast, which group they belong to
+-- (the title) and the icon for the group
+local IMPORTANT = { bill_new = true, bills_due_soon = true, bills_overdue = true, power_cut = true, power_cut_soon = true, inspection_fail = true, alarm = true, camera_alert = true, burglar_camera = true, thief_escaped = true, scammer_running = true, staff_quit = true, staff_quit_morale = true, factory_stopped = true }
+local WARN = { camera_alert = true, scammer_running = true, burglar_camera = true, bill_new = true, bills_due_soon = true, power_cut_soon = true }
+local ALERT_GROUP = { bill_new = "bill", bills_due_soon = "bill", bills_overdue = "bill", power_cut = "power", power_cut_soon = "power", inspection_fail = "inspection", alarm = "theft", camera_alert = "theft", burglar_camera = "theft", thief_escaped = "theft", scammer_running = "theft", staff_quit = "staff", staff_quit_morale = "staff", factory_stopped = "factory" }
+local ALERT_ICON = { bill = "🧾", power = "⚡", inspection = "📋", theft = "🚨", staff = "👋", factory = "🏭" }
+
+-- "🧾 New bill: ..." -> "New bill: ...", "🧾" (the leading symbol and the space after it)
+local function stripIcon(text: string): (string, string?)
+	local ok, cp = pcall(utf8.codepoint, text, 1)
+	if ok and cp and cp >= 0x2190 then
+		local gap = string.find(text, " ", 1, true)
+		if gap and gap <= 12 then
+			return string.sub(text, gap + 1), string.sub(text, 1, gap - 1)
+		end
+	end
+	return text, nil
+end
+
 Net.on("toast", function(t)
 	if type(t) ~= "table" or type(t.key) ~= "string" then
 		return
@@ -109,8 +128,16 @@ Net.on("toast", function(t)
 			vars.cash = ""
 		end
 	end
-	local kind = if GOOD[t.key] then "good" elseif BAD[t.key] then "bad" elseif t.key == "camera_alert" or t.key == "scammer_running" or t.key == "burglar_camera" then "warn" else "info"
-	Hud.toast(S.t("t_" .. t.key, vars), kind, if kind == "bad" or kind == "warn" then 6 else 4.5)
+	local kind = if GOOD[t.key] then "good" elseif BAD[t.key] then "bad" elseif WARN[t.key] then "warn" else "info"
+	local text = S.t("t_" .. t.key, vars)
+	if t.important == true or IMPORTANT[t.key] then
+		-- the things that must not be missed get a card of their own, with a ping
+		local body, icon = stripIcon(text)
+		local group = ALERT_GROUP[t.key]
+		Hud.alert(icon or ALERT_ICON[group or ""] or "❗", S.t(if group then "alert_" .. group else "alert_" .. kind), body, kind, if kind == "bad" then 11 else 9)
+	else
+		Hud.toast(text, kind, if kind == "bad" or kind == "warn" then 6 else 4.5)
+	end
 	if t.key == "alarm" or t.key == "camera_alert" or t.key == "scammer_running" or t.key == "burglar_camera" then
 		Hud.banner("🚨")
 	end

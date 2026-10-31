@@ -1,6 +1,7 @@
 -- Hud: money, level and XP, reputation, the clock, the quick buttons and toasts.
 
 local Lighting = game:GetService("Lighting")
+local SoundService = game:GetService("SoundService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 
@@ -63,14 +64,82 @@ function Hud.toast(text: string, kind: string?, seconds: number?)
 			f:Destroy()
 		end
 	end)
-	-- keep at most three
+	-- keep at most three (the important cards are not toasts and stay)
 	local items = {}
 	for _, c in toastHolder:GetChildren() do
-		if c:IsA("Frame") then
+		if c:IsA("Frame") and c.Name ~= "Alert" then
 			table.insert(items, c)
 		end
 	end
 	if #items > 3 then
+		table.sort(items, function(a, b)
+			return a.LayoutOrder > b.LayoutOrder
+		end)
+		items[1]:Destroy()
+	end
+end
+
+-- An important message (a new bill, the power going, a thief at the till): a bigger card than a
+-- toast, with an icon, a title and the message, a thick coloured edge and a ping, and it stays on
+-- screen longer. kind: "bad" (red), "warn" (amber), "info", "good".
+local PINGS = { bad = "rbxasset://sounds/electronicpingshort.wav", warn = "rbxasset://sounds/electronicpingshort.wav" }
+function Hud.alert(icon: string, title: string, text: string, kind: string?, seconds: number?)
+	if not toastHolder then
+		return
+	end
+	local color = if kind == "good" then Theme.good elseif kind == "bad" then Theme.bad elseif kind == "warn" then Theme.accent2 else Theme.accent
+	shown += 1
+	local f = Kit.panel(toastHolder, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.panel, BackgroundTransparency = 0.02, LayoutOrder = -shown })
+	f.Name = "Alert"
+	Kit.outline(f, color, 3, 0)
+	Kit.padding(f, 10)
+	local row = Kit.frame(f, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1 })
+	Kit.listLayout(row, 10, true)
+	local badge = Kit.frame(row, { Size = UDim2.fromOffset(44, 44), BackgroundColor3 = color, LayoutOrder = 1 })
+	Kit.corner(badge, UDim.new(1, 0))
+	Kit.label(badge, icon, { Size = UDim2.fromScale(1, 1), TextSize = 26, TextXAlignment = Enum.TextXAlignment.Center, TextColor3 = Color3.new(1, 1, 1) })
+	local body = Kit.frame(row, { Size = UDim2.new(1, -54, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 2 })
+	Kit.listLayout(body, 2)
+	Kit.label(body, title, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 18, FontFace = Theme.heavy, TextColor3 = color, LayoutOrder = 1 })
+	Kit.label(body, text, { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 15, FontFace = Theme.bold, LayoutOrder = 2 })
+	-- it slides in with a ping
+	f.BackgroundTransparency = 1
+	Kit.tween(f, { BackgroundTransparency = 0.02 }, 0.25)
+	local ping = PINGS[kind or ""]
+	if ping then
+		local snd = Instance.new("Sound")
+		snd.SoundId = ping
+		snd.Volume = 0.6
+		snd.Parent = SoundService
+		SoundService:PlayLocalSound(snd)
+		task.delay(3, function()
+			snd:Destroy()
+		end)
+	end
+	task.delay(seconds or 9, function()
+		if f.Parent then
+			Kit.tween(f, { BackgroundTransparency = 1 }, 0.4)
+			for _, d in f:GetDescendants() do
+				if d:IsA("TextLabel") then
+					Kit.tween(d, { TextTransparency = 1 }, 0.4)
+				elseif d:IsA("UIStroke") then
+					Kit.tween(d, { Transparency = 1 }, 0.4)
+				elseif d:IsA("Frame") and d.BackgroundTransparency < 1 then
+					Kit.tween(d, { BackgroundTransparency = 1 }, 0.4)
+				end
+			end
+			task.wait(0.45)
+			f:Destroy()
+		end
+	end)
+	-- keep at most four of them
+	local items = {}
+	for _, c in toastHolder:GetChildren() do
+		if c:IsA("Frame") and c.Name == "Alert" then
+			table.insert(items, c)
+		end
+	end
+	if #items > 4 then
 		table.sort(items, function(a, b)
 			return a.LayoutOrder > b.LayoutOrder
 		end)

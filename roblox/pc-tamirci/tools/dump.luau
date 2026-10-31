@@ -448,6 +448,40 @@ elseif what == "people" then
 	end
 	result.parts = dumpParts(folder)
 	outName = "people"
+elseif what == "workers" then
+	-- thieves in their masks (one with the loot sack), technicians with a tool in the hand, a clerk:
+	--   lune run tools/dump.luau workers
+	local Npc = Engine.mod("ServerScriptService.Server.Services.NpcService")
+	Npc.init()
+	local Mock = require("../tests/lib/Mock")
+	local rng = Mock.Random.new(tonumber(process.args[2]) or 9)
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	local x = -20
+	local function place(person, z)
+		person.Parent = folder
+		person:PivotTo(roblox.CFrame.new(x, 3, z or 0) * roblox.CFrame.Angles(0, math.pi, 0))
+		x += 4
+	end
+	for i, look in { "thief", "shady", "thief", "shady" } do
+		local person = Npc.plain(look, if i % 2 == 0 then "m" else "f", rng)
+		place(person)
+		if i == 3 then
+			Npc.carry(person, "sack")
+		end
+	end
+	x = 2
+	for i, tool in { "screwdriver", "brush", "air_can", "syringe", "soldering_iron", "tweezers", "multimeter", "usb" } do
+		local person = Npc.plain("technician", if i % 2 == 0 then "m" else "f", rng)
+		place(person)
+		Npc.hold(person, tool)
+	end
+	x = 40
+	for i, look in { "shopkeeper", "receptionist", "business", "miner" } do
+		place(Npc.plain(look, if i % 2 == 0 then "m" else "f", rng))
+	end
+	result.parts = dumpParts(folder)
+	outName = "workers"
 elseif what == "police" then
 	-- the twenty police cars and the street-only vehicles: lune run tools/dump.luau police
 	local Vehicles = Engine.mod("ReplicatedStorage.Shared.Data.Vehicles")

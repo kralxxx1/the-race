@@ -39,7 +39,8 @@ end
 local DENSITY = { off = 0, low = 0.5, normal = 1, high = 1.5 }
 local MAX_CARS, MAX_PEDS = BASE_CARS, BASE_PEDS
 local SPAWN_MIN, SPAWN_MAX, DESPAWN = 80, 320, 430
-local CAR_GAP = 14
+local CAR_GAP = 3 -- studs between one car's tail and the next car's nose when they queue
+local SPAWN_GAP = 52 -- cars are not put on the street closer than this (a bus is 48 long)
 local CAR_SCALE = 1.6 -- the street's cars are this much bigger than the dealer's models (the driver fits in)
 local DRIVER_SCALE = 0.85
 local POLICE_SHARE = 0.07 -- of the cars, one in fourteen is a police car
@@ -347,7 +348,7 @@ local function spawnCar(): boolean
 	local lane = if road.kind == "street" then 0 else rng:NextInteger(0, 1)
 	local t = rng:NextNumber() * g.len * 0.85
 	for _, other in cars do
-		if other.leg.road == road and other.leg.from == g.from and other.lane == lane and math.abs(other.t - t) < CAR_GAP * 2 then
+		if other.leg.road == road and other.leg.from == g.from and other.lane == lane and math.abs(other.t - t) < SPAWN_GAP then
 			return false
 		end
 	end
@@ -378,6 +379,7 @@ local function spawnCar(): boolean
 	end)
 	local bcf, bsize = m:GetBoundingBox()
 	local bottom = bcf.Position.Y - bsize.Y / 2
+	c.len = bsize.Z -- (the car's length: queues keep their distance by it, a bus is not a hatchback)
 	collectParts(c, m)
 	-- someone at the wheel
 	local seat = m:FindFirstChild("Driver") :: BasePart?
@@ -435,8 +437,10 @@ local function stepCar(c, dt: number, me: Vector3?)
 		end
 		-- red or amber light ahead: stop before the zebra crossing (1..6 studs before the
 		-- junction); keep going if it's too late to stop
-		if hasSignal(g.to) and Ambience.signal(axisOf(g.dir)) ~= "green" and left > 6.5 then
-			local stop = left - 8
+		local half = (c.len or 22) / 2
+		if hasSignal(g.to) and Ambience.signal(axisOf(g.dir)) ~= "green" and left > half then
+			-- (the nose, not the middle of the car, stops short of the crossing)
+			local stop = left - half - 3
 			if not (stop < 4 and c.speed > 12) then
 				target = math.min(target, math.sqrt(2 * decel * math.max(0, stop)))
 			end
@@ -448,7 +452,7 @@ local function stepCar(c, dt: number, me: Vector3?)
 		-- the car ahead in our lane
 		for _, o in cars do
 			if o ~= c and not o.turn and o.leg.road == g.road and o.leg.from == g.from and o.lane == c.lane and o.t > c.t then
-				local gap = o.t - c.t - CAR_GAP
+				local gap = o.t - c.t - ((o.len or 22) + (c.len or 22)) / 2 - CAR_GAP
 				target = math.min(target, math.sqrt(2 * decel * math.max(0, gap)) + o.speed * 0.5)
 			end
 		end
@@ -457,7 +461,7 @@ local function stepCar(c, dt: number, me: Vector3?)
 			local pos = g.start + g.dir * c.t + g.right * c.offset
 			local rel = me - pos
 			local ahead = rel:Dot(g.dir)
-			if ahead > 0 and ahead < 16 and math.abs(rel:Dot(g.right)) < 3.5 and math.abs(rel.Y) < 8 then
+			if ahead > 0 and ahead < half + 10 and math.abs(rel:Dot(g.right)) < 3.5 and math.abs(rel.Y) < 8 then
 				target = 0
 			end
 		end

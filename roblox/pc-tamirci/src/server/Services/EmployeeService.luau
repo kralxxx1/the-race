@@ -22,6 +22,7 @@ local Config = require(Shared.Config)
 local Net = require(Shared.Net)
 local Signal = require(Shared.Util.Signal)
 local Parts = require(Shared.Data.Parts)
+local Tools = require(Shared.Data.Tools)
 local Employees = require(Shared.Data.Employees)
 local Upgrades = require(Shared.Data.Upgrades)
 local Market = require(Shared.Economy.Market)
@@ -38,6 +39,7 @@ local MarketService = require(script.Parent.MarketService)
 local EmployeeService = {}
 EmployeeService.hired = Signal.new()
 EmployeeService.stepScale = 1 -- tests run the technicians flat out
+EmployeeService.counterDelay = 7 -- seconds from the customer reaching the counter to the staff taking the device
 
 local V = Net.V
 local rng = Random.new()
@@ -55,6 +57,41 @@ local RESTOCK = {
 	{ sub = "zip", low = 10, default = "zip_ties" },
 	{ sub = "solder", low = 6, default = "solder_wire" },
 }
+-- the line under a technician's name for each step of a repair (the clients translate it)
+local PHRASES = {
+	unscrew = "Unscrewing",
+	screw = "Screwing in",
+	blow_dust = "Blowing out dust",
+	brush = "Brushing",
+	apply_paste = "Applying thermal paste",
+	clean_paste = "Cleaning old paste",
+	clean_liquid = "Cleaning up liquid",
+	solder = "Soldering",
+	desolder = "Desoldering",
+	straighten_pins = "Straightening pins",
+	measure = "Measuring",
+	pry = "Prying it open",
+	peel = "Peeling",
+	remove = "Removing a part",
+	install = "Installing a part",
+	plug = "Plugging in",
+	unplug = "Unplugging",
+	open_latch = "Opening a latch",
+	close_latch = "Closing a latch",
+	lid = "Opening the case",
+	flip = "Turning it over",
+	discard = "Setting a part aside",
+	tie_cables = "Tidying the cables",
+	press_power = "Powering on",
+	wear_strap = "Putting on a wrist strap",
+	inspect = "Inspecting",
+	thermal_view = "Checking the heat",
+	software = "Running software",
+	post_code = "Reading the boot codes",
+	psu_test = "Testing the power supply",
+	stress = "Running a stress test",
+}
+EmployeeService.PHRASES = PHRASES
 -- where each role stands when it isn't at a bench
 local SPOTS = {
 	counter = { "CounterBack" },
@@ -178,21 +215,39 @@ local function spawnOne(player: Player, s)
 	NpcService.tag(s.model, (role and role.icon or "") .. " " .. rec.name)
 end
 
-local function spawnStaff(player: Player)
-	despawnAll(player)
+-- Puts the shop's people in place. `full`: everybody goes and comes again (a rebuilt shop); without
+-- it only the ones who left or changed jobs go and the new ones arrive, so the technicians at
+-- their benches carry on with their repairs when somebody else is hired.
+local function spawnStaff(player: Player, full: boolean?)
 	local p = DataService.get(player)
 	local shop = PlotService.shopOf(player)
 	if not p or not shop then
 		return
 	end
-	local list = {}
-	staff[player] = list
+	if full or not staff[player] then
+		despawnAll(player)
+		staff[player] = {}
+	end
+	local list = staff[player]
+	local present = {}
 	for _, rec in p.staff do
-		local s = { rec = rec }
-		list[rec.uid] = s
-		local role = Employees.roles[rec.role]
-		if not remote(rec) and not (role and role.night and not isNight()) then
-			spawnOne(player, s)
+		present[rec.uid] = rec
+	end
+	for uid, s in list do
+		if present[uid] ~= s.rec or s.role ~= s.rec.role then
+			s.stop = true
+			despawn(s)
+			list[uid] = nil
+		end
+	end
+	for _, rec in p.staff do
+		if not list[rec.uid] then
+			local s = { rec = rec, role = rec.role }
+			list[rec.uid] = s
+			local role = Employees.roles[rec.role]
+			if not remote(rec) and not (role and role.night and not isNight()) then
+				spawnOne(player, s)
+			end
 		end
 	end
 end
@@ -289,7 +344,10 @@ local function techWork(player: Player, s, bench: number, job)
 		pickPart = function(id, filter)
 			return pickPart(player, job.device, id, filter, EmployeeService.has(player, "manager"))
 		end,
-		onStep = function()
+		onStep = function(action, target)
+			-- the person at the bench is seen doing it: the hands, the tool and the line under the name
+			local tool = Tools.get(TechBot.toolFor(job.device, action, target))
+			NpcService.work(s.model, action, tool and tool.model, PHRASES[action])
 			RepairService.publish(player, bench)
 			if stepTime > 0 then
 				task.wait(stepTime)
@@ -334,6 +392,8 @@ local function techWork(player: Player, s, bench: number, job)
 		return
 	end
 	if type(err) == "table" and err.stopped then
+		-- (sent home in the middle of a repair: the job goes back to the queue for somebody else)
+		RepairService.clearBench(player, bench)
 		return
 	end
 	-- couldn't finish: leave it for the boss
@@ -368,8 +428,8 @@ end
 
 local function techLoop(player: Player, s)
 	while not s.stop and player.Parent do
-		task.wait(3 + rng:NextNumber() * 3)
-		if s.stop or s.busy then
+		task.wait(1.5 + rng:NextNumber() * 1.5)
+		if s.stop or s.busy or s.serving then
 			continue
 		end
 		local shop = PlotService.shopOf(player)
@@ -398,7 +458,9 @@ local function techLoop(player: Player, s)
 		end
 		techWork(player, s, bench, pick)
 		s.busy = false
-		if s.model then
+		-- (the tool goes down, the hands rest, the line under the name goes out)
+		NpcService.work(s.model, nil)
+		if s.model and NpcService.alive(s.model) then
 			local hum = s.model:FindFirstChildOfClass("Humanoid")
 			if hum then
 				hum.Sit = false
@@ -426,17 +488,25 @@ end
 
 local COUNTER_ROLES = { receptionist = true, cashier = true, manager = true, salesperson = true }
 
--- Is there somebody to take a customer's device at the counter?
-local function counterStaff(player: Player): boolean
+-- Who takes a customer's device at the counter when the owner is elsewhere: the people who work
+-- the front first, then a technician who is not at a bench.
+local function counterPick(player: Player)
+	local spare = nil
 	for _, s in staff[player] or {} do
-		if s.model and s.model.Parent and not s.stop then
+		if s.model and s.model.Parent and not s.stop and not s.serving then
 			local role = Employees.roles[s.rec.role]
-			if COUNTER_ROLES[s.rec.role] or (role and role.bench and not s.busy) then
-				return true
+			if COUNTER_ROLES[s.rec.role] then
+				return s
+			elseif role and role.bench and not s.busy and not spare then
+				spare = s
 			end
 		end
 	end
-	return false
+	return spare
+end
+
+local function counterStaff(player: Player): boolean
+	return counterPick(player) ~= nil
 end
 EmployeeService.counterStaff = counterStaff
 
@@ -624,7 +694,7 @@ local function quit(player: Player, p, e, key: string)
 	if i then
 		table.remove(p.staff, i)
 	end
-	Net.push(player, "toast", { key = key, vars = { name = e.name } })
+	Net.push(player, "toast", { key = key, important = true, vars = { name = e.name } })
 end
 
 -- The storekeeper's morning round: a pack of whatever consumable is running low.
@@ -787,7 +857,7 @@ function EmployeeService.start()
 		EmployeeService.offlineEarnings(player, p)
 	end)
 	PlotService.built:Connect(function(player)
-		spawnStaff(player)
+		spawnStaff(player, true)
 		EmployeeService.startWork(player)
 	end)
 	PlotService.released:Connect(function(player)
@@ -828,14 +898,40 @@ function EmployeeService.start()
 		return { ok = true }
 	end)
 	-- somebody on the staff takes the counter when you're not there: a receptionist, cashier,
-	-- manager or salesperson, or (when none of them is free) any technician who is not at a bench
+	-- manager or salesperson, or (when none of them is free) any technician who is not at a bench;
+	-- they walk over if they are elsewhere, face the customer, type the ticket and take the device
 	CustomerService.atCounter:Connect(function(player, cust)
-		if not counterStaff(player) then
+		local who = counterPick(player)
+		if not who then
 			return
 		end
-		task.delay(6, function()
+		who.serving = true
+		local back, front = point(player, "CounterBack"), point(player, "CounterFront")
+		local home = who.model and who.model.PrimaryPart and back and (who.model.PrimaryPart.Position - back.Position).Magnitude < 4
+		task.spawn(function()
+			if back and who.model and not home then
+				NpcService.walkTo(who.model, back.Position)
+			end
+			if who.model and front then
+				NpcService.face(who.model, front.Position)
+			end
+			NpcService.work(who.model, "register", nil, "Serving a customer")
+		end)
+		task.delay(EmployeeService.counterDelay, function()
 			if cust.state == "counter" and not ownerNearCounter(player) then
-				CustomerService.autoServe(player, cust)
+				local ok, err = pcall(CustomerService.autoServe, player, cust)
+				if not ok then
+					warn("[EmployeeService] the counter could not be served: " .. tostring(err))
+				end
+			end
+			NpcService.work(who.model, nil)
+			who.serving = false
+			-- (back to their own place)
+			if who.model and NpcService.alive(who.model) and not who.stop and not who.busy then
+				local spot = spotFor(player, who)
+				if spot then
+					NpcService.walkTo(who.model, spot.Position)
+				end
 			end
 		end)
 	end)

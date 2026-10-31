@@ -188,12 +188,12 @@ blow out the dust, apply thermal paste, reseat the RAM and listen for the POST b
 
 ⭐ Never opened a PC? A built-in Coach walks you through every repair, step by step
 ⭐ 300+ real parts: graphics cards, CPUs, motherboards, RAM, SSDs, PSUs…
-⭐ 30+ realistic faults; diagnose with a multimeter, POST card and thermal camera
+⭐ 70+ realistic faults and stories; diagnose with a multimeter, POST card and thermal camera
 ⭐ Grow your shop: a big lot, up to 8 benches, 200+ items, a showcase
 ⭐ Advertise, build your brand and attract wealthy VIP clients — or keep the grumpy ones happy
-⭐ Hire staff from 22 professions; earn even while you're away
+⭐ Hire staff from 22 professions and watch them work with real tools; earn even while you're away
 ⭐ Build a factory, make your own brand, sell PC setups
-⭐ Bills, taxes and night-time burglars: cameras, alarms, a bat!
+⭐ Bills, taxes and masked burglars: cameras, alarms, a bat!
 ⭐ A huge city: airport, shipyard, technopark, villas, beach
 ⭐ Buy cars and motorbikes and explore (M: map)
 ⭐ Leaderboards, daily tasks, corporate contracts
@@ -216,11 +216,11 @@ bir teknisyen gibi sök, arızayı bul ve tamir et. Vidaları doğru uçla sök,
 temizle, termal macun sür, RAM'i yerine oturt ve POST bip sesini dinle!
 
 ⭐ 300+ gerçek parça: ekran kartı, işlemci, anakart, RAM, SSD, PSU…
-⭐ 30+ gerçekçi arıza; multimetre, POST kartı ve termal kamera ile teşhis
+⭐ 70+ gerçekçi arıza ve hikâye; multimetre, POST kartı ve termal kamera ile teşhis
 ⭐ Dükkânını büyüt: 8 tezgâh, 200+ eşya, vitrin
-⭐ 22 meslekten personel tut; sen yokken de kazan
+⭐ 22 meslekten personel tut, gerçek aletlerle çalışmalarını izle; sen yokken de kazan
 ⭐ Kendi fabrikanı kur, kendi markanı üret, PC seti sat
-⭐ Fatura, vergi ve gece hırsızları: kamera, alarm, sopa!
+⭐ Fatura, vergi ve maskeli hırsızlar: kamera, alarm, sopa!
 ⭐ Kocaman şehir: havalimanı, tersane, teknopark, villalar, sahil
 ⭐ Araba ve motor al, şehri gez (M: harita)
 ⭐ Liderlik tabloları, günlük görevler, kurumsal sözleşmeler

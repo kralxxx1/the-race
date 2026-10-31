@@ -139,7 +139,15 @@ end
 cmod("UI.LanguagePrompt").close() -- (the first-start question would cover every scene)
 Hud.toast("🎉 Level up! Level 7", "good")
 Hud.toast("🏢 Contract: machine 2/3 delivered (+$75)", "info")
-if scene == "phone" then
+if scene == "alerts" then
+	-- the important messages as cards: a new bill, the day before it is due, the power, a thief
+	local Net = Engine.mod("ReplicatedStorage.Shared.Net")
+	Net.push(player, "toast", { key = "bill_new", important = true, vars = { kind = "rent", amount = 480 } })
+	Net.push(player, "toast", { key = "bills_due_soon", important = true, vars = { n = 2, amount = 905 } })
+	Net.push(player, "toast", { key = "power_cut_soon", important = true })
+	Net.push(player, "toast", { key = "thief_escaped", important = true, vars = { cash = 120, part = "" } })
+	task.wait(0.4)
+elseif scene == "phone" then
 	cmod("UI.Phone").open()
 elseif scene == "marketing" then
 	local p = DataService.get(player)
@@ -317,7 +325,7 @@ elseif scene == "parts_gpu" then
 	end
 	press("Graphics Cards")
 	press("NVIDIA")
-elseif scene ~= "hud" and scene ~= "marketing" and string.sub(scene, 1, 9) ~= "settings_" then
+elseif scene ~= "hud" and scene ~= "alerts" and scene ~= "marketing" and string.sub(scene, 1, 9) ~= "settings_" then
 	service(if scene == "dealer" then "cars" elseif scene == "staff" then "staff" else scene)
 end
 task.wait(0.4)
