@@ -30,38 +30,55 @@ local STEEL = Color3.fromRGB(190, 194, 200)
 
 local builders = {}
 
--- screwdriver (tip at the origin, handle up): a Phillips cross tip on a chrome shaft, a metal
--- ferrule, and a chunky two-tone handle with a neck, a belly with grip flutes and a rounded butt.
-local DARK_STEEL = Color3.fromRGB(96, 99, 106)
+-- screwdriver (tip at the origin, handle up): a Phillips cross tip, a black-oxide shaft with a chrome
+-- ring, and a shaped two-component handle -- a flared neck, a fat belly in a soft rubber grip with
+-- raised ridges all round, a rounded end cap with a hanging hole -- and a colour ring that says the
+-- size (red = PH2, blue = PH0).
+local DARK_STEEL = Color3.fromRGB(78, 80, 86)
 local function driver(m: Model, cf: CFrame, handleCol: Color3, shaftLen: number, handleLen: number, d: number)
-	-- the tip: a narrow dark piece with two crossing blades (the Phillips cross)
-	cylY(m, cf * CFrame.new(0, 0.05, 0), 0.1, d * 0.22, DARK_STEEL, M.Metal, { Name = "Tip" })
+	local band = Color3.fromRGB(32, 33, 38)
+	-- the tip: two crossed blades with a dark finish, a bright magnetic point
 	for k = 0, 1 do
-		part(m, cf * CFrame.new(0, 0.04, 0) * CFrame.Angles(0, k * math.pi / 2, 0), Vector3.new(d * 0.36, 0.08, d * 0.05), DARK_STEEL, M.Metal)
+		part(m, cf * CFrame.new(0, 0.07, 0) * CFrame.Angles(0, k * math.pi / 2, 0), Vector3.new(d * 0.34, 0.14, d * 0.055), DARK_STEEL, M.Metal, { Name = "Tip" })
 	end
-	-- the shaft
-	cylY(m, cf * CFrame.new(0, 0.1 + (shaftLen - 0.1) / 2, 0), shaftLen - 0.1, d * 0.24, STEEL, M.Metal, { Name = "Shaft" })
-	-- the ferrule where the shaft goes into the handle
+	cylY(m, cf * CFrame.new(0, 0.19, 0), 0.12, d * 0.2, Color3.fromRGB(205, 208, 214), M.Metal, { Name = "Point" })
+	-- the shaft: black oxide, with a chrome ring near the handle
+	cylY(m, cf * CFrame.new(0, 0.14 + (shaftLen - 0.14) / 2, 0), shaftLen - 0.14, d * 0.23, DARK_STEEL, M.Metal, { Name = "Shaft" })
+	cylY(m, cf * CFrame.new(0, shaftLen - 0.2, 0), 0.08, d * 0.3, Color3.fromRGB(205, 208, 214), M.Metal, { Name = "ChromeRing" })
+	-- the ferrule where the shaft goes into the handle, and the size ring
 	local y = shaftLen
-	cylY(m, cf * CFrame.new(0, y + 0.05, 0), 0.1, d * 0.5, STEEL, M.Metal, { Name = "Ferrule" })
-	y += 0.1
-	-- the neck, the belly and the rounded butt of the handle
-	local neck, belly = handleLen * 0.22, handleLen * 0.62
-	cylY(m, cf * CFrame.new(0, y + neck / 2, 0), neck, d * 0.72, handleCol, M.SmoothPlastic, { Name = "Neck" })
-	y += neck
-	local bellyMid = y + belly / 2
-	cylY(m, cf * CFrame.new(0, bellyMid, 0), belly, d, handleCol, M.SmoothPlastic, { Name = "Handle" })
-	-- a dark rubber grip band around the middle, with fluted ribs standing out of it
-	local band = Color3.fromRGB(36, 37, 42)
-	cylY(m, cf * CFrame.new(0, bellyMid, 0), belly * 0.52, d * 1.05, band, M.Rubber)
-	for k = 0, 7 do
-		local a = k * math.pi / 4
-		cylY(m, cf * CFrame.new(math.cos(a) * d * 0.5, bellyMid, math.sin(a) * d * 0.5), belly * 0.5, d * 0.13, band:Lerp(Color3.new(1, 1, 1), 0.08), M.Rubber)
+	cylY(m, cf * CFrame.new(0, y + 0.06, 0), 0.12, d * 0.46, Color3.fromRGB(205, 208, 214), M.Metal, { Name = "Ferrule" })
+	cylY(m, cf * CFrame.new(0, y + 0.145, 0), 0.05, d * 0.68, handleCol, M.SmoothPlastic, { Name = "SizeRing" })
+	y += 0.17
+	-- the handle's shape, a stack of rings from the neck to the cap (diameters as a share of d)
+	local profile = { { 0.1, 0.62 }, { 0.12, 0.78 }, { 0.16, 0.92 }, { 0.2, 1.0 }, { 0.2, 1.0 }, { 0.16, 0.94 }, { 0.12, 0.84 } }
+	local total = 0
+	for _, r in profile do
+		total += r[1]
 	end
-	y += belly
-	B.ball(m, cf * CFrame.new(0, y, 0), d * 1.0, handleCol, M.SmoothPlastic, { CanCollide = false, CanTouch = false, CanQuery = false, CastShadow = false, Name = "Butt" })
-	-- a colour stripe near the butt
-	cylY(m, cf * CFrame.new(0, y - 0.04, 0), 0.05, d * 1.02, Color3.fromRGB(250, 250, 250), M.SmoothPlastic)
+	local k = (handleLen - 0.17) / total
+	local belly0, belly1 = y, y
+	for i, r in profile do
+		local h = r[1] * k
+		local isGrip = i >= 3 and i <= 6
+		if i == 3 then
+			belly0 = y
+		end
+		cylY(m, cf * CFrame.new(0, y + h / 2, 0), h, d * r[2], if isGrip then band else handleCol, if isGrip then M.Rubber else M.SmoothPlastic, { Name = if isGrip then "Grip" else "Handle" })
+		y += h
+		if i == 6 then
+			belly1 = y
+		end
+	end
+	-- raised ridges all round the grip
+	local mid = (belly0 + belly1) / 2
+	for n = 0, 11 do
+		local a = n * math.pi / 6
+		cylY(m, cf * CFrame.new(math.cos(a) * d * 0.5, mid, math.sin(a) * d * 0.5), belly1 - belly0 - 0.02, d * 0.1, band:Lerp(Color3.new(1, 1, 1), 0.12), M.Rubber, { Name = "Ridge" })
+	end
+	-- the rounded end cap, with its hole to hang it up by
+	B.ball(m, cf * CFrame.new(0, y, 0), d * 0.84, handleCol, M.SmoothPlastic, { CanCollide = false, CanTouch = false, CanQuery = false, CastShadow = false, Name = "Cap" })
+	cylY(m, cf * CFrame.new(0, y + d * 0.4, 0), 0.02, d * 0.22, band, M.SmoothPlastic, { Name = "Hole" })
 end
 
 builders.hand = function(m, cf)
@@ -78,24 +95,51 @@ builders.precision = function(m, cf)
 	driver(m, cf, Color3.fromRGB(34, 120, 220), 0.7, 0.6, 0.13)
 end
 builders.electric_screwdriver = function(m, cf)
-	cylY(m, cf * CFrame.new(0, 0.18, 0), 0.36, 0.05, STEEL, M.Metal, { Name = "Shaft" })
-	cylY(m, cf * CFrame.new(0, 0.62, 0), 0.6, 0.2, Color3.fromRGB(40, 40, 44), M.SmoothPlastic, { Name = "Handle" })
-	part(m, cf * CFrame.new(0.1, 0.62, 0), Vector3.new(0.04, 0.14, 0.08), Color3.fromRGB(80, 200, 255), M.Neon, { Name = "Led" })
+	-- a cordless pen-style driver: a hex bit in a magnetic chuck, an orange collar, a slim graphite
+	-- body with soft grip rings, a status light ring, a USB-C port and a rounded cap
+	local graphite, orange = Color3.fromRGB(46, 48, 54), Color3.fromRGB(240, 120, 30)
+	cylY(m, cf * CFrame.new(0, 0.2, 0), 0.4, 0.05, Color3.fromRGB(205, 208, 214), M.Metal, { Name = "Bit" })
+	part(m, cf * CFrame.new(0, 0.05, 0), Vector3.new(0.09, 0.1, 0.02), DARK_STEEL, M.Metal, { Name = "Tip" })
+	part(m, cf * CFrame.new(0, 0.05, 0), Vector3.new(0.02, 0.1, 0.09), DARK_STEEL, M.Metal)
+	cylY(m, cf * CFrame.new(0, 0.46, 0), 0.14, 0.13, DARK_STEEL, M.Metal, { Name = "Chuck" })
+	cylY(m, cf * CFrame.new(0, 0.58, 0), 0.1, 0.19, orange, M.SmoothPlastic, { Name = "Collar" })
+	cylY(m, cf * CFrame.new(0, 1.0, 0), 0.74, 0.2, graphite, M.SmoothPlastic, { Name = "Handle" })
+	for _, yy in { 0.78, 0.9, 1.02, 1.14 } do
+		cylY(m, cf * CFrame.new(0, yy, 0), 0.05, 0.215, Color3.fromRGB(28, 29, 33), M.Rubber, { Name = "GripRing" })
+	end
+	cylY(m, cf * CFrame.new(0, 1.28, 0), 0.04, 0.215, Color3.fromRGB(80, 200, 255), M.Neon, { Name = "Led" })
+	part(m, cf * CFrame.new(0, 1.36, 0.1), Vector3.new(0.09, 0.05, 0.03), Color3.fromRGB(14, 14, 16), M.SmoothPlastic, { Name = "UsbC" })
+	B.ball(m, cf * CFrame.new(0, 1.4, 0), 0.2, orange, M.SmoothPlastic, { CanCollide = false, CanTouch = false, CanQuery = false, CastShadow = false, Name = "Cap" })
 end
 builders.strap = function(m, cf)
 	cylY(m, cf * CFrame.new(0, 0.05, 0), 0.1, 0.36, Color3.fromRGB(30, 90, 200), M.Fabric)
 	cylY(m, cf * CFrame.new(0, 0.3, 0), 0.5, 0.03, Color3.fromRGB(240, 220, 40), M.SmoothPlastic)
 end
 builders.air_can = function(m, cf)
-	cylY(m, cf * CFrame.new(0, 0.08, 0), 0.16, 0.02, Color3.fromRGB(220, 40, 40), M.SmoothPlastic, { Name = "Straw" })
-	part(m, cf * CFrame.new(0, 0.2, 0), Vector3.new(0.12, 0.1, 0.16), Color3.fromRGB(30, 30, 34))
-	cylY(m, cf * CFrame.new(0, 0.62, 0), 0.75, 0.32, Color3.fromRGB(40, 110, 200), M.Metal, { Name = "Can" })
-	cylY(m, cf * CFrame.new(0, 1.02, 0), 0.06, 0.28, STEEL, M.Metal)
+	-- a can of compressed air: the red straw, the black trigger head, a tall blue can with a white
+	-- label band and hazard stripes
+	local blue = Color3.fromRGB(34, 98, 190)
+	cylY(m, cf * CFrame.new(0, 0.2, 0.0), 0.4, 0.028, Color3.fromRGB(226, 40, 40), M.SmoothPlastic, { Name = "Straw" })
+	part(m, cf * CFrame.new(0, 0.5, 0), Vector3.new(0.14, 0.16, 0.34), Color3.fromRGB(26, 26, 30), M.SmoothPlastic, { Name = "Nozzle" })
+	part(m, cf * CFrame.new(0, 0.66, 0.2) * CFrame.Angles(math.rad(-14), 0, 0), Vector3.new(0.07, 0.04, 0.3), Color3.fromRGB(200, 200, 206), M.Metal, { Name = "Trigger" })
+	cylY(m, cf * CFrame.new(0, 0.62, 0), 0.12, 0.28, Color3.fromRGB(26, 26, 30), M.SmoothPlastic, { Name = "Head" })
+	cylY(m, cf * CFrame.new(0, 0.72, 0), 0.08, 0.34, Color3.fromRGB(205, 208, 214), M.Metal, { Name = "Shoulder" })
+	cylY(m, cf * CFrame.new(0, 1.24, 0), 1.0, 0.36, blue, M.Metal, { Name = "Can", Reflectance = 0.12 })
+	cylY(m, cf * CFrame.new(0, 1.26, 0), 0.5, 0.365, Color3.fromRGB(245, 245, 248), M.SmoothPlastic, { Name = "Label" })
+	cylY(m, cf * CFrame.new(0, 1.04, 0), 0.07, 0.368, Color3.fromRGB(240, 190, 20), M.SmoothPlastic, { Name = "Hazard" })
+	cylY(m, cf * CFrame.new(0, 1.48, 0), 0.07, 0.368, Color3.fromRGB(240, 190, 20), M.SmoothPlastic)
+	cylY(m, cf * CFrame.new(0, 1.74, 0), 0.04, 0.38, Color3.fromRGB(205, 208, 214), M.Metal, { Name = "Base" })
 end
 builders.blower = function(m, cf)
-	cylY(m, cf * CFrame.new(0, 0.2, 0), 0.4, 0.1, Color3.fromRGB(30, 30, 34))
-	part(m, cf * CFrame.new(0, 0.55, 0), Vector3.new(0.3, 0.4, 0.5), Color3.fromRGB(240, 120, 30))
-	part(m, cf * CFrame.new(0, 0.62, 0.32), Vector3.new(0.14, 0.5, 0.16), Color3.fromRGB(30, 30, 34))
+	-- a rocket air blower: a long chrome nozzle with a black tip and a big squeezable rubber bulb on
+	-- a flared collar and a flat foot, so it stands on its own
+	local red = Color3.fromRGB(214, 52, 38)
+	cylY(m, cf * CFrame.new(0, 0.05, 0), 0.1, 0.05, Color3.fromRGB(26, 26, 30), M.Rubber, { Name = "Tip" })
+	cylY(m, cf * CFrame.new(0, 0.45, 0), 0.7, 0.07, Color3.fromRGB(205, 208, 214), M.Metal, { Name = "Nozzle" })
+	cylY(m, cf * CFrame.new(0, 0.86, 0), 0.14, 0.14, Color3.fromRGB(26, 26, 30), M.Rubber, { Name = "Collar" })
+	B.ellipsoid(m, cf * CFrame.new(0, 1.35, 0), Vector3.new(0.62, 0.95, 0.62), red, M.Rubber, { CanCollide = false, CanTouch = false, CanQuery = false, CastShadow = false, Name = "Bulb" })
+	cylY(m, cf * CFrame.new(0, 1.84, 0), 0.12, 0.36, Color3.fromRGB(26, 26, 30), M.Rubber, { Name = "Foot" })
+	cylY(m, cf * CFrame.new(0, 1.9, 0), 0.04, 0.4, Color3.fromRGB(205, 208, 214), M.Metal)
 end
 builders.brush = function(m, cf)
 	part(m, cf * CFrame.new(0, 0.1, 0), Vector3.new(0.22, 0.2, 0.06), Color3.fromRGB(40, 40, 44), M.Fabric, { Name = "Bristles" })

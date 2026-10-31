@@ -723,13 +723,67 @@ function Props.shelf(parent: Instance, cf: CFrame, w: number, h: number, depth: 
 	return m
 end
 
+-- A flat-panel monitor on its stand, 3.5 studs wide (a 27-inch for the shop's big-handed people): a
+-- two-part plastic shell with a rear bulge and vents, a slim black bezel with a deeper chin that
+-- carries the brand, the power LED and the buttons, the glass over the panel, a tilting neck with a
+-- hinge, a heavy foot with a chrome edge and rubber pads, and a cable running off the back. The
+-- picture is the "Screen" part's SurfaceGui (named ScreenGui, a TextLabel inside); the model's origin
+-- is the middle of the foot on the desk and it faces -Z.
 function Props.monitor(parent: Instance, cf: CFrame, text: string?, glow: Color3?): Model
 	local m = B.model("Monitor", parent)
-	local dark = Color3.fromRGB(20, 20, 24)
-	B.box(m, cf * CFrame.new(0, 0.08, 0.2), Vector3.new(1.6, 0.16, 1), dark, M.Metal)
-	B.box(m, cf * CFrame.new(0, 0.9, 0.35), Vector3.new(0.25, 1.6, 0.25), dark, M.Metal, noCollide())
-	local screen = B.box(m, cf * CFrame.new(0, 1.9, 0.15), Vector3.new(3.4, 2, 0.15), dark, M.SmoothPlastic, noCollide({ Name = "Screen" }))
-	B.sign(screen, Enum.NormalId.Front, text or "", { name = "ScreenGui", glow = true, brightness = 1.2, color = Color3.fromRGB(220, 240, 255), background = glow or Color3.fromRGB(16, 40, 80), font = B.Fonts.Mono })
+	local shell = Color3.fromRGB(28, 29, 33)
+	local shell2 = Color3.fromRGB(42, 44, 50)
+	local dark = Color3.fromRGB(14, 14, 17)
+	local chrome = Color3.fromRGB(168, 172, 180)
+	local nc = noCollide
+	local W, H = 3.5, 2.14 -- the panel's outside
+	local cy = 1.9 -- height of its middle above the desk
+	-- the foot: a heavy plate with a chrome edge strip in front and four rubber pads
+	B.box(m, cf * CFrame.new(0, 0.06, 0.38), Vector3.new(1.9, 0.12, 1.15), shell2, M.Metal)
+	B.box(m, cf * CFrame.new(0, 0.13, -0.17), Vector3.new(1.84, 0.04, 0.05), chrome, M.Metal, nc())
+	for _, px in { -0.8, 0.8 } do
+		for _, pz in { -0.05, 0.8 } do
+			B.box(m, cf * CFrame.new(px, 0.015, pz), Vector3.new(0.22, 0.03, 0.22), dark, M.Rubber, nc())
+		end
+	end
+	-- the neck: a cover over the foot's joint, then the stem leaning back to the hinge behind the panel
+	B.box(m, cf * CFrame.new(0, 0.26, 0.52), Vector3.new(0.78, 0.28, 0.5), shell, M.SmoothPlastic, nc())
+	local from, to = Vector3.new(0, 0.3, 0.55), Vector3.new(0, cy - 0.45, 0.42)
+	B.box(m, cf * CFrame.lookAt((from + to) / 2, to), Vector3.new(0.36, 0.14, (to - from).Magnitude), shell, M.SmoothPlastic, nc())
+	B.box(m, cf * CFrame.lookAt((from + to) / 2 + Vector3.new(0, 0, -0.075), to + Vector3.new(0, 0, -0.075)), Vector3.new(0.2, 0.05, (to - from).Magnitude * 0.92), shell2, M.Metal, nc())
+	B.cyl(m, cf * CFrame.new(0, cy - 0.45, 0.4), 0.7, 0.32, shell2, M.Metal, nc())
+	-- the panel's back shell with the rear bulge (where the electronics are) and cooling slots
+	B.box(m, cf * CFrame.new(0, cy, 0.17), Vector3.new(W, H, 0.2), shell, M.SmoothPlastic, nc())
+	B.box(m, cf * CFrame.new(0, cy - 0.12, 0.34), Vector3.new(1.9, 1.2, 0.2), shell2, M.SmoothPlastic, nc())
+	B.box(m, cf * CFrame.new(0, cy - 0.12, 0.45), Vector3.new(1.3, 0.8, 0.04), shell, M.Metal, nc())
+	for k = -2, 2 do
+		B.box(m, cf * CFrame.new(k * 0.16, cy + 0.72, 0.28), Vector3.new(0.07, 0.38, 0.04), dark, M.SmoothPlastic, nc())
+	end
+	-- the front: the bezel round the picture, deeper at the bottom (the chin)
+	local side, top, chin = 0.08, 0.08, 0.27
+	local openW, openH = W - 2 * side, H - top - chin
+	local openY = cy + (H / 2 - top) - openH / 2
+	B.box(m, cf * CFrame.new(0, cy + H / 2 - top / 2, 0.0), Vector3.new(W, top, 0.16), dark, M.SmoothPlastic, nc())
+	B.box(m, cf * CFrame.new(0, cy - H / 2 + chin / 2, 0.0), Vector3.new(W, chin, 0.16), dark, M.SmoothPlastic, nc())
+	for _, sx in { -1, 1 } do
+		B.box(m, cf * CFrame.new(sx * (W / 2 - side / 2), openY, 0.0), Vector3.new(side, openH, 0.16), dark, M.SmoothPlastic, nc())
+	end
+	-- (a thin chrome line along the bottom of the bezel)
+	B.box(m, cf * CFrame.new(0, cy - H / 2 + 0.02, -0.075), Vector3.new(W - 0.1, 0.025, 0.02), chrome, M.Metal, nc())
+	-- the picture itself, lit from inside, with a clear glass pane over it
+	local screen = B.box(m, cf * CFrame.new(0, openY, 0.02), Vector3.new(openW, openH, 0.04), dark, M.SmoothPlastic, nc({ Name = "Screen" }))
+	B.sign(screen, Enum.NormalId.Front, text or "", { name = "ScreenGui", glow = true, brightness = 1.2, pixelsPerStud = 56, color = Color3.fromRGB(220, 240, 255), background = glow or Color3.fromRGB(16, 40, 80), font = B.Fonts.Mono })
+	B.box(m, cf * CFrame.new(0, openY, -0.012), Vector3.new(openW, openH, 0.012), Color3.fromRGB(190, 210, 235), M.Glass, nc({ Name = "GlassPane", Transparency = 0.93, Reflectance = 0.1 }))
+	-- the chin: the maker's name, the power light and three little buttons
+	local plate = B.box(m, cf * CFrame.new(-W / 2 + 0.62, cy - H / 2 + chin / 2, -0.083), Vector3.new(0.9, 0.12, 0.01), dark, M.SmoothPlastic, nc({ Name = "Brand" }))
+	B.sign(plate, Enum.NormalId.Front, "PC·REPAIR", { color = Color3.fromRGB(176, 180, 190), font = B.Fonts.Heavy, pixelsPerStud = 90, padding = 0.04 })
+	B.box(m, cf * CFrame.new(W / 2 - 0.3, cy - H / 2 + chin / 2, -0.083), Vector3.new(0.05, 0.05, 0.015), Color3.fromRGB(70, 255, 120), M.Neon, nc({ Name = "MonitorLed" }))
+	for k = 1, 3 do
+		B.box(m, cf * CFrame.new(W / 2 - 0.5 - k * 0.16, cy - H / 2 + chin / 2 - 0.02, -0.083), Vector3.new(0.09, 0.05, 0.015), shell2, M.SmoothPlastic, nc())
+	end
+	-- the cable: out of the back of the neck, down to the desk and away behind it
+	B.cylY(m, cf * CFrame.new(0.12, cy - 1.0, 0.56), 0.9, 0.06, dark, M.Rubber, nc())
+	B.cyl(m, cf * CFrame.new(0.12, 0.1, 0.9) * CFrame.Angles(0, math.pi / 2, 0), 0.8, 0.06, dark, M.Rubber, nc())
 	return m
 end
 

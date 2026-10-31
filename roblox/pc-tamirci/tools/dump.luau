@@ -448,6 +448,20 @@ elseif what == "people" then
 	end
 	result.parts = dumpParts(folder)
 	outName = "people"
+elseif what == "monitor" then
+	-- the bench monitor with a picture: lune run tools/dump.luau monitor
+	local Props = Engine.mod("ReplicatedStorage.Shared.Models.Props")
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	local desk = roblox.Instance.new("Part")
+	desk.Anchored = true
+	desk.Size = roblox.Vector3.new(14, 0.6, 7)
+	desk.CFrame = roblox.CFrame.new(0, -0.3, 0)
+	desk.Color = roblox.Color3.fromRGB(150, 110, 70)
+	desk.Parent = folder
+	local m = Props.monitor(folder, roblox.CFrame.new(0, 0, 0), "Windows\n\nStarting up...", roblox.Color3.fromRGB(0, 90, 170))
+	result.parts = dumpParts(folder)
+	outName = "monitor"
 elseif what == "umbrellas" then
 	-- people in the rain, each with an umbrella: lune run tools/dump.luau umbrellas
 	local Npc = Engine.mod("ServerScriptService.Server.Services.NpcService")
