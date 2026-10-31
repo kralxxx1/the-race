@@ -143,7 +143,10 @@ function Terrain.build()
 		terrain:FillBlock(CFrame.new(cx, 2.5, cz), Vector3.new(w, 15, d), M.Air)
 		terrain:FillBlock(CFrame.new(cx, -11, cz), Vector3.new(w, 12, d), M.Asphalt)
 	end
-	pave((u.x0 + u.x1) / 2, (u.z0 + u.z1) / 2, u.x1 - u.x0, u.z1 - u.z0)
+	local function paveRect(r)
+		pave((r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2, r.x1 - r.x0, r.z1 - r.z0)
+	end
+	paveRect(u)
 	for _, lawn in Terrain.lawns() do
 		terrain:FillBlock(CFrame.new((lawn.x0 + lawn.x1) / 2, -6, (lawn.z0 + lawn.z1) / 2), Vector3.new(lawn.x1 - lawn.x0, 12, lawn.z1 - lawn.z0), M.Grass)
 	end
@@ -180,9 +183,10 @@ function Terrain.build()
 	-- rocky crown and a flat lookout on the viewpoint hill
 	terrain:FillCylinder(CFrame.new(0, 52, -1360), 6, 46, M.Ground)
 	terrain:FillBall(Vector3.new(-40, 40, -1400), 22, M.Rock)
-	-- dirt road from the north ring road up to the viewpoint
+	-- dirt track from the north ring road up to the viewpoint. It starts in the field a good way
+	-- beyond the ring road's pavement (a ground-coloured strip must never lie over a road).
 	local path = {
-		Vector3.new(0, 0, -1110),
+		Vector3.new(0, 0, -1130),
 		Vector3.new(-90, 0, -1170),
 		Vector3.new(-40, 0, -1250),
 		Vector3.new(70, 0, -1290),
@@ -209,6 +213,13 @@ function Terrain.build()
 	terrain:FillCylinder(CFrame.new(LAKE.x, -3.5, LAKE.z), 7, LAKE.radius, M.Water)
 	terrain:FillCylinder(CFrame.new(LAKE.x, -8, LAKE.z), 3, LAKE.radius, M.Mud)
 	terrain:FillCylinder(CFrame.new(LAKE.x + 40, -3.5, LAKE.z + 30), 7, 38, M.Water)
+	-- last of all, the city's footprint is cleared once more: nothing built after the first pass
+	-- (the hill track, a hill's foot) may leave soil lying on a road or a pavement
+	paveRect(u)
+	for _, lawn in Terrain.lawns() do
+		-- (the park lawns are grass again, as at the start)
+		terrain:FillBlock(CFrame.new((lawn.x0 + lawn.x1) / 2, -6, (lawn.z0 + lawn.z1) / 2), Vector3.new(lawn.x1 - lawn.x0, 12, lawn.z1 - lawn.z0), M.Grass)
+	end
 end
 
 -- Bare ground under everything thin that lies on grass terrain (park paths, flower beds, bench

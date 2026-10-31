@@ -319,7 +319,21 @@ local OFFICIAL = {
 	super = { "Sports", 0.74 },
 	police = { "Police", 0.68 },
 	offroad = { "Offroad", 0.72 },
+	limo = { "Sedan", 0.8 },
 }
+
+local function kitOf(def)
+	local spec = OFFICIAL[def.body]
+	if not spec then
+		return nil
+	end
+	return Assets.get("Vehicles", spec[1] .. "_white") or Assets.get("Vehicles", spec[1] .. "_std")
+end
+
+-- True when a ready-made model exists for this vehicle (the street only drives those).
+function VehicleModels.hasKit(def): boolean
+	return def.kind == "car" and kitOf(def) ~= nil
+end
 
 -- Puts the official car's body and wheels into `m` on `cf`, painted `color`; returns its sizes
 -- (nil when the asset library is missing, so the parts-built car is used).
@@ -328,7 +342,7 @@ local function buildOfficial(m: Model, cf: CFrame, def, color: Color3, plateText
 	if not spec then
 		return nil
 	end
-	local template = Assets.get("Vehicles", spec[1] .. "_white") or Assets.get("Vehicles", spec[1] .. "_std")
+	local template = kitOf(def)
 	if not template then
 		return nil
 	end

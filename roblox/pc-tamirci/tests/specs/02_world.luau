@@ -316,6 +316,39 @@ return function(T)
 		T.ok(#floating == 0, #floating .. " parts hang in the air")
 	end)
 
+	T.test("world: no soil, grass or sand rises over any road, junction or pavement (the dirt track to the viewpoint starts in the field)", function()
+		local L = CityLayout.get()
+		local samples, bad = 0, {}
+		for _, r in L.roads do
+			local x0, x1 = math.min(r.a.X, r.b.X), math.max(r.a.X, r.b.X)
+			local z0, z1 = math.min(r.a.Y, r.b.Y), math.max(r.a.Y, r.b.Y)
+			local w = r.width / 2
+			local xa, xb = x0 - (if r.vertical then w else 0), x1 + (if r.vertical then w else 0)
+			local za, zb = z0 - (if r.vertical then 0 else w), z1 + (if r.vertical then 0 else w)
+			for x = xa, xb, 10 do
+				for z = za, zb, 10 do
+					samples += 1
+					for _, y in { 0.5, 1.5, 3, 5 } do
+						local m = Engine.terrainMaterialAt(Vector3.new(x, y, z))
+						if m ~= "Air" and m ~= "Water" then
+							table.insert(bad, string.format("road %d at (%.0f, %.0f): %s at height %.1f", r.id, x, z, m, y))
+							break
+						end
+					end
+				end
+			end
+		end
+		for k = 1, math.min(#bad, 6) do
+			print("      terrain over a road:", bad[k])
+		end
+		T.ok(samples > 5000, "samples " .. samples)
+		T.ok(#bad == 0, #bad .. " places where terrain rises over a road, e.g. " .. tostring(bad[1]))
+		-- the track itself is still there, on the hill side of the ring road
+		local TerrainB = Engine.mod("ServerScriptService.Server.World.TerrainBuilder")
+		local first = TerrainB.hillPath[1]
+		T.ok(first.Z < CityLayout.ZS[1] - 26 - 12, "the dirt track starts well north of the ring road's pavement")
+	end)
+
 	T.test("world: nothing thin lies on grass terrain (blades would poke through)", function()
 		local world = Engine.world
 		local TerrainB = Engine.mod("ServerScriptService.Server.World.TerrainBuilder")

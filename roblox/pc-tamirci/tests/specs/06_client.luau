@@ -787,6 +787,135 @@ return function(T)
 		noErrors("traffic")
 	end)
 
+	T.test("client: cars never drive through each other (also in junction turns), give way to anyone on the road and the street is not crowded", function()
+		Mock.errors = {}
+		local Traffic = cmod("Controllers.Traffic")
+		local cam = Engine.workspace.CurrentCamera
+		local L = Engine.mod("ReplicatedStorage.Shared.World.CityLayout").get()
+		cam.CFrame = roblox.CFrame.new(L.poiById.plaza.pos + roblox.Vector3.new(0, 40, 0))
+		-- the busiest setting, to stress the junctions
+		Traffic.setDensity("high")
+		local maxCars = 0
+		local worst, worstPair, pairsSeen = 0, "", 0
+		local moved = 0
+		local lastT = {}
+		for step = 1, 1500 do
+			Engine.timeOffset = (Engine.timeOffset or 0) + 0.1 -- (the traffic lights run on the server clock: let it pass)
+			Engine.step(1, 0.1)
+			local cars = Traffic._cars()
+			maxCars = math.max(maxCars, #cars)
+			for i = 1, #cars do
+				local a = cars[i]
+				-- how far each car rolled
+				if a.pos then
+					local before = lastT[a]
+					if before then
+						moved += (a.pos - before).Magnitude
+					end
+					lastT[a] = a.pos
+				end
+				for j = i + 1, #cars do
+					local b = cars[j]
+					if a.discs and b.discs and a.ghost <= 0 and b.ghost <= 0 and (a.pos - b.pos).Magnitude < 40 then
+						pairsSeen += 1
+						for _, qa in a.discs do
+							for _, qb in b.discs do
+								local penetration = (a.r + b.r) - (qa - qb).Magnitude
+								if penetration > worst then
+									worst = penetration
+									worstPair = string.format("%s vs %s at step %d (%.0f, %.0f)", tostring(a.def.id), tostring(b.def.id), step, a.pos.X, a.pos.Z)
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+		print(string.format("    most cars at once: %d; closest approach: bodies overlap by %.2f studs (%s); %.0f studs driven", maxCars, worst, worstPair, moved))
+		T.ok(pairsSeen > 200, "pairs of cars that came close: " .. pairsSeen)
+		T.ok(worst < 2.5, "two cars drove into each other: " .. worstPair)
+		T.ok(moved > 3000, "traffic keeps flowing: " .. moved)
+		-- the street is not crowded: at most a dozen cars at the normal setting (18 at the busiest)
+		T.ok(maxCars <= 18, "cars at the busiest setting: " .. maxCars)
+		Traffic.setDensity("normal")
+		Engine.step(200, 0.1)
+		T.ok(#Traffic._cars() <= 12, "cars at the normal setting: " .. #Traffic._cars())
+		-- nothing but ready-made cars: no car is built from boxes
+		for _, c in Traffic._cars() do
+			T.ok(c.model:FindFirstChild("Wheel1", true) ~= nil and c.model:FindFirstChild("Body", true) ~= nil, tostring(c.def.id) .. " is a ready-made car")
+		end
+		noErrors("traffic collisions")
+	end)
+
+	T.test("client: a car stops for a person standing in its lane and drives on when they have gone", function()
+		Mock.errors = {}
+		local Traffic = cmod("Controllers.Traffic")
+		local cam = Engine.workspace.CurrentCamera
+		local L = Engine.mod("ReplicatedStorage.Shared.World.CityLayout").get()
+		cam.CFrame = roblox.CFrame.new(L.poiById.plaza.pos + roblox.Vector3.new(0, 40, 0))
+		Traffic.setDensity("normal")
+		-- find a car cruising on a straight stretch with plenty of road ahead
+		local car
+		local here = cam.CFrame.Position
+		for _ = 1, 900 do
+			Engine.timeOffset = (Engine.timeOffset or 0) + 0.1
+			Engine.step(1, 0.1)
+			for _, c in Traffic._cars() do
+				-- (close to the camera, so it is not taken off the street while we watch)
+				if not c.turn and c.speed > 8 and c.leg.len - c.t > 160 and not c.signal and (c.pos - here).Magnitude < 200 then
+					car = c
+					break
+				end
+			end
+			if car then
+				break
+			end
+		end
+		T.ok(car ~= nil, "a car on a long straight")
+		local spot = car.pos + car.fwd * (car.len / 2 + 40)
+		Traffic._addObstacle(spot)
+		local nearest = 1e9
+		for _ = 1, 80 do
+			Engine.timeOffset = (Engine.timeOffset or 0) + 0.1
+			Engine.step(1, 0.1)
+			local ahead = (spot - car.pos):Dot(car.fwd)
+			nearest = math.min(nearest, ahead - car.len / 2)
+		end
+		print(string.format("    the car stopped %.1f studs short of the person (speed %.2f)", nearest, car.speed))
+		T.ok(car.speed < 0.5, "the car stands: " .. car.speed)
+		T.ok(nearest > 1, "and did not touch them: " .. nearest)
+		Traffic._clearObstacles()
+		for _ = 1, 60 do
+			Engine.timeOffset = (Engine.timeOffset or 0) + 0.1
+			Engine.step(1, 0.1)
+		end
+		T.ok(car.speed > 3, "drives on again: " .. car.speed)
+		noErrors("traffic pedestrian")
+	end)
+
+	T.test("client: pedestrians wait at the kerb for the cars and cross when it is clear", function()
+		Mock.errors = {}
+		local Traffic = cmod("Controllers.Traffic")
+		local waited, crossing = 0, 0
+		for _ = 1, 600 do
+			Engine.timeOffset = (Engine.timeOffset or 0) + 0.1
+			Engine.step(1, 0.1)
+			for _, p in Traffic._peds() do
+				if p.t < 0 then
+					if p.crossing then
+						crossing += 1
+					else
+						waited += 1
+					end
+				end
+			end
+		end
+		print(string.format("    samples: %d waiting at a kerb, %d crossing", waited, crossing))
+		T.ok(crossing > 0, "people do cross the street")
+		-- while somebody is in the middle of a crossing no car drives into them
+		noErrors("traffic crossing")
+	end)
+
 	T.test("client: a driver's arms reach out to the wheel and turn with the steering", function()
 		local DriverPose = Engine.mod("ReplicatedStorage.Shared.Util.DriverPose")
 		local rig = roblox.Instance.new("Model")

@@ -30,26 +30,27 @@ local L
 local folder: Folder
 local rng = Random.new()
 
-local BASE_CARS = 20
+local BASE_CARS = 12 -- (it used to be twenty: the junctions were a tangle)
 local BASE_PEDS = 26
 if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
 	-- phones: lighter streets
-	BASE_CARS, BASE_PEDS = 10, 14
+	BASE_CARS, BASE_PEDS = 7, 14
 end
 local DENSITY = { off = 0, low = 0.5, normal = 1, high = 1.5 }
 local MAX_CARS, MAX_PEDS = BASE_CARS, BASE_PEDS
 local SPAWN_MIN, SPAWN_MAX, DESPAWN = 80, 320, 430
-local CAR_GAP = 3 -- studs between one car's tail and the next car's nose when they queue
 local SPAWN_GAP = 52 -- cars are not put on the street closer than this (a bus is 48 long)
 local CAR_SCALE = 1.6 -- the street's cars are this much bigger than the dealer's models (the driver fits in)
 local DRIVER_SCALE = 0.85
 local POLICE_SHARE = 0.07 -- of the cars, one in fourteen is a police car
 local POLICE_EVERY = 16 -- and never more than sixteen cars go by without one
-local PROCEDURAL_SHARE = 0.5 -- of the rest, half are built from parts (more silhouettes)
+local SENSE_MARGIN = 0.8 -- studs kept between two cars' bodies
+local SENSE_BUFFER = 3 -- ... and the car stops this far short of whatever is in front
 
 local cars = {}
 local peds = {}
 local sinceCop = 0 -- cars put on the street since the last police car
+local nextCarId = 0 -- (the older car has the right of way where paths cross)
 
 ----------------------------------------------------------------------------------------------------
 -- Road geometry
@@ -218,6 +219,39 @@ local function bezier(p0: Vector3, p1: Vector3, p2: Vector3, u: number): (Vector
 	return a:Lerp(b, u), (b - a)
 end
 
+-- Where the car is and which way it points right now (inside a junction it follows the curve).
+local function carPose(c): (Vector3, Vector3)
+	if c.turn then
+		local tr = c.turn
+		local pos, tangent = bezier(tr.p0, tr.p1, tr.p2, math.clamp(tr.s / tr.len, 0, 1))
+		local f = Vector3.new(tangent.X, 0, tangent.Z)
+		return pos, if f.Magnitude < 1e-3 then c.leg.dir else f.Unit
+	end
+	local g = c.leg
+	return g.start + g.dir * c.t + g.right * c.offset, g.dir
+end
+
+-- A car is feelers along its axis: a row of discs (the body's core, not its mirrors), refreshed every
+-- frame. Whatever else is on the road looks at them to know how far it can still roll.
+local function makeDiscs(c)
+	local r = math.min(c.width * 0.4, 4) -- (lanes are 10 studs apart: the discs of cars in two lanes never touch)
+	local half = math.max(0, c.len / 2 - r)
+	local n = math.max(2, math.ceil(2 * half / (r * 1.4)) + 1)
+	c.r = r
+	c.discOffsets = table.create(n, 0)
+	c.discs = table.create(n, Vector3.zero)
+	for i = 1, n do
+		c.discOffsets[i] = -half + (i - 1) * 2 * half / (n - 1)
+	end
+end
+
+local function refreshPose(c)
+	c.pos, c.fwd = carPose(c)
+	for i, off in c.discOffsets do
+		c.discs[i] = c.pos + c.fwd * off
+	end
+end
+
 -- Where to go at the end of the road (decided early, so the car can indicate).
 local function chooseNext(c)
 	local g = c.leg
@@ -229,6 +263,20 @@ local function chooseNext(c)
 		end
 	end
 	local nextRoad
+	-- on a road with two lanes the inner lane (0) turns left or goes on, the outer one (1) turns right
+	-- or goes on: the paths of two cars side by side never cross
+	if g.road.kind ~= "street" and #options > 1 then
+		local fitting = {}
+		for _, r in options do
+			local cross = g.dir:Cross(leg(r, g.to).dir).Y
+			if (c.lane == 0 and cross > -0.45) or (c.lane == 1 and cross < 0.45) then
+				table.insert(fitting, r)
+			end
+		end
+		if #fitting > 0 then
+			options = fitting
+		end
+	end
 	if #options == 0 then
 		nextRoad = g.road -- dead end: turn around
 	else
@@ -352,13 +400,21 @@ local function spawnCar(): boolean
 			return false
 		end
 	end
+	-- never into a car that happens to be there (a junction's cars are on other roads' legs)
+	local at = g.start + g.dir * t + g.right * laneOffset(road, lane)
+	for _, other in cars do
+		if other.pos and flatDist(other.pos, at) < SPAWN_GAP then
+			return false
+		end
+	end
 	sinceCop += 1
 	local police = #policeDefs > 0 and (sinceCop >= POLICE_EVERY or rng:NextNumber() < POLICE_SHARE)
 	if police then
 		sinceCop = 0
 	end
 	local def = if police then policeDefs[rng:NextInteger(1, #policeDefs)] else carDefs[rng:NextInteger(1, #carDefs)]
-	local c = { def = def, leg = g, lane = lane, offset = laneOffset(road, lane), t = t, speed = 0, lastSpeed = 0, phase = rng:NextNumber(), cruise = math.min(def.speed * 0.42, if road.kind == "street" then 28 else 38) * rng:NextNumber(0.85, 1.1) }
+	nextCarId += 1
+	local c = { id = nextCarId, ghost = 0, stuck = 0, def = def, leg = g, lane = lane, offset = laneOffset(road, lane), t = t, speed = 0, lastSpeed = 0, phase = rng:NextNumber(), cruise = math.min(def.speed * 0.42, if road.kind == "street" then 28 else 38) * rng:NextNumber(0.85, 1.1) }
 	if def.body == "bus" or def.body == "truck" then
 		c.cruise = math.min(c.cruise, 24)
 	end
@@ -367,7 +423,6 @@ local function spawnCar(): boolean
 		plate = randomPlate(),
 		static = true,
 		taxi = not police and rng:NextNumber() < 0.07,
-		procedural = police or def.body == "bus" or def.body == "truck" or rng:NextNumber() < PROCEDURAL_SHARE,
 		police = if police then def else nil,
 	})
 	if not ok then
@@ -380,6 +435,9 @@ local function spawnCar(): boolean
 	local bcf, bsize = m:GetBoundingBox()
 	local bottom = bcf.Position.Y - bsize.Y / 2
 	c.len = bsize.Z -- (the car's length: queues keep their distance by it, a bus is not a hatchback)
+	c.width = bsize.X
+	makeDiscs(c)
+	refreshPose(c)
 	collectParts(c, m)
 	-- someone at the wheel
 	local seat = m:FindFirstChild("Driver") :: BasePart?
@@ -420,11 +478,200 @@ local function spawnCar(): boolean
 	return true
 end
 
+-- People and things on the road that every car brakes for (refreshed once a frame): world positions.
+local pedPoints: { Vector3 } = {}
+local fakeObstacles: { Vector3 } = {} -- (the tests put someone in a car's way)
+
+-- Junction boxes: only the cars of one approach are inside a junction at a time (the others wait at
+-- the line until it has cleared), so no two paths ever cross in there. Followers of the same road
+-- go in behind their leader. boxes[node] = { key = the approach that has the junction }.
+local boxes: { [string]: { key: string } } = {}
+
+local function approachOf(c): string
+	return tostring(c.leg.road.id) .. ">" .. c.leg.to
+end
+
+-- Who has which junction right now: the cars inside it first (they are committed), then the cars
+-- whose nose is over the line, then the cars that have just left (their tails are still in it); the
+-- first approach seen keeps the junction.
+local function refreshBoxes()
+	table.clear(boxes)
+	local function take(node: string, key: string)
+		if not boxes[node] then
+			boxes[node] = { key = key }
+		end
+	end
+	for _, o in cars do
+		if o.turn then
+			take(o.leg.to, approachOf(o))
+		end
+	end
+	for _, o in cars do
+		if o.claimed and not o.turn then
+			take(o.leg.to, approachOf(o))
+		end
+	end
+	for _, o in cars do
+		if not o.turn and o.lastNode and o.t < o.len / 2 + 2 then
+			take(o.lastNode, o.lastApproach)
+		end
+	end
+end
+
+local function boxOpenFor(c): boolean
+	local b = boxes[c.leg.to]
+	return b == nil or b.key == approachOf(c)
+end
+
+local function claimBox(c)
+	local node = c.leg.to
+	if not boxes[node] then
+		boxes[node] = { key = approachOf(c) }
+	end
+end
+
+-- True when the first stretch of the road this car is about to turn into is jammed: it then waits at
+-- the line instead of stopping inside the junction and blocking everybody.
+local function exitJammed(c): boolean
+	local plan = c.plan
+	if not plan then
+		return false
+	end
+	local lane = if plan.kind == "street" then 0 else c.lane
+	for _, o in cars do
+		if o ~= c and not o.turn and o.leg.road == plan and o.leg.from == c.leg.to and o.lane == lane and o.speed < 3 and o.t < c.len + 4 + o.len / 2 then
+			return true
+		end
+	end
+	return false
+end
+
+-- True when a car from the other lane of our own road is turning into the same lane we want (two
+-- lanes of a big road feeding one narrow street): it goes first, we wait at the line.
+local function mergeBlocked(c): boolean
+	local plan = c.plan
+	if not plan then
+		return false
+	end
+	local exitLane = if plan.kind == "street" then 0 else c.lane
+	for _, o in cars do
+		if o ~= c and o.lane ~= c.lane then
+			if o.turn then
+				local tr = o.turn
+				if o.leg.to == c.leg.to and tr.next.road == plan and tr.lane == exitLane then
+					return true
+				end
+			elseif o.leg.road == plan and o.leg.from == c.leg.to and o.lane == exitLane and o.t < c.len + 6 + o.len / 2 then
+				return true
+			elseif o.id < c.id and o.plan == plan and o.leg.road == c.leg.road and o.leg.from == c.leg.from and o.leg.len - o.t < 40 then
+				-- (both are about to turn: the older one goes first)
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- Who goes first where two cars see each other: a car inside a junction before one that is only
+-- waiting at its line, and the older of two equals.
+local function rank(c): number
+	return (if c.turn then 0 elseif c.hold then 2 else 1) * 1e6 + c.id
+end
+
+-- How far car `a` can still roll before it touches car `b` (nil when `b` is not in its way).
+local function gapAhead(a, b, reach: number, lookahead: number): number?
+	local fwd = a.fwd
+	-- (a car that crosses our way is looked at where it will be a moment from now)
+	local shift = b.fwd * (b.speed * lookahead)
+	local right = Vector3.new(-fwd.Z, 0, fwd.X)
+	local nose = a.pos + fwd * (a.len / 2 - a.r)
+	local far = b.pos + shift - nose
+	local lim = reach + b.len / 2 + a.r + b.r
+	if far.X * far.X + far.Z * far.Z > lim * lim then
+		return nil
+	end
+	local R = a.r + b.r + SENSE_MARGIN
+	local best = nil
+	for _, q in b.discs do
+		local rel = q + shift - nose
+		local ahead, side = rel:Dot(fwd), rel:Dot(right)
+		if ahead > -R and math.abs(side) < R then
+			local d = ahead - math.sqrt(R * R - side * side)
+			if d < reach and (best == nil or d < best) then
+				best = d
+			end
+		end
+	end
+	return best
+end
+
+-- The fastest this car may go so that it can still stop before it touches anything ahead: other
+-- cars (anywhere, also inside a junction), people on the road and the player. A car right behind
+-- another one always keeps its distance; where two paths cross, the car that cannot see the other
+-- (it is already across our way) is given way to, and when both see each other the older car has
+-- the right of way (a strict order: no two cars wait for each other for ever). Second result: true
+-- when the car is blocked.
+local function obstacleLimit(c, me: Vector3?, decel: number, dt: number): (number, boolean, boolean)
+	local fwd = c.fwd
+	local right = Vector3.new(-fwd.Z, 0, fwd.X)
+	local nose = c.pos + fwd * (c.len / 2 - c.r)
+	local reach = c.len / 2 + 8 + c.speed * 1.2
+	local limit = math.huge
+	local crossing = false -- (what holds us up is a car that crosses our way, not one we follow)
+	local function consider(d: number, buffer: number, lead: number, cross: boolean)
+		-- (the car rolls on for another frame before it can brake: that stretch is not free; the speed of
+		-- the car in front only counts while there is room, once the gap is used up the car waits)
+		d -= c.speed * dt
+		local allowed = math.sqrt(2 * decel * math.max(0, d - buffer)) + (if d > buffer then lead else 0)
+		if allowed < limit then
+			limit = allowed
+			crossing = cross
+		end
+	end
+	if c.ghost <= 0 then
+		for _, o in cars do
+			if o ~= c then
+				local par = fwd:Dot(o.fwd)
+				local follow = par > 0.8
+				local d = gapAhead(c, o, reach, if follow then 0 else 0.6)
+				if d then
+					-- (o's own view: does it have us in its way too? then the older one goes first -- also
+					-- two cars side by side that merge into one lane)
+					if rank(o) < rank(c) or gapAhead(o, c, o.len / 2 + 8 + o.speed * 1.2, if follow then 0 else 0.6) == nil then
+						-- (a car that crosses or joins our way gets a wider berth than one we only follow)
+						consider(d, if follow then SENSE_BUFFER else SENSE_BUFFER + 3, if follow then o.speed * 0.35 else 0, not follow)
+					end
+				end
+			end
+		end
+	end
+	-- anyone on foot in the way (the crossings, a person stepping off the kerb)
+	local R = c.width / 2 + 1.7
+	for _, pp in pedPoints do
+		local rel = pp - nose
+		local a, l = rel:Dot(fwd), rel:Dot(right)
+		if a > -R and a < reach + R and math.abs(l) < R then
+			consider(a - math.sqrt(R * R - l * l), SENSE_BUFFER + 1.5, 0, false)
+		end
+	end
+	-- the player on the road in front
+	if me then
+		local rel = me - c.pos
+		local ahead = rel:Dot(fwd)
+		if ahead > 0 and ahead < c.len / 2 + 10 and math.abs(rel:Dot(right)) < 3.5 and math.abs(rel.Y) < 8 then
+			limit = 0
+		end
+	end
+	return limit, limit < 2, crossing
+end
+
 local function stepCar(c, dt: number, me: Vector3?)
 	local accel, decel = 14, 26
 	local target = c.cruise
+	local atLight = false
+	c.hold = nil -- (why the car is made to wait: "signal", "box" or "exit"; for the tests)
 	if c.turn then
-		target = math.min(target, 16)
+		target = math.min(target, 14)
 	else
 		local g = c.leg
 		local left = g.len - c.t
@@ -438,33 +685,58 @@ local function stepCar(c, dt: number, me: Vector3?)
 		-- red or amber light ahead: stop before the zebra crossing (1..6 studs before the
 		-- junction); keep going if it's too late to stop
 		local half = (c.len or 22) / 2
-		if hasSignal(g.to) and Ambience.signal(axisOf(g.dir)) ~= "green" and left > half then
+		if not c.claimed and hasSignal(g.to) and Ambience.signal(axisOf(g.dir)) ~= "green" and left > half then
 			-- (the nose, not the middle of the car, stops short of the crossing)
 			local stop = left - half - 3
 			if not (stop < 4 and c.speed > 12) then
 				target = math.min(target, math.sqrt(2 * decel * math.max(0, stop)))
+				atLight = true
+				c.hold = "signal"
 			end
+		end
+		-- the junction is busy with cars of another road, or the road beyond it is jammed: wait at the
+		-- line (a car whose nose is over it already carries on: the junction is its own)
+		if not c.claimed and left < 90 and (not boxOpenFor(c) or (left < 60 and exitJammed(c))) then
+			local room = left - half - 2
+			target = math.min(target, math.sqrt(2 * decel * math.max(0, room)))
+			if room < 0 then
+				c.speed = math.min(c.speed, 3) -- (the nose is over the line already: brake hard)
+			end
+			atLight = true
+			c.hold = if boxOpenFor(c) then "exit" else "box"
+		end
+		-- a car from the next lane is turning into the very lane we want: let it go first
+		if left < 60 and not atLight and mergeBlocked(c) then
+			local room = left - half - 2
+			target = math.min(target, math.sqrt(2 * decel * math.max(0, room)))
+			if room < 0 then
+				c.speed = math.min(c.speed, 3)
+			end
+			atLight = true
+			c.hold = "merge"
 		end
 		-- slow down for corners
 		if left < 25 then
 			target = math.min(target, 16 + left * 0.8)
 		end
-		-- the car ahead in our lane
-		for _, o in cars do
-			if o ~= c and not o.turn and o.leg.road == g.road and o.leg.from == g.from and o.lane == c.lane and o.t > c.t then
-				local gap = o.t - c.t - ((o.len or 22) + (c.len or 22)) / 2 - CAR_GAP
-				target = math.min(target, math.sqrt(2 * decel * math.max(0, gap)) + o.speed * 0.5)
-			end
+	end
+	-- whatever is in the way: cars (also in the middle of a junction), people, the player
+	local allowed, blocked, crossBlocked = obstacleLimit(c, me, decel, dt)
+	c.allowed, c.atLight = allowed, atLight -- (for the tests and for finding out why a car stands)
+	target = math.min(target, allowed)
+	-- a standoff that cannot clear (cars across each other's way, each waiting for the next): after
+	-- a while one of them edges through. A queue behind a red light is no standoff.
+	if c.ghost > 0 then
+		c.ghost -= dt
+	end
+	if blocked and crossBlocked and not atLight and c.speed < 0.5 then
+		c.stuck += dt
+		if c.stuck > 9 then
+			c.stuck = 0
+			c.ghost = 3
 		end
-		-- the player on the road in front
-		if me then
-			local pos = g.start + g.dir * c.t + g.right * c.offset
-			local rel = me - pos
-			local ahead = rel:Dot(g.dir)
-			if ahead > 0 and ahead < half + 10 and math.abs(rel:Dot(g.right)) < 3.5 and math.abs(rel.Y) < 8 then
-				target = 0
-			end
-		end
+	else
+		c.stuck = math.max(0, c.stuck - dt)
 	end
 	if c.speed < target then
 		c.speed = math.min(target, c.speed + accel * dt)
@@ -476,6 +748,8 @@ local function stepCar(c, dt: number, me: Vector3?)
 		local tr = c.turn
 		tr.s += move
 		if tr.s >= tr.len then
+			c.lastNode, c.lastApproach = c.leg.to, approachOf(c)
+			c.claimed = nil
 			c.leg = tr.next
 			c.lane = tr.lane
 			c.offset = tr.offset
@@ -485,6 +759,11 @@ local function stepCar(c, dt: number, me: Vector3?)
 		end
 	else
 		c.t += move
+		-- the nose reaches the line: the junction is this car's (the next car in this very frame sees it taken)
+		if not c.claimed and not atLight and c.leg.len - c.t - c.len / 2 <= 1.5 then
+			c.claimed = true
+			claimBox(c)
+		end
 		if c.t >= c.leg.len then
 			planTurn(c)
 			c.turn.s = c.t - c.leg.len
@@ -644,11 +923,50 @@ local function setWalking(p, on: boolean)
 	end
 end
 
+-- Where a pedestrian stands (on the ground plane).
+local function pedPosition(p): Vector3
+	local g = p.leg
+	return g.start + g.dir * p.t + g.right * g.lateral
+end
+
+-- True when it's safe to step off the kerb: at a signalled junction when the cars across are held
+-- by a red light (or none are coming), elsewhere when no car is on its way across the crossing.
+local function crossingClear(p): boolean
+	local here = pedPosition(p)
+	local walk = p.leg.dir
+	local across = if axisOf(walk) == "NS" then "EW" else "NS"
+	if p.node and hasSignal(p.node) and Ambience.signal(across) == "red" then
+		return true
+	end
+	for _, c in cars do
+		if c.pos and c.speed > 1.5 and math.abs(c.fwd:Dot(walk)) < 0.6 then
+			local rel = here - c.pos
+			local ahead = rel:Dot(c.fwd)
+			-- (a car that is still coming, near enough to matter, and in line with the crossing)
+			if ahead > -c.len / 2 and ahead < 14 + c.speed * 2.2 and math.abs(rel:Dot(walk)) < c.width then
+				return false
+			end
+		end
+	end
+	return true
+end
+
 local function stepPed(p, dt: number)
 	if p.pause > 0 then
 		p.pause -= dt
 		setWalking(p, p.pause <= 0)
 		return
+	end
+	if p.t < 0 and not p.crossing then
+		-- at the kerb: wait for a gap (not for ever)
+		p.wait = (p.wait or 0) + dt
+		if p.wait < 25 and not crossingClear(p) then
+			setWalking(p, false)
+			return
+		end
+		p.crossing = true
+		p.wait = 0
+		setWalking(p, true)
 	end
 	p.t += p.speed * dt
 	if p.t >= p.leg.len then
@@ -665,14 +983,17 @@ local function stepPed(p, dt: number)
 				end
 			end
 		end
+		p.crossing = false
 		if straight and rng:NextNumber() < 0.75 then
 			p.leg = sidewalkLeg(straight, g.to, g.side)
 			p.t = -crossWidth(g.road, g.to) -- walk over the crossing first
+			p.node = g.to
 		else
 			p.leg = sidewalkLeg(g.road, g.to, -g.side)
 			p.t = 0
 		end
-	elseif rng:NextNumber() < dt * 0.04 then
+	elseif p.t >= 0 and rng:NextNumber() < dt * 0.04 then
+		-- (never a pause in the middle of a crossing)
 		p.pause = rng:NextNumber(2, 6)
 		setWalking(p, false)
 	end
@@ -834,22 +1155,27 @@ function Traffic.init()
 	folder = Instance.new("Folder")
 	folder.Name = "ClientTraffic"
 	folder.Parent = Workspace
+	-- only ready-made cars drive the streets (VehicleModels.hasKit): nothing is built from boxes
 	for _, v in Vehicles.list do
-		if v.kind == "car" then
+		if v.kind == "car" and VehicleModels.hasKit(v) then
 			table.insert(carDefs, v)
 			if v.price < 60000 then
 				table.insert(carDefs, v) -- everyday cars twice as common
 			end
 		end
 	end
-	-- the street's own: buses, trucks, vans and taxis (the buses and trucks are rarer)
+	-- the street's own: vans and taxis
 	for _, v in Vehicles.street do
-		table.insert(carDefs, v)
-		if v.body ~= "bus" and v.body ~= "truck" then
+		if VehicleModels.hasKit(v) then
+			table.insert(carDefs, v)
 			table.insert(carDefs, v)
 		end
 	end
-	policeDefs = Vehicles.police
+	for _, v in Vehicles.police do
+		if VehicleModels.hasKit(v) then
+			table.insert(policeDefs, v)
+		end
+	end
 	local spawnClock, umbrellaClock, copClock = 0, 0, 0
 	RunService.RenderStepped:Connect(function()
 		local cam = camPos()
@@ -876,6 +1202,18 @@ function Traffic.init()
 			end
 		end
 		local now = os.clock()
+		-- every car decides from the same picture: where all of them and the people are right now
+		for _, c in cars do
+			refreshPose(c)
+		end
+		refreshBoxes()
+		table.clear(pedPoints)
+		for _, p in peds do
+			table.insert(pedPoints, pedPosition(p))
+		end
+		for _, o in fakeObstacles do
+			table.insert(pedPoints, o)
+		end
 		for i = #cars, 1, -1 do
 			local c = cars[i]
 			c.lastSpeed = c.speed
@@ -952,7 +1290,23 @@ function Traffic.setCrowd(level: string)
 	applyDensity()
 end
 
--- (for the tests: the cars on the road right now)
+-- (for the tests: a standing person in a car's way, the cars on the road right now)
+function Traffic._addObstacle(pos: Vector3)
+	table.insert(fakeObstacles, pos)
+end
+
+function Traffic._clearObstacles()
+	table.clear(fakeObstacles)
+end
+
+function Traffic._peds()
+	return peds
+end
+
+function Traffic._boxes()
+	return boxes
+end
+
 -- (the tests look at a street car's driver: how far the arms are turned from the way the rig was made)
 function Traffic._driverJoints(carModel: Model)
 	for _, c in cars do
