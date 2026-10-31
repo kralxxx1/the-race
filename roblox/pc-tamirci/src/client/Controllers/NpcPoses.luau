@@ -39,6 +39,10 @@ local WALKING = { sneak = true }
 
 -- Is this person on a workbench stool?
 local function atBench(model: Model): boolean
+	-- (the server writes AtBench when it puts somebody on a stool by hand)
+	if model:GetAttribute("AtBench") == true then
+		return true
+	end
 	local hum = model:FindFirstChildOfClass("Humanoid")
 	local seat = hum and hum.SeatPart
 	return seat ~= nil and seat.Name == "Stool"

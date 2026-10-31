@@ -1,15 +1,16 @@
--- DriverPose: arm poses for somebody sitting down (R15), set every frame after the animation has
--- been applied (the sit animation lets the arms hang):
+-- DriverPose: poses for somebody sitting or standing at work (R15), written every frame:
 --   apply: at the wheel - both arms reach forward with bent elbows, turn with the steering, and the
 --          head looks into the bend
 --   work:  at a desk or a counter - hands forward on the work, head down, and the hands do what the
 --          job asks (DriverPose.KIND maps a repair action to the motion): turning a screwdriver,
 --          blowing dust, brushing, squeezing paste, soldering, prying, pulling a part, typing...
 -- A pose is a table of angles (radians) so the poses can be blended from one to the next.
+-- The poses are written to the joints' C0, on top of the C0 they were built with: the animation owns
+-- Motor6D.Transform and paints over anything written there, but nobody touches C0.
 
 local DriverPose = {}
 
-export type Joints = { rs: Motor6D?, ls: Motor6D?, re: Motor6D?, le: Motor6D?, rw: Motor6D?, lw: Motor6D?, neck: Motor6D?, waist: Motor6D? }
+export type Joints = { rs: Motor6D?, ls: Motor6D?, re: Motor6D?, le: Motor6D?, rw: Motor6D?, lw: Motor6D?, neck: Motor6D?, waist: Motor6D?, base: { [string]: CFrame } }
 export type Pose = { rs: { number }, ls: { number }, re: number, le: number, rw: { number }, lw: { number }, neck: { number }, waist: number }
 
 local ARM_REACH, ELBOW_BEND = math.rad(46), math.rad(58)
@@ -20,7 +21,7 @@ function DriverPose.joints(model: Model): Joints
 		local d = model:FindFirstChild(name, true)
 		return if d and d:IsA("Motor6D") then d else nil
 	end
-	return {
+	local j = {
 		rs = joint("RightShoulder"),
 		ls = joint("LeftShoulder"),
 		re = joint("RightElbow"),
@@ -30,6 +31,24 @@ function DriverPose.joints(model: Model): Joints
 		neck = joint("Neck"),
 		waist = joint("Waist"),
 	}
+	-- what each joint was built with: a pose is an offset on it
+	local base = {}
+	for name, motor in j do
+		local ok, c0 = pcall(function()
+			return motor.C0
+		end)
+		base[name] = if ok and c0 then c0 else CFrame.new()
+	end
+	j.base = base
+	return j :: any
+end
+
+-- Turns a joint by `by` from its own C0 (nil: back to it).
+local function put(j: Joints, name: string, by: CFrame?)
+	local motor = (j :: any)[name] :: Motor6D?
+	if motor then
+		motor.C0 = if by then j.base[name] * by else j.base[name]
+	end
 end
 
 -- steer: -1 (full right) .. 1 (full left). Does nothing for a rig without shoulders.
@@ -38,25 +57,31 @@ function DriverPose.apply(j: Joints?, steer: number)
 		return
 	end
 	local wheel = math.rad(steer * 26)
-	j.rs.Transform = CFrame.Angles(ARM_REACH, wheel, 0)
-	j.ls.Transform = CFrame.Angles(ARM_REACH, wheel, 0)
+	put(j, "rs", CFrame.Angles(ARM_REACH, wheel, 0))
+	put(j, "ls", CFrame.Angles(ARM_REACH, wheel, 0))
 	if j.re and j.le then
-		j.re.Transform = CFrame.Angles(ELBOW_BEND, 0, 0)
-		j.le.Transform = CFrame.Angles(ELBOW_BEND, 0, 0)
+		put(j, "re", CFrame.Angles(ELBOW_BEND, 0, 0))
+		put(j, "le", CFrame.Angles(ELBOW_BEND, 0, 0))
 	end
 	if j.neck then
-		j.neck.Transform = CFrame.Angles(0, math.rad(steer * 14), 0)
+		put(j, "neck", CFrame.Angles(0, math.rad(steer * 14), 0))
 	end
 end
 
--- Back to whatever the animation does (when the person gets up or out of the car).
+-- Back to the way the rig was built (when the person gets up, walks off or is out of the car).
 function DriverPose.reset(j: Joints?)
 	if not j then
 		return
 	end
-	for _, joint in { j.rs, j.ls, j.re, j.le, j.rw, j.lw, j.neck, j.waist } do
-		joint.Transform = CFrame.new()
+	for _, name in { "rs", "ls", "re", "le", "rw", "lw", "neck", "waist" } do
+		put(j, name, nil)
 	end
+end
+
+-- How far a joint is turned from the way it was built (identity: not posed).
+function DriverPose.offset(j: Joints, name: string): CFrame
+	local motor = (j :: any)[name] :: Motor6D?
+	return if motor then j.base[name]:Inverse() * motor.C0 else CFrame.new()
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -237,23 +262,23 @@ function DriverPose.set(j: Joints?, p: Pose)
 	if not j or not j.rs or not j.ls then
 		return
 	end
-	j.rs.Transform = CFrame.Angles(p.rs[1], p.rs[2], p.rs[3] or 0)
-	j.ls.Transform = CFrame.Angles(p.ls[1], p.ls[2], p.ls[3] or 0)
+	put(j, "rs", CFrame.Angles(p.rs[1], p.rs[2], p.rs[3] or 0))
+	put(j, "ls", CFrame.Angles(p.ls[1], p.ls[2], p.ls[3] or 0))
 	if j.re and j.le then
-		j.re.Transform = CFrame.Angles(p.re, 0, 0)
-		j.le.Transform = CFrame.Angles(p.le, 0, 0)
+		put(j, "re", CFrame.Angles(p.re, 0, 0))
+		put(j, "le", CFrame.Angles(p.le, 0, 0))
 	end
 	if j.rw then
-		j.rw.Transform = CFrame.Angles(p.rw[1], p.rw[2], p.rw[3] or 0)
+		put(j, "rw", CFrame.Angles(p.rw[1], p.rw[2], p.rw[3] or 0))
 	end
 	if j.lw then
-		j.lw.Transform = CFrame.Angles(p.lw[1], p.lw[2], p.lw[3] or 0)
+		put(j, "lw", CFrame.Angles(p.lw[1], p.lw[2], p.lw[3] or 0))
 	end
 	if j.neck then
-		j.neck.Transform = CFrame.Angles(p.neck[1], p.neck[2], 0)
+		put(j, "neck", CFrame.Angles(p.neck[1], p.neck[2], 0))
 	end
 	if j.waist then
-		j.waist.Transform = CFrame.Angles(p.waist or 0, 0, 0)
+		put(j, "waist", CFrame.Angles(p.waist or 0, 0, 0))
 	end
 end
 

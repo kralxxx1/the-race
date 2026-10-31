@@ -91,7 +91,9 @@ return function(T)
 					local flat = root.Position - roblox.Vector3.new(at.X, root.Position.Y, at.Z)
 					T.ok(flat.Magnitude < 1, "the clerk stands at the counter: " .. string.format("%.1f", flat.Magnitude))
 					-- on the floor behind the counter, not in the air or sunk in it
-					T.ok(root.Position.Y > at.Y + 1.5 and root.Position.Y < at.Y + 5, "the clerk is on the floor: " .. string.format("%.1f", root.Position.Y - at.Y))
+					local hum = clerk:FindFirstChildOfClass("Humanoid")
+					local standing = hum.HipHeight + root.Size.Y / 2
+					T.ok(math.abs(root.Position.Y - (at.Y + standing)) < 0.3, "the clerk stands on the floor, not on the counter or in the air: " .. string.format("%.2f vs %.2f", root.Position.Y - at.Y, standing))
 					-- facing the customers on the other side of the counter
 					T.ok(root.CFrame.LookVector:Dot(anchor:GetAttribute("ClerkCF").LookVector) > 0.9, "facing the customers")
 					T.eq(clerk:GetAttribute("Doing"), "register", "typing at the till")
@@ -432,6 +434,83 @@ return function(T)
 		PlotService.build(player)
 	end)
 
+	T.test("server: one technician works through a whole queue of mixed jobs, one after the other, and never gets stuck", function()
+		local Tools = Engine.mod("ReplicatedStorage.Shared.Data.Tools")
+		local p = DataService.get(player)
+		p.money = 100000
+		p.shop.level = 4
+		for _, t in Tools.list do
+			p.tools[t.id] = true
+		end
+		local function rec(role: string, uid: string)
+			return { uid = uid, role = role, name = role, gender = "m", skill = 4, wage = 100, trait = "calm", trait2 = "punctual", edu = "highschool", morale = 80, days = 0, xp = 0, look = 3 }
+		end
+		-- (a manager keeps the parts coming, as a real shop would)
+		p.staff = { rec("technician", "q_tech"), rec("manager", "q_boss") }
+		PlotService.build(player)
+		EmployeeService.stepScale = 0.02
+		local rng = Mock.Random.new(21)
+		local jobs = {}
+		local function add(dev, faults, requestId, request)
+			local j = RepairService.createJob(player, { device = dev, faults = faults, requestId = requestId, request = request, kind = if requestId then "request" else "repair", price = 120, customer = nil })
+			T.ok(j ~= nil, "a job was created")
+			table.insert(jobs, j)
+		end
+		for _, fid in { "dust", "ram_unseated", "virus" } do
+			local dev = DeviceGen.desktop(rng, "mid")
+			DeviceGen.applyFault(dev, fid, rng)
+			add(dev, { fid })
+		end
+		do
+			local dev = DeviceGen.desktop(rng, "office")
+			local req = DeviceGen.applyRequest(dev, "upgrade_ram", rng, 600)
+			add(dev, {}, "upgrade_ram", req)
+			local dev2 = DeviceGen.desktop(rng, "mid")
+			local req2 = DeviceGen.applyRequest(dev2, "maintenance", rng, 600)
+			add(dev2, {}, "maintenance", req2)
+		end
+		local t0 = os.clock()
+		local last = 0
+		-- whoever is repairing sits on the stool of their bench, right at the desk
+		local CollectionService = game:GetService("CollectionService")
+		local working, seated = 0, 0
+		local shop = PlotService.shopOf(player)
+		waitFor(function()
+			for _, m in CollectionService:GetTagged("Staff") do
+				if m:GetAttribute("Doing") and m:GetAttribute("Staff") == "technician" and m.PrimaryPart then
+					working += 1
+					for _, bench in shop.benches do
+						local stool = bench:FindFirstChild("Stool")
+						if stool and (m.PrimaryPart.Position - stool.Position).Magnitude < 3 and m.PrimaryPart.Position.Y > stool.Position.Y then
+							seated += 1
+							break
+						end
+					end
+				end
+			end
+			local ready = 0
+			for _, j in jobs do
+				if j.status == "ready" then
+					ready += 1
+				end
+			end
+			if ready ~= last then
+				last = ready
+				print(string.format("    %d of %d jobs done after %.0f s", ready, #jobs, os.clock() - t0))
+			end
+			return ready == #jobs
+		end, 90, "the technician to finish all " .. #jobs .. " jobs")
+		for _, j in jobs do
+			T.ok(j.verdict ~= nil, "judged")
+		end
+		T.ok(working >= 3, "the technician was seen at work: " .. working)
+		T.ok(seated >= working * 0.9, "at work he sits on the stool at the bench: " .. seated .. " of " .. working)
+		T.ok(RepairService.freeBench(player) == 1, "the bench is free again")
+		EmployeeService.stepScale = 0
+		p.staff = {}
+		PlotService.build(player)
+	end)
+
 	T.test("server: front staff and free technicians come to the counter, face the customer and type while they serve", function()
 		local CollectionService = game:GetService("CollectionService")
 		local p = DataService.get(player)
@@ -631,6 +710,8 @@ return function(T)
 		local p = DataService.get(player)
 		p.money = 100000
 		p.level = 5
+		-- (something worth taking in the stockroom: the earlier tests may have used everything up)
+		DataService.addPart(player, "gpu_rtx3060", 1, "new")
 		-- the bat from the hardware store lands in the backpack
 		for _, a in CS:GetTagged("ServicePoint") do
 			if a:GetAttribute("Service") == "tools" then

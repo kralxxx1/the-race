@@ -656,13 +656,16 @@ return function(T)
 		T.ok(walkers >= 5, "avatar pedestrians: " .. walkers)
 		T.ok(drivers >= 3, "avatar drivers: " .. drivers)
 		-- the drivers hold the wheel: their arms are out in front, not hanging
+		local DriverPoseMod = Engine.mod("ReplicatedStorage.Shared.Util.DriverPose")
 		local armsOn, jointed = 0, 0
 		for _, m in folder:GetChildren() do
 			local d = m:FindFirstChild("DriverAvatar")
 			local rs = d and d:FindFirstChild("RightShoulder", true)
 			if rs and rs:IsA("Motor6D") then
 				jointed += 1
-				if rs.Transform ~= roblox.CFrame.new() then
+				-- (the pose is an offset on the joint's own C0; the rig's base is in its C0 attribute-free form)
+				local c = Traffic._driverJoints(m)
+				if c and DriverPoseMod.offset(c, "rs") ~= roblox.CFrame.new() then
 					armsOn += 1
 				end
 			end
@@ -795,22 +798,25 @@ return function(T)
 		local joints = DriverPose.joints(rig)
 		T.ok(joints.rs ~= nil and joints.ls ~= nil and joints.neck ~= nil, "the joints are found")
 		DriverPose.apply(joints, 0)
-		local straight = joints.rs.Transform
+		local straight = DriverPose.offset(joints, "rs")
 		T.ok(straight ~= roblox.CFrame.new(), "the arm is no longer hanging")
 		local ax = straight:ToEulerAnglesXYZ()
 		T.ok(math.abs(math.deg(ax) - 46) < 1, "reaching forward 46 degrees: " .. math.deg(ax))
 		DriverPose.apply(joints, 1)
-		local left = joints.rs.Transform
+		local left = DriverPose.offset(joints, "rs")
 		DriverPose.apply(joints, -1)
-		local right = joints.rs.Transform
+		local right = DriverPose.offset(joints, "rs")
 		T.ok(left ~= right and left ~= straight and right ~= straight, "the arms turn with the wheel")
-		T.ok(joints.neck.Transform ~= roblox.CFrame.new(), "and the head follows")
+		T.ok(DriverPose.offset(joints, "neck") ~= roblox.CFrame.new(), "and the head follows")
 		-- somebody working at a bench: hands out in front, head down, and the typing moves the arms
 		DriverPose.work(joints, 0, 0)
-		local a = joints.rs.Transform
-		T.ok(a ~= roblox.CFrame.new() and joints.neck.Transform ~= roblox.CFrame.new(), "at the bench: arms forward, head down")
+		local a = DriverPose.offset(joints, "rs")
+		T.ok(a ~= roblox.CFrame.new() and DriverPose.offset(joints, "neck") ~= roblox.CFrame.new(), "at the bench: arms forward, head down")
 		DriverPose.work(joints, 0.1, 0)
-		T.ok(joints.rs.Transform ~= a, "typing moves the arms")
+		T.ok(DriverPose.offset(joints, "rs") ~= a, "typing moves the arms")
+		-- the rig keeps the C0 it was built with underneath, and gets it back
+		DriverPose.reset(joints)
+		T.eq(DriverPose.offset(joints, "rs"), roblox.CFrame.new(), "back to the way it was built")
 		-- a rig without shoulders is left alone
 		DriverPose.apply(DriverPose.joints(roblox.Instance.new("Model")), 0.5)
 		DriverPose.work(DriverPose.joints(roblox.Instance.new("Model")), 0.5, 0)
@@ -850,7 +856,7 @@ return function(T)
 			for _, name in { "RightShoulder", "LeftShoulder", "RightElbow", "LeftElbow", "RightWrist", "LeftWrist", "Neck" } do
 				local j = roblox.Instance.new("Motor6D")
 				j.Name = name
-				j.Transform = roblox.CFrame.new()
+				j.C0 = roblox.CFrame.new()
 				j.Parent = m
 			end
 			m:AddTag("NpcModel")
@@ -874,31 +880,31 @@ return function(T)
 		end
 		local tech = rig("technician", "unscrew")
 		run(2.5)
-		local rolled = joint(tech, "RightWrist").Transform
+		local rolled = joint(tech, "RightWrist").C0
 		T.ok(rolled ~= roblox.CFrame.new(), "the wrist turns the screwdriver")
-		T.ok(joint(tech, "LeftElbow").Transform ~= roblox.CFrame.new(), "the other arm holds on")
+		T.ok(joint(tech, "LeftElbow").C0 ~= roblox.CFrame.new(), "the other arm holds on")
 		-- the next step is a different motion
 		tech:SetAttribute("Doing", "brush")
 		run(1.5)
-		local ax = joint(tech, "RightShoulder").Transform
+		local ax = joint(tech, "RightShoulder").C0
 		tech:SetAttribute("Doing", "grab")
 		tech:SetAttribute("Doing", "remove")
 		run(1.5)
-		T.ok(joint(tech, "RightShoulder").Transform ~= ax, "a different step, a different movement")
+		T.ok(joint(tech, "RightShoulder").C0 ~= ax, "a different step, a different movement")
 		-- the work is done: the arms are given back
 		tech:SetAttribute("Doing", nil)
 		run(0.5)
-		T.eq(joint(tech, "RightWrist").Transform, roblox.CFrame.new(), "the wrist is free again")
-		T.eq(joint(tech, "RightShoulder").Transform, roblox.CFrame.new(), "the arms are free again")
+		T.eq(joint(tech, "RightWrist").C0, roblox.CFrame.new(), "the wrist is free again")
+		T.eq(joint(tech, "RightShoulder").C0, roblox.CFrame.new(), "the arms are free again")
 		tech:Destroy()
 		-- somebody standing at their post does their chore: the cleaner wipes, the receptionist types
 		local cleaner = rig("cleaner", nil)
 		local recep = rig("receptionist", nil)
 		local guard = rig("security", nil)
 		run(1.5)
-		T.ok(joint(cleaner, "RightShoulder").Transform ~= roblox.CFrame.new(), "the cleaner wipes")
-		T.ok(joint(recep, "LeftShoulder").Transform ~= roblox.CFrame.new(), "the receptionist types")
-		T.eq(joint(guard, "RightShoulder").Transform, roblox.CFrame.new(), "the guard just stands")
+		T.ok(joint(cleaner, "RightShoulder").C0 ~= roblox.CFrame.new(), "the cleaner wipes")
+		T.ok(joint(recep, "LeftShoulder").C0 ~= roblox.CFrame.new(), "the receptionist types")
+		T.eq(joint(guard, "RightShoulder").C0, roblox.CFrame.new(), "the guard just stands")
 		-- walking is not a chore
 		local _, root = rig("cleaner", nil)
 		local walker = root.Parent
@@ -907,7 +913,7 @@ return function(T)
 			x += 0.5
 			root.Position = roblox.Vector3.new(x, 3, 5)
 		end)
-		T.eq(joint(walker, "RightShoulder").Transform, roblox.CFrame.new(), "no wiping while walking")
+		T.eq(joint(walker, "RightShoulder").C0, roblox.CFrame.new(), "no wiping while walking")
 		for _, m in { cleaner, recep, guard, walker } do
 			m:Destroy()
 		end

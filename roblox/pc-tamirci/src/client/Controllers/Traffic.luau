@@ -953,6 +953,16 @@ function Traffic.setCrowd(level: string)
 end
 
 -- (for the tests: the cars on the road right now)
+-- (the tests look at a street car's driver: how far the arms are turned from the way the rig was made)
+function Traffic._driverJoints(carModel: Model)
+	for _, c in cars do
+		if c.model == carModel then
+			return c.joints
+		end
+	end
+	return nil
+end
+
 function Traffic._cars()
 	return cars
 end

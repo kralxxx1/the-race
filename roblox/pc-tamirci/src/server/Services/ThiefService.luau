@@ -141,7 +141,9 @@ local function caught(t, catcher: Player?, byGuard: string?)
 	t.done = true
 	local owner = t.owner
 	local lang = DataService.lang(owner)
-	-- (caught red-handed: the hands come out of the till, no more creeping)
+	-- (caught red-handed: the hands come out of the till, no more creeping, and the run for the door
+	-- stops on the spot)
+	NpcService.halt(t.model)
 	NpcService.work(t.model, nil)
 	t.model:SetAttribute("Sneaking", nil)
 	NpcService.say(t.model, Rand.pick(rng, LINES[lang].caught), 4)
@@ -172,10 +174,13 @@ local function caught(t, catcher: Player?, byGuard: string?)
 	end
 	task.delay(3, function()
 		local exit = point(owner, "ThiefExit")
-		if exit and t.model.Parent then
+		if exit and NpcService.alive(t.model) then
 			if hum then
 				hum.WalkSpeed = 8
 			end
+			-- (let go and led away, with the bag taken off him)
+			NpcService.release(t.model)
+			NpcService.carry(t.model, nil)
 			NpcService.walkTo(t.model, exit.Position, 12)
 		end
 		finish(t.model)

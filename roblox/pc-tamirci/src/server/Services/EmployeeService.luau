@@ -426,49 +426,73 @@ function EmployeeService.pickJob(player: Player, rec)
 	return pick
 end
 
+-- One go at the next job: take it to a free bench, walk there, sit on the stool, repair it, get up
+-- and go back to your place.
+local function techRound(player: Player, s)
+	local shop = PlotService.shopOf(player)
+	if not shop or not s.model or player:GetAttribute("PowerCut") then
+		-- (no work without electricity)
+		return
+	end
+	local pick = EmployeeService.pickJob(player, s.rec)
+	if not pick then
+		return
+	end
+	local bench = RepairService.freeBench(player)
+	if not bench then
+		return
+	end
+	if not RepairService.load(player, bench, pick.id, s.rec.uid) then
+		return
+	end
+	s.busy = true
+	s.bench = bench
+	local benchModel = shop.benches[bench]
+	local staffPt = point(player, "Staff_" .. bench)
+	local stool = benchModel and benchModel:FindFirstChild("Stool") :: Seat?
+	if staffPt and s.model then
+		-- (in front of the stool, on the technician's side, then onto it)
+		NpcService.walkTo(s.model, staffPt.Position + staffPt.CFrame.LookVector * 2.8)
+		if stool and s.model and NpcService.alive(s.model) then
+			NpcService.sit(s.model, stool, true)
+		end
+	end
+	techWork(player, s, bench, pick)
+	s.busy = false
+	s.bench = nil
+	-- (the tool goes down, the hands rest, the line under the name goes out, they get up)
+	NpcService.work(s.model, nil)
+	if s.model and NpcService.alive(s.model) then
+		NpcService.unsit(s.model)
+		local spot = spotFor(player, s)
+		if spot then
+			NpcService.walkTo(s.model, spot.Position)
+		end
+	end
+end
+
 local function techLoop(player: Player, s)
 	while not s.stop and player.Parent do
 		task.wait(1.5 + rng:NextNumber() * 1.5)
 		if s.stop or s.busy or s.serving then
 			continue
 		end
-		local shop = PlotService.shopOf(player)
-		if not shop or not s.model or player:GetAttribute("PowerCut") then
-			-- (no work without electricity)
-			continue
-		end
-		local pick = EmployeeService.pickJob(player, s.rec)
-		if not pick then
-			continue
-		end
-		local bench = RepairService.freeBench(player)
-		if not bench then
-			continue
-		end
-		if not RepairService.load(player, bench, pick.id, s.rec.uid) then
-			continue
-		end
-		s.busy = true
-		local benchModel = shop.benches[bench]
-		local staffPt = point(player, "Staff_" .. bench)
-		if staffPt and s.model then
-			NpcService.walkTo(s.model, staffPt.Position)
-			local stool = benchModel and benchModel:FindFirstChild("Stool") :: Seat?
-			NpcService.sit(s.model, stool)
-		end
-		techWork(player, s, bench, pick)
-		s.busy = false
-		-- (the tool goes down, the hands rest, the line under the name goes out)
-		NpcService.work(s.model, nil)
-		if s.model and NpcService.alive(s.model) then
-			local hum = s.model:FindFirstChildOfClass("Humanoid")
-			if hum then
-				hum.Sit = false
+		local ok, err = pcall(techRound, player, s)
+		if not ok then
+			-- whatever went wrong, the bench is not kept and the job goes back in the queue: nobody
+			-- stands idle for ever because one round threw
+			warn("[EmployeeService] " .. tostring(s.rec.name) .. " could not finish a round: " .. tostring(err))
+			s.busy = false
+			if s.bench then
+				pcall(RepairService.clearBench, player, s.bench)
+				s.bench = nil
 			end
-			local spot = spotFor(player, s)
-			if spot then
-				NpcService.walkTo(s.model, spot.Position)
-			end
+			pcall(NpcService.work, s.model, nil)
+			pcall(function()
+				if s.model and NpcService.alive(s.model) then
+					NpcService.unsit(s.model)
+				end
+			end)
 		end
 	end
 end

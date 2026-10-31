@@ -975,9 +975,12 @@ function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: bo
 	if not hum or not root then
 		return false
 	end
-	if hum.SeatPart then
-		hum.Sit = false
-		task.wait(0.2)
+	if model:GetAttribute("Halt") then
+		return false -- (caught: they stay where they are until they are let go)
+	end
+	if hum.SeatPart or model:GetAttribute("AtBench") then
+		NpcService.unsit(model)
+		task.wait(0.1)
 	end
 	setAnchored(model, true)
 	local speed = math.max(4, hum.WalkSpeed) * (Config.NpcSpeedScale or 1)
@@ -993,7 +996,7 @@ function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: bo
 	local t0, last = os.clock(), os.clock()
 	while travelled < dist and alive(model) and os.clock() - t0 < limit do
 		task.wait(WALK_STEP)
-		if not alive(model) then
+		if not alive(model) or model:GetAttribute("Halt") then
 			break
 		end
 		local now = os.clock()
@@ -1031,9 +1034,9 @@ function NpcService.stand(model: Model, cf: CFrame)
 	if not hum or not root then
 		return
 	end
+	-- (the floor is where cf is: a look downwards would find the person's own head, or the counter)
 	local hip = hum.HipHeight + root.Size.Y / 2
-	local g = groundAt(cf.X, cf.Y + 4, cf.Z)
-	local p = Vector3.new(cf.X, (g or cf.Y) + hip, cf.Z)
+	local p = Vector3.new(cf.X, cf.Y + hip, cf.Z)
 	local look = cf.LookVector
 	model:PivotTo(CFrame.lookAt(p, p + Vector3.new(look.X, 0, look.Z)))
 end
@@ -1063,15 +1066,93 @@ function NpcService.face(model: Model, pos: Vector3)
 	end
 end
 
-function NpcService.sit(model: Model, seat: Seat?)
+-- Takes somebody off whatever they sit on: the weld that holds a sitter is cut (a Humanoid told to
+-- stand up while anchored would stay glued to the seat, and the seat would stay taken).
+function NpcService.unsit(model: Model)
 	local hum = model:FindFirstChildOfClass("Humanoid")
-	if hum and seat and not seat.Occupant then
+	if not hum then
+		return
+	end
+	local seat = hum.SeatPart
+	if seat and alive(seat :: any) then
+		for _, w in seat:GetChildren() do
+			if w.Name == "SeatWeld" then
+				w:Destroy()
+			end
+		end
+	end
+	hum.Sit = false
+	model:SetAttribute("AtBench", nil)
+end
+
+-- A seat somebody left a weld on (their model is gone or walked off) is free again.
+local function freeSeat(seat: Seat)
+	local occupant = seat.Occupant
+	if occupant and not Players:GetPlayerFromCharacter(occupant.Parent) then
+		for _, w in seat:GetChildren() do
+			if w.Name == "SeatWeld" then
+				w:Destroy()
+			end
+		end
+	end
+end
+
+local SIT_HEIGHT = 1.5 -- an R15 root sits this far above the cushion (the hips are on it)
+
+-- Sits somebody on a seat part. `byHand`: put them on it themselves (anchored, on the cushion,
+-- facing the way the seat faces) instead of asking the engine to seat them: a technician at a bench
+-- must never get glued to the stool or leave it taken. Returns whether they are sitting.
+function NpcService.sit(model: Model, seat: Seat?, byHand: boolean?): boolean
+	-- (a shop rebuilt while somebody is on their way takes the seat with it)
+	if not alive(model) or not alive(seat :: any) then
+		return false
+	end
+	local hum = model:FindFirstChildOfClass("Humanoid")
+	if not hum or not seat or not model.PrimaryPart then
+		return false
+	end
+	NpcService.unsit(model)
+	freeSeat(seat)
+	if seat.Occupant then
+		return false -- a real person is on it
+	end
+	local seated = false
+	if not byHand then
 		setAnchored(model, false)
 		seat:Sit(hum)
-		NpcService.play(model, "sit")
-		return true
+		for _ = 1, 8 do
+			seated = hum.SeatPart == seat
+			if seated then
+				break
+			end
+			task.wait(0.05)
+		end
 	end
-	return false
+	if not seated then
+		setAnchored(model, true)
+		local ok = pcall(function()
+			model:PivotTo(CFrame.new(seat.Position + Vector3.new(0, seat.Size.Y / 2 + SIT_HEIGHT, 0)) * seat.CFrame.Rotation)
+		end)
+		if not ok then
+			return false -- (the seat is gone)
+		end
+		model:SetAttribute("AtBench", true)
+	end
+	NpcService.play(model, "sit")
+	return true
+end
+
+-- Caught or stopped: whatever walk they are on ends at once, and no new one starts until `release`.
+function NpcService.halt(model: Model?)
+	if model and NpcService.alive(model) then
+		model:SetAttribute("Halt", true)
+	end
+end
+
+function NpcService.release(model: Model?)
+	if model and NpcService.alive(model) then
+		model:SetAttribute("Halt", nil)
+	end
 end
 
 -- Speech bubble above the head.

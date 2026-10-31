@@ -732,7 +732,9 @@ local function pickup(player: Player, job)
 			NpcService.walkPath(cust.model, { point(player, "Outside"), point(player, "Door") })
 		end
 		if cust.seat then
-			cust.seat:SetAttribute("Reserved", nil)
+			pcall(function() -- (the seat may be gone if the shop was rebuilt meanwhile)
+				cust.seat:SetAttribute("Reserved", nil)
+			end)
 			cust.seat = nil
 		end
 		say(cust, "pickup", nil, 3)
@@ -788,6 +790,7 @@ function CustomerService.caught(cust, catcher: Player?)
 		return false
 	end
 	cust.state = "caught"
+	NpcService.halt(cust.model) -- (stops where he stands, no running on)
 	local player = cust.owner
 	local amount = math.floor((cust.price or 50) * 1.25)
 	DataService.money(player, amount, "caught")
@@ -800,6 +803,7 @@ function CustomerService.caught(cust, catcher: Player?)
 	NpcService.say(cust.model, if cust.lang == "en" then "OK OK! Here's your money!" else "Tamam tamam! Al paranı!", 4)
 	Net.push(player, "toast", { key = "caught_scammer", vars = { amount = amount, by = catcher and catcher.DisplayName or "" } })
 	task.delay(2.5, function()
+		NpcService.release(cust.model)
 		leave(cust)
 	end)
 	return true
