@@ -429,9 +429,12 @@ function Props.roadSign(parent: Instance, cf: CFrame, kind: string, text: string
 		return p
 	end
 	if kind == "stop" then
+		-- a red octagon (two squares, one turned) with a thin white rim behind it, and the word across it
+		-- (no bar through the middle: that would strike the word out)
+		B.box(m, face * CFrame.new(0, 0, 0.05), Vector3.new(2.5, 2.5, 0.12), white, M.SmoothPlastic, noCollide())
+		B.box(m, face * CFrame.new(0, 0, 0.06) * CFrame.Angles(0, 0, math.rad(45)), Vector3.new(2.5, 2.5, 0.12), white, M.SmoothPlastic, noCollide())
 		B.box(m, face, Vector3.new(2.3, 2.3, 0.14), red, M.SmoothPlastic, noCollide())
 		B.box(m, face * CFrame.new(0, 0, 0.01) * CFrame.Angles(0, 0, math.rad(45)), Vector3.new(2.3, 2.3, 0.14), red, M.SmoothPlastic, noCollide())
-		B.box(m, face * CFrame.new(0, 0, -0.08), Vector3.new(2.0, 0.08, 0.02), white, M.SmoothPlastic, noCollide())
 		words(Vector3.new(2.2, 1.1, 0.04), CFrame.new(0, 0, -0.1), "STOP", white)
 	elseif kind == "limit" then
 		B.cylZ(m, face * CFrame.new(0, 0, 0.02), 0.12, 3.0, red, M.SmoothPlastic, noCollide())

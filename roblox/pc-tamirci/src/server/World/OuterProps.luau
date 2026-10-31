@@ -8,6 +8,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local B = require(Shared.Util.Builder)
 local Rand = require(Shared.Util.Rand)
 local Props = require(Shared.Models.Props)
+local VehicleModels = require(Shared.Models.VehicleModels)
 
 local OuterProps = {}
 local M = Enum.Material
@@ -48,35 +49,46 @@ local function wheels(m: Instance, cf: CFrame, track: number, base: number, d: n
 	end
 end
 
--- A parked car (7 parts).
-function OuterProps.car(parent: Instance, cf: CFrame, rng: Random, color: any?): Model
-	local m = B.model("ParkedCar", parent)
-	local col = B.color(color or Rand.pick(rng, CAR_COLORS))
-	local long = Rand.range(rng, 9.4, 10.6)
-	B.box(m, cf * CFrame.new(0, 1.65, 0), Vector3.new(4.6, 1.5, long), col, M.SmoothPlastic)
-	B.box(m, cf * CFrame.new(0, 3.05, 0.5), Vector3.new(4.2, 1.3, long * 0.5), col, M.SmoothPlastic)
-	B.box(m, cf * CFrame.new(0, 3.0, 0.5), Vector3.new(4.3, 0.9, long * 0.5 + 0.1), GLASS, M.Glass, nc({ Transparency = 0.15 }))
-	wheels(m, cf, 4.1, long * 0.62, 1.8, 0.8)
+-- Parked cars and trucks are the same ready-made (Roblox) car bodies the streets drive, standing
+-- still: body and wheels only, no seats and no indicators, one invisible block to be solid.
+local PARKED = { "sedan", "sedan", "hatch", "wagon", "suv", "suv", "pickup", "coupe", "classic", "electric", "van" }
+local parkedN = 0
+
+-- Stands a built car on the ground (its wheels' bottoms at height y) after it was scaled.
+local function ground(m: Model, y: number)
+	local bcf, size = m:GetBoundingBox()
+	local bottom = bcf.Position.Y - size.Y / 2
+	m:PivotTo(m:GetPivot() - Vector3.new(0, bottom - y, 0))
+end
+
+local function solid(m: Model)
+	local bcf, size = m:GetBoundingBox()
+	local block = B.box(m, bcf, size * 0.94, Color3.new(1, 0, 1), M.SmoothPlastic, { Name = "Solid", Transparency = 1, CanCollide = true, CanQuery = false, CanTouch = false, CastShadow = false })
+	block.Anchored = true
+end
+
+local function parkedModel(parent: Instance, cf: CFrame, body: string, color: any, scale: number, name: string): Model
+	parkedN += 1
+	local def = { id = "parked_" .. body, kind = "car", body = body, name = { tr = "Park halinde araç", en = "Parked vehicle" }, price = 0, level = 1, speed = 0, accel = 0, turn = 0, seats = 2, colors = { { 240, 240, 240 } } }
+	local m = VehicleModels.build(parent, def, cf, { color = color, plate = string.format("PRK %04d", parkedN), static = true, parked = true, look = parkedN })
+	m.Name = name
+	pcall(function()
+		m:ScaleTo(scale)
+	end)
+	ground(m, cf.Position.Y)
+	solid(m)
 	return m
 end
 
--- A truck: cab and box trailer (9 parts).
-local TRUCK_NAMES = { "NORTHERN LOGISTICS", "COASTAL FREIGHT", "PACIFIC CARGO", "STARLINE TRANSPORT", "ARCTIC COLD CHAIN", "ESTATE EXPRESS" }
+-- A parked car.
+function OuterProps.car(parent: Instance, cf: CFrame, rng: Random, color: any?): Model
+	return parkedModel(parent, cf, Rand.pick(rng, PARKED), B.color(color or Rand.pick(rng, CAR_COLORS)), 0.84, "ParkedCar")
+end
+
+-- A parked delivery truck: the big van body in a company colour.
 function OuterProps.truck(parent: Instance, cf: CFrame, rng: Random): Model
-	local m = B.model("Truck", parent)
 	local cab = B.color(Rand.pick(rng, { { 240, 240, 238 }, { 200, 40, 40 }, { 30, 70, 150 }, { 240, 170, 30 }, { 40, 120, 70 } }))
-	-- cab at the front (-Z), trailer behind it
-	B.box(m, cf * CFrame.new(0, 4.6, -16), Vector3.new(8, 7, 7), cab, M.SmoothPlastic)
-	B.box(m, cf * CFrame.new(0, 6.4, -19.55), Vector3.new(7, 2.6, 0.2), GLASS, M.Glass, nc({ Transparency = 0.15 }))
-	B.box(m, cf * CFrame.new(0, 1.6, -2), Vector3.new(6, 1.2, 36), Color3.fromRGB(50, 50, 54), M.Metal)
-	local box = B.box(m, cf * CFrame.new(0, 7.2, 4), Vector3.new(8.4, 10, 30), Color3.fromRGB(236, 236, 232), M.SmoothPlastic)
-	B.sign(box, Enum.NormalId.Right, Rand.pick(rng, TRUCK_NAMES), { color = Color3.fromRGB(30, 50, 110), pixelsPerStud = 8 })
-	for _, z in { -16, 0, 14 } do
-		for _, sx in { -1, 1 } do
-			B.cyl(m, cf * CFrame.new(sx * 3.4, 1.4, z), 1.2, 2.8, TYRE, M.Rubber)
-		end
-	end
-	return m
+	return parkedModel(parent, cf, "van", cab, 1.35, "Truck")
 end
 
 -- A passenger jet (about 24 parts). s = scale (1.4 is believable next to a player).

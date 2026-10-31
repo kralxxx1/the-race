@@ -485,7 +485,8 @@ local function customize(m: Model, cf: CFrame, def, real, o: { [string]: any })
 			box("RackBar", CFrame.new(0, H + 0.3, z + dz * len * 0.4), Vector3.new(W * 0.6, 0.16, 0.2), rgb(30, 30, 34))
 		end
 		if r:NextNumber() < 0.5 then
-			box("RackBox", CFrame.new(0, H + 0.2 + 0.55, z), Vector3.new(W * 0.5, 1.1, len * 0.55), rgb(54, 58, 66), M.SmoothPlastic)
+			-- (the box sits across both rails, resting on them)
+			box("RackBox", CFrame.new(0, H + 0.2 + 0.53, z), Vector3.new(W * 0.66, 1.1, len * 0.55), rgb(54, 58, 66), M.SmoothPlastic)
 		end
 	end
 	-- the odd taxi: yellow paint and a lit sign on the roof
@@ -715,48 +716,50 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 	local chassisSize = Vector3.new(math.max(width - 0.6, 1.4), 1, math.max(wb + wr, 3))
 	local chassis = B.box(m, cf * CFrame.new(0, wr * 0.7 + 0.5, 0), chassisSize, Color3.new(1, 0, 1), M.SmoothPlastic, { Name = "Chassis", Transparency = 1, CanTouch = false })
 	m.PrimaryPart = chassis
-	-- seats
-	local seatCf
-	if isBike then
-		seatCf = cf * CFrame.new(0, S.seat + 0.15, 0.6)
-	elseif real then
-		seatCf = cf * CFrame.new(real.seat)
-	else
-		local CS = CARS[def.body] or CARS.sedan
-		seatCf = cf * CFrame.new(-CS.W * 0.22, CS.g + CS.hb * 0.55, -CS.L / 2 + CS.hood + 1.4)
-	end
-	local seat = Instance.new("VehicleSeat")
-	seat.Name = "Driver"
-	seat.Size = Vector3.new(1.6, 0.3, 1.6)
-	seat.CFrame = seatCf
-	seat.Transparency = 1
-	seat.CanCollide = false
-	seat.CanTouch = true
-	seat.MaxSpeed = 0
-	seat.Torque = 0
-	seat.HeadsUpDisplay = false
-	seat.Anchored = o.static == true
-	seat.Disabled = o.static == true
-	seat.Parent = m
-	if not isBike and (def.seats or 1) > 1 then
-		local CS = CARS[def.body] or CARS.sedan
-		local rows = math.min(3, math.ceil((def.seats - 1) / 2) + 1)
-		local n = 1
-		for r = 0, rows - 1 do
-			for _, s in { -1, 1 } do
-				if not (r == 0 and s == -1) and n < def.seats then
-					n += 1
-					local ps = Instance.new("Seat")
-					ps.Name = "Passenger"
-					ps.Size = Vector3.new(1.6, 0.3, 1.6)
-					ps.CFrame = if real
-						then cf * CFrame.new(-s * real.seat.X, real.seat.Y, real.seat.Z + r * 2.6 * real.L / 14)
-						else cf * CFrame.new(s * CS.W * 0.22, CS.g + CS.hb * 0.55, -CS.L / 2 + CS.hood + 1.4 + r * 2.6)
-					ps.Transparency = 1
-					ps.CanCollide = false
-					ps.Anchored = o.static == true
-					ps.Disabled = o.static == true
-					ps.Parent = m
+	-- seats (a parked car has none: it is a body and wheels to look at)
+	if not o.parked then
+		local seatCf
+		if isBike then
+			seatCf = cf * CFrame.new(0, S.seat + 0.15, 0.6)
+		elseif real then
+			seatCf = cf * CFrame.new(real.seat)
+		else
+			local CS = CARS[def.body] or CARS.sedan
+			seatCf = cf * CFrame.new(-CS.W * 0.22, CS.g + CS.hb * 0.55, -CS.L / 2 + CS.hood + 1.4)
+		end
+		local seat = Instance.new("VehicleSeat")
+		seat.Name = "Driver"
+		seat.Size = Vector3.new(1.6, 0.3, 1.6)
+		seat.CFrame = seatCf
+		seat.Transparency = 1
+		seat.CanCollide = false
+		seat.CanTouch = true
+		seat.MaxSpeed = 0
+		seat.Torque = 0
+		seat.HeadsUpDisplay = false
+		seat.Anchored = o.static == true
+		seat.Disabled = o.static == true
+		seat.Parent = m
+		if not isBike and (def.seats or 1) > 1 then
+			local CS = CARS[def.body] or CARS.sedan
+			local rows = math.min(3, math.ceil((def.seats - 1) / 2) + 1)
+			local n = 1
+			for r = 0, rows - 1 do
+				for _, s in { -1, 1 } do
+					if not (r == 0 and s == -1) and n < def.seats then
+						n += 1
+						local ps = Instance.new("Seat")
+						ps.Name = "Passenger"
+						ps.Size = Vector3.new(1.6, 0.3, 1.6)
+						ps.CFrame = if real
+							then cf * CFrame.new(-s * real.seat.X, real.seat.Y, real.seat.Z + r * 2.6 * real.L / 14)
+							else cf * CFrame.new(s * CS.W * 0.22, CS.g + CS.hb * 0.55, -CS.L / 2 + CS.hood + 1.4 + r * 2.6)
+						ps.Transparency = 1
+						ps.CanCollide = false
+						ps.Anchored = o.static == true
+						ps.Disabled = o.static == true
+						ps.Parent = m
+					end
 				end
 			end
 		end
@@ -770,12 +773,14 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 		local dim = if real
 			then { W = real.W, L = real.L, H = real.H, y = math.max(1.2, real.H * 0.34), hoodY = real.H * 0.28 }
 			else { W = CS.W, L = CS.L, H = CS.g + CS.hb + CS.hc, y = CS.g + CS.hb * 0.55, hoodY = CS.hb * 0.5 + 0.1 }
-		blinkers(m, cf, dim.W, dim.L, if real then math.max(1.0, real.H * 0.3) else CS.g + CS.hb * 0.45, if real then real.lamps else nil)
+		if not o.parked then
+			blinkers(m, cf, dim.W, dim.L, if real then math.max(1.0, real.H * 0.3) else CS.g + CS.hb * 0.45, if real then real.lamps else nil)
+		end
 		local r = Random.new(o.look or VehicleModels.seedOf(tostring(o.plate or def.id)))
 		if o.police then
 			policeLivery(m, cf, dim, o.police)
 			m:SetAttribute("Police", o.police.id)
-		elseif o.static or o.decorate then
+		elseif (o.static or o.decorate) and not o.parked then
 			decorate(m, cf, def, dim, color, r, real == nil)
 		end
 	end
