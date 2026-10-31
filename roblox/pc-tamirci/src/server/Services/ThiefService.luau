@@ -56,8 +56,11 @@ local function tillRoute(player: Player)
 end
 
 -- Creeping about: slowly, bent forward, looking around (the clients pose it, see NpcPoses).
+local CROUCH = 0.55 -- how far a creeping thief's hips drop (the pose bends the knees by as much)
+
 local function sneak(model: Model, on: boolean)
 	model:SetAttribute("Sneaking", if on then true else nil)
+	model:SetAttribute("Crouch", if on then CROUCH else nil)
 	local hum = model:FindFirstChildOfClass("Humanoid")
 	if hum and on then
 		hum.WalkSpeed = 5
@@ -146,6 +149,7 @@ local function caught(t, catcher: Player?, byGuard: string?)
 	NpcService.halt(t.model)
 	NpcService.work(t.model, nil)
 	t.model:SetAttribute("Sneaking", nil)
+	t.model:SetAttribute("Crouch", nil)
 	NpcService.say(t.model, Rand.pick(rng, LINES[lang].caught), 4)
 	NpcService.play(t.model, "idle")
 	local hum = t.model:FindFirstChildOfClass("Humanoid")

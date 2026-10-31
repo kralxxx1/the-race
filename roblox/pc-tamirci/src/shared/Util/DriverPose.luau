@@ -10,8 +10,8 @@
 
 local DriverPose = {}
 
-export type Joints = { rs: Motor6D?, ls: Motor6D?, re: Motor6D?, le: Motor6D?, rw: Motor6D?, lw: Motor6D?, neck: Motor6D?, waist: Motor6D?, base: { [string]: CFrame } }
-export type Pose = { rs: { number }, ls: { number }, re: number, le: number, rw: { number }, lw: { number }, neck: { number }, waist: number }
+export type Joints = { rs: Motor6D?, ls: Motor6D?, re: Motor6D?, le: Motor6D?, rw: Motor6D?, lw: Motor6D?, neck: Motor6D?, waist: Motor6D?, rh: Motor6D?, lh: Motor6D?, rk: Motor6D?, lk: Motor6D?, base: { [string]: CFrame } }
+export type Pose = { rs: { number }, ls: { number }, re: number, le: number, rw: { number }, lw: { number }, neck: { number }, waist: number, hip: number, knee: number }
 
 local ARM_REACH, ELBOW_BEND = math.rad(46), math.rad(58)
 local rad, sin, cos, max = math.rad, math.sin, math.cos, math.max
@@ -30,6 +30,10 @@ function DriverPose.joints(model: Model): Joints
 		lw = joint("LeftWrist"),
 		neck = joint("Neck"),
 		waist = joint("Waist"),
+		rh = joint("RightHip"),
+		lh = joint("LeftHip"),
+		rk = joint("RightKnee"),
+		lk = joint("LeftKnee"),
 	}
 	-- what each joint was built with: a pose is an offset on it
 	local base = {}
@@ -73,7 +77,7 @@ function DriverPose.reset(j: Joints?)
 	if not j then
 		return
 	end
-	for _, name in { "rs", "ls", "re", "le", "rw", "lw", "neck", "waist" } do
+	for _, name in { "rs", "ls", "re", "le", "rw", "lw", "neck", "waist", "rh", "lh", "rk", "lk" } do
 		put(j, name, nil)
 	end
 end
@@ -89,8 +93,8 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Everything in degrees here: shoulders and wrists { x, y [, z] } (x raises the arm forward, y swings
 -- it sideways / rolls the wrist), elbows a bend, the neck { nod, turn }, the waist a lean (negative:
--- forward).
-local function P(rs, ls, re, le, rw, lw, neck, waist): Pose
+-- forward), legs { hip, knee } (hips forward and knees back: a crouch).
+local function P(rs, ls, re, le, rw, lw, neck, waist, legs): Pose
 	return {
 		rs = { rad(rs[1]), rad(rs[2]), rad(rs[3] or 0) },
 		ls = { rad(ls[1]), rad(ls[2]), rad(ls[3] or 0) },
@@ -100,6 +104,8 @@ local function P(rs, ls, re, le, rw, lw, neck, waist): Pose
 		lw = { rad(lw[1]), rad(lw[2]), rad(lw[3] or 0) },
 		neck = { rad(neck[1]), rad(neck[2]) },
 		waist = rad(waist or 0),
+		hip = rad(if legs then legs[1] else 0),
+		knee = rad(if legs then legs[2] else 0),
 	}
 end
 
@@ -158,14 +164,16 @@ MOTIONS.register = function(t, ph)
 	local tap, tap2 = sin(t * 9 + ph) * 2.5, sin(t * 7.3 + ph * 1.7) * 2.5
 	return P({ 24 + tap, -6 }, { 24 + tap2, 6 }, 66 + tap2, 66 + tap, { sin(t * 18 + ph) * 5, 0 }, { sin(t * 15 + ph) * 5, 0 }, { -10 + max(0, sin(t * 0.5 + ph)) * 12, sin(t * 0.5 + ph) * 12 })
 end
--- creeping about: leaning forward, hands held ready, the head turning to see who is watching
+-- creeping about: crouched low (the hips forward, the knees bent, the body leaning over them), the
+-- hands held ready, the head turning to see who is watching. (The server lowers the person by the
+-- same much: Crouch.)
 MOTIONS.sneak = function(t, ph)
-	return P({ 14, -4 }, { 14, 4 }, 38, 38, STILL, STILL, { 12 + sin(t * 0.8 + ph) * 4, sin(t * 1.1 + ph) * 38 }, -22)
+	return P({ 20, -4 }, { 20, 4 }, 52, 52, STILL, STILL, { 22 + sin(t * 0.8 + ph) * 4, sin(t * 1.1 + ph) * 38 }, -30, { 38, -72 })
 end
 -- reaching into a till or a drawer: quick hands in and out, bent over it, glancing sideways
 MOTIONS.rummage = function(t, ph)
 	local m = 0.5 + 0.5 * sin(t * 3.4 + ph)
-	return P({ 34 + m * 26, -6 }, { 26 + m * 16, 6 }, 82 - m * 24, 70, STILL, STILL, { -4 + max(0, sin(t * 1.3)) * 8, sin(t * 1.7 + ph) * 30 }, -18)
+	return P({ 34 + m * 26, -6 }, { 26 + m * 16, 6 }, 82 - m * 24, 70, STILL, STILL, { -4 + max(0, sin(t * 1.3)) * 8, sin(t * 1.7 + ph) * 30 }, -26, { 38, -72 })
 end
 -- wiping a surface in wide strokes
 MOTIONS.wipe = function(t, ph)
@@ -255,6 +263,8 @@ function DriverPose.blend(a: Pose?, b: Pose, k: number): Pose
 		lw = mixList(a.lw, b.lw),
 		neck = mixList(a.neck, b.neck),
 		waist = mix(a.waist or 0, b.waist or 0),
+		hip = mix(a.hip or 0, b.hip or 0),
+		knee = mix(a.knee or 0, b.knee or 0),
 	}
 end
 
@@ -279,6 +289,15 @@ function DriverPose.set(j: Joints?, p: Pose)
 	end
 	if j.waist then
 		put(j, "waist", CFrame.Angles(p.waist or 0, 0, 0))
+	end
+	-- the legs: only a pose that asks for it (a crouch) touches them
+	if j.rh and j.lh then
+		put(j, "rh", if (p.hip or 0) ~= 0 then CFrame.Angles(p.hip, 0, 0) else nil)
+		put(j, "lh", if (p.hip or 0) ~= 0 then CFrame.Angles(p.hip, 0, 0) else nil)
+	end
+	if j.rk and j.lk then
+		put(j, "rk", if (p.knee or 0) ~= 0 then CFrame.Angles(p.knee, 0, 0) else nil)
+		put(j, "lk", if (p.knee or 0) ~= 0 then CFrame.Angles(p.knee, 0, 0) else nil)
 	end
 end
 

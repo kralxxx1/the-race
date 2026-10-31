@@ -671,13 +671,17 @@ return function(T)
 		T.ok(knit >= 5, "a balaclava on the head: " .. knit)
 		-- no name tag while creeping: nobody announces themselves
 		T.ok(thief.Head:FindFirstChild("NameTag") == nil, "no name above a thief")
-		local sneaked, rummaged, sack, tallest, spoke = false, false, false, 0, false
+		local sneaked, rummaged, sack, tallest, spoke, crouched = false, false, false, 0, false, false
 		waitFor(function()
 			if not thief.Parent then
 				return true
 			end
 			if thief:GetAttribute("Sneaking") then
 				sneaked = true
+				-- (creeping low: the hips are down, the client bends the knees by as much)
+				if (thief:GetAttribute("Crouch") or 0) > 0.3 then
+					crouched = true
+				end
 			end
 			if thief:GetAttribute("Doing") == "rummage" then
 				rummaged = true
@@ -696,6 +700,7 @@ return function(T)
 		end, 40, "the thief to be off")
 		Config.ThiefStealSeconds = old
 		T.ok(sneaked, "he crept in")
+		T.ok(crouched, "crouched, not standing up straight")
 		T.ok(rummaged, "he went through the till")
 		T.ok(sack, "he ran off with a sack")
 		T.ok(not spoke, "not a word while sneaking")

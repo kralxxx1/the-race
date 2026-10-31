@@ -989,7 +989,8 @@ function NpcService.walkTo(model: Model, pos: Vector3, timeout: number?, run: bo
 	local flat = Vector3.new(pos.X - start.X, 0, pos.Z - start.Z)
 	local dist = flat.Magnitude
 	local dir = if dist > 0.01 then flat / dist else root.CFrame.LookVector
-	local hip = hum.HipHeight + root.Size.Y / 2
+	-- (a thief creeping about is crouched: the hips are lower)
+	local hip = hum.HipHeight + root.Size.Y / 2 - (model:GetAttribute("Crouch") or 0)
 	local limit = timeout or (dist / speed + 4)
 	local travelled, y = 0, start.Y
 	local targetY, nextSample = y, 0

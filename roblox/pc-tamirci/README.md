@@ -164,10 +164,16 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
    büyür; çok gecikirse elektrik kesilir ve müşteri gelmez. Telefon → Faturalar. Önemli şeyler (yeni
    fatura, son günden bir gün önce hatırlatma, gecikme, elektriğin kesilmesine bir gün kala uyarı,
    hırsız, alarm, denetim cezası, işten ayrılan çalışan) küçük bildirim yerine ekranın üstünde
-   **büyük uyarı kartı** olarak, bir "ding" sesiyle çıkar.
-8. **Hırsızlar ve gece güvenliği:** Hırsızlar **kar maskesi** takar, kapıdan eğilerek ve etrafı
-   kollayarak girer, tezgâhın ucundan dolaşıp kasaya arkadan ulaşır (tezgâhın üstüne çıkmaz), parayı
-   sessizce çekmeceden alıp bir çuvala koyar ve koşarak kaçar. Geceleri hırsızlar dükkâna girer. Kamera ve alarm uyarır; kepenk, çelik kasa
+   **büyük uyarı kartı** olarak, bir "ding" sesiyle çıkar. **Otomatik ödeme:** Telefon → Faturalar'daki
+   🤖 düğmesi açıkken her sabah gelen faturalar (en acili önce) kasadan otomatik ödenir; ödenenler
+   "Ödenenler" geçmişinde 🤖 işaretiyle durur ve **"şu kadar fatura ödendi"** kartı gelir. Kasada
+   para yetmezse ödenemeyenler için **"otomatik ödeme ödeyemedi"** kartı gelir ve fatura beklemeye
+   devam eder. Banka talimatı yükseltmesi ya da muhasebeci varsa düğme kendiliğinden açık başlar;
+   istersen kapatırsın.
+8. **Hırsızlar ve gece güvenliği:** Hırsızlar **kar maskesi** takar, kapıdan **çömelip** (dizler
+   bükülü, gövde öne eğik) ve etrafı kollayarak girer, tezgâhın ucundan dolaşıp kasaya arkadan ulaşır
+   (tezgâhın üstüne çıkmaz), parayı sessizce çekmeceden alıp bir çuvala koyar ve koşarak kaçar.
+   Yakalandığı an olduğu yerde durur (kaçmaya devam etmez). Geceleri hırsızlar dükkâna girer. Kamera ve alarm uyarır; kepenk, çelik kasa
    ve bekçi köpeği korur. Güvenlik görevlisi ve gece bekçisi hırsızı yakalar. Sen de beyzbol
    sopasıyla (Usta Alet-Edevat) kovalayabilir ya da **F** ile yakalayabilirsin; ödülü Polis
    Merkezi'nden alırsın.
@@ -185,15 +191,22 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
     telefonda da var. Oyuncu listesinde para, servet ve seviye görünür.
 12. **Kendi projelerin:** Hurda kasaları onar ya da boş kasa alıp PC topla. Sonra 2. el pazarına sat
     ya da dükkân vitrinine koy; vitrindeki PC'yi gelen alıcılar daha pahalıya alır.
-13. **Şehir hayatı:** Trafik sağdan akar, kırmızıda durur, yaya geçidini bekler. Arabalar iri ve
-    sürücüleri içindedir (kafaları dışarı taşmaz); tekerlekler yolla birlikte döner, dönüşten önce sinyal
-    verilir, fren lambaları yanar; otobüs, kamyon, taksi dahil onlarca gövde ve 28 renk vardır. 20
-    çeşit polis arabası (çakarlı) dolaşır, kavşaklarda trafik polisleri durur, yollarda levhalar
-    (DUR, hız sınırı, yaya geçidi, park) bulunur. Kaldırımlarda
-    yayalar yürür; martı ve güvercin sürüleri, gökyüzünden geçen uçaklar ve sıcak hava balonları
-    görünür. Dönme dolap ve rüzgâr türbinleri döner; deniz feneri ve saat kulesi çalışır. Gece
-    pencereler ve sokak lambaları yanar. Yağmurda kamera çevresinde yağmur çizgileri düşer, gökyüzü
-    kararır, fırtınada şimşek çakar ve birkaç saniye sonra gök gürültüsü gelir; kapalı mekânda yağmur
+13. **Şehir hayatı:** Trafik sağdan akar, kırmızıda durur. Sokaklar kalabalık değildir (bir anda en
+    fazla ~12 araç; Ayarlar'dan azaltılıp artırılabilir). Araçlar birbirine **çarpmaz**: kavşağa aynı
+    anda yalnızca bir yönden girilir (diğerleri çizgide bekler), iki şeritli yollarda iç şerit sola,
+    dış şerit sağa döner, kavşağın çıkışı doluysa kavşağa girilmez; yolda biri varsa (yaya geçidi,
+    yola adım atan) araç durur ve çekildikten sonra gider, yayalar da kaldırımda araç boşluğunu
+    bekleyip öyle geçer. Sokaktaki tüm araçlar hazır (Roblox'un kendi) araç modelleridir; sürücü
+    içindedir, tekerlekler yolla birlikte döner, dönüşten önce **sinyal lambaları arabanın kendi far
+    ve stop kümesinde** yanıp söner, fren lambaları yanar. 20 çeşit polis arabası (çakarlı) dolaşır,
+    kavşaklarda trafik polisleri durur, yollarda levhalar (DUR, hız sınırı, yaya geçidi, park)
+    bulunur. Kaldırımlarda yayalar yürür; martı ve güvercin sürüleri, gökyüzünden geçen uçaklar ve
+    sıcak hava balonları görünür. Dönme dolap ve rüzgâr türbinleri döner; deniz feneri ve saat kulesi
+    çalışır. Gece pencereler ve sokak lambaları yanar. **Yağmur:** damlalar arkalarında silinen bir iz
+    bırakarak gerçek zemine, çatıya ya da arabaya kadar düşer, indiği yerde sıçrar; dükkânın
+    **içinden pencere ve kapıdan dışarıdaki yağmur görünür** ama çatının altına yağmur düşmez. Yağmurda
+    sokaktaki insanlar **sağ ellerinde** (kol uzanıp tutar) kubbeli bir şemsiye taşır. Gökyüzü kararır,
+    fırtınada şimşek çakar ve birkaç saniye sonra gök gürültüsü gelir; kapalı mekânda yağmur
     boğuklaşır. Gündüz kuşlar, gece cırcır böcekleri duyulur;
     sahile yaklaştıkça dalga sesi artar, arkada sakin lo-fi müzik çalar.
 14. **Olaylar:** Parayı vermeden kaçan dolandırıcı olur. "Kutusu yok faturası yok" çalıntı parça
@@ -211,7 +224,8 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
 ## Hazır modeller (Toolbox) ve kendi yaptıklarımız
 
 Şehrin görünen büyük kısmı **hazır, yayınlanmış modellerdir**: binalar, sokak eşyaları, dükkân
-mobilyaları (raflar, vitrinler, koltuklar, masa eşyaları) ve araçların yarısı Roblox'un resmî
+mobilyaları (raflar, vitrinler, koltuklar, masa eşyaları), **tüm sokak araçları** (7 resmî gövde,
+22 varyant, polis arabaları dahil) ve yağmurda taşınan şemsiyenin kubbesi Roblox'un resmî
 paketlerinden gelir (`assets/`, `tools/assets/curate.luau` ayıklar; betikler ve sesler atılır).
 Gökyüzü sesleri, yağmur ve gök gürültüsü de Roblox'un kendi ses kütüphanesindendir.
 
@@ -229,6 +243,17 @@ atlayan dükkâna, tezgâh/kuyruk noktalarına ve parça parça tamire uymaz. To
 python3 tools/assets/toolbox.py search "gaming pc case" 1
 python3 tools/assets/toolbox.py sheet out.png <id> <id> ...
 ```
+
+**Topluluk modelleri hakkında dürüst not:** Toolbox'taki başkalarının yaptığı modelleri (araba,
+tornavida, şemsiye, NPC...) arama/önizleme olarak görebiliyoruz ama **indirip oyuna gömemiyoruz**:
+Roblox'un indirme hizmeti bunları yalnızca giriş yapmış bir hesaba verir (`401 Unauthorized`);
+anonim indirilebilenler yalnızca Roblox'un kendi yayımladığı paketlerdir (`tools/assets/fetch.py
+packs`). Bu yüzden elde edilebilen hazır modeller (araçlar, bina ve eşya paketleri, şemsiye kubbesi)
+kullanıldı; **tornavida/hava üfleyici/monitör gibi küçük aletler ve insanlar kodla çizilir** (monitör
+artık çerçeve, çene, boyun, ayak, cam ve kabloyla gerçek bir monitör; tornavidalar tırtıllı saplı,
+renk halkalı, havalı üfleyici lastik körüklü). Beğendiğin bir Toolbox modelini kullanmak istersen
+Studio'da **Toolbox → Models** ile yerleştirip `ServerStorage.Assets` içine koyabilir, ilgili
+`src/shared/Models/` dosyasından çağırabilirsin.
 
 ---
 
