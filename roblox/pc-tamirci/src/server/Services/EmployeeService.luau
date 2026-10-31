@@ -424,6 +424,22 @@ local function ownerNearCounter(player: Player): boolean
 	return (root.Position - counter.Position).Magnitude < 14 and RepairService.session(player) == nil
 end
 
+local COUNTER_ROLES = { receptionist = true, cashier = true, manager = true, salesperson = true }
+
+-- Is there somebody to take a customer's device at the counter?
+local function counterStaff(player: Player): boolean
+	for _, s in staff[player] or {} do
+		if s.model and s.model.Parent and not s.stop then
+			local role = Employees.roles[s.rec.role]
+			if COUNTER_ROLES[s.rec.role] or (role and role.bench and not s.busy) then
+				return true
+			end
+		end
+	end
+	return false
+end
+EmployeeService.counterStaff = counterStaff
+
 ----------------------------------------------------------------------------------------------------
 -- Hiring
 ----------------------------------------------------------------------------------------------------
@@ -811,9 +827,10 @@ function EmployeeService.start()
 		openAgency(player, ch.id)
 		return { ok = true }
 	end)
-	-- receptionists take the counter when you're not there
+	-- somebody on the staff takes the counter when you're not there: a receptionist, cashier,
+	-- manager or salesperson, or (when none of them is free) any technician who is not at a bench
 	CustomerService.atCounter:Connect(function(player, cust)
-		if not EmployeeService.has(player, "receptionist") then
+		if not counterStaff(player) then
 			return
 		end
 		task.delay(6, function()

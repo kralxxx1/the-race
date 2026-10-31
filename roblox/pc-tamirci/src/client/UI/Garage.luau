@@ -72,7 +72,7 @@ local function turntable(parent: Instance)
 		if model then
 			model:Destroy()
 		end
-		local ok, m = pcall(VehicleModels.build, world, def, CFrame.new(), { color = color, plate = "34 PC 001", static = true })
+		local ok, m = pcall(VehicleModels.build, world, def, CFrame.new(), { color = color, plate = "PC 1001", static = true })
 		if ok then
 			model = m
 			local _, s = m:GetBoundingBox()

@@ -49,8 +49,8 @@ Locations.list = {
 	{ id = "mall", cat = "business", icon = "🛍️", name = N("Elektronik AVM", "Electronics Mall"), desc = N("Telefon, oyun ve elektronik mağazaları.", "Phone, game and electronics stores.") },
 	-- Food and drink
 	{ id = "cafe_plaza", cat = "food", icon = "☕", name = N("Meydan Kafe", "Plaza Café"), desc = N("Meydana bakan teras.", "Terrace over the plaza.") },
-	{ id = "teahouse", cat = "food", icon = "🫖", name = N("Kahvehane", "Tea Room"), desc = N("Tavla, okey ve demli çay.", "Backgammon, cards and strong tea.") },
-	{ id = "bakery", cat = "food", icon = "🥖", name = N("Taş Fırın", "Stone Bakery"), desc = N("Sıcak simit ve pide.", "Warm bagels and pies.") },
+	{ id = "teahouse", cat = "food", icon = "☕", name = N("Çay Salonu", "Tea Room"), desc = N("Satranç, dama ve demli çay.", "Chess, checkers and strong tea.") },
+	{ id = "bakery", cat = "food", icon = "🥖", name = N("Taş Fırın", "Stone Bakery"), desc = N("Sıcak ekmek ve börek.", "Warm bread and pies.") },
 	{ id = "kebab", cat = "food", icon = "🥙", name = N("Dönerci Usta", "Late Night Grill"), desc = N("Gece yarısı kurtarıcısı.", "The midnight saviour.") },
 	{ id = "fish", cat = "food", icon = "🐟", name = N("Balıkçı Barınağı", "Fisherman's Wharf"), desc = N("Deniz manzaralı balık restoranı.", "Seafood with a sea view.") },
 	{ id = "icecream", cat = "food", icon = "🍦", name = N("Maraş Dondurmacısı", "Ice Cream Parlour"), desc = N("Uzayan dondurma.", "Stretchy ice cream.") },

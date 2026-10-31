@@ -11,6 +11,7 @@
 
 local Shared = script.Parent.Parent
 local Parts = require(Shared.Data.Parts)
+local Faults = require(Shared.Data.Faults)
 local Tools = require(Shared.Data.Tools)
 local Rules = require(script.Parent.RepairRules)
 
@@ -348,6 +349,7 @@ end
 
 -- The repair procedure for each fault (uses the server-side hidden fault map).
 function TechBot:fix(faultId: string)
+	faultId = Faults.base(faultId)
 	local dev = self.dev
 	if faultId == "psu_dead" or faultId == "psu_weak" then
 		local draw = Parts.systemDraw(Rules.part(dev, "cpu"), Rules.part(dev, "gpu"))

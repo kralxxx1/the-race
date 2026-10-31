@@ -126,6 +126,17 @@ end
 -- Graphics switches from the Settings window. Effects that are off are disabled, not deleted.
 local fxOn = { bloom = true, rays = true, dof = true, clouds = true }
 local trim = 0 -- brightness slider, -1..1
+-- the Settings window's fine tuning of the picture (Ambience.setLook)
+local look = { skylight = 1, bloom = 0.5, rays = 0.5, glare = true, haze = 0.5, cover = "normal", grade = "natural", contrast = 0, saturation = 0 }
+local COVER = { clear = 0.08, few = 0.32, normal = 0.55, overcast = 0.85 }
+-- colour grading looks: tint mix towards a colour, saturation and contrast added
+local GRADES = {
+	natural = { tint = Color3.new(1, 1, 1), mix = 0, sat = 0, con = 0 },
+	vivid = { tint = Color3.new(1, 1, 1), mix = 0, sat = 0.18, con = 0.06 },
+	warm = { tint = Color3.fromRGB(255, 226, 196), mix = 0.5, sat = 0.05, con = 0.02 },
+	cool = { tint = Color3.fromRGB(200, 222, 255), mix = 0.5, sat = 0, con = 0.03 },
+	cinema = { tint = Color3.fromRGB(255, 232, 214), mix = 0.3, sat = -0.07, con = 0.14 },
+}
 
 local function applyFx()
 	for name, on in fxOn do
@@ -147,9 +158,9 @@ local function setupEffects()
 		return e
 	end
 	fx.bloom = get("BloomEffect", "AmbBloom", Lighting)
-	fx.bloom.Intensity = 0.55
-	fx.bloom.Size = 26
-	fx.bloom.Threshold = 1.6
+	fx.bloom.Intensity = 0.3
+	fx.bloom.Size = 22
+	fx.bloom.Threshold = 2.2
 	fx.rays = get("SunRaysEffect", "AmbRays", Lighting)
 	fx.rays.Intensity = 0.05
 	fx.rays.Spread = 0.6
@@ -175,8 +186,8 @@ local MOOD = {
 	{ 0, Color3.fromRGB(28, 34, 58), Color3.fromRGB(46, 56, 92), Color3.fromRGB(196, 210, 255), 0.6, 0.15 },
 	{ 5.2, Color3.fromRGB(40, 40, 64), Color3.fromRGB(70, 70, 110), Color3.fromRGB(220, 210, 240), 0.9, 0.1 },
 	{ 6.5, Color3.fromRGB(90, 70, 60), Color3.fromRGB(150, 120, 110), Color3.fromRGB(255, 226, 200), 1.8, 0.05 },
-	{ 9, Color3.fromRGB(60, 60, 64), Color3.fromRGB(120, 124, 136), Color3.fromRGB(255, 250, 244), 2.6, 0.1 },
-	{ 16, Color3.fromRGB(62, 60, 60), Color3.fromRGB(124, 122, 128), Color3.fromRGB(255, 246, 236), 2.6, 0.1 },
+	{ 9, Color3.fromRGB(54, 54, 58), Color3.fromRGB(112, 116, 128), Color3.fromRGB(255, 250, 244), 2.3, 0 },
+	{ 16, Color3.fromRGB(56, 54, 54), Color3.fromRGB(116, 114, 120), Color3.fromRGB(255, 246, 236), 2.3, 0 },
 	{ 18.3, Color3.fromRGB(96, 66, 50), Color3.fromRGB(170, 120, 96), Color3.fromRGB(255, 214, 176), 1.9, 0.12 },
 	{ 19.6, Color3.fromRGB(46, 40, 66), Color3.fromRGB(76, 66, 110), Color3.fromRGB(214, 200, 255), 1.0, 0.15 },
 	{ 24, Color3.fromRGB(28, 34, 58), Color3.fromRGB(46, 56, 92), Color3.fromRGB(196, 210, 255), 0.6, 0.15 },
@@ -196,28 +207,30 @@ local function mood(t: number)
 	Lighting.OutdoorAmbient = a[3]:Lerp(b[3], f):Lerp(Color3.fromRGB(96, 102, 114), wet * 0.55)
 	Lighting.Brightness = lerp(a[5], b[5], f) * (1 - wet * 0.5)
 	Lighting.ExposureCompensation = lerp(a[6], b[6], f) - wet * 0.15 + trim * 0.9
-	Lighting.EnvironmentDiffuseScale = 1 - wet * 0.35
+	Lighting.EnvironmentDiffuseScale = (1 - wet * 0.35) * look.skylight
 	if fx.cc then
-		fx.cc.TintColor = a[4]:Lerp(b[4], f):Lerp(Color3.fromRGB(206, 218, 236), wet * 0.6)
-		fx.cc.Saturation = 0.08 - wet * 0.26
-		fx.cc.Contrast = 0.06 + wet * 0.08
+		local g = GRADES[look.grade] or GRADES.natural
+		fx.cc.TintColor = a[4]:Lerp(b[4], f):Lerp(Color3.fromRGB(206, 218, 236), wet * 0.6):Lerp(g.tint, g.mix)
+		fx.cc.Saturation = 0.08 - wet * 0.26 + g.sat + look.saturation * 0.4
+		fx.cc.Contrast = 0.06 + wet * 0.08 + g.con + look.contrast * 0.3
 	end
 	if fx.bloom then
-		fx.bloom.Intensity = if isNight(t) then 0.9 else 0.5
+		fx.bloom.Intensity = (if isNight(t) then 0.6 else 0.28) * (0.2 + look.bloom * 1.6)
 	end
 	if fx.rays then
-		fx.rays.Intensity = if wet > 0.1 or isNight(t) then 0 else 0.05
+		fx.rays.Intensity = (if wet > 0.1 or isNight(t) then 0 else 0.05) * (look.rays * 2)
 	end
 	-- the sky closes over: thick dark cloud, haze, no glare (wet eases in and out over seconds)
 	if fx.clouds then
-		fx.clouds.Cover = lerp(0.55, 1, wet)
+		fx.clouds.Cover = lerp(COVER[look.cover] or 0.55, 1, wet)
 		fx.clouds.Density = lerp(0.6, 1, wet)
 		fx.clouds.Color = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(88, 94, 106), wet)
 	end
 	if fx.atmosphere then
-		fx.atmosphere.Density = lerp(0.3, 0.5, wet)
-		fx.atmosphere.Haze = lerp(1.4, 4.2, wet)
-		fx.atmosphere.Glare = lerp(0.35, 0, wet)
+		local hz = 0.4 + look.haze * 1.2
+		fx.atmosphere.Density = math.clamp(lerp(0.3, 0.5, wet) * hz, 0, 1)
+		fx.atmosphere.Haze = lerp(1.4, 4.2, wet) * hz
+		fx.atmosphere.Glare = if look.glare then lerp(0.35, 0, wet) else 0
 		fx.atmosphere.Color = Color3.fromRGB(199, 189, 168):Lerp(Color3.fromRGB(150, 158, 170), wet)
 		fx.atmosphere.Decay = Color3.fromRGB(107, 112, 125):Lerp(Color3.fromRGB(70, 76, 88), wet)
 	end
@@ -464,6 +477,17 @@ end
 
 function Ambience.setTrim(v: number)
 	trim = math.clamp(v, -1, 1)
+end
+
+-- Fine tuning from the Settings window: skylight (0..1 of the sky's fill light), bloom and rays
+-- (0..1 strength), glare, haze (0..1), cover ("clear".."overcast"), grade (a colour look), contrast
+-- and saturation (-1..1). Anything left out stays as it was.
+function Ambience.setLook(o: { skylight: number?, bloom: number?, rays: number?, glare: boolean?, haze: number?, cover: string?, grade: string?, contrast: number?, saturation: number? })
+	for k, v in o do
+		if (look :: any)[k] ~= nil and type(v) == type((look :: any)[k]) then
+			(look :: any)[k] = v
+		end
+	end
 end
 
 -- Is the camera under a roof? (rain stays outside; you hear it drumming on the roof instead)

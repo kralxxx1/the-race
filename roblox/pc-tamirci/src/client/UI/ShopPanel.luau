@@ -275,7 +275,7 @@ function ShopPanel.open(opts: { [string]: any }?)
 		{ id = "upgrade", text = "🏗️ " .. S.t("shop_expand_tab") },
 		{ id = "items", text = "🛋️ " .. S.t("shop_items") },
 		{ id = "looks", text = "🎨 " .. S.t("shop_looks") },
-		{ id = "name", text = "🪧 " .. S.t("shop_rename") },
+		{ id = "name", text = "✏️ " .. S.t("shop_rename") },
 	}, function(id)
 		current = id
 		for k, f in pages do

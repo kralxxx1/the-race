@@ -34,7 +34,7 @@ end
 
 local TXT = {
 	test_title = T("Step 1 — Test it", "Adım 1 — Test et"),
-	test = T("Press ⏻ Power on the right and watch the monitor and the fans. What the machine does tells you what is wrong.", "Sağdaki ⏻ Güç düğmesine bas; monitöre ve fanlara bak. Cihazın ne yaptığı, neyin bozuk olduğunu söyler."),
+	test = T("Press 🔌 Power on the right and watch the monitor and the fans. What the machine does tells you what is wrong.", "Sağdaki 🔌 Güç düğmesine bas; monitöre ve fanlara bak. Cihazın ne yaptığı, neyin bozuk olduğunu söyler."),
 	read_title = T("Step 2 — What you saw", "Adım 2 — Gördüğün"),
 	diag_title = T("Step 3 — Find the fault", "Adım 3 — Arızayı bul"),
 	diag = T("Open the machine up and look. Hover a part to read what it is. Not sure where to start? Ask for a hint.", "Cihazı aç ve bak. Bir parçanın üzerine gelince ne olduğu yazar. Nereden başlayacağını bilmiyorsan ipucu iste."),
@@ -43,7 +43,7 @@ local TXT = {
 	back_title = T("Step 5 — Put it back together", "Adım 5 — Geri tak"),
 	back = T("Everything must go back: {list}. Fit the parts, tighten the screws, close the case.", "Her şey yerine takılmalı: {list}. Parçaları tak, vidaları sık, kapağı kapat."),
 	verify_title = T("Step 6 — Test again", "Adım 6 — Tekrar test et"),
-	verify = T("Press ⏻ Power again (and the Stress test 🔥). If it runs fine, press ✅ Finish Job.", "Tekrar ⏻ Güç'e bas (bir de Stres testi 🔥). Düzgün çalışıyorsa ✅ İşi Bitir'e bas."),
+	verify = T("Press 🔌 Power again (and the Stress test 🔥). If it runs fine, press ✅ Finish Job.", "Tekrar 🔌 Güç'e bas (bir de Stres testi 🔥). Düzgün çalışıyorsa ✅ İşi Bitir'e bas."),
 	done_title = T("Looks good", "İyi görünüyor"),
 	hint_where = T("💡 Where's the problem?", "💡 Sorun nerede?"),
 	hint_next = T("👉 Show the next step", "👉 Sıradaki adımı göster"),
@@ -56,7 +56,7 @@ local TXT = {
 	put_back = T("Put {part} back in.", "{part} parçasını geri tak."),
 	need_part = T("This part is faulty: you need a working replacement. Buy one at the parts store, or take one from your inventory.", "Bu parça arızalı: çalışan bir yenisi gerek. Parça mağazasından al ya da envanterinden kullan."),
 	stuck_title = T("Hmm — something changed", "Hmm — bir şey değişti"),
-	stuck = T("I can't plan any further: something happened that I can't see from here (a part may have been damaged). Press ⏻ Power again and read what the machine does, or look closely with the magnifier.", "Daha ileri planlayamıyorum: buradan göremediğim bir şey oldu (bir parça zarar görmüş olabilir). Tekrar ⏻ Güç'e bas ve cihazın ne yaptığına bak, ya da büyüteçle yakından incele."),
+	stuck = T("I can't plan any further: something happened that I can't see from here (a part may have been damaged). Press 🔌 Power again and read what the machine does, or look closely with the magnifier.", "Daha ileri planlayamıyorum: buradan göremediğim bir şey oldu (bir parça zarar görmüş olabilir). Tekrar 🔌 Güç'e bas ve cihazın ne yaptığına bak, ya da büyüteçle yakından incele."),
 	hide = T("Hide", "Gizle"),
 	hints_pill = T("💡 Coach", "💡 Koç"),
 }
@@ -454,23 +454,25 @@ function BenchCoach.init(parent: Frame, bench)
 	folder.Name = "BenchCoach"
 	folder.Parent = Workspace
 
-	card = Kit.panel(root, { Name = "Coach", Size = UDim2.fromOffset(540, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(0.5, 0, 0, 66), AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 0.04, Visible = false })
+	card = Kit.panel(root, { Name = "Coach", Size = UDim2.fromOffset(470, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(0.5, 0, 0, 62), AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 0.18, Visible = false })
 	Kit.outline(card, Theme.accent2, 2, 0)
 	Kit.padding(card, 10)
 	Kit.listLayout(card, 5)
 	stepLbl = Kit.label(card, "", { Size = UDim2.new(1, -70, 0, 18), TextSize = 13, FontFace = Theme.bold, TextColor3 = Theme.accent2, LayoutOrder = 1 })
-	bodyLbl = Kit.label(card, "", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 16, FontFace = Theme.bold, TextWrapped = true, LayoutOrder = 2 })
+	bodyLbl = Kit.label(card, "", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 15, FontFace = Theme.bold, TextWrapped = true, LayoutOrder = 2 })
 	bodyLbl.RichText = true
 	noteLbl = Kit.label(card, "", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 14, TextColor3 = Theme.warn, TextWrapped = true, LayoutOrder = 3 })
 	local row = Kit.frame(card, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 34), LayoutOrder = 4 })
 	Kit.listLayout(row, 8, true)
 	whereBtn = Kit.button(row, "", function()
 		BenchCoach.ask(2)
-	end, { Name = "CoachWhere", Size = UDim2.fromOffset(190, 32), TextSize = 14, LayoutOrder = 1 }, "ghost")
+	end, { Name = "CoachWhere", Size = UDim2.fromOffset(170, 30), TextSize = 13, LayoutOrder = 1 }, "ghost")
 	nextBtn = Kit.button(row, "", function()
 		BenchCoach.ask(3)
-	end, { Name = "CoachNext", Size = UDim2.fromOffset(310, 32), TextSize = 13, LayoutOrder = 2 }, "primary")
-	Kit.button(card, "✕", function()
+	end, { Name = "CoachNext", Size = UDim2.fromOffset(270, 30), TextSize = 13, LayoutOrder = 2 }, "primary")
+	-- (the close button sits in a holder with no height: a list layout would otherwise put it first in the card)
+	local closeHolder = Kit.frame(card, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), LayoutOrder = 0, ZIndex = 5 })
+	Kit.button(closeHolder, "×", function()
 		st.expanded = false
 		st.follow = false
 		if help() == "guided" then

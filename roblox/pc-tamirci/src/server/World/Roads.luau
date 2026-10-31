@@ -94,7 +94,7 @@ local function segment(folder: Instance, L, road, rng: Random)
 	local m = B.model("Road_" .. road.id, folder)
 
 	-- carriageway
-	flat(m, mid + Vector3.new(0, ROAD_Y - 0.25, 0), dir, Vector3.new(cw, 0.5, len), P.asphalt, M.Asphalt)
+	B.tag(flat(m, mid + Vector3.new(0, ROAD_Y - 0.25, 0), dir, Vector3.new(cw, 0.5, len), P.asphalt, M.Asphalt), "RoadSurface") -- (the rain makes it glossy)
 	-- sidewalks and curbs (district aware on each side)
 	for side = -1, 1, 2 do
 		local off = right * side * (cw / 2 + sw / 2)
@@ -231,7 +231,10 @@ local function intersection(folder: Instance, L, node, rng: Random)
 	end
 	local m = B.model("Junction_" .. node.key, folder)
 	local function pad(cx, cz, sx, sz, col, mat, y, h)
-		B.box(m, CFrame.new(cx, y, cz), Vector3.new(sx, h, sz), col, mat)
+		local p = B.box(m, CFrame.new(cx, y, cz), Vector3.new(sx, h, sz), col, mat)
+		if mat == M.Asphalt then
+			B.tag(p, "RoadSurface")
+		end
 	end
 	local mat, col = sidewalkMaterial(CityLayout.districtAt(Vector3.new(X + Wv, 0, Z + Wh)))
 	col = laid(col)
@@ -314,7 +317,7 @@ local function intersection(folder: Instance, L, node, rng: Random)
 				hName = r.name
 			end
 		end
-		local text = if vName ~= "" and hName ~= "" then vName .. "  ✕  " .. hName else vName .. hName
+		local text = if vName ~= "" and hName ~= "" then vName .. "  ×  " .. hName else vName .. hName
 		local p = Vector3.new(X - cwV / 2 - cx * 0.6, WALK_Y, Z - cwH / 2 - cz * 0.6)
 		Props.streetSign(m, CFrame.lookAt(p, p + Vector3.new(1, 0, 1)), text)
 	end
@@ -361,7 +364,7 @@ local function promenade(folder: Instance, rng: Random)
 			Props.bench(m, CFrame.lookAt(bp, bp + Vector3.new(0, 0, -1)), Color3.fromRGB(70, 120, 160))
 		end
 		if k % 9 == 0 then
-			Props.simitCart(m, CFrame.lookAt(Vector3.new(x + 4, WALK_Y, zRoad + depth * 0.7), Vector3.new(x + 4, WALK_Y, zRoad)))
+			Props.snackCart(m, CFrame.lookAt(Vector3.new(x + 4, WALK_Y, zRoad + depth * 0.7), Vector3.new(x + 4, WALK_Y, zRoad)))
 		end
 		x += 36
 	end

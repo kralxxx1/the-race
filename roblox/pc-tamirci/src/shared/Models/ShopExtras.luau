@@ -532,7 +532,7 @@ LOOKS.tea_glasses = function(m, c)
 	end
 end
 
-LOOKS.simit_tray = function(m, c)
+LOOKS.pastry_tray = function(m, c)
 	deco(m, c * CFrame.new(0, 0.04, 0), Vector3.new(1.3, 0.06, 0.8), WOOD, M.Wood)
 	for i = -1, 1 do
 		cylY(m, c * CFrame.new(i * 0.4, 0.13, -0.1), 0.12, 0.42, C(170, 100, 50), M.Sand)
@@ -885,7 +885,7 @@ LOOKS.emergency_light = function(m, c)
 	label(m, c * CFrame.new(0, 0, -0.16), Vector3.new(1.3, 0.35, 0.01), "EMERGENCY", C(20, 150, 70), false, { glow = true })
 end
 
-LOOKS.kvkk_notice = function(m, c)
+LOOKS.privacy_notice = function(m, c)
 	frame(m, c, 2, 2.4, C(40, 40, 44), function(f, w, h)
 		label(m, f, Vector3.new(w, h, 0.02), "DATA PROTECTION\n\nWe only use the data\non your device\nfor the repair.", C(30, 30, 30), WHITE, { font = B.Fonts.Medium })
 	end)
@@ -1757,7 +1757,7 @@ local SPECIAL = {
 		local cols = { C(255, 200, 80), C(255, 120, 120), C(120, 200, 255), C(160, 255, 140) }
 		for side = -1, 1, 2 do
 			local len = math.max(2, k.W / 2 - 8)
-			local base = k.front * CFrame.new(side * (k.W / 4 + 2), 9.45, -4.05)
+			local base = k.front * CFrame.new(side * (k.W / 4 + 2), (k.awningY or 11.6) - 2.15, -4.05)
 			deco(model, base, Vector3.new(len, 0.06, 0.06), BLACK)
 			local n = math.max(2, math.floor(len / 1.6))
 			for i = 0, n - 1 do
@@ -1768,7 +1768,7 @@ local SPECIAL = {
 	end,
 	awning_led = function(k, _look, model)
 		for side = -1, 1, 2 do
-			local strip = deco(model, k.front * CFrame.new(side * (k.W / 4 + 2), 11.05, -1.4), Vector3.new(math.max(2, k.W / 2 - 8), 0.1, 0.1), C(255, 236, 200), M.Neon)
+			local strip = deco(model, k.front * CFrame.new(side * (k.W / 4 + 2), (k.awningY or 11.6) - 0.55, -1.4), Vector3.new(math.max(2, k.W / 2 - 8), 0.1, 0.1), C(255, 236, 200), M.Neon)
 			B.surfaceLight(strip, Enum.NormalId.Bottom, 10, 80, 0.8, C(255, 230, 190))
 		end
 	end,

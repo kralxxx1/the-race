@@ -7,6 +7,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Graphics = require(Shared.Data.Graphics)
 
 local UI = script.Parent
 local Kit = require(UI.Kit)
@@ -199,12 +200,43 @@ local function audioTab(list: Instance)
 	sliderCard(list, "ambience", S.t("set_ambience"), S.t("set_ambience_sub"), 0, 1, percent, "ambienceOn")
 end
 
+-- The text of a number readout: percentages, signed percentages for -1..1, and the odd ones out.
+local function formatOf(o): (number) -> string
+	if o.id == "gfxlevel" then
+		return function(v)
+			return if v < 1 then S.t("set_auto") else tostring(math.floor(v + 0.5))
+		end
+	elseif o.lo < 0 then
+		return function(v)
+			return string.format("%+d%%", math.floor(v * 100 + (if v >= 0 then 0.5 else -0.5)))
+		end
+	end
+	return percent
+end
+
+-- One card for a choice from the shared graphics list (a switch, a slider or a row of words).
+local function optionCard(list: Instance, o)
+	local title, sub = S.t("set_" .. o.id), S.t("set_" .. o.id .. "_sub")
+	if o.kind == "bool" then
+		toggleCard(list, o.id, title, sub)
+	elseif o.kind == "num" then
+		sliderCard(list, o.id, title, sub, o.lo, o.hi, formatOf(o))
+	else
+		local words = {}
+		for _, w in o.words do
+			table.insert(words, { w, S.t("set_" .. o.id .. "_" .. w) })
+		end
+		choiceCard(list, o.id, title, sub, words)
+	end
+end
+
 local function graphicsTab(list: Instance, refresh: () -> ())
 	local qcard = choiceCard(list, "quality", S.t("set_quality"), S.t("set_quality_sub"), {
 		{ "low", S.t("set_q_low") },
 		{ "medium", S.t("set_q_medium") },
 		{ "high", S.t("set_q_high") },
 		{ "ultra", S.t("set_q_ultra") },
+		{ "cinematic", S.t("set_q_cinematic") },
 	}, function(q)
 		Prefs.preset(q)
 		refresh()
@@ -216,27 +248,61 @@ local function graphicsTab(list: Instance, refresh: () -> ())
 	end
 	track(Prefs.changed:Connect(sync))
 
-	heading(list, "✨ " .. S.t("set_effects"))
+	local function one(id: string)
+		optionCard(list, Graphics.byId[id])
+	end
+	local function brightness()
+		sliderCard(list, "brightness", S.t("set_brightness"), nil, -1, 1, function(v)
+			return string.format("%+d%%", math.floor(v * 100 + (if v >= 0 then 0.5 else -0.5)))
+		end)
+	end
+
+	heading(list, S.t("set_g_light"))
 	toggleCard(list, "shadows", S.t("set_shadows"), S.t("set_shadows_sub"))
+	one("shadowsoft")
+	brightness()
+	one("skylight")
+	one("reflections")
 	toggleCard(list, "bloom", S.t("set_bloom"), S.t("set_bloom_sub"))
+	one("bloomamt")
 	toggleCard(list, "sunrays", S.t("set_sunrays"), S.t("set_sunrays_sub"))
+	one("raysamt")
+	one("glare")
 	toggleCard(list, "dof", S.t("set_dof"), S.t("set_dof_sub"))
+
+	heading(list, S.t("set_g_sky"))
 	toggleCard(list, "clouds", S.t("set_clouds"), S.t("set_clouds_sub"))
-	sliderCard(list, "brightness", S.t("set_brightness"), nil, -1, 1, function(v)
-		return string.format("%+d%%", math.floor(v * 100 + (if v >= 0 then 0.5 else -0.5)))
-	end)
-	sliderCard(list, "fov", S.t("set_fov"), nil, 55, 100, function(v)
-		return string.format("%d°", math.floor(v + 0.5))
-	end)
-	sliderCard(list, "uiscale", S.t("set_uiscale"), nil, 0.7, 1.4, percent)
+	one("cloudcover")
+	one("haze")
+	one("look")
+	one("contrast")
+	one("saturation")
+
+	heading(list, S.t("set_g_weather"))
+	one("rain")
+	one("splashes")
+	one("lens")
+	one("flashes")
+
+	heading(list, S.t("set_g_city"))
 	choiceCard(list, "traffic", S.t("set_traffic"), S.t("set_traffic_sub"), {
 		{ "off", S.t("set_t_off") },
 		{ "low", S.t("set_t_low") },
 		{ "normal", S.t("set_t_normal") },
 		{ "high", S.t("set_t_high") },
 	})
+	one("crowd")
+	one("particles")
 	toggleCard(list, "names", S.t("set_names"), S.t("set_names_sub"))
+
+	heading(list, S.t("set_g_camera"))
+	sliderCard(list, "fov", S.t("set_fov"), nil, 55, 100, function(v)
+		return string.format("%d°", math.floor(v + 0.5))
+	end)
+	sliderCard(list, "uiscale", S.t("set_uiscale"), nil, 0.7, 1.4, percent)
 	toggleCard(list, "shake", S.t("set_shake"), S.t("set_shake_sub"))
+	one("motionblur")
+	one("gfxlevel")
 end
 
 local function gameTab(list: Instance)

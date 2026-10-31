@@ -1,9 +1,9 @@
 -- NpcService: people in the city — customers, staff, thieves.
--- Each look is dressed by Avatars (Roblox's realistic Base Body bodies and heads, the modern hair
--- series, layered 3D clothing and shoes). The avatars are built once in the background as
--- templates and cloned per NPC; until a look's template is ready (or if the catalog can't be
--- reached) a plain R15 rig dressed with part-made hair and accessories stands in.
--- A pool of street avatars goes to ReplicatedStorage.Avatars for the clients' pedestrians.
+-- Everybody is a standard R15 rig dressed from our own parts (PersonStyle rolls the skin, hair, top,
+-- bottom, shoes and accessories from the person's look, so thousands of different people come out
+-- of a few dozen roles). The catalog's realistic bodies (Avatars) are still here for anybody who
+-- turns Config.RealisticNpcs on, but their pale, staring faces were a problem in the game.
+-- A pool of street people goes to ReplicatedStorage.Avatars for the clients' pedestrians.
 
 local Players = game:GetService("Players")
 local CollectionService = game:GetService("CollectionService")
@@ -16,6 +16,7 @@ local Config = require(Shared.Config)
 local B = require(Shared.Util.Builder)
 local Rand = require(Shared.Util.Rand)
 local Avatars = require(Shared.Data.Avatars)
+local PersonStyle = require(Shared.Data.PersonStyle)
 
 local NpcService = {}
 
@@ -50,11 +51,6 @@ local EMOTES = {
 	},
 }
 NpcService.Emotes = EMOTES
-
-local SKIN = {
-	{ 255, 224, 196 }, { 241, 194, 160 }, { 224, 172, 130 }, { 198, 140, 98 }, { 160, 108, 72 }, { 120, 80, 52 }, { 92, 60, 40 },
-}
-local HAIR = { { 20, 18, 16 }, { 60, 40, 26 }, { 110, 70, 40 }, { 180, 140, 90 }, { 220, 190, 130 }, { 140, 50, 30 }, { 200, 200, 200 } }
 
 -- Clothes palette per look: shirt, pants, extras
 local LOOKS = {
@@ -104,6 +100,12 @@ local function makeBase(kind: string): Model
 		desc.HeightScale = 0.78
 		desc.WidthScale = 0.85
 		desc.HeadScale = 1.08
+	elseif kind == "s" then
+		desc.HeightScale = 0.93
+		desc.WidthScale = 0.92
+	elseif kind == "l" then
+		desc.HeightScale = 1.07
+		desc.WidthScale = 1.06
 	end
 	local ok, rig = pcall(function()
 		return Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
@@ -323,7 +325,7 @@ local function part(body: BasePart, offset: CFrame, size: Vector3, color: Color3
 end
 
 -- Hair and accessories from part shapes, attached to the body.
-local function dress(model: Model, extras: { string }, hair: Color3, gender: string, rng: Random)
+local function dress(model: Model, extras: { string }, hair: Color3, gender: string, rng: Random, ownHair: boolean?)
 	local head = model:FindFirstChild("Head") :: BasePart
 	local torso = model:FindFirstChild("UpperTorso") :: BasePart
 	local rightHand = model:FindFirstChild("RightHand") :: BasePart
@@ -337,7 +339,7 @@ local function dress(model: Model, extras: { string }, hair: Color3, gender: str
 	end
 	-- hair
 	local hood = has.hood or has.scarf
-	if not hood and not has.hardhat then
+	if not ownHair and not hood and not has.hardhat then
 		local hairCol = if has.white_hair then Color3.fromRGB(220, 220, 220) else hair
 		if has.dyed then
 			hairCol = Rand.pick(rng, { Color3.fromRGB(240, 90, 160), Color3.fromRGB(80, 200, 240), Color3.fromRGB(160, 90, 240) })
@@ -441,8 +443,63 @@ local function dress(model: Model, extras: { string }, hair: Color3, gender: str
 	if has.camera then
 		part(torso, CFrame.new(ts.X * 0.2, -ts.Y * 0.2, -ts.Z * 0.6), Vector3.new(0.4, 0.28, 0.22), Color3.fromRGB(26, 26, 28))
 	end
+	-- more things people wear (each also rolled by PersonStyle for anybody)
+	if has.bucket then
+		part(head, CFrame.new(0, hs.Y * 0.5, 0), Vector3.new(hs.X * 1.1, hs.Y * 0.3, hs.Z * 1.1), Rand.pick(rng, { Color3.fromRGB(120, 130, 90), Color3.fromRGB(200, 190, 160), Color3.fromRGB(60, 80, 130) }), Enum.Material.Fabric)
+		part(head, CFrame.new(0, hs.Y * 0.4, 0), Vector3.new(hs.X * 1.5, 0.06, hs.Z * 1.5), Color3.fromRGB(110, 110, 100), Enum.Material.Fabric)
+	end
+	if has.bandana then
+		part(head, CFrame.new(0, hs.Y * 0.32, 0), Vector3.new(hs.X * 1.08, hs.Y * 0.26, hs.Z * 1.08), Rand.pick(rng, { Color3.fromRGB(200, 40, 40), Color3.fromRGB(40, 70, 160), Color3.fromRGB(240, 240, 240) }), Enum.Material.Fabric)
+	end
+	if has.mask_med then
+		part(head, CFrame.new(0, -hs.Y * 0.2, -hs.Z * 0.51), Vector3.new(hs.X * 0.85, hs.Y * 0.36, 0.05), Color3.fromRGB(190, 220, 236), Enum.Material.Fabric)
+	end
+	if has.earrings then
+		for _, sd in { -1, 1 } do
+			part(head, CFrame.new(sd * hs.X * 0.52, -hs.Y * 0.12, 0), Vector3.new(0.14, 0.14, 0.14), Color3.fromRGB(240, 200, 70), Enum.Material.Metal, "ball")
+		end
+	end
+	if has.headphones then
+		for _, sd in { -1, 1 } do
+			part(head, CFrame.new(sd * hs.X * 0.56, 0, 0), Vector3.new(0.16, hs.Y * 0.45, hs.Y * 0.45), Color3.fromRGB(40, 40, 46), Enum.Material.SmoothPlastic, "cyl")
+		end
+		part(head, CFrame.new(0, hs.Y * 0.56, 0), Vector3.new(hs.X * 1.15, 0.09, 0.14), Color3.fromRGB(40, 40, 46))
+	end
+	if has.beard then
+		part(head, CFrame.new(0, -hs.Y * 0.3, -hs.Z * 0.42), Vector3.new(hs.X * 0.98, hs.Y * 0.4, hs.Z * 0.22), hair, Enum.Material.Fabric)
+	end
+	if has.goatee then
+		part(head, CFrame.new(0, -hs.Y * 0.38, -hs.Z * 0.5), Vector3.new(hs.X * 0.32, hs.Y * 0.28, 0.08), hair, Enum.Material.Fabric)
+	end
+	if has.stubble then
+		local st = part(head, CFrame.new(0, -hs.Y * 0.22, -hs.Z * 0.505), Vector3.new(hs.X * 0.96, hs.Y * 0.44, 0.03), hair, Enum.Material.Fabric)
+		st.Transparency = 0.72
+	end
+	if has.scarf_s then
+		part(torso, CFrame.new(0, torso.Size.Y * 0.46, 0), Vector3.new(torso.Size.X * 0.7, 0.28, torso.Size.Z * 1.25), Rand.pick(rng, { Color3.fromRGB(200, 60, 60), Color3.fromRGB(60, 90, 160), Color3.fromRGB(230, 200, 80) }), Enum.Material.Fabric)
+	end
+	if has.necklace then
+		part(torso, CFrame.new(0, torso.Size.Y * 0.38, -torso.Size.Z * 0.51), Vector3.new(torso.Size.X * 0.34, 0.05, 0.04), Color3.fromRGB(235, 200, 80), Enum.Material.Metal)
+	end
+	if has.watch or has.bracelet then
+		local lh = model:FindFirstChild("LeftHand") :: BasePart?
+		if lh then
+			part(lh, CFrame.new(0, 0.32, 0), Vector3.new(lh.Size.X * 1.1, 0.14, lh.Size.Z * 1.1), if has.watch then Color3.fromRGB(40, 40, 46) else Color3.fromRGB(230, 180, 70), Enum.Material.Metal)
+			if has.watch then
+				part(lh, CFrame.new(0, 0.32, -lh.Size.Z * 0.5), Vector3.new(0.18, 0.16, 0.06), Color3.fromRGB(190, 220, 250), Enum.Material.Glass)
+			end
+		end
+	end
+	if has.bag then
+		-- a shoulder bag: strap across the chest, the bag at the hip
+		part(torso, CFrame.new(0, 0.05, 0) * CFrame.Angles(0, 0, math.rad(-38)), Vector3.new(0.12, torso.Size.Y * 1.25, torso.Size.Z * 1.08), Color3.fromRGB(70, 56, 44), Enum.Material.Leather)
+		part(torso, CFrame.new(-torso.Size.X * 0.62, -torso.Size.Y * 0.4, 0), Vector3.new(0.3, 0.62, 0.75), Color3.fromRGB(90, 70, 52), Enum.Material.Leather)
+	end
 	-- hand items
 	if rightHand then
+		if has.tote then
+			part(rightHand, CFrame.new(0, -0.5, 0), Vector3.new(0.3, 0.78, 0.95), Rand.pick(rng, { Color3.fromRGB(230, 220, 190), Color3.fromRGB(70, 110, 150), Color3.fromRGB(200, 90, 80) }), Enum.Material.Fabric)
+		end
 		if has.briefcase then
 			part(rightHand, CFrame.new(0, -0.45, 0), Vector3.new(0.25, 0.75, 1.0), Color3.fromRGB(60, 40, 30), Enum.Material.Leather)
 		elseif has.handbag then
@@ -468,7 +525,7 @@ function NpcService.spawn(opts: { [string]: any }): Model
 	local rng = Random.new(opts.seed or math.random(1, 1e9))
 	local lookName = if opts.look and LOOKS[opts.look] then opts.look else "casual"
 	local gender = if opts.gender == "m" or opts.gender == "f" then opts.gender else pickGender(lookName, rng)
-	local list = templates[lookName .. ":" .. gender]
+	local list = if Config.RealisticNpcs then templates[lookName .. ":" .. gender] else nil
 	local model: Model
 	local real = list ~= nil and #list > 0
 	if real then
@@ -508,41 +565,221 @@ function NpcService.spawn(opts: { [string]: any }): Model
 	return model
 end
 
--- The stand-in: a plain R15 rig in the look's colours with part-made hair and accessories.
+----------------------------------------------------------------------------------------------------
+-- A person from parts: hair, top, bottom and shoes from a PersonStyle
+----------------------------------------------------------------------------------------------------
+-- Hair: pieces as { shape, x, y, z, w, h, d [, tilt] } in head sizes from the middle of the head
+-- ("b" a box, "o" a ball of diameter w); the face looks along -Z.
+local CAP = { "b", 0, 0.42, 0.02, 1.06, 0.32, 1.06 }
+local BACK = { "b", 0, 0.1, 0.43, 1.04, 0.62, 0.22 }
+local LONGBACK = { "b", 0, -0.25, 0.48, 1.02, 0.9, 0.2 }
+local SIDES = { { "b", 0.52, -0.05, 0.1, 0.1, 0.75, 0.9 }, { "b", -0.52, -0.05, 0.1, 0.1, 0.75, 0.9 } }
+local HAIR_PARTS = {
+	buzz = { { "b", 0, 0.46, 0.02, 1.03, 0.14, 1.03 } },
+	short = { CAP, BACK },
+	side = { CAP, BACK, { "b", 0.22, 0.34, -0.48, 0.65, 0.2, 0.1 } },
+	quiff = { CAP, BACK, { "b", 0, 0.62, -0.3, 0.7, 0.28, 0.5 } },
+	curly = { { "o", 0.3, 0.5, 0, 0.5 }, { "o", -0.3, 0.5, 0, 0.5 }, { "o", 0, 0.62, -0.2, 0.5 }, { "o", 0, 0.6, 0.25, 0.5 }, { "o", 0.45, 0.3, 0.25, 0.45 }, { "o", -0.45, 0.3, 0.25, 0.45 }, { "o", 0, 0.3, 0.5, 0.5 } },
+	afro = { { "o", 0, 0.38, 0.1, 1.55 } },
+	long = { CAP, LONGBACK, SIDES[1], SIDES[2] },
+	topknot = { { "b", 0, 0.42, 0.02, 1.04, 0.2, 1.04 }, { "b", 0, 0.1, 0.43, 1.02, 0.5, 0.2 }, { "o", 0, 0.72, 0.12, 0.42 } },
+	bald = {},
+	spiky = { { "b", 0, 0.46, 0.02, 1.03, 0.16, 1.03 }, { "b", 0, 0.66, 0, 0.22, 0.34, 0.22 }, { "b", 0.3, 0.62, 0, 0.2, 0.3, 0.2, { 0, 0, -25 } }, { "b", -0.3, 0.62, 0, 0.2, 0.3, 0.2, { 0, 0, 25 } }, { "b", 0, 0.62, -0.3, 0.2, 0.3, 0.2, { 25, 0, 0 } }, { "b", 0, 0.62, 0.3, 0.2, 0.3, 0.2, { -25, 0, 0 } } },
+	slick = { { "b", 0, 0.4, 0.04, 1.06, 0.3, 1.1 }, { "b", 0, 0.05, 0.5, 1, 0.7, 0.16 } },
+	mohawk = { { "b", 0, 0.64, 0, 0.2, 0.42, 0.95 }, { "b", 0, 0.46, 0.02, 1.03, 0.1, 1.03 } },
+	wavy = { CAP, BACK, SIDES[1], SIDES[2] },
+	ponytail = { CAP, BACK, { "o", 0, 0.15, 0.62, 0.4 }, { "b", 0, -0.3, 0.7, 0.2, 0.8, 0.2 } },
+	bob = { CAP, { "b", 0, -0.02, 0.46, 1.1, 0.8, 0.18 }, SIDES[1], SIDES[2] },
+	bun = { CAP, BACK, { "o", 0, 0.7, 0.22, 0.5 } },
+	braid = { CAP, BACK, { "b", 0, -0.65, 0.56, 0.18, 1, 0.18 } },
+	pixie = { CAP, { "b", 0.3, 0.32, -0.48, 0.6, 0.15, 0.1 }, { "b", -0.48, 0.15, 0, 0.1, 0.35, 0.6 } },
+	bangs = { CAP, { "b", 0, 0.3, -0.5, 1.06, 0.24, 0.1 }, LONGBACK },
+	shoulder = { CAP, { "b", 0, -0.3, 0.46, 1.04, 0.95, 0.2 }, { "b", 0.52, -0.3, 0.12, 0.1, 0.85, 0.7 }, { "b", -0.52, -0.3, 0.12, 0.1, 0.85, 0.7 } },
+	twinbuns = { CAP, BACK, { "o", 0.5, 0.62, 0.12, 0.42 }, { "o", -0.5, 0.62, 0.12, 0.42 } },
+	sidepony = { CAP, BACK, { "o", 0.58, 0.12, 0.2, 0.38 }, { "b", 0.6, -0.25, 0.22, 0.16, 0.6, 0.16 } },
+	fade = { { "b", 0, 0.5, -0.05, 0.8, 0.3, 0.9 }, { "b", 0, 0.38, 0.02, 1.04, 0.12, 1.04 } },
+	pompadour = { CAP, BACK, { "b", 0, 0.66, -0.15, 0.8, 0.3, 0.7 } },
+	curlybob = { { "o", 0.5, 0.1, 0.15, 0.45 }, { "o", -0.5, 0.1, 0.15, 0.45 }, { "o", 0, 0.1, 0.5, 0.5 }, { "o", 0, 0.55, 0, 0.7 }, { "o", 0.35, 0.4, 0.3, 0.45 }, { "o", -0.35, 0.4, 0.3, 0.45 } },
+	halfup = { CAP, LONGBACK, { "o", 0, 0.62, 0.3, 0.36 } },
+}
+NpcService.HairStyles = HAIR_PARTS
+
+local function buildHair(head: BasePart, hair: { style: string, color: { number } }, hidden: boolean)
+	if hidden then
+		return
+	end
+	local specs = HAIR_PARTS[hair.style] or HAIR_PARTS.short
+	local hs = head.Size
+	local col = c3(hair.color)
+	for _, sp in specs do
+		local off = CFrame.new(sp[2] * hs.X, sp[3] * hs.Y, sp[4] * hs.Z)
+		if sp[1] == "o" then
+			part(head, off, Vector3.new(sp[5] * hs.X, 0, 0), col, Enum.Material.SmoothPlastic, "ball")
+		else
+			local tilt = sp[8]
+			if tilt then
+				off = off * CFrame.Angles(math.rad(tilt[1]), math.rad(tilt[2]), math.rad(tilt[3]))
+			end
+			part(head, off, Vector3.new(sp[5] * hs.X, sp[6] * hs.Y, sp[7] * hs.Z), col, Enum.Material.SmoothPlastic)
+		end
+	end
+end
+
+local function limb(model: Model, names: { string }, color: Color3)
+	for _, n in names do
+		local p = model:FindFirstChild(n)
+		if p and p:IsA("BasePart") then
+			p.Color = color
+		end
+	end
+end
+
+-- Colours the body parts and adds what the top and the bottom are made of.
+local function buildClothes(model: Model, st)
+	local skin = c3(st.skin)
+	local topCol, accent = c3(st.top.color), c3(st.top.accent)
+	local bottomCol = c3(st.bottom.color)
+	local kind, pattern = st.top.kind, st.top.pattern
+	local darker = topCol:Lerp(Color3.new(0, 0, 0), 0.25)
+	local lighter = topCol:Lerp(Color3.new(1, 1, 1), 0.3)
+	limb(model, { "Head", "LeftHand", "RightHand" }, skin)
+	-- the torso, and the arms (sleeves down to the elbow, to the wrist or none)
+	limb(model, { "UpperTorso" }, if kind == "vest" then topCol:Lerp(Color3.new(0, 0, 0), 0.35) else topCol)
+	local sleeveCol = if kind == "vest" then accent elseif pattern == "sleeves" then accent else topCol
+	local upper = { "LeftUpperArm", "RightUpperArm" }
+	local lower = { "LeftLowerArm", "RightLowerArm" }
+	if st.sleeves == "none" then
+		limb(model, upper, skin)
+		limb(model, lower, skin)
+	elseif st.sleeves == "short" then
+		limb(model, upper, sleeveCol)
+		limb(model, lower, skin)
+	else
+		limb(model, upper, sleeveCol)
+		limb(model, lower, sleeveCol)
+	end
+	-- the hips and the legs
+	local bk = st.bottom.kind
+	local legsUpper = { "LeftUpperLeg", "RightUpperLeg" }
+	local legsLower = { "LeftLowerLeg", "RightLowerLeg" }
+	if bk == "dress" then
+		limb(model, { "LowerTorso" }, topCol)
+		limb(model, legsUpper, skin)
+		limb(model, legsLower, skin)
+	elseif bk == "skirt" then
+		limb(model, { "LowerTorso" }, bottomCol)
+		limb(model, legsUpper, skin)
+		limb(model, legsLower, skin)
+	elseif bk == "shorts" then
+		limb(model, { "LowerTorso" }, bottomCol)
+		limb(model, legsUpper, bottomCol)
+		limb(model, legsLower, skin)
+	else
+		limb(model, { "LowerTorso" }, bottomCol)
+		limb(model, legsUpper, bottomCol)
+		limb(model, legsLower, bottomCol)
+	end
+	limb(model, { "LeftFoot", "RightFoot" }, c3(st.shoes))
+	local torso = model:FindFirstChild("UpperTorso") :: BasePart
+	local lowerTorso = model:FindFirstChild("LowerTorso") :: BasePart
+	if not torso then
+		return
+	end
+	local ts = torso.Size
+	local function over(x: number, y: number, z: number, w: number, h: number, d: number, col: Color3, mat: Enum.Material?)
+		return part(torso, CFrame.new(x * ts.X, y * ts.Y, z * ts.Z), Vector3.new(w * ts.X, h * ts.Y, d * ts.Z), col, mat or Enum.Material.Fabric)
+	end
+	-- patterns on the chest (front is -Z)
+	if pattern == "stripe" then
+		over(0, 0.18, -0.51, 1.02, 0.14, 0.03, accent)
+		over(0, -0.06, -0.51, 1.02, 0.14, 0.03, accent)
+	elseif pattern == "stripes2" then
+		for k = 0, 3 do
+			over(0, 0.36 - k * 0.24, -0.51, 1.02, 0.11, 0.03, lighter)
+		end
+	elseif pattern == "band" then
+		over(0, 0.05, -0.51, 1.02, 0.3, 0.03, accent)
+	elseif pattern == "pocket" then
+		over(-0.27, 0.16, -0.52, 0.24, 0.26, 0.03, darker)
+	elseif pattern == "logo" then
+		part(torso, CFrame.new(0, ts.Y * 0.12, -ts.Z * 0.52) * CFrame.Angles(0, math.pi / 2, 0), Vector3.new(0.03, ts.X * 0.3, ts.X * 0.3), accent, Enum.Material.SmoothPlastic, "cyl")
+	end
+	-- what kind of top it is
+	if kind == "polo" or kind == "shirt" or kind == "blouse" then
+		over(-0.16, 0.46, -0.5, 0.26, 0.1, 0.08, lighter)
+		over(0.16, 0.46, -0.5, 0.26, 0.1, 0.08, lighter)
+		if kind ~= "polo" then
+			over(0, -0.02, -0.51, 0.06, 0.95, 0.03, topCol:Lerp(Color3.new(1, 1, 1), 0.5))
+		end
+	elseif kind == "hoodie" then
+		over(0, 0.45, 0.55, 0.7, 0.2, 0.3, darker)
+		over(0, -0.25, -0.52, 0.8, 0.28, 0.03, darker)
+		over(-0.14, 0.4, -0.52, 0.05, 0.3, 0.03, lighter)
+		over(0.14, 0.4, -0.52, 0.05, 0.3, 0.03, lighter)
+	elseif kind == "jacket" then
+		local inner = c3(st.top.accent)
+		over(0, 0, -0.52, 0.3, 0.98, 0.03, inner)
+		over(0, 0, -0.53, 0.05, 0.98, 0.03, Color3.fromRGB(40, 40, 44), Enum.Material.Metal)
+		over(-0.22, 0.46, -0.5, 0.2, 0.1, 0.08, darker)
+		over(0.22, 0.46, -0.5, 0.2, 0.1, 0.08, darker)
+	elseif kind == "sweater" then
+		over(0, 0.46, -0.0, 0.7, 0.12, 1.06, lighter)
+		over(0, -0.46, 0, 1.03, 0.1, 1.04, lighter)
+	elseif kind == "vest" then
+		over(0, 0, -0.52, 0.04, 0.98, 0.03, Color3.fromRGB(30, 30, 34))
+	end
+	if lowerTorso then
+		local ls = lowerTorso.Size
+		-- skirts and dresses: a cylinder round the hips, down to the knees
+		if bk == "skirt" or bk == "dress" then
+			local col = if bk == "dress" then topCol else bottomCol
+			local len = if bk == "dress" then 1.35 else 1.05
+			part(lowerTorso, CFrame.new(0, -len * 0.38, 0) * CFrame.Angles(0, 0, math.pi / 2), Vector3.new(len, ls.X * 1.75, ls.X * 1.75), col, Enum.Material.Fabric, "cyl")
+		elseif bk == "cargo" then
+			for _, sd in { -1, 1 } do
+				part(lowerTorso, CFrame.new(sd * ls.X * 0.62, -0.62, 0), Vector3.new(0.14, 0.4, 0.5), bottomCol:Lerp(Color3.new(0, 0, 0), 0.18), Enum.Material.Fabric)
+			end
+		elseif bk == "sweats" or bk == "jeans" then
+			part(lowerTorso, CFrame.new(0, ls.Y * 0.42, -0.0), Vector3.new(ls.X * 1.03, 0.1, ls.Z * 1.04), bottomCol:Lerp(Color3.new(0, 0, 0), 0.3), Enum.Material.Fabric)
+		end
+	end
+end
+
+local function sizeOf(look): string
+	return if look.kid then "kid" else "m"
+end
+
+-- The stand-in and the standard: a plain R15 rig in the look's colours with part-made hair, clothes
+-- and accessories, rolled by PersonStyle.
 function NpcService.plain(lookName: string, gender: string, rng: Random): Model
 	local look = LOOKS[lookName] or LOOKS.casual
-	local base = baseRigs[if look.kid then "kid" else "adult"]
+	local st = PersonStyle.roll(look, gender, rng)
+	local base = baseRigs[if look.kid then "kid" else (st.size or sizeOf(look))] or baseRigs.m
 	local model = base:Clone()
-	local skin = c3(Rand.pick(rng, SKIN))
-	local shirt = c3(Rand.pick(rng, look.shirt))
-	local pants = c3(Rand.pick(rng, look.pants))
+	local skin = c3(st.skin)
 	local bc = model:FindFirstChildOfClass("BodyColors")
-	if not bc then
-		bc = Instance.new("BodyColors")
-		bc.Parent = model
+	if bc then
+		-- (the parts are coloured one by one below)
+		bc:Destroy()
 	end
-	bc.HeadColor3 = skin
-	bc.TorsoColor3 = shirt
-	bc.LeftArmColor3 = shirt
-	bc.RightArmColor3 = shirt
-	bc.LeftLegColor3 = pants
-	bc.RightLegColor3 = pants
-	-- hands keep the skin colour
-	for _, n in { "LeftHand", "RightHand" } do
-		local h = model:FindFirstChild(n)
-		if h and h:IsA("BasePart") then
-			h.Color = skin
-		end
-	end
-	for _, n in { "LeftFoot", "RightFoot" } do
-		local f = model:FindFirstChild(n)
-		if f and f:IsA("BasePart") then
-			f.Color = Color3.fromRGB(30, 30, 32)
-		end
-	end
+	buildClothes(model, st)
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
 	model.PrimaryPart = root
-	dress(model, look.extras or {}, c3(Rand.pick(rng, HAIR)), gender, rng)
+	local head = model:FindFirstChild("Head") :: BasePart?
+	local hidden = false
+	for _, e in st.extras do
+		if e == "hood" or e == "hardhat" or e == "scarf" then
+			hidden = true
+		end
+	end
+	if head then
+		buildHair(head, st.hair, hidden)
+	end
+	local hairCol = c3(st.hair.color)
+	if st.hair.style == "bald" then
+		hairCol = skin:Lerp(Color3.new(0, 0, 0), 0.5)
+	end
+	dress(model, st.extras, hairCol, gender, rng, true)
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
 			d.CanQuery = d == root
@@ -550,6 +787,13 @@ function NpcService.plain(lookName: string, gender: string, rng: Random): Model
 				d.CanCollide = false
 			end
 		end
+	end
+	model:SetAttribute("Plain", true)
+	model:SetAttribute("Avatar", true)
+	model:SetAttribute("Look", lookName)
+	local hum = model:FindFirstChildOfClass("Humanoid")
+	if hum and root then
+		model:SetAttribute("Hip", hum.HipHeight + root.Size.Y / 2)
 	end
 	return model
 end
@@ -849,7 +1093,9 @@ function NpcService.init()
 	folder = Instance.new("Folder")
 	folder.Name = "NPCs"
 	folder.Parent = Workspace
-	baseRigs.adult = makeBase("adult")
+	baseRigs.m = makeBase("m")
+	baseRigs.s = makeBase("s")
+	baseRigs.l = makeBase("l")
 	baseRigs.kid = makeBase("kid")
 	templateFolder = Instance.new("Folder")
 	templateFolder.Name = "NpcTemplates"
@@ -857,7 +1103,29 @@ function NpcService.init()
 	streetFolder = Instance.new("Folder")
 	streetFolder.Name = "Avatars"
 	streetFolder.Parent = ReplicatedStorage
-	task.spawn(buildTemplates)
+	if Config.RealisticNpcs then
+		task.spawn(buildTemplates)
+	else
+		-- the street crowd for the clients: plain people, every one different
+		task.spawn(function()
+			local rng = Random.new(20261031)
+			for i = 1, Config.StreetPeople do
+				local look = Avatars.STREET[(i - 1) % #Avatars.STREET + 1]
+				local gender = pickGender(look, rng)
+				local person = NpcService.plain(look, gender, rng)
+				person.Name = "Street" .. i
+				local hum = person:FindFirstChildOfClass("Humanoid")
+				if hum then
+					hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+				end
+				person.Parent = streetFolder
+				if i % 6 == 0 then
+					task.wait()
+				end
+			end
+			templateFolder:SetAttribute("Ready", true)
+		end)
+	end
 end
 
 function NpcService.start() end

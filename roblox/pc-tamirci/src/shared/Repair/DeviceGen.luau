@@ -487,6 +487,8 @@ DeviceGen.bootKind = bootKind
 
 -- Applies fault `id`. Returns false if the fault doesn't fit this device.
 function DeviceGen.applyFault(dev, id: string, rng: Random): boolean
+	local storyId = id
+	id = Faults.base(id) -- (a variant breaks the device the way its base does)
 	local H = dev.hidden
 	local desktop = dev.kind == "desktop"
 	if id == "psu_dead" then
@@ -614,7 +616,7 @@ function DeviceGen.applyFault(dev, id: string, rng: Random): boolean
 		return false
 	end
 	dev.faults = dev.faults or {}
-	table.insert(dev.faults, id)
+	table.insert(dev.faults, storyId)
 	return true
 end
 
@@ -765,6 +767,7 @@ end
 
 -- Rough cost of the replacement parts a fault needs (so customers offer sensible money).
 function DeviceGen.partsEstimate(dev, faultId: string): number
+	faultId = Faults.base(faultId)
 	local function priceOf(id)
 		local p = Rules.part(dev, id)
 		return p and p.price or 0

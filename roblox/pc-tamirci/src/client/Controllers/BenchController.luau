@@ -32,6 +32,7 @@ local State = require(Client.State)
 local Prefs = require(Client.Prefs)
 local Kit = require(Client.UI.Kit)
 local Theme = require(Client.UI.Theme)
+local ToolIcon = require(Client.UI.ToolIcon)
 local App = require(Client.UI.App)
 local BenchViews = require(script.Parent.BenchViews)
 local BenchCoach = require(script.Parent.BenchCoach)
@@ -54,10 +55,10 @@ local busy = false
 local holding = nil :: any
 -- The camera looks at the middle of the device from close up and above; zooming in with the wheel
 -- drifts the focus towards the part under the mouse (off follows offT smoothly).
-local CAM_FOCUS = Vector3.new(-0.5, 1.2, 0)
-local CAM_START = { yaw = 0, pitch = 1.02, dist = 8.4 }
-local CAM_MIN, CAM_MAX = 2.6, 26
-local TOOL_SCALE = 2
+local CAM_FOCUS = Vector3.new(-0.37, 0.9, 0)
+local CAM_START = { yaw = 0, pitch = 1.02, dist = 6.2 }
+local CAM_MIN, CAM_MAX = 1.9, 19
+local TOOL_SCALE = 1.5
 local orbit = { yaw = 0, pitch = CAM_START.pitch, dist = CAM_START.dist, off = Vector3.zero, offT = Vector3.zero }
 local labelsOn = true
 local labelFolder: Folder? = nil
@@ -308,7 +309,7 @@ local function selectTool(id: string)
 	local t = Tools.get(id)
 	if t and active then
 		toolModel = ToolModels.build(t.model or "hand", Workspace)
-		-- the device is twice as big as it used to be, so is the tool in your hand
+		-- the device is bigger than it used to be, so is the tool in your hand
 		pcall(function()
 			(toolModel :: Model):ScaleTo(TOOL_SCALE)
 		end)
@@ -330,8 +331,9 @@ local function buildToolbar()
 				selectTool(t.id)
 			end, { Size = UDim2.fromOffset(52, 52), TextSize = 26, LayoutOrder = n })
 			b.Name = t.id
+			ToolIcon.button(b, t.id) -- (a picture of the real tool: some emoji are missing from the font)
 			if key ~= "" then
-				Kit.label(b, key, { Size = UDim2.fromOffset(14, 14), Position = UDim2.fromOffset(4, 2), TextSize = 12, TextColor3 = Theme.dim, FontFace = Theme.bold })
+				Kit.label(b, key, { Size = UDim2.fromOffset(14, 14), Position = UDim2.fromOffset(4, 2), TextSize = 12, TextColor3 = Theme.dim, FontFace = Theme.bold, ZIndex = 4 })
 			end
 			ui.toolButtons[t.id] = b
 			b:SetAttribute("Key", key)
@@ -378,7 +380,15 @@ local function refreshDiag()
 	for _, b in ui.diag or {} do
 		local need = b:GetAttribute("Tool")
 		local kindOnly = b:GetAttribute("Kind")
-		b.Visible = has and (not need or State.owns(need)) and (not kindOnly or (v ~= nil and v.kind == kindOnly))
+		b.Visible = has and (not kindOnly or (v ~= nil and v.kind == kindOnly))
+		-- a test whose tool isn't in the bag yet stays on the list, locked, so it can be found
+		local locked = need ~= nil and not State.owns(need)
+		local base = b:GetAttribute("Label")
+		if base then
+			b.Text = if locked then "🔒 " .. base else base
+		end
+		b.TextTransparency = if locked then 0.45 else 0
+		b:SetAttribute("Locked", locked)
 	end
 	if ui.finish then
 		ui.finish.Visible = has
@@ -499,17 +509,19 @@ local function send(action: string, target: string?, args: { [string]: any }?, t
 	else
 		local msg = if r.reason then Rules.message(r.reason, lang(), r.vars) else S.err(r.err)
 		setHint(msg, false)
-		log("✖ " .. msg, Theme.bad)
+		log("× " .. msg, Theme.bad)
 	end
 	return r
 end
 
 -- Holds the mouse for `seconds`; returns true when completed.
-local function holdFor(seconds: number, label: string): boolean
+-- sticky: the hold was started from a button (the click is already over), so letting go of the
+-- mouse must not cancel it
+local function holdFor(seconds: number, label: string, sticky: boolean?): boolean
 	if seconds <= 0 then
 		return true
 	end
-	holding = { t0 = os.clock(), dur = seconds, done = false, cancelled = false }
+	holding = { t0 = os.clock(), dur = seconds, done = false, cancelled = false, sticky = sticky == true }
 	ui.hold.Visible = true
 	ui.holdLabel.Text = label
 	while holding and not holding.cancelled do
@@ -634,16 +646,16 @@ local function emitter(kind: string, pos: Vector3, normal: Vector3): BasePart
 	if kind == "dust" then
 		-- a grey cloud blown out of the heatsink
 		pe.Color = ColorSequence.new(Color3.fromRGB(150, 145, 135))
-		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 2.2) })
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.22), NumberSequenceKeypoint.new(1, 1.6) })
 		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 1) })
 		pe.Lifetime = NumberRange.new(0.5, 1.1)
 		pe.Rate = 70
-		pe.Speed = NumberRange.new(5, 11)
+		pe.Speed = NumberRange.new(4, 8)
 		pe.SpreadAngle = Vector2.new(55, 55)
 		pe.Drag = 3
 	elseif kind == "fluff" then
 		pe.Color = ColorSequence.new(Color3.fromRGB(170, 165, 155))
-		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 0.6) })
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.08), NumberSequenceKeypoint.new(1, 0.45) })
 		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 1) })
 		pe.Lifetime = NumberRange.new(0.4, 0.8)
 		pe.Rate = 25
@@ -653,7 +665,7 @@ local function emitter(kind: string, pos: Vector3, normal: Vector3): BasePart
 	else
 		-- solder smoke curling up
 		pe.Color = ColorSequence.new(Color3.fromRGB(235, 235, 240))
-		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) })
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.08), NumberSequenceKeypoint.new(1, 0.75) })
 		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1) })
 		pe.Lifetime = NumberRange.new(1.2, 2)
 		pe.Rate = 16
@@ -960,7 +972,7 @@ local function refreshLabels()
 			g.AlwaysOnTop = true
 			g.Size = UDim2.fromOffset(150, 22)
 			g.StudsOffsetWorldSpace = Vector3.new(0, 0.5, 0)
-			g.MaxDistance = 50
+			g.MaxDistance = 40
 			g.LightInfluence = 0
 			g.Parent = a
 			local t = Kit.label(g, nodeLabel(v, id), { Size = UDim2.fromScale(1, 1), TextSize = 13, FontFace = Theme.bold, TextXAlignment = Enum.TextXAlignment.Center, TextStrokeTransparency = 0.3, TextColor3 = Color3.fromRGB(255, 248, 210) })
@@ -1193,7 +1205,18 @@ end
 -- building the bench UI (once)
 ----------------------------------------------------------------------------------------------------
 local function diagButton(parent: Instance, id: string, text: string, onClick: () -> (), toolNeeded: string?, kind: string?)
-	local b = Kit.button(parent, text, onClick, { Size = UDim2.new(1, 0, 0, 38), TextSize = 15 })
+	local b
+	b = Kit.button(parent, text, function()
+		local need = toolNeeded
+		if need and not State.owns(need) then
+			-- (the tool shop sells it)
+			local tool = Tools.get(need)
+			hud.toast(S.t("tool_locked", { tool = if tool then tool.icon .. " " .. S.pick(tool.name) else need }), "warn", 5)
+			return
+		end
+		onClick()
+	end, { Size = UDim2.new(1, 0, 0, 38), TextSize = 15 })
+	b:SetAttribute("Label", text)
 	b.Name = id
 	if toolNeeded then
 		b:SetAttribute("Tool", toolNeeded)
@@ -1214,7 +1237,7 @@ local function softwareMenu()
 			win.close()
 			local secs = Config.SoftwareSeconds[prog] or 4
 			BenchViews.monitor(active.model, S.t("sw_" .. prog) .. "\n\n" .. S.t("loading"), Color3.fromRGB(0, 40, 90))
-			if holdFor(secs * 0.35, S.t("sw_" .. prog)) then
+			if holdFor(secs * 0.35, S.t("sw_" .. prog), true) then
 				send("software", nil, { program = prog }, "usb_boot")
 			end
 		end, { Size = UDim2.fromOffset(60, 36) }, "primary")
@@ -1239,7 +1262,7 @@ function build()
 	end, { Size = UDim2.fromOffset(100, 34), Position = UDim2.new(1, -108, 0, 6) }, "bad")
 
 	-- left: job and findings
-	local left = Kit.panel(root, { Size = UDim2.new(0, 300, 1, -150), Position = UDim2.fromOffset(12, 70), BackgroundTransparency = 0.12 })
+	local left = Kit.panel(root, { Size = UDim2.new(0, 252, 1, -170), Position = UDim2.fromOffset(10, 70), BackgroundTransparency = 0.22 })
 	Kit.padding(left, 10)
 	ui.jobInfo = Kit.frame(left, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y })
 	Kit.listLayout(ui.jobInfo, 4)
@@ -1247,14 +1270,14 @@ function build()
 	ui.log = Kit.list(left, { Size = UDim2.new(1, 0, 0.58, -26), Position = UDim2.new(0, 0, 0.42, 24) }, 4)
 
 	-- right: tests and finishing
-	local right = Kit.panel(root, { Size = UDim2.new(0, 210, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(1, -222, 0, 70), BackgroundTransparency = 0.12 })
+	local right = Kit.panel(root, { Size = UDim2.new(0, 188, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(1, -198, 0, 70), BackgroundTransparency = 0.22 })
 	Kit.padding(right, 10)
 	Kit.listLayout(right, 6)
-	diagButton(right, "power", "⏻ " .. S.t("bench_power"), function()
+	diagButton(right, "power", "🔌 " .. S.t("bench_power"), function()
 		send("press_power", nil, nil, "hand")
 	end)
 	diagButton(right, "stress", "🔥 " .. S.t("bench_stress"), function()
-		if holdFor(1.5, S.t("bench_stress")) then
+		if holdFor(1.5, S.t("bench_stress"), true) then
 			send("stress", nil, nil, "hand")
 		end
 	end)
@@ -1492,7 +1515,7 @@ function BenchController.init(screen: ScreenGui, hudModule)
 				local f = (os.clock() - holding.t0) / holding.dur
 				if holding.paste then
 					holding = nil -- release = stop squeezing
-				elseif f < 1 then
+				elseif f < 1 and not holding.sticky then
 					holding.cancelled = true
 				end
 			end

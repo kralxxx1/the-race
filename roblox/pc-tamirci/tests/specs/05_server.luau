@@ -486,62 +486,31 @@ return function(T)
 		Config.ThiefStealSeconds, ThiefService.breakSeconds, ThiefService.policeDelay = steal, brk, delay
 	end)
 
-	T.test("server: people wear real catalog avatars that match their names", function()
+	T.test("server: people are built from parts, every one different, and match their roles", function()
+		local Config = Engine.mod("ReplicatedStorage.Shared.Config")
 		local Avatars = Engine.mod("ReplicatedStorage.Shared.Data.Avatars")
 		local Customers = Engine.mod("ReplicatedStorage.Shared.Data.Customers")
 		local NpcService = Engine.require(Services.NpcService)
-		local templates = game:GetService("ServerStorage"):FindFirstChild("NpcTemplates")
-		waitFor(function()
-			return templates and templates:GetAttribute("Ready")
-		end, 30, "avatar templates")
-		-- every look has an avatar for each gender it can have
-		for look, def in Avatars.OUTFITS do
-			for _, g in { "m", "f" } do
-				local share = if g == "f" then def.female else 1 - def.female
-				if share > 0 then
-					T.ok(templates:FindFirstChild(look .. "_" .. g) ~= nil, "template " .. look .. "_" .. g)
-				end
-			end
-		end
+		T.eq(Config.RealisticNpcs, false, "the catalog's pale bodies stay off")
 		local street = game:GetService("ReplicatedStorage"):FindFirstChild("Avatars")
-		T.ok(street and #street:GetChildren() == 48, "street avatars for the clients")
+		waitFor(function()
+			return street and #street:GetChildren() >= Config.StreetPeople
+		end, 30, "street people")
+		T.ok(#street:GetChildren() == Config.StreetPeople, "street people for the clients: " .. #street:GetChildren())
 		for _, m in street:GetChildren() do
-			T.ok(m:FindFirstChildOfClass("Humanoid") and m:FindFirstChild("HumanoidRootPart"), "street avatar rig " .. m.Name)
-			T.ok(type(m:GetAttribute("Hip")) == "number", "hip height for posing " .. m.Name)
+			T.ok(m:FindFirstChildOfClass("Humanoid") and m:FindFirstChild("HumanoidRootPart"), "street person rig " .. m.Name)
+			T.ok(type(m:GetAttribute("Hip")) == "number" and m:GetAttribute("Plain") == true, "hip height and parts for " .. m.Name)
 		end
-		-- every description only uses the curated catalog items, with a sensible layer order
-		local known = {}
-		for _, id in Avatars.allIds() do
-			known[id] = true
-		end
-		known[Avatars.MOOD] = true
-		local dressed = {}
-		for _, d in Engine.descriptions do
-			if #d:GetAccessories(true) > 0 then -- (the plain stand-in rigs have none)
-				table.insert(dressed, d)
-			end
-		end
-		T.ok(#dressed >= 80, "avatars built: " .. #dressed)
-		for _, d in dressed do
-			for _, prop in { "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg", "Head" } do
-				T.ok(known[d[prop]], prop .. " " .. tostring(d[prop]))
-			end
-			local shoes, top = 0, 0
-			for _, a in d:GetAccessories(true) do
-				T.ok(known[a.AssetId], "item " .. a.AssetId)
-				local t = a.AccessoryType.Name
-				if t == "LeftShoe" or t == "RightShoe" then
-					shoes += 1
-				elseif t == "TShirt" or t == "Shirt" or t == "Sweater" or t == "Jacket" then
-					top += 1
-				end
-			end
-			T.ok(shoes == 2 and top >= 1, "dressed: shoes " .. shoes .. ", tops " .. top)
-		end
-		-- a spawned customer is a copy of a real avatar of the right gender
+		-- a spawned customer is dressed for the role and the gender asked for
 		local npc = NpcService.spawn({ look = "aunt", gender = "f", name = "Ayşe Teyze", cf = roblox.CFrame.new(0, 10, 0) })
-		T.ok(npc:GetAttribute("Look") == "aunt" and npc:GetAttribute("Gender") == "f", "aunt avatar")
-		T.ok(npc:FindFirstChildWhichIsA("Accessory") ~= nil, "wears catalog items")
+		T.ok(npc:GetAttribute("Look") == "aunt" and npc:GetAttribute("Gender") == "f", "aunt look")
+		local parts = 0
+		for _, d in npc:GetDescendants() do
+			if d:IsA("BasePart") then
+				parts += 1
+			end
+		end
+		T.ok(parts > 18, "wears hair, clothes and accessories: " .. parts .. " parts")
 		-- gestures: a wave and a dance play once and the person goes back to standing around
 		T.eq(#NpcService.Emotes.dance, 9, "nine dance takes")
 		for _, name in { "wave", "point", "cheer", "laugh", "shrug", "tilt", "salute", "hello" } do

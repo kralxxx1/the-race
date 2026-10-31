@@ -299,6 +299,13 @@ function PlotService.start()
 		if typeof(id) ~= "number" or owners[id] then
 			return
 		end
+		-- one shop only: once the grand opening is done there is no second shop to rent (the factory
+		-- is the only other site you will ever have)
+		local data = DataService.get(player)
+		if data and data.opened then
+			Net.push(player, "toast", { key = "one_shop" })
+			return
+		end
 		if moveCooldown[player] and os.clock() - moveCooldown[player] < 20 then
 			Net.push(player, "toast", { key = "move_wait" })
 			return

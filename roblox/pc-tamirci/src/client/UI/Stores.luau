@@ -18,6 +18,7 @@ local Market = require(Shared.Economy.Market)
 local UI = script.Parent
 local Kit = require(UI.Kit)
 local Theme = require(UI.Theme)
+local ToolIcon = require(UI.ToolIcon)
 local Hud = require(UI.Hud)
 local App = require(UI.App)
 local ShopPanel = require(UI.ShopPanel)
@@ -422,7 +423,8 @@ local function toolStore()
 		for i, t in sorted do
 			if t.id ~= "hand" then
 				local sub = S.pick(t.desc) .. (if t.bits then "  " .. S.t("bits", { list = table.concat(t.bits, ", ") }) else "")
-				local _, right = Kit.row(list, t.icon, S.pick(t.name), sub, { LayoutOrder = i })
+				local row, right = Kit.row(list, t.icon, S.pick(t.name), sub, { LayoutOrder = i })
+				ToolIcon.row(row, t.id)
 				if State.owns(t.id) then
 					Kit.pill(right, "✔ " .. S.t("tool_owned"), Theme.good)
 				else

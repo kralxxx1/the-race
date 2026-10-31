@@ -422,7 +422,7 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 	m.Name = def.id
 	m:SetAttribute("Vehicle", def.id)
 	local color = if typeof(o.color) == "number" then c3(def.colors[o.color] or def.colors[1]) elseif o.color then c3(o.color) else c3(def.colors[1])
-	local plateText = o.plate or "34 PC 001"
+	local plateText = o.plate or "PC 1001"
 	local isBike = def.kind ~= "car"
 	local real = if isBike then nil else buildOfficial(m, cf, def, color, plateText)
 	local S = real or (if isBike then buildBike(m, cf, def, color, plateText) else buildCar(m, cf, def, color, plateText))

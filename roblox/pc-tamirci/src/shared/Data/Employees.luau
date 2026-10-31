@@ -106,7 +106,7 @@ Employees.roles = {
 		desc = N("Vitrindeki bilgisayarları müşterilere anlatır: daha çabuk ve daha iyi fiyata satılır.", "Talks customers through the showcase PCs: they sell sooner and for more."),
 	},
 	tea_maker = {
-		group = "front", icon = "🫖", wage = 60, max = 1, minShop = 2, look = "shopkeeper", spot = "tea",
+		group = "front", icon = "☕", wage = 60, max = 1, minShop = 2, look = "shopkeeper", spot = "tea",
 		fx = { comfort = 8, teamSpeed = 0.04, teamMorale = 2 },
 		name = N("Çaycı", "Tea Maker"),
 		desc = N("Müşterilere ve ekibe çay dağıtır: müşteri sabırlı, ekip mutlu ve biraz daha hızlı.", "Brings tea round to customers and staff: patient customers, a happier and quicker team."),

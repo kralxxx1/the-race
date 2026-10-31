@@ -3,7 +3,7 @@
 
 local Config = {
 	GameName = "PC Repair Tycoon",
-	Version = "2026.10.31-a", -- shown in Settings > Controls and printed when the server starts, to tell which file is running
+	Version = "2026.10.31-b", -- shown in Settings > Controls and printed when the server starts, to tell which file is running
 
 	-- Para birimi sembolü (ör. "$", "₺", "€")
 	CurrencySymbol = "$",
@@ -14,7 +14,7 @@ local Config = {
 
 	-- Başlangıç
 	StartMoney = 1500,
-	StartTools = { "hand", "screwdriver_ph2", "esd_strap", "air_can", "isopropyl", "paste_syringe" },
+	StartTools = { "hand", "screwdriver_ph2", "esd_strap", "air_can", "isopropyl", "paste_syringe", "usb_boot" },
 	StartInventory = { paste_arctic_mx4 = 3, zip_ties = 20 },
 
 	-- Şehir
@@ -40,7 +40,11 @@ local Config = {
 		normal = { spawn = 1, patience = 1, pay = 1, extraFaults = 0 },
 		hard = { spawn = 0.7, patience = 0.7, pay = 1.35, extraFaults = 0.2 },
 	},
-	CustomerPatienceMinutes = { 4, 11 }, -- gerçek dakika
+	CustomerPatienceMinutes = { 3, 7 },
+	-- people of the city: built from our own parts (true: the catalog's realistic bodies, which show a
+	-- pale, staring face in the game); how many different people stand ready for the street crowd
+	RealisticNpcs = false,
+	StreetPeople = 120, -- gerçek dakika (sırada bunun %35'i kadar beklerler)
 	MaxCustomersPerServer = 140,
 	ReviewHistory = 40,
 

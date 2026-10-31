@@ -16,7 +16,8 @@ local ShopBuilder = {}
 local M = Enum.Material
 
 local SETBACK = 7
-local WALL_H = 28
+local WALL_H = 16
+local AWNING_Y = 10.9 -- (where the awnings above the windows start)
 
 local function nc(extra)
 	local t = { CanCollide = false, CanTouch = false }
@@ -96,11 +97,12 @@ function WallRun:rect(t: number, len: number, depth: number): { number }
 	return { math.min(x0, x1), math.min(z0, z1), math.max(x0, x1), math.max(z0, z1) }
 end
 
--- Workbench: the desk is 22 along the wall and 10.4 deep (the PC on it is twice the old size, with
--- a free area to its right for the parts that come out); the stool is a seat-length in front of it.
-local DESK_W, DESK_D = 22, 10.4
-local ANCHOR_X = 1.6 -- the device's origin, in the desk's x
-local STOOL_X, STOOL_Z = 2.1, -(DESK_D / 2 + 1.7)
+-- Workbench: the desk is 16.5 along the wall and 7.8 deep (the PC on it is one and a half times the
+-- old size, with a free area beside it for the parts that come out); the stool is a seat-length in
+-- front of it.
+local DESK_W, DESK_D = 16.5, 7.8
+local ANCHOR_X = 1.2 -- the device's origin, in the desk's x
+local STOOL_X, STOOL_Z = 1.6, -(DESK_D / 2 + 1.5)
 -- footprint along the wall: the desk, its back 0.5 off the wall, the stool reaching into the room
 local BENCH_LEN, BENCH_BACK, BENCH_DEPTH = DESK_W, DESK_D / 2 + 0.5, DESK_D + 0.5 + 3.3
 
@@ -126,20 +128,20 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 	-- desk (top surface at y = 3.4)
 	B.box(m, cf * CFrame.new(0, 3.25, 0), Vector3.new(W, 0.3, Dp), top, material(st.material or "Metal"))
 	for x = -1, 1, 2 do
-		B.box(m, cf * CFrame.new(x * (W / 2 - 0.6), 1.55, 0), Vector3.new(0.6, 3.1, Dp - 0.4), legs, M.Metal)
+		B.box(m, cf * CFrame.new(x * (W / 2 - 0.5), 1.55, 0), Vector3.new(0.5, 3.1, Dp - 0.4), legs, M.Metal)
 	end
-	B.box(m, cf * CFrame.new(0, 2.2, Dp / 2 - 0.4), Vector3.new(W - 1.6, 2, 0.3), legs, M.Metal)
+	B.box(m, cf * CFrame.new(0, 2.2, Dp / 2 - 0.4), Vector3.new(W - 1.4, 2, 0.3), legs, M.Metal)
 	-- drawers under the end beyond the parts area
-	local dx = W / 2 - 3.2
-	B.box(m, cf * CFrame.new(dx, 2, -0.2), Vector3.new(4.4, 2.4, Dp - 0.8), drawerCol, M.Metal)
+	local dx = W / 2 - 2.5
+	B.box(m, cf * CFrame.new(dx, 2, -0.2), Vector3.new(3.6, 2.4, Dp - 0.8), drawerCol, M.Metal)
 	for k = 0, 2 do
-		B.box(m, cf * CFrame.new(dx, 1.2 + k * 0.8, -Dp / 2 + 0.35), Vector3.new(4.2, 0.6, 0.1), drawerCol:Lerp(Color3.new(0, 0, 0), 0.15), M.Metal, nc())
+		B.box(m, cf * CFrame.new(dx, 1.2 + k * 0.8, -Dp / 2 + 0.35), Vector3.new(3.4, 0.6, 0.1), drawerCol:Lerp(Color3.new(0, 0, 0), 0.15), M.Metal, nc())
 	end
 	-- ESD mat under the device and the parts area
 	local matCol = if items.bench_mat then Color3.fromRGB(40, 110, 200) else Color3.fromRGB(110, 114, 120)
-	B.box(m, cf * CFrame.new(-0.9, 3.42, 0), Vector3.new(15.4, 0.05, Dp - 1.6), matCol, M.Rubber, nc({ Name = "Mat" }))
+	B.box(m, cf * CFrame.new(-0.7, 3.42, 0), Vector3.new(11.6, 0.05, Dp - 1.2), matCol, M.Rubber, nc({ Name = "Mat" }))
 	-- test monitor on the back, beyond the device
-	Props.monitor(m, cf * CFrame.new(8.6, 3.4, Dp / 2 - 1.8) * CFrame.Angles(0, math.rad(-12), 0), "", Color3.fromRGB(10, 30, 50))
+	Props.monitor(m, cf * CFrame.new(6.2, 3.4, Dp / 2 - 1.4) * CFrame.Angles(0, math.rad(-12), 0), "", Color3.fromRGB(10, 30, 50))
 	local mon = m:FindFirstChild("Monitor")
 	if mon then
 		mon.Name = "BenchMonitor"
@@ -149,8 +151,8 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 		end
 	end
 	-- magnifier lamp clamped to the back right corner, its arm leaning over the parts area
-	local lampBase = Vector3.new(-9.8, 3.7, Dp / 2 - 0.5)
-	local lampHead = Vector3.new(-5.4, 8.2, Dp / 2 - 2.6)
+	local lampBase = Vector3.new(-7.4, 3.7, Dp / 2 - 0.4)
+	local lampHead = Vector3.new(-4.1, 7.2, Dp / 2 - 2)
 	B.box(m, cf * CFrame.new(lampBase), Vector3.new(0.7, 0.6, 0.6), legs, M.Metal)
 	local armLen = (lampHead - lampBase).Magnitude
 	B.box(m, cf * CFrame.lookAt((lampBase + lampHead) / 2, lampHead), Vector3.new(0.25, 0.25, armLen), legs, M.Metal, nc())
@@ -158,18 +160,18 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 	head.Name = "LampHead"
 	if items.bench_led then
 		local led = B.cylY(m, cf * CFrame.new(lampHead.X, lampHead.Y - 0.22, lampHead.Z), 0.08, 2, Color3.fromRGB(255, 250, 240), M.Neon, nc())
-		B.spotLight(led, Enum.NormalId.Bottom, 16, 70, 1.4, Color3.fromRGB(255, 250, 240), false)
+		B.spotLight(led, Enum.NormalId.Bottom, 13, 70, 1.1, Color3.fromRGB(255, 250, 240), false)
 	end
 	-- the light every bench has: a soft fill over the device (it lights the inside of an open case,
 	-- which would be black otherwise) and a beam from the lamp onto the mat
-	local fill = B.box(m, cf * CFrame.new(ANCHOR_X - 0.5, 10.5, -0.4), Vector3.new(0.3, 0.2, 0.3), Color3.new(1, 1, 1), M.SmoothPlastic, nc({ Transparency = 1, Name = "WorkLight", CastShadow = false }))
-	B.pointLight(fill, 28, 2.1, Color3.fromRGB(255, 246, 232), false)
+	local fill = B.box(m, cf * CFrame.new(ANCHOR_X - 0.4, 9.2, -0.3), Vector3.new(0.3, 0.2, 0.3), Color3.new(1, 1, 1), M.SmoothPlastic, nc({ Transparency = 1, Name = "WorkLight", CastShadow = false }))
+	B.pointLight(fill, 15, 0.55, Color3.fromRGB(255, 244, 228), false)
 	if not items.bench_led then
 		local beam = B.box(m, cf * CFrame.new(lampHead.X, lampHead.Y - 0.3, lampHead.Z), Vector3.new(0.3, 0.1, 0.3), Color3.new(1, 1, 1), M.SmoothPlastic, nc({ Transparency = 1, Name = "LampBeam", CastShadow = false }))
-		B.spotLight(beam, Enum.NormalId.Bottom, 18, 75, 1.2, Color3.fromRGB(255, 250, 240), false)
+		B.spotLight(beam, Enum.NormalId.Bottom, 13, 75, 0.7, Color3.fromRGB(255, 250, 240), false)
 	end
 	-- magnetic screw bowl, where PCModel drops the screws (device frame TRAY)
-	B.cylY(m, cf * CFrame.new(ANCHOR_X + 5.8, 3.5, -2.4), 0.3, 2.2, Color3.fromRGB(150, 150, 156), M.Metal, nc({ Name = "ScrewTray" }))
+	B.cylY(m, cf * CFrame.new(ANCHOR_X + 4.25, 3.5, -1.76), 0.25, 1.7, Color3.fromRGB(150, 150, 156), M.Metal, nc({ Name = "ScrewTray" }))
 	-- stool
 	local stool = cf * CFrame.new(STOOL_X, 0, STOOL_Z)
 	B.cylY(m, stool * CFrame.new(0, 1.2, 0), 2.4, 0.4, legs, M.Metal)
@@ -184,14 +186,14 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 	seat.CFrame = stool * CFrame.new(0, 2.5, 0) * CFrame.Angles(0, math.pi, 0)
 	seat.Parent = m
 	-- a lived-in desk: a phone, a notepad, a stack of paper and a cup (official furniture pack)
-	Real.fit(m, "Telephone", cf * CFrame.new(9.8, 3.4, 0.2) * CFrame.Angles(0, math.rad(15), 0), 1.6, 1.8, 1.1)
-	Real.fit(m, "PaperStack", cf * CFrame.new(9.0, 3.4, -2.8) * CFrame.Angles(0, math.rad(-12), 0), 1.8, 2.4, 0.7)
-	Real.fit(m, "Notepad", cf * CFrame.new(7.6, 3.4, -1.2) * CFrame.Angles(0, math.rad(8), 0), 1.4, 1.8, 0.3)
-	Real.fit(m, "CupWhite", cf * CFrame.new(6.0, 3.4, 3.6), 0.7, 0.7, 0.8)
+	Real.fit(m, "Telephone", cf * CFrame.new(7.2, 3.4, -0.3) * CFrame.Angles(0, math.rad(15), 0), 1.4, 1.6, 1.0)
+	Real.fit(m, "PaperStack", cf * CFrame.new(6.0, 3.4, -2.8) * CFrame.Angles(0, math.rad(-12), 0), 1.5, 2.0, 0.6)
+	Real.fit(m, "Notepad", cf * CFrame.new(3.9, 3.4, 2.5) * CFrame.Angles(0, math.rad(8), 0), 1.2, 1.5, 0.3)
+	Real.fit(m, "CupWhite", cf * CFrame.new(7.4, 3.4, 1.9), 0.6, 0.6, 0.7)
 	-- the device sits here; LookVector faces the technician
 	local anchor = B.marker(m, "DeviceAnchor", cf * CFrame.new(ANCHOR_X, 3.45, 0))
 	anchor:SetAttribute("Bench", index)
-	local camAnchor = B.marker(m, "CameraAnchor", cf * CFrame.new(ANCHOR_X, 17, STOOL_Z - 5))
+	local camAnchor = B.marker(m, "CameraAnchor", cf * CFrame.new(ANCHOR_X, 13, STOOL_Z - 4))
 	camAnchor:SetAttribute("Bench", index)
 	local prompt = B.prompt(B.marker(m, "PromptAnchor", stool * CFrame.new(0, 3, 0)), "Sit at Bench", "Bench " .. index, { distance = 10, name = "BenchPrompt" })
 	prompt:SetAttribute("Bench", index)
@@ -207,8 +209,8 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 		end
 	end
 	if items.microscope and index == 1 then
-		B.cylY(m, cf * CFrame.new(-9, 3.9, 0.4), 1, 1.4, Color3.fromRGB(230, 230, 230), M.SmoothPlastic, nc())
-		B.cylY(m, cf * CFrame.new(-9, 5.2, 0.2), 1.8, 0.5, Color3.fromRGB(40, 40, 44), M.Metal, nc())
+		B.cylY(m, cf * CFrame.new(-6.9, 3.9, -2.6), 1, 1.2, Color3.fromRGB(230, 230, 230), M.SmoothPlastic, nc())
+		B.cylY(m, cf * CFrame.new(-6.9, 5.1, -2.7), 1.6, 0.45, Color3.fromRGB(40, 40, 44), M.Metal, nc())
 	end
 	return m
 end
@@ -241,6 +243,7 @@ function ShopBuilder.emptyLot(parent: Instance, cf: CFrame, plotW: number, plotD
 	local board = B.box(m, post * CFrame.new(0, 7.4, 0), Vector3.new(8, 4, 0.3), Color3.fromRGB(240, 200, 40), M.SmoothPlastic)
 	B.sign(board, Enum.NormalId.Front, "SHOP FOR RENT\n#" .. plotId, { color = Color3.fromRGB(30, 30, 30), font = B.Fonts.Heavy })
 	local prompt = B.prompt(board, "Rent This Shop", "Shop for Rent #" .. plotId, { distance = 14, hold = 0.5, name = "ClaimPrompt" })
+	prompt:AddTag("ClaimPrompt") -- (the clients switch it off once they run a shop: there is only ever one)
 	prompt:SetAttribute("Plot", plotId)
 	-- a few construction props
 	Props.pallet(m, cf * CFrame.new(-plotW / 3, 0.1, plotD * 0.6))
@@ -310,7 +313,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	-- the shop stands in the middle of a much wider lot: the things that belong beside it (sign
 	-- pylon, bench, parking) keep close to the building, not out at the edge of the lot
 	local halfLot = math.min(plotW / 2, W / 2 + 24)
-	local H = if (L.floors or 1) > 1 then 46 else WALL_H
+	local H = if (L.floors or 1) > 1 then 30 else WALL_H
 
 	local shop = B.model("Shop", parent)
 	shop:SetAttribute("Level", level)
@@ -352,7 +355,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	end
 	if (L.floors or 1) > 1 then
 		-- second storey glass band and a rooftop sign
-		B.box(shop, front * CFrame.new(0, 17, -0.6), Vector3.new(W, 1, 1.4), accent, M.SmoothPlastic)
+		B.box(shop, front * CFrame.new(0, 14.2, -0.6), Vector3.new(W, 0.8, 1.4), accent, M.SmoothPlastic)
 		local roofSign = B.box(shop, front * CFrame.new(0, H + 6, D / 2), Vector3.new(math.min(W - 6, 44), 7, 1), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
 		B.sign(roofSign, Enum.NormalId.Front, opts.name or "MEGA TECH", { color = accent, glow = true, brightness = 2.2 })
 		B.box(shop, front * CFrame.new(0, H + 1.5, D / 2), Vector3.new(4, 3, 1), Color3.fromRGB(60, 60, 64), M.Metal)
@@ -361,8 +364,8 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	local awning = styleById(Upgrades.awningStyles, opts.awning or "stripes")
 	local awningA = if awning.a then B.color(awning.a) else accent
 	local awningB = if awning.b == "accent" then accent elseif awning.b then B.color(awning.b) else nil
-	Buildings.awning(shop, front * CFrame.new(-W / 4 - 2, 11.6, 0), W / 2 - 8, awningA, rng, awningB)
-	Buildings.awning(shop, front * CFrame.new(W / 4 + 2, 11.6, 0), W / 2 - 8, awningA, rng, awningB)
+	Buildings.awning(shop, front * CFrame.new(-W / 4 - 2, AWNING_Y, 0), W / 2 - 8, awningA, rng, awningB)
+	Buildings.awning(shop, front * CFrame.new(W / 4 + 2, AWNING_Y, 0), W / 2 - 8, awningA, rng, awningB)
 
 	-- doorway points
 	point("Street", cf * CFrame.new(0, 0.5, -6))
@@ -834,7 +837,7 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	end
 	ShopExtras.place({
 		shop = shop, plan = plan, walls = walls, wallItem = wallItem, at = at, facing = facing, local2 = local2,
-		front = front, cf = cf, W = W, D = D, H = H, inner = inner, fz = fz,
+		front = front, cf = cf, W = W, D = D, H = H, inner = inner, fz = fz, awningY = AWNING_Y,
 		counterCf = counterCf, counterW = counterW, benches = benchList, accent = accent, rng = rng, items = items,
 		level = level, plotW = halfLot * 2, setback = SETBACK, points = points, highClaims = highClaims,
 		outside = { A = outsideA, B = outsideB }, roof = roofClaims, name = opts.name, plotId = opts.plotId,
@@ -928,8 +931,13 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	B.sign(pylonSign, Enum.NormalId.Front, "🔧 " .. (opts.name or "Repair"), { color = Color3.new(1, 1, 1), glow = true })
 	B.sign(pylonSign, Enum.NormalId.Back, "🔧 " .. (opts.name or "Repair"), { color = Color3.new(1, 1, 1), glow = true, name = "SignBack" })
 	if items.sign_pro then
-		local lb = B.box(shop, front * CFrame.new(0, H + 5.6, -0.2), Vector3.new(math.min(W - 4, 30), 3, 1), Color3.fromRGB(250, 250, 250), M.SmoothPlastic)
+		-- (a lightbox on the roof edge, standing on two posts)
+		local lbW = math.min(W - 4, 30)
+		local lb = B.box(shop, front * CFrame.new(0, H + 2.9, -0.2), Vector3.new(lbW, 3, 1), Color3.fromRGB(250, 250, 250), M.SmoothPlastic)
 		B.sign(lb, Enum.NormalId.Front, "COMPUTERS • LAPTOPS • REPAIR", { color = accent, glow = true, brightness = 1.6 })
+		for side = -1, 1, 2 do
+			B.box(shop, front * CFrame.new(side * (lbW / 2 - 2), H + 1.5, -0.2), Vector3.new(0.5, 1.2, 0.5), Color3.fromRGB(60, 60, 64), M.Metal)
+		end
 	end
 	Props.bench(shop, cf * CFrame.new(-halfLot + 6, 0.12, 2) * CFrame.Angles(0, 0, 0))
 	point("Parking", cf * CFrame.new(-halfLot / 2, 0.5, -16) * CFrame.Angles(0, math.pi / 2, 0), { Parking = true })

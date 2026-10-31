@@ -16,6 +16,7 @@ local Signal = require(Shared.Util.Signal)
 local Rand = require(Shared.Util.Rand)
 local Parts = require(Shared.Data.Parts)
 local Faults = require(Shared.Data.Faults)
+local Tools = require(Shared.Data.Tools)
 local Customers = require(Shared.Data.Customers)
 local Upgrades = require(Shared.Data.Upgrades)
 local Employees = require(Shared.Data.Employees)
@@ -297,7 +298,17 @@ local function advance(player: Player)
 		local q = point(player, "Queue_" .. i) or point(player, "Queue_1")
 		if q and c.model and c.slot ~= i then
 			c.slot = i
-			task.spawn(NpcService.walkTo, c.model, q.Position)
+			task.spawn(function()
+				NpcService.walkTo(c.model, q.Position)
+				-- everybody in the line faces the one ahead of them (the first faces the counter),
+				-- not wherever they happened to be walking
+				if c.model and c.model.Parent and c.slot == i and c.state == "queue" then
+					local ahead = if i == 1 then point(player, "CounterFront") else point(player, "Queue_" .. (i - 1))
+					if ahead then
+						NpcService.face(c.model, ahead.Position)
+					end
+				end
+			end)
 		end
 	end
 end
@@ -362,7 +373,7 @@ local function spawnCustomer(player: Player)
 	byId[cust.id] = cust
 	table.insert(s.list, cust)
 	total += 1
-	cust.patienceEnd = os.clock() + patienceSeconds(cust, player) * 0.6
+	cust.patienceEnd = os.clock() + patienceSeconds(cust, player) * 0.35
 	task.spawn(function()
 		local path = {}
 		for _, n in { "Street", "Outside", "Door" } do
@@ -823,10 +834,21 @@ function CustomerService.autoServe(player: Player, cust): boolean
 		local f = Faults.get(fid)
 		for _, t in f and f.tools or {} do
 			if not owned[t] then
-				say(cust, "declined", nil, 3)
-				leave(cust)
-				advance(player)
-				return true
+				-- a missing hand tool is bought out of the till (a few dollars); only a tool the
+				-- shop cannot afford, or has not unlocked yet, sends the customer away
+				local tool = Tools.get(t)
+				local prof = DataService.get(player)
+				if tool and prof and prof.level >= (tool.level or 1) and tool.price <= 250 and DataService.money(player, -tool.price, "tool") then
+					prof.tools[t] = true
+					owned[t] = true
+					DataService.touch(player)
+					Net.push(player, "toast", { key = "staff_bought_tool", vars = { tool = tool.icon .. " " .. (if DataService.lang(player) == "en" then tool.name.en else tool.name.tr), price = tool.price } })
+				else
+					say(cust, "declined", nil, 3)
+					leave(cust)
+					advance(player)
+					return true
+				end
 			end
 		end
 	end

@@ -1,6 +1,6 @@
 -- Bills: what running the shop costs. Every morning the utility bill for the day before
 -- (electricity for the lights, benches and equipment; water; internet); every seventh morning the
--- rent, the staff's social security (SGK) and the income tax on the week's profit.
+-- rent, the staff's insurance and the income tax on the week's profit.
 
 local Upgrades = require(script.Parent.Upgrades)
 
@@ -13,7 +13,7 @@ end
 Bills.kinds = {
 	utilities = { icon = "⚡", name = N("Elektrik • Su • İnternet", "Electricity • Water • Internet") },
 	rent = { icon = "🏠", name = N("Dükkân Kirası", "Shop Rent") },
-	sgk = { icon = "🧾", name = N("SGK Primleri", "Staff Social Security") },
+	sgk = { icon = "🧾", name = N("Personel Sigorta Primleri", "Staff Insurance") },
 	tax = { icon = "🏛️", name = N("Gelir Vergisi", "Income Tax") },
 	fine = { icon = "⚠️", name = N("Vergi Cezası", "Tax Penalty") },
 	insurance = { icon = "📄", name = N("Sigorta Primi", "Insurance Premium") },

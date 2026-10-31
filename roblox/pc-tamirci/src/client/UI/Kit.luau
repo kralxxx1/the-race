@@ -397,7 +397,7 @@ function Kit.window(gui: ScreenGui, title: string, size: Vector2?, onClose: (() 
 	local header = Kit.frame(root, { Name = "Header", Size = UDim2.new(1, 0, 0, 48), BackgroundTransparency = 1 })
 	local titleLabel = Kit.label(header, title, { Name = "Title", Size = UDim2.new(1, -70, 1, 0), Position = UDim2.fromOffset(16, 0), FontFace = Theme.heavy, TextSize = 22, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd })
 	local api = { root = root, header = header }
-	local closeBtn = Kit.button(header, "✕", function()
+	local closeBtn = Kit.button(header, "×", function()
 		api.close()
 	end, { Size = UDim2.fromOffset(36, 36), Position = UDim2.new(1, -44, 0, 6), TextSize = 18 })
 	closeBtn.Name = "Close"

@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Net)
 local Signal = require(Shared.Util.Signal)
+local Graphics = require(Shared.Data.Graphics)
 
 local State = require(script.Parent.State)
 local S = require(script.Parent.Strings)
@@ -37,15 +38,27 @@ Prefs.DEFAULTS = {
 	uiscale = 1,
 	traffic = "normal",
 }
+-- (the choices of the graphics page beyond the first few switches live in Data/Graphics)
+for _, o in Graphics.list do
+	Prefs.DEFAULTS[o.id] = o.default
+end
 
 -- The graphics presets: what each quality level switches on.
-Prefs.QUALITIES = { "low", "medium", "high", "ultra" }
+Prefs.QUALITIES = Graphics.QUALITIES
 Prefs.PRESETS = {
 	low = { shadows = false, bloom = false, sunrays = false, dof = false, clouds = false, traffic = "low" },
 	medium = { shadows = true, bloom = true, sunrays = false, dof = false, clouds = true, traffic = "normal" },
 	high = { shadows = true, bloom = true, sunrays = true, dof = true, clouds = true, traffic = "normal" },
 	ultra = { shadows = true, bloom = true, sunrays = true, dof = true, clouds = true, traffic = "high" },
+	cinematic = { shadows = true, bloom = true, sunrays = true, dof = true, clouds = true, traffic = "high" },
 }
+for q, p in Prefs.PRESETS do
+	for _, o in Graphics.list do
+		if o.preset and o.preset[q] ~= nil then
+			p[o.id] = o.preset[q]
+		end
+	end
+end
 
 local SEND_DELAY = 0.35
 
@@ -68,6 +81,10 @@ local function clamp(key: string, v: any): any
 			return math.clamp(v, -1, 1)
 		elseif key == "uiscale" then
 			return math.clamp(v, 0.7, 1.4)
+		end
+		local g = Graphics.byId[key]
+		if g and g.kind == "num" then
+			return math.clamp(v, g.lo, g.hi)
 		end
 		return math.clamp(v, 0, 1)
 	elseif type(d) == "boolean" then

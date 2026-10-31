@@ -111,7 +111,7 @@ local function plaza(parent, poi, rng)
 	end
 	Props.flag(m, center * CFrame.new(-30, 0, -58), 30)
 	Props.flag(m, center * CFrame.new(30, 0, -58), 30)
-	Props.simitCart(m, CFrame.lookAt((center * CFrame.new(26, 0, 30)).Position, center.Position))
+	Props.snackCart(m, CFrame.lookAt((center * CFrame.new(26, 0, 30)).Position, center.Position))
 	Props.newsKiosk(m, CFrame.lookAt((center * CFrame.new(-60, 0, 60)).Position, center.Position))
 	-- city hall on the north edge, facing the square (front = local -Z = south)
 	local hallCf = CFrame.lookAt(Vector3.new(c.X, WALK_Y, c.Z - 64), Vector3.new(c.X, WALK_Y, c.Z))
@@ -123,7 +123,7 @@ local function plaza(parent, poi, rng)
 	for side = -1, 1, 2 do
 		B.wedge(m, facadeCf * CFrame.new(side * 13.5, 24.2, -4.5) * CFrame.Angles(0, -side * math.pi / 2, 0), Vector3.new(2, 6, 27), Color3.fromRGB(236, 228, 210), M.Limestone)
 	end
-	local hallSign = B.box(m, facadeCf * CFrame.new(0, 22.4, -5.8), Vector3.new(20, 2, 0.4), Color3.fromRGB(150, 30, 40), M.SmoothPlastic, nc())
+	local hallSign = B.box(m, facadeCf * CFrame.new(0, 22.4, -5.45), Vector3.new(20, 2, 0.4), Color3.fromRGB(150, 30, 40), M.SmoothPlastic, nc())
 	B.sign(hallSign, Enum.NormalId.Front, "MAYOR'S OFFICE", { color = Color3.fromRGB(250, 230, 180), font = B.Fonts.Serif })
 	B.ball(m, facadeCf * CFrame.new(0, 22, 11), 18, Color3.fromRGB(90, 120, 140), M.Slate)
 	for s = 0, 5 do

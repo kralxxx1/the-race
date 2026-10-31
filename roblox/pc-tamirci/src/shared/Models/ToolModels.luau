@@ -30,15 +30,38 @@ local STEEL = Color3.fromRGB(190, 194, 200)
 
 local builders = {}
 
--- screwdriver: steel shaft, coloured handle
+-- screwdriver (tip at the origin, handle up): a Phillips cross tip on a chrome shaft, a metal
+-- ferrule, and a chunky two-tone handle with a neck, a belly with grip flutes and a rounded butt.
+local DARK_STEEL = Color3.fromRGB(96, 99, 106)
 local function driver(m: Model, cf: CFrame, handleCol: Color3, shaftLen: number, handleLen: number, d: number)
-	cylY(m, cf * CFrame.new(0, shaftLen / 2, 0), shaftLen, d * 0.3, STEEL, M.Metal, { Name = "Shaft" })
-	cylY(m, cf * CFrame.new(0, 0.01, 0), 0.02, d * 0.36, Color3.fromRGB(40, 40, 44), M.Metal)
-	cylY(m, cf * CFrame.new(0, shaftLen + handleLen / 2, 0), handleLen, d, handleCol, M.SmoothPlastic, { Name = "Handle" })
-	for k = 0, 3 do
-		part(m, cf * CFrame.new(0, shaftLen + handleLen / 2, 0) * CFrame.Angles(0, k * math.pi / 4, 0), Vector3.new(d * 1.04, handleLen * 0.8, d * 0.14), handleCol:Lerp(Color3.new(0, 0, 0), 0.25))
+	-- the tip: a narrow dark piece with two crossing blades (the Phillips cross)
+	cylY(m, cf * CFrame.new(0, 0.05, 0), 0.1, d * 0.22, DARK_STEEL, M.Metal, { Name = "Tip" })
+	for k = 0, 1 do
+		part(m, cf * CFrame.new(0, 0.04, 0) * CFrame.Angles(0, k * math.pi / 2, 0), Vector3.new(d * 0.36, 0.08, d * 0.05), DARK_STEEL, M.Metal)
 	end
-	cylY(m, cf * CFrame.new(0, shaftLen + handleLen + 0.02, 0), 0.04, d * 0.9, Color3.fromRGB(30, 30, 32))
+	-- the shaft
+	cylY(m, cf * CFrame.new(0, 0.1 + (shaftLen - 0.1) / 2, 0), shaftLen - 0.1, d * 0.24, STEEL, M.Metal, { Name = "Shaft" })
+	-- the ferrule where the shaft goes into the handle
+	local y = shaftLen
+	cylY(m, cf * CFrame.new(0, y + 0.05, 0), 0.1, d * 0.5, STEEL, M.Metal, { Name = "Ferrule" })
+	y += 0.1
+	-- the neck, the belly and the rounded butt of the handle
+	local neck, belly = handleLen * 0.22, handleLen * 0.62
+	cylY(m, cf * CFrame.new(0, y + neck / 2, 0), neck, d * 0.72, handleCol, M.SmoothPlastic, { Name = "Neck" })
+	y += neck
+	local bellyMid = y + belly / 2
+	cylY(m, cf * CFrame.new(0, bellyMid, 0), belly, d, handleCol, M.SmoothPlastic, { Name = "Handle" })
+	-- a dark rubber grip band around the middle, with fluted ribs standing out of it
+	local band = Color3.fromRGB(36, 37, 42)
+	cylY(m, cf * CFrame.new(0, bellyMid, 0), belly * 0.52, d * 1.05, band, M.Rubber)
+	for k = 0, 7 do
+		local a = k * math.pi / 4
+		cylY(m, cf * CFrame.new(math.cos(a) * d * 0.5, bellyMid, math.sin(a) * d * 0.5), belly * 0.5, d * 0.13, band:Lerp(Color3.new(1, 1, 1), 0.08), M.Rubber)
+	end
+	y += belly
+	B.ball(m, cf * CFrame.new(0, y, 0), d * 1.0, handleCol, M.SmoothPlastic, { CanCollide = false, CanTouch = false, CanQuery = false, CastShadow = false, Name = "Butt" })
+	-- a colour stripe near the butt
+	cylY(m, cf * CFrame.new(0, y - 0.04, 0), 0.05, d * 1.02, Color3.fromRGB(250, 250, 250), M.SmoothPlastic)
 end
 
 builders.hand = function(m, cf)
@@ -49,10 +72,10 @@ builders.hand = function(m, cf)
 	part(m, cf * CFrame.new(0.2, 0.42, 0.02) * CFrame.Angles(0, 0, math.rad(-30)), Vector3.new(0.1, 0.3, 0.12), glove, M.Fabric)
 end
 builders.screwdriver = function(m, cf)
-	driver(m, cf, Color3.fromRGB(220, 50, 40), 0.55, 0.5, 0.16)
+	driver(m, cf, Color3.fromRGB(224, 48, 38), 0.95, 0.75, 0.2)
 end
 builders.precision = function(m, cf)
-	driver(m, cf, Color3.fromRGB(30, 120, 220), 0.4, 0.42, 0.11)
+	driver(m, cf, Color3.fromRGB(34, 120, 220), 0.7, 0.6, 0.13)
 end
 builders.electric_screwdriver = function(m, cf)
 	cylY(m, cf * CFrame.new(0, 0.18, 0), 0.36, 0.05, STEEL, M.Metal, { Name = "Shaft" })

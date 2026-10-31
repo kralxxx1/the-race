@@ -9,6 +9,7 @@ local Tools = require(Shared.Data.Tools)
 local UI = script.Parent
 local Kit = require(UI.Kit)
 local Theme = require(UI.Theme)
+local ToolIcon = require(UI.ToolIcon)
 local App = require(UI.App)
 local S = require(UI.Parent.Strings)
 local State = require(UI.Parent.State)
@@ -71,7 +72,7 @@ local function toolsPage(list: ScrollingFrame)
 	for _, t in Tools.list do
 		if State.owns(t.id) then
 			n += 1
-			Kit.row(list, t.icon, S.pick(t.name), S.pick(t.desc), { LayoutOrder = t.order or n })
+			ToolIcon.row(Kit.row(list, t.icon, S.pick(t.name), S.pick(t.desc), { LayoutOrder = t.order or n }), t.id)
 		end
 	end
 end

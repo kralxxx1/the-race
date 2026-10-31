@@ -106,6 +106,7 @@ return function(T)
 
 	-- How the bot fixes each fault.
 	local function fix(tech, dev, faultId)
+		faultId = Faults.base(faultId) -- (a variant is repaired like the fault it is made on)
 		local H = dev.hidden
 		local function hiddenNode(prefixes)
 			for id, f in H do

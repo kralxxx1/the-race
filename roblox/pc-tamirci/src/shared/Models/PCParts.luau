@@ -8,7 +8,7 @@ local B = require(script.Parent.Parent.Util.Builder)
 local PCParts = {}
 local M = Enum.Material
 
-local S = 0.15 -- studs per centimetre
+local S = 0.11 -- studs per centimetre
 PCParts.S = S
 
 local function cm(v: number): number
@@ -284,8 +284,10 @@ function PCParts.chassis(cf: CFrame, casePart): (Model, Vector3)
 	-- PSU shroud (front half) and the drive cage under it
 	if style ~= "sff" and style ~= "office" and style ~= "retro" and style ~= "itx" then
 		local sz = lz / 2 - cm(10.5)
-		box(m, cf * CFrame.new(-lx / 4, ly / 2, sz), Vector3.new(lx / 2, ly, t), inner, innerMat, { Name = "Shroud" })
-		box(m, cf * CFrame.new(-lx / 4, ly - 0.01, sz + cm(0.5)), Vector3.new(lx / 2 - cm(2), 0.012, cm(1)), body:Lerp(Color3.new(1, 1, 1), 0.2), M.Metal)
+		-- (only half as high as the case: the drives behind it stay in view from the bench)
+		local sh = ly * 0.45
+		box(m, cf * CFrame.new(-lx / 4, sh / 2, sz), Vector3.new(lx / 2, sh, t), inner, innerMat, { Name = "Shroud" })
+		box(m, cf * CFrame.new(-lx / 4, sh - 0.01, sz + cm(0.5)), Vector3.new(lx / 2 - cm(2), 0.012, cm(1)), body:Lerp(Color3.new(1, 1, 1), 0.2), M.Metal)
 	end
 	-- RGB strip on showcase/glass cases
 	if casePart and casePart.rgb then
@@ -381,7 +383,8 @@ function PCParts.boardLayout(moboPart)
 	L.atx24 = at(W - 1.3, 8.6)
 	L.eps = at(12.6, 0.8)
 	L.cpuFan = at(14.6, 0.8)
-	L.sysFan = { at(W - 1, 2), at(W - 1, 16), at(W - 6, H - 1), at(W - 9, H - 1), at(3, H - 1), at(W - 12, H - 1) }
+	-- (the second header sits above the graphics card, not under it)
+	L.sysFan = { at(W - 1, 2), at(W - 1, 13), at(W - 6, H - 1), at(W - 9, H - 1), at(3, H - 1), at(W - 12, H - 1) }
 	L.sata = { at(W - 1.1, math.min(H - 3, 22)), at(W - 1.1, math.min(H - 5, 24.2)) }
 	L.chipset = if itx then at(16, 16.3) else at(17.5, math.min(H - 5, 20.3))
 	L.chipsetSize = if itx then { 2.0, 1.2 } else { 5.5, 4.8 }
@@ -628,11 +631,15 @@ function PCParts.latch(cf: CFrame, kind: string): Model
 		box(m, cf * CFrame.new(cm(0.5), cm(0.3), -cm(5.1)), Vector3.new(cm(1.2), cm(0.35), cm(0.35)), STEEL, M.Metal)
 		box(m, cf * CFrame.new(0, cm(0.3), -cm(2.6)), Vector3.new(0.12, 0.1, cm(5.2)), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
 	elseif kind == "pcie" then
-		box(m, cf * CFrame.new(0, cm(0.6), 0), Vector3.new(cm(1.2), cm(1.1), cm(0.9)), Color3.fromRGB(70, 72, 78), M.SmoothPlastic)
-		box(m, cf * CFrame.new(0, cm(0.6), 0), Vector3.new(0.14, 0.12, 0.14), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
+		box(m, cf * CFrame.new(0, cm(0.9), 0), Vector3.new(cm(1.3), cm(1.8), cm(1.0)), Color3.fromRGB(224, 226, 230), M.SmoothPlastic, { Name = "Clip" })
+		box(m, cf * CFrame.new(0, cm(1.9), 0), Vector3.new(cm(1.5), cm(0.4), cm(1.2)), Color3.fromRGB(230, 60, 50), M.SmoothPlastic, { Name = "Tab" })
+		box(m, cf * CFrame.new(0, cm(1), 0), Vector3.new(0.16, 0.2, 0.16), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
 	else
-		box(m, cf * CFrame.new(0, cm(0.75), 0), Vector3.new(cm(0.75), cm(1.5), cm(0.8)), Color3.fromRGB(64, 66, 72), M.SmoothPlastic)
-		box(m, cf * CFrame.new(0, cm(0.75), 0), Vector3.new(0.12, 0.14, 0.12), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
+		-- the memory clip: as tall as the module so it still shows behind its end, light with a blue
+		-- push tab on top, standing out against the dark board
+		box(m, cf * CFrame.new(0, cm(1.8), 0), Vector3.new(cm(0.9), cm(3.6), cm(1.1)), Color3.fromRGB(232, 234, 238), M.SmoothPlastic, { Name = "Clip" })
+		box(m, cf * CFrame.new(0, cm(3.7), cm(0.2)), Vector3.new(cm(1.1), cm(0.6), cm(1.6)), Color3.fromRGB(40, 130, 240), M.SmoothPlastic, { Name = "Tab" })
+		box(m, cf * CFrame.new(0, cm(1.9), 0), Vector3.new(0.18, 0.4, 0.18), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
 	end
 	return m
 end
@@ -902,17 +909,42 @@ function PCParts.cooler(cf: CFrame, coolerPart, ctx): Model
 			fm.Parent = m
 		end
 		dustLayer(m, radCf * CFrame.new(0, 0, cm(1.5)), Vector3.new(radLen, cm(12), 0.01))
-		-- two sleeved tubes from the pump to the radiator end, with their fittings
-		local p0 = (cf * CFrame.new(cm(1.2), cm(2.5), -cm(2.5))).Position
-		local p1 = (radCf * CFrame.new(radLen / 2 - cm(2), cm(3), cm(1))).Position
+		-- two sleeved tubes from the pump to the radiator end, with their fittings. With a lane (the gap
+		-- between the board and the top of the case) they go up out of the pump, along the gap -- clear
+		-- of the memory clips -- and down to the radiator; stacked, not side by side.
+		local laneZ = ctx and ctx.laneZ
+		local pEnd = radCf * CFrame.new(radLen / 2 - cm(2), cm(3), cm(1))
+		local tubeCol = Color3.fromRGB(22, 22, 24)
 		for k = 0, 1 do
-			local off = Vector3.new(0, 0, k * cm(1.4))
-			local a, b = p0 + off, p1 + off
-			local mid = (a + b) / 2 + Vector3.new(0, cm(3), 0)
-			for _, seg in { { a, mid }, { mid, b } } do
-				local d = (seg[2] - seg[1]).Magnitude
-				local sc = CFrame.lookAt((seg[1] + seg[2]) / 2, seg[2]) * CFrame.Angles(0, math.pi / 2, 0)
-				cyl(m, sc, "X", d, cm(1.2), Color3.fromRGB(22, 22, 24), M.Fabric)
+			local a, b, via
+			if laneZ then
+				local x = cm(-1 + k * 1.8)
+				local y = cm(3.6 + k * 1.1)
+				a = (cf * CFrame.new(x, cm(2.5), -cm(2.8))).Position
+				local endLocal = cf:PointToObjectSpace(pEnd.Position)
+				b = (cf * CFrame.new(endLocal.X, endLocal.Y + cm(k * 1.1), endLocal.Z + cm(k * 1.4))).Position
+				via = { (cf * CFrame.new(x, y, laneZ)).Position, (cf * CFrame.new(endLocal.X, y, laneZ)).Position }
+			else
+				local off = Vector3.new(0, 0, k * cm(1.4))
+				a = (cf * CFrame.new(cm(1.2), cm(2.5), -cm(2.5))).Position + off
+				b = pEnd.Position + off
+				via = { (a + b) / 2 + Vector3.new(0, cm(3), 0) }
+			end
+			local pts = { a }
+			for _, v in via do
+				table.insert(pts, v)
+			end
+			table.insert(pts, b)
+			for i = 1, #pts - 1 do
+				local d = (pts[i + 1] - pts[i]).Magnitude
+				if d > 1e-3 then
+					local sc = CFrame.lookAt((pts[i] + pts[i + 1]) / 2, pts[i + 1]) * CFrame.Angles(0, math.pi / 2, 0)
+					cyl(m, sc, "X", d, cm(1.0), tubeCol, M.Fabric, { Name = "Tube" })
+				end
+			end
+			-- rounded elbows
+			for i = 2, #pts - 1 do
+				B.ball(m, CFrame.new(pts[i]), cm(1.0), tubeCol, M.Fabric, props({ Name = "Elbow" }, Vector3.new(0.1, 0.1, 0.1)))
 			end
 			cyl(m, CFrame.new(a), "Y", cm(1.0), cm(1.5), Color3.fromRGB(36, 36, 40), M.Metal)
 		end
@@ -1405,14 +1437,15 @@ end
 -- style: "atx24" | "eps" | "pcie" | "sata_power" | "sata_data" | "fan"
 ----------------------------------------------------------------------------------------------------
 local CABLE_STYLE = {
-	atx24 = { w = 0.26, t = 0.07, color = { 46, 48, 54 }, head = { 0.2, 0.18, 0.8 } },
-	eps = { w = 0.16, t = 0.06, color = { 46, 48, 54 }, head = { 0.32, 0.16, 0.18 } },
-	pcie = { w = 0.16, t = 0.06, color = { 46, 48, 54 }, head = { 0.28, 0.14, 0.14 } },
-	sata_power = { w = 0.12, t = 0.03, color = { 38, 38, 42 }, head = { 0.32, 0.1, 0.1 } },
-	sata_data = { w = 0.08, t = 0.025, color = { 200, 40, 40 }, head = { 0.18, 0.1, 0.1 } },
-	fan = { w = 0.05, t = 0.035, color = { 44, 44, 48 }, head = { 0.15, 0.1, 0.07 } },
-	ribbon = { w = 0.24, t = 0.012, color = { 196, 150, 70 }, head = { 0.28, 0.06, 0.12 } },
-	thin = { w = 0.04, t = 0.024, color = { 30, 30, 32 }, head = { 0.1, 0.06, 0.08 } },
+	-- thin runs (the plugs stay chunky enough to read and to click)
+	atx24 = { w = 0.1, t = 0.034, color = { 46, 48, 54 }, head = { 0.15, 0.13, 0.58 } },
+	eps = { w = 0.06, t = 0.03, color = { 46, 48, 54 }, head = { 0.23, 0.12, 0.13 } },
+	pcie = { w = 0.06, t = 0.03, color = { 46, 48, 54 }, head = { 0.2, 0.1, 0.1 } },
+	sata_power = { w = 0.045, t = 0.016, color = { 38, 38, 42 }, head = { 0.23, 0.075, 0.075 } },
+	sata_data = { w = 0.03, t = 0.014, color = { 200, 40, 40 }, head = { 0.13, 0.075, 0.075 } },
+	fan = { w = 0.024, t = 0.018, color = { 44, 44, 48 }, head = { 0.11, 0.075, 0.05 } },
+	ribbon = { w = 0.18, t = 0.01, color = { 196, 150, 70 }, head = { 0.2, 0.045, 0.09 } },
+	thin = { w = 0.03, t = 0.018, color = { 30, 30, 32 }, head = { 0.075, 0.045, 0.06 } },
 }
 PCParts.CableStyle = CABLE_STYLE
 
@@ -1427,13 +1460,13 @@ function PCParts.cable(points: { Vector3 }, style: string, headCf: CFrame?): Mod
 			-- flat run: width across, thickness up; joints get a small overlap
 			local mid = (a + b) / 2
 			local look = CFrame.lookAt(mid, b)
-			box(m, look, Vector3.new(st.w, st.t, len + st.w * 0.6), c, M.Fabric, { CastShadow = false })
+			box(m, look, Vector3.new(st.w, st.t, len + st.w * 0.6), c, M.Fabric, { CastShadow = false, Name = "Run" })
 		end
 	end
 	if headCf then
 		local h = st.head
 		box(m, headCf * CFrame.new(0, h[2] / 2, 0), Vector3.new(h[1], h[2], h[3]), Color3.fromRGB(30, 30, 32), M.SmoothPlastic, { Name = "Head" })
-		box(m, headCf * CFrame.new(0, h[2] / 2, 0), Vector3.new(math.max(h[1], 0.32), math.max(h[2], 0.2), math.max(h[3], 0.32)), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
+		box(m, headCf * CFrame.new(0, h[2] / 2, 0), Vector3.new(math.max(h[1], 0.24), math.max(h[2], 0.15), math.max(h[3], 0.24)), DARK, M.SmoothPlastic, { Name = "Hitbox", Transparency = 1 })
 	end
 	return m
 end

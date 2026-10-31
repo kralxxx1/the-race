@@ -322,9 +322,28 @@ function Buildings.building(parent: Instance, cf: CFrame, opts): Model
 	return m
 end
 
+-- What the outside of a hall is made of: picked from the name, so every place keeps its own look
+-- (brick, sandstone, grey concrete or pale render).
+local FACADES = {
+	{ color = { 156, 88, 66 }, mat = M.Brick, base = { 120, 116, 112 }, trim = { 238, 232, 220 } },
+	{ color = { 206, 184, 148 }, mat = M.Sandstone, base = { 150, 140, 128 }, trim = { 244, 240, 230 } },
+	{ color = { 150, 154, 160 }, mat = M.Concrete, base = { 96, 98, 104 }, trim = { 226, 228, 230 } },
+	{ color = { 232, 224, 206 }, mat = M.Plaster, base = { 140, 132, 124 }, trim = { 250, 248, 242 } },
+	{ color = { 128, 74, 60 }, mat = M.Brick, base = { 84, 82, 82 }, trim = { 226, 220, 208 } },
+	{ color = { 96, 110, 122 }, mat = M.Slate, base = { 70, 74, 80 }, trim = { 220, 224, 228 } },
+}
+local function facadeLook(name: string)
+	local h = 0
+	for i = 1, #name do
+		h = (h * 31 + string.byte(name, i)) % 9973
+	end
+	return FACADES[h % #FACADES + 1]
+end
+
 -- Walk-in hall: open doorway, glass front, interior floor, lit ceiling, sign. Used by every place
 -- the player can enter (stores, dealers, agencies, player shops).
--- opts: name, accent, wall, wallMat, floor, floorMat, glassFront (bool), door (width), doorX, sign (bool),
+-- opts: name, accent, wall, wallMat, floor, floorMat, facade ({ color, mat, base, trim }; picked from the
+-- name otherwise), glassFront (true = the old all-glass front), door (width), doorX, sign (bool),
 -- lightStep (studs between ceiling lights, 14 by default; big halls use more)
 -- Returns the model plus a table of useful interior points.
 function Buildings.hall(parent: Instance, cf: CFrame, w: number, d: number, h: number, opts)
@@ -339,7 +358,7 @@ function Buildings.hall(parent: Instance, cf: CFrame, w: number, d: number, h: n
 	local doorX = o.doorX or 0
 	local t = 1
 	-- floor and roof
-	B.box(m, cf * CFrame.new(0, 0.1, d / 2), Vector3.new(w, 0.2, d), floorCol, floorMat).Name = "Floor"
+	B.box(m, cf * CFrame.new(0, 0.1, d / 2), Vector3.new(w, 0.2, d), floorCol, floorMat, { Reflectance = 0.05 }).Name = "Floor"
 	B.box(m, cf * CFrame.new(0, h + 0.5, d / 2), Vector3.new(w + 1, 1, d + 1), Color3.fromRGB(120, 120, 124), M.SmoothPlastic).Name = "Roof"
 	B.box(m, cf * CFrame.new(0, h - 0.1, d / 2), Vector3.new(w - 2 * t, 0.2, d - 2 * t), Color3.fromRGB(246, 246, 244), M.SmoothPlastic, nc({ Name = "Ceiling" }))
 	-- back and side walls
@@ -347,43 +366,135 @@ function Buildings.hall(parent: Instance, cf: CFrame, w: number, d: number, h: n
 	for side = -1, 1, 2 do
 		B.box(m, cf * CFrame.new(side * (w / 2 - t / 2), h / 2, d / 2), Vector3.new(t, h, d), wall, wallMat).Name = "SideWall"
 	end
-	-- front: shop windows left/right of the doorway up to a solid fascia under the roof line, a
-	-- transom bar at door height and glass above the door
-	local doorH = math.min(10, h - 2)
+	-- The front. By default a solid wall (brick, stone or plaster, with a stone plinth, pilasters and a
+	-- cornice) with window openings in it -- big shop windows with piers between them, a glass
+	-- transom over the door, a sign fascia. o.glassFront = true keeps the old all-glass look, false a
+	-- plain solid front.
+	local doorH = math.min(if o.glassFront == nil then 9.4 else 10, h - 3)
 	local leftW = (w / 2 + doorX - doorW / 2)
 	local rightW = (w / 2 - doorX - doorW / 2)
 	local frame = Color3.fromRGB(40, 42, 46)
 	local glassCol = Color3.fromRGB(150, 182, 198)
-	local glassFront = o.glassFront ~= false
-	local fasciaH = if glassFront then math.clamp(h * 0.2, 2, 4) else 0
-	local glassTop = h - fasciaH
-	local function frontPanel(x0: number, width: number)
-		if width <= 0.5 then
-			return
-		end
-		local cx = x0 + width / 2
-		if glassFront then
+	local signY, signH = h + 2.4, 3.8
+	if o.glassFront == false then
+		-- (a plain solid front, for the stately buildings)
+		B.box(m, cf * CFrame.new(-w / 2 + leftW / 2, h / 2, t / 2), Vector3.new(leftW, h, t), wall, wallMat)
+		B.box(m, cf * CFrame.new(w / 2 - rightW / 2, h / 2, t / 2), Vector3.new(rightW, h, t), wall, wallMat)
+		B.box(m, cf * CFrame.new(doorX, (doorH + h) / 2, t / 2), Vector3.new(doorW, h - doorH, t), wall, wallMat).Name = "DoorHeader"
+	elseif o.glassFront == true then
+		local fasciaH = math.clamp(h * 0.2, 2, 4)
+		local glassTop = h - fasciaH
+		local function frontPanel(x0: number, width: number)
+			if width <= 0.5 then
+				return
+			end
+			local cx = x0 + width / 2
 			B.box(m, cf * CFrame.new(cx, (1 + glassTop) / 2, t / 2), Vector3.new(width - 0.4, glassTop - 1, 0.3), glassCol, M.Glass, { Transparency = 0.5 })
 			B.box(m, cf * CFrame.new(cx, 0.5, t / 2), Vector3.new(width, 1, t), frame, M.Metal)
 			B.box(m, cf * CFrame.new(x0 + 0.3, glassTop / 2, t / 2), Vector3.new(0.6, glassTop, t), frame, M.Metal)
 			if glassTop - doorH > 3 then
 				B.box(m, cf * CFrame.new(cx, doorH + 0.25, t / 2), Vector3.new(width, 0.5, t * 0.6), frame, M.Metal)
 			end
-		else
-			B.box(m, cf * CFrame.new(cx, h / 2, t / 2), Vector3.new(width, h, t), wall, wallMat)
 		end
-	end
-	frontPanel(-w / 2, leftW)
-	frontPanel(doorX + doorW / 2, rightW)
-	B.box(m, cf * CFrame.new(w / 2 - 0.3, glassTop / 2, t / 2), Vector3.new(0.6, glassTop, t), frame, M.Metal)
-	if glassFront then
+		frontPanel(-w / 2, leftW)
+		frontPanel(doorX + doorW / 2, rightW)
+		B.box(m, cf * CFrame.new(w / 2 - 0.3, glassTop / 2, t / 2), Vector3.new(0.6, glassTop, t), frame, M.Metal)
 		B.box(m, cf * CFrame.new(0, glassTop + fasciaH / 2, t / 2), Vector3.new(w, fasciaH, t), wall, wallMat).Name = "Fascia"
 		B.box(m, cf * CFrame.new(doorX, doorH + 0.25, t / 2), Vector3.new(doorW, 0.5, t), frame, M.Metal).Name = "DoorHeader"
 		if glassTop - doorH > 1.5 then
 			B.box(m, cf * CFrame.new(doorX, (doorH + 0.5 + glassTop) / 2, t / 2), Vector3.new(doorW - 0.4, glassTop - doorH - 0.5, 0.3), glassCol, M.Glass, { Transparency = 0.5, Name = "Transom" })
 		end
 	else
-		B.box(m, cf * CFrame.new(doorX, (doorH + h) / 2, t / 2), Vector3.new(doorW, h - doorH, t), wall, wallMat).Name = "DoorHeader"
+		local ext = o.facade or facadeLook(o.name or "")
+		local brick = B.color(ext.color)
+		local stone = B.color(ext.base or { 150, 146, 140 })
+		local trim = B.color(ext.trim or { 238, 234, 224 })
+		local function wallBox(x0: number, x1: number, y0: number, y1: number, col: Color3, mat: Enum.Material, name: string?)
+			if x1 - x0 < 0.05 or y1 - y0 < 0.05 then
+				return
+			end
+			local b = B.box(m, cf * CFrame.new((x0 + x1) / 2, (y0 + y1) / 2, t / 2), Vector3.new(x1 - x0, y1 - y0, t), col, mat)
+			if name then
+				b.Name = name
+			end
+		end
+		local dl, dr = doorX - doorW / 2, doorX + doorW / 2
+		-- rows of windows: one on the ground floor, another above in a tall hall
+		local rows = { { 3.2, math.min(9.6, h - 4.2) } }
+		if h >= 26 then
+			table.insert(rows, { 16.6, 23.4 })
+		end
+		local topRow = rows[#rows][2]
+		-- the plinth under the windows (cut at the door) and the wall above the top row
+		wallBox(-w / 2, dl, 0, rows[1][1], stone, M.Concrete, "Plinth")
+		wallBox(dr, w / 2, 0, rows[1][1], stone, M.Concrete, "Plinth")
+		wallBox(-w / 2, w / 2, topRow + 0.6, h, brick, ext.mat, "FrontWall")
+		-- between the rows (a spandrel) when there are two
+		if rows[2] then
+			wallBox(-w / 2, w / 2, rows[1][2] + 0.6, rows[2][1], brick, ext.mat, "Spandrel")
+		end
+		-- over the door: wall down to the top of the door, the glass transom above it
+		wallBox(dl, dr, doorH + 0.45, rows[1][2] + 0.6, frame, M.Metal, "DoorHeader")
+		if rows[1][2] + 0.6 - doorH - 0.45 > 0.6 then
+			B.box(m, cf * CFrame.new(doorX, (doorH + 0.45 + rows[1][2] + 0.6) / 2, t / 2), Vector3.new(doorW - 0.5, rows[1][2] + 0.6 - doorH - 1.05, 0.3), glassCol, M.Glass, { Transparency = 0.45, Name = "Transom" })
+		end
+		-- the windows and the brick piers between them, either side of the door
+		local function windows(x0: number, x1: number, r: { number })
+			local R = x1 - x0
+			if R < 6 then
+				wallBox(x0, x1, r[1], r[2] + 0.6, brick, ext.mat, "Pier")
+				return
+			end
+			local n = math.max(1, math.floor((R - 3) / 10))
+			local winW = math.clamp((R - 3) / n * 0.64, 4, 8.5)
+			local gap = (R - n * winW) / (n + 1)
+			local x = x0
+			for _ = 1, n do
+				wallBox(x, x + gap, r[1], r[2] + 0.6, brick, ext.mat, "Pier")
+				local wx0 = x + gap
+				local cx = wx0 + winW / 2
+				local gh = r[2] - r[1]
+				B.box(m, cf * CFrame.new(cx, r[1] + gh / 2, t / 2), Vector3.new(winW - 0.3, gh - 0.3, 0.3), glassCol, M.Glass, { Transparency = 0.4, Name = "ShopWindow" })
+				-- frame, mullion, sill and lintel
+				for _, fx in { -1, 1 } do
+					B.box(m, cf * CFrame.new(cx + fx * (winW / 2 - 0.12), r[1] + gh / 2, t / 2 - 0.05), Vector3.new(0.24, gh, 0.5), frame, M.Metal)
+				end
+				B.box(m, cf * CFrame.new(cx, r[1] + 0.12, t / 2 - 0.05), Vector3.new(winW, 0.24, 0.5), frame, M.Metal)
+				B.box(m, cf * CFrame.new(cx, r[2] - 0.12, t / 2 - 0.05), Vector3.new(winW, 0.24, 0.5), frame, M.Metal)
+				B.box(m, cf * CFrame.new(cx, r[1] + gh / 2, t / 2 - 0.05), Vector3.new(0.18, gh, 0.4), frame, M.Metal)
+				B.box(m, cf * CFrame.new(cx, r[1] - 0.2, -0.25), Vector3.new(winW + 0.8, 0.4, 1.2), trim, M.Concrete, nc({ Name = "Sill" }))
+				B.box(m, cf * CFrame.new(cx, r[2] + 0.3, -0.15), Vector3.new(winW + 0.8, 0.6, 1), trim, M.Concrete, nc({ Name = "Lintel" }))
+				x = wx0 + winW
+			end
+			wallBox(x, x1, r[1], r[2] + 0.6, brick, ext.mat, "Pier")
+		end
+		for _, r in rows do
+			-- (the doorway only cuts the ground-floor row)
+			if r == rows[1] then
+				windows(-w / 2, dl, r)
+				windows(dr, w / 2, r)
+			else
+				windows(-w / 2, w / 2, r)
+			end
+		end
+		-- corner pilasters and a cornice with a cap along the top
+		for side = -1, 1, 2 do
+			B.box(m, cf * CFrame.new(side * (w / 2 - 0.7), h / 2, -0.35), Vector3.new(1.4, h, 1.3), trim, M.Concrete, nc({ Name = "Pilaster" }))
+		end
+		B.box(m, cf * CFrame.new(0, h - 0.4, -0.45), Vector3.new(w + 0.6, 0.8, 1.7), trim, M.Concrete, nc({ Name = "Cornice" }))
+		B.box(m, cf * CFrame.new(0, h + 0.1, d / 2), Vector3.new(w + 1, 0.4, d + 1), Color3.fromRGB(96, 98, 102), M.Concrete, nc({ Name = "Parapet" }))
+		-- the sign sits on the wall between the windows and the cornice
+		signY = (topRow + 0.6 + h - 0.8) / 2
+		signH = math.clamp(h - 0.8 - topRow - 0.6 - 0.8, 2.2, 3.8)
+	end
+	-- the outside of the side and back walls is cladded like the front
+	if o.glassFront == nil then
+		local ext = o.facade or facadeLook(o.name or "")
+		local brick = B.color(ext.color)
+		for side = -1, 1, 2 do
+			B.box(m, cf * CFrame.new(side * (w / 2 + 0.15), h / 2, d / 2), Vector3.new(0.3, h, d), brick, ext.mat, nc({ Name = "SideCladding" }))
+		end
+		B.box(m, cf * CFrame.new(0, h / 2, d + 0.15), Vector3.new(w, h, 0.3), brick, ext.mat, nc({ Name = "BackCladding" }))
 	end
 	-- sliding door leaves parked beside the opening
 	for side = -1, 1, 2 do
@@ -392,7 +503,7 @@ function Buildings.hall(parent: Instance, cf: CFrame, w: number, d: number, h: n
 	end
 	-- sign band
 	if o.sign ~= false then
-		local band = B.box(m, cf * CFrame.new(0, h + 2.4, -0.4), Vector3.new(math.min(w - 2, math.max(16, #(o.name or "") * 2.2)), 3.8, 0.8), accent, M.SmoothPlastic)
+		local band = B.box(m, cf * CFrame.new(0, signY, -0.4), Vector3.new(math.min(w - 4, math.max(16, #(o.name or "") * 2.2)), signH, 0.8), accent, M.SmoothPlastic)
 		band.Name = "SignBand"
 		B.sign(band, Enum.NormalId.Front, o.name or "", { color = Color3.new(1, 1, 1), glow = true, brightness = 1.4, font = o.font or B.Fonts.Heavy })
 	end
@@ -404,9 +515,10 @@ function Buildings.hall(parent: Instance, cf: CFrame, w: number, d: number, h: n
 		for c = 1, cols do
 			local x = -w / 2 + w * (c - 0.5) / cols
 			local z = d * (r - 0.5) / rows
-			local panel = B.box(m, cf * CFrame.new(x, h - 0.3, z), Vector3.new(4, 0.2, 4), Color3.fromRGB(255, 250, 240), M.Neon, nc({ CastShadow = false, Name = "CeilingLight" }))
+			-- (soft, not dazzling: a panel you can look at, and a gentle light that only reaches its neighbours)
+			local panel = B.box(m, cf * CFrame.new(x, h - 0.3, z), Vector3.new(4, 0.2, 4), Color3.fromRGB(238, 232, 218), M.Neon, nc({ CastShadow = false, Name = "CeilingLight", Transparency = 0.15 }))
 			if (r + c) % 2 == 0 or (rows * cols <= 2) then
-				B.pointLight(panel, math.max(w, d) * 0.6, 1.25, Color3.fromRGB(255, 244, 228), false)
+				B.pointLight(panel, math.clamp(math.max(w, d) * 0.34, 18, 30), 0.42, Color3.fromRGB(255, 240, 220), false)
 			end
 		end
 	end

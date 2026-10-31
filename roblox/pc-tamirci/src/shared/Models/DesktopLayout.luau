@@ -59,6 +59,7 @@ local function geometry(view)
 	-- board: top-rear corner below the top fans (closer to the top in short cases)
 	local topGap = if style == "office" then 0.12 elseif style == "retro" then 0.15 elseif style == "sff" then 0.12 else 0.34
 	g.mobo = CFrame.new(lx / 2 - 0.2, 0.1, -lz / 2 + topGap)
+	g.topGap = topGap
 	-- the front strip between the front panel and the board
 	g.frontX0 = -lx / 2 + cm(2.4) + 0.2
 	g.frontX1 = lx / 2 - 0.2 - cm(BL.W)
@@ -291,7 +292,8 @@ function DesktopLayout.describe(view, _opts)
 	local coolerHome = BL.socket * CFrame.new(0, cm(0.97), 0)
 	local radInCase = CFrame.new(-lx / 2 + cm(2.4) + cm(2.6) + 0.12, ly / 2, 0) * CFrame.Angles(0, math.pi / 2, 0)
 	comp("cooler", "mobo", coolerHome, function(cf, p)
-		local ctx = { radCf = (g.mobo * coolerHome):ToObjectSpace(radInCase) }
+		-- (the hoses of a liquid cooler run along the gap above the board, clear of the memory clips)
+		local ctx = { radCf = (g.mobo * coolerHome):ToObjectSpace(radInCase), laneZ = -(cm(8) + math.min(cm(1.3), (g.topGap or 0.34) / 2)) }
 		return PCParts.cooler(cf, p, ctx)
 	end)
 	local coolerPart = partOf(view, "cooler")
@@ -446,24 +448,146 @@ end
 
 ----------------------------------------------------------------------------------------------------
 -- Cable routes
+--
+-- Nothing is allowed to run across the board: a cable comes up through the tray right next to its
+-- plug (power from the PSU) or travels along the "ring road" around the board (fans, SATA data) and
+-- makes a short hop into its socket. The memory clips, the card and the cooler stay in plain view.
+-- Everything is worked out in the board's frame: x = -u (towards the front panel is -x), z = w.
 ----------------------------------------------------------------------------------------------------
--- Heights the runs travel at, above the board and the parts (the PC is twice the size it was).
-local ROUTE_Y = { atx24 = 0.5, eps = 0.6, pcie = 1.5, sata_power = 0.5, sata_data = 0.45, fan = 0.45 }
+-- Heights the runs travel at, above the tray and the parts.
+local ROUTE_Y = { atx24 = 0.3, eps = 0.3, pcie = 0.4, sata_power = 0.22, sata_data = 0.2, fan = 0.2 }
+
+-- The ring road around the board: a rectangle just outside its edges (top gap, front, bottom, rear
+-- gap), walked clockwise from the top-rear corner.
+local function ringOf(g, card)
+	local BL = g.board
+	local Wd, Hd = cm(BL.W), cm(BL.H)
+	local m = cm(1.3)
+	local top = math.min(m, (g.topGap or 0.34) / 2)
+	local x0, x1, z0, z1 = -(Wd + m), 0.08, -top, Hd + m
+	if card and card.x0 < x0 + 0.02 then
+		-- a long card sticks out over the front strip: the road runs round the tip, not through it
+		x0 = card.x0 - 0.12
+	end
+	local corners = { { x1, z0 }, { x0, z0 }, { x0, z1 }, { x1, z1 } }
+	local cum, total = {}, 0
+	for i = 1, 4 do
+		local a, b = corners[i], corners[i % 4 + 1]
+		cum[i] = total
+		total += math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
+	end
+	return { corners = corners, cum = cum, total = total, rear = cum[4], x0 = x0, x1 = x1, z0 = z0, z1 = z1 }
+end
+
+-- Does the straight run (ax, az) -> (bx, bz) pass through the rectangle r = { x0, x1, z0, z1 }?
+local function runHits(ax: number, az: number, bx: number, bz: number, r): boolean
+	for k = 0, 16 do
+		local t = k / 16
+		local x, z = ax + (bx - ax) * t, az + (bz - az) * t
+		if x > r.x0 and x < r.x1 and z > r.z0 and z < r.z1 then
+			return true
+		end
+	end
+	return false
+end
+
+-- The point of the ring nearest to (x, z), and how far along the ring it is. With `avoid` (the
+-- graphics card's box) the nearest point whose straight lead-in does not go through it.
+local function ringProject(ring, x: number, z: number, avoid: any?): (number, number, number)
+	local cands = {}
+	for i = 1, 4 do
+		local a, b = ring.corners[i], ring.corners[i % 4 + 1]
+		local dx, dz = b[1] - a[1], b[2] - a[2]
+		local len2 = dx * dx + dz * dz
+		local t = math.clamp(((x - a[1]) * dx + (z - a[2]) * dz) / len2, 0, 1)
+		local qx, qz = a[1] + dx * t, a[2] + dz * t
+		table.insert(cands, { d = (x - qx) ^ 2 + (z - qz) ^ 2, x = qx, z = qz, s = ring.cum[i] + t * math.sqrt(len2) })
+	end
+	table.sort(cands, function(p, q)
+		return p.d < q.d
+	end)
+	local pick = cands[1]
+	if avoid then
+		for _, c in cands do
+			if not runHits(x, z, c.x, c.z, avoid) then
+				pick = c
+				break
+			end
+		end
+	end
+	return pick.x, pick.z, pick.s
+end
+
+-- The corners passed walking round the ring from s0 to s1 the cheaper way (the rear gap behind the
+-- I/O cover counts triple: it is narrow and nobody wants cables there).
+local function ringWalk(ring, s0: number, s1: number): { { number } }
+	local total = ring.total
+	local function cost(forward: boolean): (number, { { number } })
+		local out = {}
+		local dist = if forward then (s1 - s0) % total else (s0 - s1) % total
+		local c = dist
+		for i = 1, 4 do
+			local at = ring.cum[i]
+			local along = if forward then (at - s0) % total else (s0 - at) % total
+			if along > 1e-6 and along < dist - 1e-6 then
+				table.insert(out, { along = along, p = ring.corners[i] })
+			end
+		end
+		-- (crossing the rear segment: from the start of the 4th side to the end of the loop)
+		local mid0, mid1 = ring.rear, total
+		local function inRear(sPos: number): boolean
+			return sPos >= mid0 - 1e-6 and sPos <= mid1 + 1e-6
+		end
+		local steps = math.max(2, math.floor(dist / 0.05))
+		for k = 0, steps do
+			local sPos = (if forward then s0 + dist * k / steps else s0 - dist * k / steps) % total
+			if inRear(sPos) then
+				c += (total - ring.rear) * 3
+				break
+			end
+		end
+		table.sort(out, function(a, b)
+			return a.along < b.along
+		end)
+		local pts = {}
+		for _, o in out do
+			table.insert(pts, o.p)
+		end
+		return c, pts
+	end
+	local cf, pf = cost(true)
+	local cb, pb = cost(false)
+	return if cf <= cb then pf else pb
+end
+
+local function st_in(view, id: string): boolean
+	local s = view.nodes[id]
+	return s ~= nil and s.st == "in"
+end
 
 function DesktopLayout.cables(view, g)
 	local BL = g.board
 	local list = {}
+	-- the graphics card stands on the board like a wall; its box, in the board's frame
+	local gpuNode = partOf(view, "gpu")
+	local card
+	if gpuNode and st_in(view, "gpu") then
+		local L, _, Tk = PCParts.gpuDims(gpuNode)
+		card = { x0 = -cm(2) - L - 0.04, x1 = -cm(2) + 0.16, z0 = cm(15.3) - 0.1, z1 = cm(15.3) + Tk + 0.1 }
+	end
+	local ring = ringOf(g) -- (short hops into the board's edge sockets)
+	local travel = ringOf(g, card) -- (the long way round for fans and SATA data)
 	local function st(id: string): string?
 		local s = view.nodes[id]
 		return s and s.st
 	end
-	-- The power cables come up through the rubber grommets in the tray beside the board (the PSU is
-	-- "behind" it): only the short run from the grommet to its plug shows, so nothing crosses the
-	-- board or the card.
+	-- Tray grommets in front of the drives: the SATA power cables rise out of them.
 	local function grommet(k: number): Vector3
 		return Vector3.new(-g.dims.X / 2 + cm(12.5), 0.03, -g.dims.Z / 2 + cm(9) + k * cm(9))
 	end
-	local function cable(id: string, style: string, src: ((any) -> Vector3?)?, dst: (any) -> CFrame?)
+	-- src(h) -> where the cable starts (nil: it comes up out of the tray at the plug); dst(h) -> the
+	-- plug's frame; board: the plug is on the board (the route runs in the board's frame)
+	local function cable(id: string, style: string, src: ((any) -> Vector3?)?, dst: (any) -> CFrame?, board: boolean?)
 		if not Rules.available(view, id) then
 			return
 		end
@@ -478,18 +602,55 @@ function DesktopLayout.cables(view, g)
 			style = style,
 			route = function(h)
 				local head = dst(h)
+				local mw = h:worldOf("mobo")
 				if not head then
 					return nil
 				end
 				local headH = PCParts.CableStyle[style].head[2]
 				if not plugged then
 					-- pulled off: the plug hangs above its socket
-					head = CFrame.new(0, 0.64, 0) * head * CFrame.new(0.12, 0, 0.16) * CFrame.Angles(math.rad(25), 0, math.rad(15))
+					head = CFrame.new(0, 0.47, 0) * head * CFrame.new(0.09, 0, 0.12) * CFrame.Angles(math.rad(25), 0, math.rad(15))
 				end
-				-- route in the device frame, then back to the world
+				local topW = (head * CFrame.new(0, headH, 0)).Position
+				local y = ROUTE_Y[style] or 0.3
+				if board and mw then
+					-- in the board's frame: x along -u, z along w
+					local top = mw:PointToObjectSpace(topW)
+					y = math.max(y, top.Y + 0.03)
+					local ex, ez = ringProject(ring, top.X, top.Z)
+					if style == "pcie" and card then
+						-- the plugs are on the card's top edge: the cable rises beside the card's fan side
+						-- (never through the card) and hops over the edge into its plug
+						ex, ez = top.X, card.z1 + 0.04
+					end
+					local pts, s1
+					if src then
+						local w0 = src(h)
+						if not w0 then
+							return nil
+						end
+						local a0 = mw:PointToObjectSpace(w0)
+						local sx, sz, s0 = ringProject(travel, a0.X, a0.Z, card)
+						ex, ez, s1 = ringProject(travel, top.X, top.Z, card)
+						pts = { a0, Vector3.new(a0.X, y, a0.Z), Vector3.new(sx, y, sz) }
+						for _, c in ringWalk(travel, s0, s1) do
+							table.insert(pts, Vector3.new(c[1], y, c[2]))
+						end
+					else
+						-- straight up out of the tray at the edge nearest the plug
+						pts = { Vector3.new(ex, 0.02, ez) }
+					end
+					table.insert(pts, Vector3.new(ex, y, ez))
+					table.insert(pts, Vector3.new(top.X, y, top.Z))
+					table.insert(pts, top)
+					for i, p in pts do
+						pts[i] = mw * p
+					end
+					return pts, head
+				end
+				-- off the board (drives): out of the nearest grommet, along Z then across X
 				local R = h.root
-				local top = (R:ToObjectSpace(head) * CFrame.new(0, headH, 0)).Position
-				local y = ROUTE_Y[style] or 0.5
+				local top = R:PointToObjectSpace(topW)
 				local a
 				if src then
 					local w0 = src(h)
@@ -498,7 +659,6 @@ function DesktopLayout.cables(view, g)
 					end
 					a = R:PointToObjectSpace(w0)
 				else
-					-- out of the grommet nearest the plug
 					local zl = h.base:PointToObjectSpace(top).Z
 					local best = 0
 					for k = 1, 2 do
@@ -509,7 +669,6 @@ function DesktopLayout.cables(view, g)
 					a = h.base * grommet(best)
 				end
 				local pts = { a, Vector3.new(a.X, math.max(a.Y, y), a.Z) }
-				-- square runs: along Z first, then across X
 				local last = pts[#pts]
 				table.insert(pts, Vector3.new(last.X, last.Y, top.Z))
 				table.insert(pts, Vector3.new(top.X, math.max(top.Y, y), top.Z))
@@ -529,13 +688,13 @@ function DesktopLayout.cables(view, g)
 		end
 	end
 
-	cable("c24", "atx24", nil, on("mobo", BL.atx24 * CFrame.new(0, cm(1.1), 0)))
-	cable("ceps", "eps", nil, on("mobo", BL.eps * CFrame.new(0, cm(1), 0)))
+	cable("c24", "atx24", nil, on("mobo", BL.atx24 * CFrame.new(0, cm(1.1), 0)), true)
+	cable("ceps", "eps", nil, on("mobo", BL.eps * CFrame.new(0, cm(1), 0)), true)
 	local gpuPart = partOf(view, "gpu")
 	local sockets = if gpuPart then PCParts.gpuSockets(gpuPart, Parts.gpuConnectors(gpuPart)) else {}
 	for i = 1, 3 do
 		if sockets[i] then
-			cable("cpcie" .. i, "pcie", nil, on("gpu", sockets[i]))
+			cable("cpcie" .. i, "pcie", nil, on("gpu", sockets[i]), true)
 		end
 	end
 	local coolerPart = partOf(view, "cooler")
@@ -543,13 +702,13 @@ function DesktopLayout.cables(view, g)
 	cable("cfan_cpu", "fan", function(h)
 		local w = h:worldOf("cooler")
 		return w and (w * fanAt).Position or nil
-	end, on("mobo", BL.cpuFan * CFrame.new(0, cm(0.6), 0)))
+	end, on("mobo", BL.cpuFan * CFrame.new(0, cm(0.6), 0)), true)
 	for k, id in Rules.FanOrder do
 		local header = BL.sysFan[k] or BL.sysFan[1]
 		cable("cfan_" .. id, "fan", function(h)
 			local w = h:worldOf(id)
 			return w and (w * CFrame.new(cm(5), -cm(1.3), cm(5))).Position or nil
-		end, on("mobo", header * CFrame.new(0, cm(0.6), 0)))
+		end, on("mobo", header * CFrame.new(0, cm(0.6), 0)), true)
 	end
 	-- SATA: power from the PSU, data to the board's ports; drive sockets are on the +X end
 	local function driveSocket(id: string, z: number): (any) -> CFrame?
@@ -567,13 +726,13 @@ function DesktopLayout.cables(view, g)
 		local f = driveSocket(id, z)
 		return function(h)
 			local c = f(h)
-			return c and (c * CFrame.new(0, 0.12, 0)).Position or nil
+			return c and (c * CFrame.new(0, 0.09, 0)).Position or nil
 		end
 	end
 	cable("csp_hdd1", "sata_power", nil, driveSocket("hdd1", -0.15))
-	cable("csd_hdd1", "sata_data", driveSrc("hdd1", 0.25), on("mobo", BL.sata[1] * CFrame.new(0, cm(1), 0)))
+	cable("csd_hdd1", "sata_data", driveSrc("hdd1", 0.25), on("mobo", BL.sata[1] * CFrame.new(0, cm(1), 0)), true)
 	cable("csp_ssd1", "sata_power", nil, driveSocket("ssd1", -0.15))
-	cable("csd_ssd1", "sata_data", driveSrc("ssd1", 0.2), on("mobo", BL.sata[2] * CFrame.new(0, cm(1), 0)))
+	cable("csd_ssd1", "sata_data", driveSrc("ssd1", 0.2), on("mobo", BL.sata[2] * CFrame.new(0, cm(1), 0)), true)
 	return list
 end
 
@@ -597,9 +756,17 @@ function DesktopLayout.decorate(handle, view)
 	if view.ties then
 		for id, m in handle.cables do
 			if id == "c24" or id == "ceps" then
-				local head = m:FindFirstChild("Head") :: BasePart?
-				if head then
-					PCParts.box(m, head.CFrame * CFrame.new(0, 0, 0.6), Vector3.new(0.4, 0.18, 0.04), Color3.fromRGB(240, 240, 240), Enum.Material.SmoothPlastic, { Name = "Tie" })
+				-- a white band round the first run of the cable (the rise out of the tray)
+				local run: BasePart? = nil
+				for _, d in m:GetChildren() do
+					if d:IsA("BasePart") and d.Name == "Run" then
+						run = d
+						break
+					end
+				end
+				if run then
+					local w = PCParts.CableStyle[id == "c24" and "atx24" or "eps"].w
+					PCParts.box(m, run.CFrame * CFrame.new(0, 0, run.Size.Z * 0.2), Vector3.new(w * 1.5, 0.05, 0.03), Color3.fromRGB(240, 240, 240), Enum.Material.SmoothPlastic, { Name = "Tie" })
 				end
 			end
 		end

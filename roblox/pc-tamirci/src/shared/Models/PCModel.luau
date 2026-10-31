@@ -22,9 +22,9 @@ local Handle = {}
 Handle.__index = Handle
 
 -- default spots on the bench, relative to the device root
-local TRAY = CFrame.new(-5.8, 0.14, 2.4) -- (the screw bowl on the bench)
-local OUT_REGION = { x0 = 3.5, x1 = 10.4, z0 = -4, z1 = 4.4 } -- the free area of the mat, right of the case
-local LEAN = CFrame.new(-0.8, 0, -4.8) -- (the back edge of the desk, where panels lean)
+local TRAY = CFrame.new(-4.25, 0.1, 1.76) -- (the screw bowl on the bench)
+local OUT_REGION = { x0 = 2.6, x1 = 7.6, z0 = -2.9, z1 = 3.2 } -- the free area of the mat, right of the case
+local LEAN = CFrame.new(-0.6, 0, -3.5) -- (the back edge of the desk, where panels lean)
 
 local function hashOf(s: string): number
 	local h = 7
@@ -279,7 +279,7 @@ function Handle:packOut(spec, targets)
 				screwIndex += 1
 				local h = hashOf(id)
 				local a = (h % 360) * math.pi / 180
-				local r = 0.04 + (h % 9) * 0.035
+				local r = 0.03 + (h % 9) * 0.026
 				t.cf = self.tray * CFrame.new(math.cos(a) * r, 0.01 + (screwIndex % 4) * 0.018, math.sin(a) * r) * CFrame.Angles(0, a, math.rad((h % 3) * 30 + 70))
 			elseif s.lean then
 				-- stand it up against the pegboard, leaning back slightly
@@ -310,19 +310,19 @@ function Handle:packOut(spec, targets)
 	for _, it in items do
 		local w, d = it.size.X, it.size.Z
 		if z + d > R.z1 and z > R.z0 then
-			x += colW + 0.12
+			x += colW + 0.09
 			z = R.z0
 			colW = 0
 		end
 		if x + w > R.x1 + 0.3 and x > R.x0 then
 			x, z, colW = R.x0, R.z0, 0
-			layerY += layerH + 0.02
+			layerY += layerH + 0.015
 			layerH = 0
 		end
 		local cx = x + w / 2 - (it.lo.X + it.hi.X) / 2
 		local cz = z + d / 2 - (it.lo.Z + it.hi.Z) / 2
 		it.t.cf = CFrame.new(cx, layerY - it.lo.Y, cz) * it.rot
-		z += d + 0.1
+		z += d + 0.075
 		colW = math.max(colW, w)
 		layerH = math.max(layerH, it.size.Y)
 	end

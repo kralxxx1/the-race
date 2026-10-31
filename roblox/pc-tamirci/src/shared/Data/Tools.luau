@@ -15,7 +15,7 @@ Tools.list = {
 		bits = { "thumb", "toolless" },
 	},
 	{
-		id = "screwdriver_ph2", icon = "🪛", model = "screwdriver", price = 12, level = 1, order = 2, speed = 1,
+		id = "screwdriver_ph2", icon = "🔧", model = "screwdriver", price = 12, level = 1, order = 2, speed = 1,
 		name = { tr = "PH2 Yıldız Tornavida", en = "PH2 Phillips Screwdriver" },
 		desc = { tr = "Kasa, anakart, PSU, soğutucu ve disk vidaları için.", en = "Case, motherboard, PSU, cooler and drive screws." },
 		actions = { "unscrew", "screw" }, bits = { "PH2" }, color = { 220, 60, 40 },
@@ -87,7 +87,7 @@ Tools.list = {
 		actions = { "measure" },
 	},
 	{
-		id = "spudger_kit", icon = "🪚", model = "spudger", price = 12, level = 2, order = 14, speed = 1,
+		id = "spudger_kit", icon = "🔨", model = "spudger", price = 12, level = 2, order = 14, speed = 1,
 		name = { tr = "Plastik Açma Aparatı Seti", en = "Spudger / Pry Tool Kit" },
 		desc = { tr = "Laptop kapaklarını, çerçeveleri ve kauçuk ayakları açar.", en = "Opens laptop covers, bezels and rubber feet." },
 		actions = { "pry", "peel" },
@@ -123,7 +123,7 @@ Tools.list = {
 		actions = { "desolder" },
 	},
 	{
-		id = "ultrasonic", icon = "🫧", model = "ultrasonic", price = 300, level = 14, order = 20, speed = 2,
+		id = "ultrasonic", icon = "💧", model = "ultrasonic", price = 300, level = 14, order = 20, speed = 2,
 		name = { tr = "Ultrasonik Temizleyici", en = "Ultrasonic Cleaner" },
 		desc = { tr = "Sıvı temaslı kartları kusursuz temizler.", en = "Perfectly cleans liquid-damaged boards." },
 		actions = { "clean_liquid" },

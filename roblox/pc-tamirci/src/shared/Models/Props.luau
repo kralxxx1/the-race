@@ -63,35 +63,71 @@ local function assetTree(parent: Instance, cf: CFrame, kind: string, r: Random):
 	return m
 end
 
+-- The ready-made Forest Pack trees look flat and pale in the game (their leaf textures do not
+-- load), so by default every tree is built here from parts: a tapered trunk with a flared foot and
+-- limbs, and a crown of overlapping blobs shaded dark underneath and light on top.
+Props.assetTrees = false
+Props.assetPlants = false -- (flowers, shrubs and pot plants from the same pack: same problem)
+
+local BROADLEAF = {
+	oak = { trunk = { 7, 9 }, trunkD = { 1.5, 2 }, crown = { 13, 17 }, tall = 0.8, blobs = { 9, 12 } },
+	street = { trunk = { 5, 6.5 }, trunkD = { 0.9, 1.2 }, crown = { 8.5, 11 }, tall = 0.95, blobs = { 6, 8 } },
+	birch = { trunk = { 7, 9 }, trunkD = { 0.7, 0.9 }, crown = { 8, 10.5 }, tall = 1.15, blobs = { 6, 8 }, bark = Color3.fromRGB(226, 222, 210), fresh = 0.35 },
+	forest = { trunk = { 10, 14 }, trunkD = { 2, 2.8 }, crown = { 18, 24 }, tall = 0.8, blobs = { 11, 15 } },
+}
+
+local function broadleaf(m: Model, cf: CFrame, spec, r: Random)
+	local bark = spec.bark or P.trunk
+	local th = Rand.range(r, spec.trunk[1], spec.trunk[2])
+	local td = Rand.range(r, spec.trunkD[1], spec.trunkD[2])
+	-- the soil it grows from, a flared foot, the trunk in two tapering lengths
+	B.cylY(m, cf * CFrame.new(0, 0.08, 0), 0.16, td * 2.8, Color3.fromRGB(88, 70, 52), M.Ground, noCollide({ CanCollide = false }))
+	B.cylY(m, cf * CFrame.new(0, 0.5, 0), 1, td * 1.45, bark, M.Wood)
+	B.cylY(m, cf * CFrame.new(0, th * 0.4, 0), th * 0.8, td, bark, M.Wood)
+	B.cylY(m, cf * CFrame.new(0, th * 0.82, 0), th * 0.4, td * 0.74, bark, M.Wood, noCollide())
+	local crownW = Rand.range(r, spec.crown[1], spec.crown[2])
+	local crownH = crownW * spec.tall
+	local base = th - crownH * 0.1
+	-- limbs reaching into the crown
+	local a0 = r:NextNumber() * math.pi * 2
+	for i = 1, 3 do
+		local a = a0 + i * math.pi * 2 / 3
+		B.cylY(m, cf * CFrame.new(0, th * 0.8, 0) * CFrame.Angles(0, a, math.rad(46)) * CFrame.new(0, crownW * 0.15, 0), crownW * 0.3, td * 0.42, bark, M.Wood, noCollide())
+	end
+	-- the crown
+	local autumn = r:NextNumber() < 0.07
+	local green = Rand.pick(r, if autumn then AUTUMN else GREENS)
+	if spec.fresh then
+		green = green:Lerp(Color3.fromRGB(170, 200, 90), spec.fresh)
+	end
+	local n = r:NextInteger(spec.blobs[1], spec.blobs[2])
+	for i = 1, n do
+		local a = r:NextNumber() * math.pi * 2
+		local rad = math.sqrt(r:NextNumber()) * crownW * 0.32
+		local v = if i == 1 then 0.55 else r:NextNumber()
+		local y = base + crownH * (0.16 + 0.7 * v)
+		local size = crownW * Rand.range(r, 0.42, 0.62)
+		local tone = green:Lerp(Color3.new(0, 0, 0), (1 - v) * 0.22):Lerp(Color3.new(1, 1, 0.8), v * 0.16)
+		local at = if i == 1 then Vector3.zero else Vector3.new(math.cos(a) * rad, 0, math.sin(a) * rad)
+		B.ellipsoid(m, cf * CFrame.new(at.X, y, at.Z), Vector3.new(size, size * 0.8, size), tone, M.LeafyGrass, noCollide())
+	end
+end
+
 function Props.tree(parent: Instance, cf: CFrame, kind: string?, rng: Random?): Model
 	local r = rng or Random.new()
 	local k = kind or "oak"
-	local real = assetTree(parent, cf, k, r)
-	if real then
-		return real
+	if Props.assetTrees then
+		local real = assetTree(parent, cf, k, r)
+		if real then
+			return real
+		end
 	end
 	local m = B.model("Tree", parent)
-	if k == "oak" or k == "birch" then
-		local h = Rand.range(r, 6, 10)
-		local trunkCol = if k == "birch" then Color3.fromRGB(226, 222, 210) else P.trunk
-		B.cylY(m, cf * CFrame.new(0, h / 2, 0), h, Rand.range(r, 1.1, 1.8), trunkCol, M.Wood)
-		-- a couple of branches
-		for _ = 1, 2 do
-			local a = r:NextNumber() * math.pi * 2
-			B.cylY(m, cf * CFrame.new(0, h * 0.75, 0) * CFrame.Angles(0, a, math.rad(35)) * CFrame.new(0, 1.8, 0), 3.6, 0.6, trunkCol, M.Wood, noCollide())
-		end
-		local autumn = r:NextNumber() < 0.08
-		local n = r:NextInteger(3, 5)
-		local base = Rand.range(r, 9, 13)
-		for _ = 1, n do
-			local col = if autumn then Rand.pick(r, AUTUMN) else Rand.pick(r, GREENS)
-			if k == "birch" then
-				col = col:Lerp(Color3.fromRGB(170, 200, 90), 0.4)
-			end
-			local off = Vector3.new(Rand.range(r, -2.6, 2.6), Rand.range(r, -1, 2.2), Rand.range(r, -2.6, 2.6))
-			local s = base * Rand.range(r, 0.6, 0.95)
-			B.ellipsoid(m, cf * CFrame.new(0, h + base * 0.25, 0) * CFrame.new(off), Vector3.new(s, s * 0.82, s), col, M.LeafyGrass, noCollide())
-		end
+	if k == "forest" and r:NextNumber() < 0.3 then
+		k = "pine" -- (a forest is not all one kind)
+	end
+	if BROADLEAF[k] then
+		broadleaf(m, cf, BROADLEAF[k], r)
 	elseif k == "pine" then
 		local h = Rand.range(r, 5, 7)
 		B.cylY(m, cf * CFrame.new(0, h / 2, 0), h, 1.2, P.trunk, M.Wood)
@@ -125,15 +161,22 @@ function Props.tree(parent: Instance, cf: CFrame, kind: string?, rng: Random?): 
 		B.cylY(m, cf * CFrame.new(0, 1.5, 0), 3, 1, P.trunk, M.Wood)
 		B.ellipsoid(m, cf * CFrame.new(0, h / 2 + 1.5, 0), Vector3.new(4.2, h, 4.2), Color3.fromRGB(46, 84, 50), M.LeafyGrass, noCollide({ CanCollide = true }))
 	else -- bush
-		local n = r:NextInteger(2, 3)
+		local n = r:NextInteger(3, 4)
+		local blobs = {}
 		for _ = 1, n do
 			local s = Rand.range(r, 3, 5)
-			B.ellipsoid(m, cf * CFrame.new(Rand.range(r, -1.5, 1.5), s * 0.35, Rand.range(r, -1.5, 1.5)), Vector3.new(s, s * 0.75, s), Rand.pick(r, GREENS), M.LeafyGrass, noCollide())
+			local at = Vector3.new(Rand.range(r, -1.5, 1.5), s * 0.35, Rand.range(r, -1.5, 1.5))
+			table.insert(blobs, { at = at, s = s })
+			B.ellipsoid(m, cf * CFrame.new(at), Vector3.new(s, s * 0.75, s), Rand.pick(r, GREENS), M.LeafyGrass, noCollide())
 		end
 		if r:NextNumber() < 0.4 then
+			-- flowers sit on the surface of the leaves, not in the air above them
 			local flower = Rand.pick(r, { Color3.fromRGB(240, 90, 120), Color3.fromRGB(250, 220, 80), Color3.fromRGB(240, 240, 250), Color3.fromRGB(180, 110, 220) })
 			for _ = 1, 5 do
-				B.ball(m, cf * CFrame.new(Rand.range(r, -2, 2), Rand.range(r, 1.6, 2.6), Rand.range(r, -2, 2)), 0.6, flower, M.SmoothPlastic, noCollide())
+				local b0 = blobs[r:NextInteger(1, #blobs)]
+				local dir = Vector3.new(Rand.range(r, -0.7, 0.7), Rand.range(r, 0.4, 1), Rand.range(r, -0.7, 0.7)).Unit
+				local at = b0.at + Vector3.new(dir.X * b0.s * 0.5, dir.Y * b0.s * 0.375, dir.Z * b0.s * 0.5)
+				B.ball(m, cf * CFrame.new(at), 0.6, flower, M.SmoothPlastic, noCollide())
 			end
 		end
 	end
@@ -148,7 +191,7 @@ function Props.flowerBed(parent: Instance, cf: CFrame, w: number, d: number, rng
 	B.box(m, cf * CFrame.new(0, 0.5, 0), Vector3.new(w, 1, d), Color3.fromRGB(150, 140, 125), M.Concrete)
 	B.box(m, cf * CFrame.new(0, 0.95, 0), Vector3.new(w - 0.8, 0.2, d - 0.8), P.soil, M.Ground, noCollide())
 	-- real flowers and shrubs when the asset library is there
-	if Assets.get("Garden", "FlowersA") then
+	if Props.assetPlants and Assets.get("Garden", "FlowersA") then
 		local n = math.clamp(math.floor(w * d / 7), 2, 14)
 		for _ = 1, n do
 			local name = Rand.pick(r, FLOWERS)
@@ -409,8 +452,8 @@ function Props.parasolTable(parent: Instance, cf: CFrame, color: any?, rng: Rand
 	return m
 end
 
-function Props.simitCart(parent: Instance, cf: CFrame): Model
-	local m = B.model("SimitCart", parent)
+function Props.snackCart(parent: Instance, cf: CFrame): Model
+	local m = B.model("SnackCart", parent)
 	local red = Color3.fromRGB(200, 40, 40)
 	B.box(m, cf * CFrame.new(0, 2.6, 0), Vector3.new(4, 1.6, 2.6), red, M.Metal)
 	B.box(m, cf * CFrame.new(0, 4.3, 0), Vector3.new(3.8, 1.8, 2.4), Color3.fromRGB(220, 230, 235), M.Glass, { Transparency = 0.45 })
@@ -422,7 +465,7 @@ function Props.simitCart(parent: Instance, cf: CFrame): Model
 		B.cyl(m, cf * CFrame.new(side * 1.6, 0.8, 1.3), 0.3, 1.6, Color3.fromRGB(30, 30, 30), M.Rubber)
 	end
 	local sign = B.box(m, cf * CFrame.new(0, 6.1, 0), Vector3.new(3.6, 1.2, 0.2), Color3.fromRGB(250, 220, 120), M.SmoothPlastic, noCollide())
-	B.sign(sign, Enum.NormalId.Front, "BAGELS • PRETZELS", { color = red })
+	B.sign(sign, Enum.NormalId.Front, "SNACKS • PRETZELS", { color = red })
 	return m
 end
 
@@ -579,16 +622,22 @@ function Props.plant(parent: Instance, cf: CFrame, rng: Random?): Model
 	if size then
 		scale = math.min(scale, 1.9 / math.max(size.X, size.Z))
 	end
-	local real = Assets.place(parent, "Garden", name, cf * CFrame.Angles(0, r:NextInteger(0, 3) * math.pi / 2, 0), scale)
+	local real = if Props.assetPlants then Assets.place(parent, "Garden", name, cf * CFrame.Angles(0, r:NextInteger(0, 3) * math.pi / 2, 0), scale) else nil
 	if real then
 		real.Name = "Plant"
 		return real
 	end
 	local m = B.model("Plant", parent)
-	B.cylY(m, cf * CFrame.new(0, 0.9, 0), 1.8, 1.6, Rand.pick(r, { Color3.fromRGB(200, 120, 80), Color3.fromRGB(240, 240, 236), Color3.fromRGB(40, 40, 44) }), M.Slate)
-	for i = 1, 5 do
-		local a = i * 1.3
-		B.ellipsoid(m, cf * CFrame.new(math.cos(a) * 0.5, 2.6 + i * 0.25, math.sin(a) * 0.5) * CFrame.Angles(math.cos(a) * 0.5, a, 0), Vector3.new(0.9, 2.6, 0.4), Rand.pick(r, GREENS), M.LeafyGrass, noCollide())
+	local potCol = Rand.pick(r, { Color3.fromRGB(200, 120, 80), Color3.fromRGB(240, 240, 236), Color3.fromRGB(40, 40, 44) })
+	B.cylY(m, cf * CFrame.new(0, 0.9, 0), 1.8, 1.6, potCol, M.Slate)
+	B.cylY(m, cf * CFrame.new(0, 1.82, 0), 0.12, 1.7, potCol:Lerp(Color3.new(0, 0, 0), 0.2), M.Slate, noCollide())
+	B.cylY(m, cf * CFrame.new(0, 1.8, 0), 0.1, 1.35, Color3.fromRGB(78, 62, 46), M.Ground, noCollide())
+	local tall = Rand.range(r, 0.9, 1.3)
+	for i = 1, 9 do
+		local a = i * 2.4
+		local lean = 0.25 + (i % 3) * 0.2
+		local len = (2.2 + (i % 4) * 0.5) * tall
+		B.ellipsoid(m, cf * CFrame.new(math.cos(a) * 0.35 * lean, 1.8 + len * 0.45, math.sin(a) * 0.35 * lean) * CFrame.Angles(math.cos(a) * lean, a, math.sin(a) * lean), Vector3.new(0.95, len, 0.35), Rand.pick(r, GREENS), M.LeafyGrass, noCollide())
 	end
 	return m
 end

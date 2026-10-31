@@ -153,4 +153,78 @@ return function(T)
 		instant:destroy()
 		folder:Destroy()
 	end)
+
+	-- The cables are thin, never run across the memory clips and never pass through the graphics card.
+	T.test("pcmodel: cables stay clear of the memory clips and the card", function()
+		local PCParts = Engine.mod("ReplicatedStorage.Shared.Models.PCParts")
+		for style, st in PCParts.CableStyle do
+			-- (the flat grey ribbon of an old IDE drive is wide, but paper-thin)
+			T.ok(st.w <= 0.12 or (style == "ribbon" and st.t <= 0.012), style .. " cable is too thick: " .. st.w)
+		end
+		local clipChecks, cardChecks = 0, 0
+		local tiers = { "mid", "high", "enthusiast", "workstation", "budget" }
+		for seed = 1, 20 do
+			local rng = Mock.Random.new(seed * 7)
+			local dev = DeviceGen.desktop(rng, tiers[seed % #tiers + 1])
+			local tech = Technician.new(Rules, Parts, Tools, dev, rng)
+			tech:ensure("remove", "side_panel")
+			local folder = Instance.new("Folder")
+			folder.Parent = Engine.workspace
+			local h = PCModel.build(folder, Rules.view(dev), CFrame.new(0, 3.45, 0))
+			-- every straight run of every cable, as end points
+			local runs = {}
+			for id, m in h.cables do
+				for _, d in m:GetChildren() do
+					if d:IsA("BasePart") and d.Name == "Run" then
+						local half = d.Size.Z / 2 - d.Size.X * 0.3
+						table.insert(runs, { id = id, a = (d.CFrame * roblox.Vector3.new(0, 0, -half)), b = (d.CFrame * roblox.Vector3.new(0, 0, half)) })
+					end
+				end
+			end
+			-- the memory clips (seen from above, with a little margin)
+			for id, rec in h.recs do
+				if rec.model and string.sub(id, 1, 3) == "ram" and string.sub(id, -5) == "_clip" then
+					local c = rec.world.Position
+					for _, r in runs do
+						for k = 0, 20 do
+							local p = r.a:Lerp(r.b, k / 20)
+							clipChecks += 1
+							T.ok(not (math.abs(p.X - c.X) < 0.07 and math.abs(p.Z - c.Z) < 0.1), string.format("seed %d: cable %s runs over %s", seed, r.id, id))
+						end
+					end
+				end
+			end
+			-- the card: nothing but the plug of its own power cable may be inside its box
+			local gpu = h.recs.gpu
+			if gpu and gpu.model then
+				local lo, hi = roblox.Vector3.new(1e9, 1e9, 1e9), roblox.Vector3.new(-1e9, -1e9, -1e9)
+				for _, d in gpu.model:GetDescendants() do
+					if d:IsA("BasePart") and d.Transparency < 1 then
+						local hs = d.Size / 2
+						for _, sx in { -1, 1 } do
+							for _, sy in { -1, 1 } do
+								for _, sz in { -1, 1 } do
+									local p = d.CFrame * roblox.Vector3.new(hs.X * sx, hs.Y * sy, hs.Z * sz)
+									lo, hi = lo:Min(p), hi:Max(p)
+								end
+							end
+						end
+					end
+				end
+				for _, r in runs do
+					local head = h.cables[r.id] and h.cables[r.id]:FindFirstChild("Head")
+					for k = 0, 24 do
+						local p = r.a:Lerp(r.b, k / 24)
+						local nearHead = head ~= nil and (p - head.Position).Magnitude < 0.45
+						cardChecks += 1
+						local inside = p.X > lo.X + 0.03 and p.X < hi.X - 0.03 and p.Y > lo.Y + 0.03 and p.Y < hi.Y - 0.03 and p.Z > lo.Z + 0.03 and p.Z < hi.Z - 0.03
+						T.ok(not inside or nearHead, string.format("seed %d: cable %s goes through the graphics card", seed, r.id))
+					end
+				end
+			end
+			h:destroy()
+			folder:Destroy()
+		end
+		T.ok(clipChecks > 500 and cardChecks > 500, "the check looked at too little: " .. clipChecks .. "/" .. cardChecks)
+	end)
 end

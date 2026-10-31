@@ -146,7 +146,8 @@ local function person(): (Model?, BasePart?, Animator?, number)
 	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	root.Anchored = true
 	local bc = m:FindFirstChildOfClass("BodyColors")
-	if bc then
+	-- (people made of parts have their own skin and clothes; only the catalog bodies are retinted)
+	if bc and not m:GetAttribute("Plain") then
 		local skin = c3(pick(Avatars.SKIN))
 		bc.HeadColor3 = skin
 		bc.TorsoColor3 = skin
@@ -615,10 +616,11 @@ function Traffic.init()
 	end)
 end
 
--- How busy the streets are (the Settings window): "off", "low", "normal" or "high".
-function Traffic.setDensity(level: string)
-	local f = DENSITY[level] or 1
-	MAX_CARS, MAX_PEDS = math.floor(BASE_CARS * f + 0.5), math.floor(BASE_PEDS * f + 0.5)
+-- How busy the streets are (the Settings window): "off", "low", "normal" or "high" -- cars and
+-- people separately.
+local carFactor, pedFactor = 1, 1
+local function applyDensity()
+	MAX_CARS, MAX_PEDS = math.floor(BASE_CARS * carFactor + 0.5), math.floor(BASE_PEDS * pedFactor + 0.5)
 	while #cars > MAX_CARS do
 		cars[#cars].model:Destroy()
 		table.remove(cars)
@@ -626,6 +628,16 @@ function Traffic.setDensity(level: string)
 	while #peds > MAX_PEDS do
 		removePed(#peds)
 	end
+end
+
+function Traffic.setDensity(level: string)
+	carFactor = DENSITY[level] or 1
+	applyDensity()
+end
+
+function Traffic.setCrowd(level: string)
+	pedFactor = DENSITY[level] or 1
+	applyDensity()
 end
 
 function Traffic.counts(): (number, number)

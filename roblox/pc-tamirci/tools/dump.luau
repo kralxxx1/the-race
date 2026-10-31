@@ -411,6 +411,43 @@ elseif what == "parts" then
 	end
 	result.parts = dumpParts(folder)
 	outName = "parts_" .. cat
+elseif what == "tools" then
+	-- every hand tool in a row (1.6 apart), tip down: lune run tools/dump.luau tools
+	local Tools = Engine.mod("ReplicatedStorage.Shared.Data.Tools")
+	local ToolModels = Engine.mod("ReplicatedStorage.Shared.Models.ToolModels")
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	local n = 0
+	for _, t in Tools.list do
+		if t.model then
+			n += 1
+			local m = ToolModels.build(t.model, folder)
+			m:PivotTo(roblox.CFrame.new((n - 1) * 1.6, 0, 0))
+		end
+	end
+	result.parts = dumpParts(folder)
+	outName = "tools"
+elseif what == "people" then
+	-- a row of rolled people, every look once: lune run tools/dump.luau people [count] [seed]
+	local Npc = Engine.mod("ServerScriptService.Server.Services.NpcService")
+	Npc.init()
+	local Mock = require("../tests/lib/Mock")
+	local rng = Mock.Random.new(tonumber(process.args[3]) or 4)
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	local names = {}
+	for name in Npc.Looks do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	local n = tonumber(process.args[2]) or 16
+	for i = 1, n do
+		local person = Npc.plain(names[(i - 1) % #names + 1], if i % 2 == 0 then "m" else "f", rng)
+		person.Parent = folder
+		person:PivotTo(roblox.CFrame.new(((i - 1) % 8) * 4 - 14, 3, math.floor((i - 1) / 8) * 5) * roblox.CFrame.Angles(0, math.pi, 0))
+	end
+	result.parts = dumpParts(folder)
+	outName = "people"
 elseif what == "guide" then
 	-- the tutorial's guide arrow
 	Engine.localPlayer = Engine.addPlayer("Viewer")

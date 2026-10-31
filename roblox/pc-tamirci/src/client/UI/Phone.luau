@@ -251,7 +251,7 @@ function Phone.open()
 	end
 	local bar = Kit.frame(screen, { Name = "HomeBar", Size = UDim2.fromOffset(120, 5), Position = UDim2.new(0.5, -60, 1, -16), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.25 })
 	Kit.corner(bar, UDim.new(0.5, 0))
-	local close = Kit.button(w.root, "✕", function()
+	local close = Kit.button(w.root, "×", function()
 		w.close()
 	end, { Name = "Close", Size = UDim2.fromOffset(30, 30), Position = UDim2.new(1, -4, 0, -14), AnchorPoint = Vector2.new(0.5, 0), TextSize = 14, ZIndex = 10 })
 	Kit.corner(close, UDim.new(0.5, 0))

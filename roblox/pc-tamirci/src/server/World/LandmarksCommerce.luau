@@ -327,10 +327,24 @@ local function scrapyard(parent, poi, rng)
 	local junkCols = { Color3.fromRGB(226, 216, 190), Color3.fromRGB(40, 40, 44), Color3.fromRGB(150, 150, 156), Color3.fromRGB(120, 100, 80) }
 	for _ = 1, 7 do
 		local px, pz = Rand.range(rng, s.x0 + 18, s.x1 - 18), Rand.range(rng, cz - 10, s.z1 - 18)
+		-- a pile: the first layer lies on the ground, each next one rests on a piece of the layer below
+		local layers: { { { x: number, z: number, top: number } } } = { {} }
 		for k = 1, 16 do
 			local size = Vector3.new(Rand.range(rng, 1.6, 3), Rand.range(rng, 2.4, 4.4), Rand.range(rng, 2.4, 4.4))
-			local y = WALK_Y + size.Y / 2 + math.max(0, 6 - (k % 6)) * 0.8
-			B.box(m, CFrame.new(px + Rand.range(rng, -6, 6), y, pz + Rand.range(rng, -6, 6)) * CFrame.Angles(Rand.range(rng, -0.6, 0.6), Rand.range(rng, 0, 6), Rand.range(rng, -0.6, 0.6)), size, Rand.pick(rng, junkCols), M.CorrodedMetal)
+			local layer = math.min(math.floor((k - 1) / 5) + 1, 3)
+			local x, z, y
+			if layer == 1 or #(layers[layer - 1] or {}) == 0 then
+				x, z = px + Rand.range(rng, -5, 5), pz + Rand.range(rng, -5, 5)
+				y = WALK_Y + size.Y / 2
+				layer = 1
+			else
+				local under = layers[layer - 1][rng:NextInteger(1, #layers[layer - 1])]
+				x, z = under.x + Rand.range(rng, -0.8, 0.8), under.z + Rand.range(rng, -0.8, 0.8)
+				y = under.top + size.Y / 2 - 0.5
+			end
+			layers[layer] = layers[layer] or {}
+			table.insert(layers[layer], { x = x, z = z, top = y + size.Y / 2 - 0.6 })
+			B.box(m, CFrame.new(x, y, z) * CFrame.Angles(0, Rand.range(rng, 0, 6), 0), size, Rand.pick(rng, junkCols), M.CorrodedMetal)
 		end
 	end
 	-- crane magnet and a crushed car stack

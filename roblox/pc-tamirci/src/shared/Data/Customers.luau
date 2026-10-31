@@ -256,7 +256,7 @@ Customers.archetypes = {
 		budget = 0.9, patience = 1.3, haggle = 0.5, tip = 0.3, harsh = 0.25, look = "shopkeeper",
 		lines = {
 			greet = L({ "Selamünaleyküm komşu! Kasanın bilgisayarı yine sustu.", "Komşu bir el atıver, dükkan boş kaldı.", "Yazar kasa programı açılmıyor komşu." }, { "Hello neighbour! The till PC went quiet again.", "Give me a hand, neighbour, I left my shop empty.", "The register software won't start, neighbour." }),
-			haggle = L({ "Komşuyuz, {price} yaparsın artık.", "Ben de sana simit getiririm, {price} olsun." }, { "We're neighbours, {price}, come on.", "I'll bring you bagels, make it {price}." }),
+			haggle = L({ "Komşuyuz, {price} yaparsın artık.", "Ben de sana kurabiye getiririm, {price} olsun." }, { "We're neighbours, {price}, come on.", "I'll bring you bagels, make it {price}." }),
 			reject = L({ "Komşuya bu fiyat olur mu ya!" }, { "Is that a price for a neighbour?" }),
 			nag = L({ "Dükkanı oğlana bıraktım, korkuyorum.", "Çaylar benden komşu!" }, { "I left my son minding the shop, I'm nervous.", "Tea's on me, neighbour!" }),
 			happy = L({ "Sağ ol komşu, akşam dönerde ben ısmarlıyorum!", "Bereketli olsun dükkanın." }, { "Thanks, neighbour, dinner's on me!", "May your shop prosper." }),
@@ -272,7 +272,7 @@ Customers.archetypes = {
 			haggle = L({ "{price}... okay? Çok güzel?" }, { "{price}... okay? Good price? Bueno?" }),
 			reject = L({ "Oh, too expensive. Sorry, sorry." }, { "Oh, too expensive. Sorry." }),
 			nag = L({ "Is it ready? Hazır?", "My ferry leaves soon, feribot!" }, { "Is it ready?", "My ferry leaves soon!" }),
-			happy = L({ "Wonderful! Çok teşekkürler! Türkiye çok güzel!", "Amazing service! Five stars!" }, { "Wonderful! Thank you so much! Gracias!", "Amazing service! Five stars!" }),
+			happy = L({ "Wonderful! Çok teşekkürler! Çok güzel bir şehir!", "Amazing service! Five stars!" }, { "Wonderful! Thank you so much! Gracias!", "Amazing service! Five stars!" }),
 			angry = L({ "Sorry, my tour bus... bye bye." }, { "Sorry, my tour bus is leaving... bye." }),
 		},
 	},

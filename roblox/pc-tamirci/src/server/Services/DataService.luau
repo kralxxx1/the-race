@@ -13,6 +13,7 @@ local Signal = require(Shared.Util.Signal)
 local Parts = require(Shared.Data.Parts)
 local Upgrades = require(Shared.Data.Upgrades)
 local Employees = require(Shared.Data.Employees)
+local Graphics = require(Shared.Data.Graphics)
 
 local DataService = {}
 DataService.loaded = Signal.new() -- (player, profile)
@@ -93,6 +94,25 @@ local function defaults()
 			brightness = 0,
 			uiscale = 1,
 			traffic = "normal",
+			shadowsoft = 0.5,
+			skylight = 1,
+			reflections = 0.8,
+			bloomamt = 0.5,
+			raysamt = 0.5,
+			glare = true,
+			cloudcover = "normal",
+			haze = 0.5,
+			look = "natural",
+			contrast = 0,
+			saturation = 0,
+			rain = "high",
+			splashes = true,
+			lens = true,
+			flashes = true,
+			crowd = "normal",
+			particles = 1,
+			motionblur = true,
+			gfxlevel = 0,
 		},
 		-- bills waiting to be paid, the week's books (BillsService)
 		bills = { list = {}, nextId = 0, paid = {}, week = { income = 0, expense = 0, wages = 0 }, mornings = 0, lastDay = 0, cut = false },
@@ -102,6 +122,16 @@ DataService.defaults = defaults
 
 -- Fills fields added after a save was written.
 local function migrate(data)
+	-- items renamed so nothing in the shop is tied to one country
+	local items = data.shop and data.shop.items
+	if type(items) == "table" then
+		for old, new in { kvkk_notice = "privacy_notice", simit_tray = "pastry_tray" } do
+			if items[old] ~= nil then
+				items[new] = items[old]
+				items[old] = nil
+			end
+		end
+	end
 	if data.opened == nil then
 		-- saves from before the grand opening: anyone who has played already has an open shop
 		data.opened = (data.tutorial or 1) > 1 or (data.stats and (data.stats.repairs or 0) > 0) or false
@@ -122,6 +152,13 @@ local function migrate(data)
 					data[k][k2] = deepCopy(v2)
 				end
 			end
+		end
+	end
+	-- tools every player starts with (a later build may add one: saves get it too)
+	data.tools = data.tools or {}
+	for _, id in Config.StartTools do
+		if data.tools[id] == nil then
+			data.tools[id] = true
 		end
 	end
 	data.v = d.v
@@ -201,7 +238,7 @@ DataService.SETTING_RULES = {
 	ambienceOn = { kind = "bool" },
 	help = { kind = "enum", words = { "guided", "hints", "off" } },
 	difficulty = { kind = "enum", words = { "relaxed", "normal", "hard" } },
-	quality = { kind = "enum", words = { "low", "medium", "high", "ultra" } },
+	quality = { kind = "enum", words = Graphics.QUALITIES },
 	shadows = { kind = "bool" },
 	bloom = { kind = "bool" },
 	sunrays = { kind = "bool" },
@@ -214,6 +251,11 @@ DataService.SETTING_RULES = {
 	uiscale = { kind = "num", lo = 0.7, hi = 1.4 },
 	traffic = { kind = "enum", words = { "off", "low", "normal", "high" } },
 }
+
+-- (the graphics page's other choices: one rule each, from the shared list)
+for _, o in Graphics.list do
+	DataService.SETTING_RULES[o.id] = Graphics.rule(o)
+end
 
 -- Client snapshot (coalesced to one push per frame)
 ----------------------------------------------------------------------------------------------------

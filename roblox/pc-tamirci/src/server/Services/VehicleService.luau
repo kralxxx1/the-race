@@ -31,7 +31,7 @@ local function plateFor(player: Player): string
 		p.plate = Vehicles.plate(Random.new(player.UserId))
 		DataService.touch(player)
 	end
-	return p and p.plate or "34 PC 001"
+	return p and p.plate or "PC 1001"
 end
 
 local function despawn(player: Player)

@@ -613,7 +613,7 @@ local function showInfo(title: string, icon: string, desc: string, pos: Vector3?
 		end, { Size = UDim2.new(1, 0, 0, 38), LayoutOrder = 5 }, "warn")
 	end
 	if gps.target then
-		Kit.button(info, "✖ " .. S.t("map_clear"), function()
+		Kit.button(info, "× " .. S.t("map_clear"), function()
 			MapController.clearRoute()
 			selectPoi(nil)
 		end, { Size = UDim2.new(1, 0, 0, 34), LayoutOrder = 6 }, "ghost")
@@ -651,7 +651,7 @@ function selectPoi(poi)
 		end
 	end
 	if gps.target then
-		entry("✖", S.t("map_clear"), function()
+		entry("×", S.t("map_clear"), function()
 			MapController.clearRoute()
 			selectPoi(nil)
 		end)
@@ -699,7 +699,7 @@ local function buildBig()
 	local root = Kit.panel(App.screen, { Name = "Map", Size = UDim2.new(1, -40, 1, -40), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = Theme.panel, Visible = false, ZIndex = 20 })
 	mapRoot = root
 	Kit.label(root, "🗺️ " .. S.t("map_title"), { Size = UDim2.new(1, -130, 0, 40), Position = UDim2.fromOffset(16, 4), FontFace = Theme.heavy, TextSize = 22 })
-	Kit.button(root, "✕", function()
+	Kit.button(root, "×", function()
 		MapController.close()
 	end, { Size = UDim2.fromOffset(36, 36), Position = UDim2.new(1, -46, 0, 6) })
 	-- the whole city at a glance
@@ -911,7 +911,7 @@ local function buildMini()
 	local g = Kit.panel(App.screen, { Name = "Gps", Size = UDim2.fromOffset(300, 34), Position = gpsPos, AnchorPoint = miniAnchor, BackgroundTransparency = 0.1, Visible = false })
 	Hud.register(g)
 	gpsLabel = Kit.label(g, "", { Size = UDim2.new(1, -44, 1, 0), Position = UDim2.fromOffset(10, 0), TextSize = 15, FontFace = Theme.bold, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd })
-	Kit.button(g, "✖", function()
+	Kit.button(g, "×", function()
 		MapController.clearRoute()
 	end, { Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, -31, 0, 3), TextSize = 14 })
 end
