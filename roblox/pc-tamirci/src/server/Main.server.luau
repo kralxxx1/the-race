@@ -38,8 +38,9 @@ local GearService = require(Services.GearService)
 local FactoryService = require(Services.FactoryService)
 local LeaderService = require(Services.LeaderService)
 local MarketingService = require(Services.MarketingService)
+local ToolboxService = require(Services.ToolboxService)
 
-local order = { DataService, PlotService, FriendCrowd, NpcService, RepairService, QuestService, CustomerService, MarketService, EmployeeService, BillsService, ThiefService, GearService, FactoryService, LeaderService, MarketingService, VehicleService, ContractService, ShowcaseService, ActivityService, TimeService }
+local order = { DataService, ToolboxService, PlotService, FriendCrowd, NpcService, RepairService, QuestService, CustomerService, MarketService, EmployeeService, BillsService, ThiefService, GearService, FactoryService, LeaderService, MarketingService, VehicleService, ContractService, ShowcaseService, ActivityService, TimeService }
 for _, s in order do
 	s.init()
 end

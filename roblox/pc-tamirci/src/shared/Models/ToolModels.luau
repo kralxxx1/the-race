@@ -2,6 +2,7 @@
 -- tool extends up along +Y (the bench controller points the tip at what you're working on).
 
 local B = require(script.Parent.Parent.Util.Builder)
+local Assets = require(script.Parent.Parent.Util.Assets)
 
 local ToolModels = {}
 local M = Enum.Material
@@ -368,6 +369,28 @@ builders.thermal_camera = function(m, cf)
 end
 
 -- Builds the hand-held model for a tool (model name from Data/Tools).
+-- Tools for which a published model may be in the place (Data/ToolboxAssets, put there by
+-- ToolboxService or the Studio importer): its parts are copied in, tip at the origin, handle up.
+-- Without one, our own lathe-turned model below is built.
+local PUBLISHED = { screwdriver = "screwdriver" }
+local function published(m: Model, slot: string): boolean
+	local src = Assets.get("Toolbox", slot)
+	if not src then
+		return false
+	end
+	local n = 0
+	for _, d in src:GetChildren() do
+		if d:IsA("BasePart") and d ~= src.PrimaryPart then
+			d:Clone().Parent = m
+			n += 1
+		end
+	end
+	if n > 0 then
+		m:SetAttribute("Published", src:GetAttribute("ToolboxId") or true)
+	end
+	return n > 0
+end
+
 function ToolModels.build(modelName: string, parent: Instance?): Model
 	local m = Instance.new("Model")
 	m.Name = "Tool_" .. modelName
@@ -381,8 +404,10 @@ function ToolModels.build(modelName: string, parent: Instance?): Model
 	root.CanTouch = false
 	root.Parent = m
 	m.PrimaryPart = root
-	local fn = builders[modelName] or builders.hand
-	fn(m, CFrame.new())
+	if not (PUBLISHED[modelName] and published(m, PUBLISHED[modelName])) then
+		local fn = builders[modelName] or builders.hand
+		fn(m, CFrame.new())
+	end
 	for _, d in m:GetDescendants() do
 		if d:IsA("BasePart") then
 			d.Anchored = true

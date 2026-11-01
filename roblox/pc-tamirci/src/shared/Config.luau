@@ -53,6 +53,9 @@ local Config = {
 	FriendsStreet = 24,
 	-- hats, hoods, masks, glasses and other bits we modelled ourselves on the plain people (false: none)
 	PartAccessories = false,
+	-- published models from the Creator Store (a screwdriver, umbrellas: Data/ToolboxAssets) are asked
+	-- for when the server starts and used instead of our own; false: only our own ones
+	ToolboxAssets = true,
 	StreetPeople = 120, -- gerçek dakika (sırada bunun %35'i kadar beklerler)
 	MaxCustomersPerServer = 140,
 	ReviewHistory = 40,

@@ -4,10 +4,15 @@
 -- handle (where the hand closes round it) and it stands up the +Y axis. Umbrella.carry puts one in
 -- somebody's hand: held beside the head, the arm reaching up to it by inverse kinematics, so the
 -- walking animation does not swing the umbrella about.
+-- When published umbrellas are in the place (Assets.Toolbox, see Data/ToolboxAssets) one of those is
+-- carried instead: they are fitted standing up with a GripPoint where the hand takes hold, and are
+-- moved here so the origin is that point, like ours.
 
 local Assets = require(script.Parent.Parent.Util.Assets)
 
 local Umbrella = {}
+
+local rng = Random.new()
 
 local R = 2.2 -- the canopy's radius
 local RIM_Y = 1.5 -- height of the rim above the handle's middle (about a head's height over the hand)
@@ -51,8 +56,62 @@ local function rod(parent: Instance, name: string, length: number, diameter: num
 	return part(parent, name, Vector3.new(length, diameter, diameter), cf * CFrame.Angles(0, 0, math.rad(90)), color, material, Enum.PartType.Cylinder)
 end
 
+-- One of the published umbrellas of the place (a copy of a random one), made into the same kind of
+-- model as ours: origin where the hand closes, everything welded to it, GripPoint at the origin.
+-- nil when there is none.
+function Umbrella.published(): Model?
+	local names = Assets.names("Toolbox", "umbrella")
+	if #names == 0 then
+		return nil
+	end
+	local src = Assets.get("Toolbox", names[rng:NextInteger(1, #names)])
+	local srcRoot = src and src.PrimaryPart
+	local at = srcRoot and srcRoot:FindFirstChild("GripPoint")
+	if not src or not srcRoot or not at or not at:IsA("Attachment") then
+		return nil
+	end
+	local m = Instance.new("Model")
+	m.Name = "Umbrella"
+	local root = part(m, "Grip", Vector3.new(0.2, 0.2, 0.2), CFrame.new(), Color3.new(0, 0, 0), Enum.Material.SmoothPlastic)
+	root.Transparency = 1
+	m.PrimaryPart = root
+	local g = at.Position
+	for _, d in src:GetChildren() do
+		if d:IsA("BasePart") and d ~= srcRoot then
+			local c = d:Clone() :: BasePart
+			c.CFrame = CFrame.new(-g) * d.CFrame
+			c.Anchored = false
+			c.CanCollide = false
+			c.CanQuery = false
+			c.CanTouch = false
+			c.CastShadow = false
+			c.Massless = true
+			c.Parent = m
+			local w = Instance.new("WeldConstraint")
+			w.Part0 = root
+			w.Part1 = c
+			w.Parent = c
+		end
+	end
+	local grip = Instance.new("Attachment")
+	grip.Name = "GripPoint"
+	grip.Position = Vector3.new(0, 0, 0)
+	grip.Parent = root
+	local size = src:GetAttribute("Size")
+	if typeof(size) == "Vector3" then
+		m:SetAttribute("Height", size.Y - g.Y)
+		m:SetAttribute("Radius", math.max(size.X, size.Z) / 2)
+	end
+	m:SetAttribute("Published", src:GetAttribute("ToolboxId") or true)
+	return m
+end
+
 -- color: the fabric. Returns the model (nothing anchored: it is welded together and to the carrier).
 function Umbrella.build(color: Color3): Model
+	local pub = Umbrella.published()
+	if pub then
+		return pub
+	end
 	local m = Instance.new("Model")
 	m.Name = "Umbrella"
 	local root = part(m, "Grip", Vector3.new(0.2, 0.2, 0.2), CFrame.new(), Color3.new(0, 0, 0), Enum.Material.SmoothPlastic)
