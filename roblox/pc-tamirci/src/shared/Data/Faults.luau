@@ -324,8 +324,8 @@ Faults.list = {
 	{
 		id = "lap_keyboard", device = "laptop", diag = "keyboard", weight = 7, level = 3, difficulty = 4, tools = { "precision_kit", "spudger_kit", "isopropyl" },
 		symptoms = S({
-			"Klavyeye çay döküldü, bazı tuşlar çalışmıyor.",
-			"Şekerli çay döktüm, tuşlar yapış yapış.",
+			"Klavyeye kahve döküldü, bazı tuşlar çalışmıyor.",
+			"Şekerli kahve döktüm, tuşlar yapış yapış.",
 			"A, S, D tuşları basmıyor, oyun oynayamıyorum.",
 		}, {
 			"I spilled tea on the keyboard and some keys don't work.",
@@ -808,7 +808,7 @@ Faults.variants = {
 	{
 		id = "lap_key_spill", base = "lap_keyboard", device = "laptop", diag = "keyboard", weight = 4, level = 3, difficulty = 3,
 		symptoms = S({
-			"Üstüne çay döktüm, bazı tuşlar yazmıyor.",
+			"Üstüne kahve döktüm, bazı tuşlar yazmıyor.",
 			"Klavyedeki harfler kendi kendine basılıyor.",
 			"Birkaç tuş yapışıp kalıyor, yazı yazamıyorum.",
 		}, {

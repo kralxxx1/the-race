@@ -477,7 +477,7 @@ local function viewpoint(parent, poi, _rng)
 	local kiosk = CFrame.lookAt((base * CFrame.new(0, 0, -10)).Position, (base * CFrame.new(0, 0, 10)).Position)
 	B.box(m, kiosk * CFrame.new(0, 4, 2), Vector3.new(12, 8, 6), Color3.fromRGB(150, 110, 70), M.WoodPlanks)
 	local sign = B.box(m, kiosk * CFrame.new(0, 9, -1), Vector3.new(12, 2, 0.4), Color3.fromRGB(40, 90, 60), M.Wood)
-	B.sign(sign, Enum.NormalId.Front, "VIEWPOINT TEA GARDEN", { color = Color3.fromRGB(250, 240, 200) })
+	B.sign(sign, Enum.NormalId.Front, "VIEWPOINT COFFEE GARDEN", { color = Color3.fromRGB(250, 240, 200) })
 	Props.flag(m, base * CFrame.new(20, 0, -10), 26)
 	return m
 end

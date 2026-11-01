@@ -297,12 +297,12 @@ local function teahouse(parent, poi, rng)
 		B.box(m, c * CFrame.new(0, 2.4, 0), Vector3.new(4, 0.25, 4), Color3.fromRGB(110, 70, 40), M.Wood)
 		B.box(m, c * CFrame.new(0, 1.2, 0), Vector3.new(0.4, 2.4, 0.4), Color3.fromRGB(60, 40, 30), M.Wood)
 		local board = B.box(m, c * CFrame.new(0, 2.6, 0), Vector3.new(2.6, 0.15, 1.6), Color3.fromRGB(150, 100, 60), M.Wood, nc())
-		board.Name = "Backgammon"
+		board.Name = "Chessboard"
 		for k = 0, 1 do
 			Props.chair(m, c * CFrame.Angles(0, k * math.pi, 0) * CFrame.new(0, 0, 3), { 120, 80, 50 })
 		end
 	end
-	Props.samovar(m, cf * CFrame.new(w / 3, 0.2, 2))
+	Props.coffeeStation(m, cf * CFrame.new(w / 3, 0.2, 2))
 	Props.tree(m, cf * CFrame.new(w / 4, 0, 26), "oak", rng)
 	return m
 end
@@ -655,7 +655,7 @@ function Commerce.build(parent: Instance, L, yieldFn: (() -> ())?)
 			return restaurant(p, poi, r, "DOWNTOWN DINER", { 200, 40, 30 }, 4, "meal")
 		end,
 		bakery = function(p, poi, r)
-			return restaurant(p, poi, r, "STONE OVEN BAKERY", { 170, 110, 50 }, 2, "pastry")
+			return restaurant(p, poi, r, "BOULANGERIE LUMIÈRE", { 170, 110, 50 }, 2, "pastry")
 		end,
 		pizzeria = function(p, poi, r)
 			return restaurant(p, poi, r, "NAPOLI PIZZA", { 30, 130, 60 }, 5, "pizza")

@@ -108,8 +108,8 @@ Employees.roles = {
 	tea_maker = {
 		group = "front", icon = "☕", wage = 60, max = 1, minShop = 2, look = "shopkeeper", spot = "tea",
 		fx = { comfort = 8, teamSpeed = 0.04, teamMorale = 2 },
-		name = N("Çaycı", "Tea Maker"),
-		desc = N("Müşterilere ve ekibe çay dağıtır: müşteri sabırlı, ekip mutlu ve biraz daha hızlı.", "Brings tea round to customers and staff: patient customers, a happier and quicker team."),
+		name = N("Barista", "Barista"),
+		desc = N("Müşterilere ve ekibe kahve yapar: müşteri sabırlı, ekip mutlu ve biraz daha hızlı.", "Makes coffee for customers and staff: patient customers, a happier and quicker team."),
 	},
 	cleaner = {
 		group = "front", icon = "🧹", wage = 70, max = 2, minShop = 2, look = "cleaner", spot = "clean",
@@ -193,7 +193,7 @@ local ROLE_WEIGHT = {
 Employees.traits = {
 	{ id = "fast", name = N("Hızlı", "Fast"), speed = 0.2, wage = 0.1, say = N("İşimi hızlı yaparım, beklemeyi sevmem.", "I work fast; I don't like keeping people waiting.") },
 	{ id = "careful", name = N("Dikkatli", "Careful"), success = 0.12, wage = 0.08, say = N("Her vidayı iki kere kontrol ederim.", "I check every screw twice.") },
-	{ id = "tea", name = N("Çaycı Ruhlu", "Tea Lover"), comfort = 6, say = N("Gelen müşteriye bir çay ikram etmeden olmaz.", "Every customer gets a glass of tea from me.") },
+	{ id = "tea", name = N("Kahve Sever", "Coffee Lover"), comfort = 6, say = N("Gelen müşteriye bir kahve ikram etmeden olmaz.", "Every customer gets a coffee from me.") },
 	{ id = "chatty", name = N("Konuşkan", "Chatty"), tips = 0.1, say = N("Müşteriyle sohbeti severim, bahşişi de severler bana.", "I love a chat with the customers, and they tip me for it.") },
 	{ id = "lazy", name = N("Tembel", "Lazy"), speed = -0.25, wage = -0.2, bad = true, say = N("Acele işe şeytan karışır abi.", "No point rushing, mate.") },
 	{ id = "night", name = N("Gece Kuşu", "Night Owl"), nightSpeed = 0.3, say = N("Gece daha iyi çalışırım.", "I do my best work at night.") },
@@ -223,7 +223,7 @@ Employees.traits = {
 	{ id = "negotiator", name = N("Pazarlıkçı", "Haggler"), discount = 0.08, say = N("Toptancıyla pazarlıkta üstüme yoktur.", "Nobody haggles with suppliers like me.") },
 	{ id = "organized", name = N("Düzenli", "Organised"), storage = 0.08, comfort = 2, say = N("Her parçanın etiketi olur bende.", "Every part gets a label with me.") },
 	{ id = "forgetful", name = N("Unutkan", "Forgetful"), success = -0.06, bad = true, say = N("Neydi sorunuz? Ha, evet...", "What was the question? Oh, right...") },
-	{ id = "tea_addict", name = N("Çay Tiryakisi", "Tea Addict"), speed = -0.05, morale = 1, say = N("Günde yirmi bardak çay içerim.", "I drink twenty glasses of tea a day.") },
+	{ id = "tea_addict", name = N("Kahve Tiryakisi", "Coffee Addict"), speed = -0.05, morale = 1, say = N("Günde yedi fincan kahve içerim.", "I drink seven cups of coffee a day.") },
 	{ id = "phone_addict", name = N("Telefon Bağımlısı", "Phone Addict"), speed = -0.12, bad = true, say = N("(Telefonuna bakıyor) Pardon, devam edin.", "(Checks phone) Sorry, go on.") },
 	{ id = "quick_learner", name = N("Çabuk Öğrenen", "Quick Learner"), learn = 1, say = N("Bir kere göstermeniz yeter.", "Show me once and I've got it.") },
 	{ id = "stubborn", name = N("İnatçı", "Stubborn"), learn = -0.4, success = 0.04, say = N("Ben bildiğim yoldan şaşmam.", "I stick to the way I know.") },

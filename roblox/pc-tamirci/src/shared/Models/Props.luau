@@ -944,6 +944,21 @@ function Props.coffeeMachine(parent: Instance, cf: CFrame): Model
 	return m
 end
 
+-- A coffee machine with two cups on the counter (the ready-made one when the library has it).
+function Props.coffeeStation(parent: Instance, cf: CFrame): Model
+	local real = Assets.place(parent, "Interior", "CoffeeMachine", cf, Assets.scaleFor("Interior", "CoffeeMachine", 2.6))
+	if real then
+		real.Name = "CoffeeStation"
+		for k = 0, 1 do
+			Assets.place(real, "Interior", "CupWhite", cf * CFrame.new(1.6 + k * 0.7, 0, -0.2), Assets.scaleFor("Interior", "CupWhite", 0.5))
+		end
+		return real
+	end
+	local m = Props.coffeeMachine(parent, cf)
+	m.Name = "CoffeeStation"
+	return m
+end
+
 function Props.samovar(parent: Instance, cf: CFrame): Model
 	local m = B.model("Samovar", parent)
 	local brass = Color3.fromRGB(196, 150, 70)

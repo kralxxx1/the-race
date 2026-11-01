@@ -109,7 +109,7 @@ LOOKS.wall_clock = function(m, c)
 end
 
 LOOKS.framed_art = function(m, c)
-	local scenes = { { "🌉", C(250, 170, 110) }, { "🕌", C(120, 170, 220) }, { "⛵", C(90, 150, 200) } }
+	local scenes = { { "🌉", C(250, 170, 110) }, { "🏰", C(120, 170, 220) }, { "⛵", C(90, 150, 200) } }
 	for k, s in scenes do
 		frame(m, c * CFrame.new((k - 2) * 1.9, 0, 0), 1.6, 1.25, C(60, 44, 30), function(f, w, h)
 			label(m, f, Vector3.new(w, h, 0.02), s[1], WHITE, s[2], { font = B.Fonts.Regular })
@@ -118,18 +118,23 @@ LOOKS.framed_art = function(m, c)
 end
 
 LOOKS.evil_eye = function(m, c)
-	cylZ(m, c * CFrame.new(0, -0.1, 0), 0.08, 1.4, C(20, 70, 170), M.Glass)
-	cylZ(m, c * CFrame.new(0, -0.1, -0.05), 0.06, 1.0, WHITE, M.Glass)
-	cylZ(m, c * CFrame.new(0, -0.1, -0.09), 0.05, 0.62, C(110, 180, 240), M.Glass)
-	cylZ(m, c * CFrame.new(0, -0.1, -0.12), 0.04, 0.3, BLACK, M.Glass)
-	deco(m, c * CFrame.new(0, 0.75, 0), Vector3.new(0.05, 0.5, 0.05), C(200, 60, 60))
+	-- a lucky horseshoe nailed up, open end up: three steel bars and seven nail heads
+	local steel = C(176, 180, 190)
+	deco(m, c * CFrame.new(0, -0.35, 0), Vector3.new(1.0, 0.18, 0.12), steel, M.Metal)
+	for _, s in { -1, 1 } do
+		deco(m, c * CFrame.new(s * 0.45, 0.05, 0), Vector3.new(0.18, 0.9, 0.12), steel, M.Metal)
+		deco(m, c * CFrame.new(s * 0.4, -0.25, 0) * CFrame.Angles(0, 0, s * math.rad(40)), Vector3.new(0.2, 0.32, 0.12), steel, M.Metal)
+	end
+	for k = 0, 2 do
+		deco(m, c * CFrame.new(-0.35 + k * 0.35, -0.35, -0.07), Vector3.new(0.07, 0.07, 0.03), BLACK)
+	end
 end
 
+-- the company flag: a navy field, a white disc and the shop's initials
 local function flag(m, c: CFrame, w: number, h: number)
-	deco(m, c, Vector3.new(w, h, 0.05), C(227, 10, 23), M.Fabric)
-	cylZ(m, c * CFrame.new(-w * 0.15, 0, -0.04), 0.02, h * 0.5, WHITE)
-	cylZ(m, c * CFrame.new(-w * 0.11, 0, -0.06), 0.02, h * 0.4, C(227, 10, 23))
-	label(m, c * CFrame.new(w * 0.05, 0, -0.07), Vector3.new(h * 0.32, h * 0.32, 0.01), "★", WHITE, false, { font = B.Fonts.Heavy })
+	deco(m, c, Vector3.new(w, h, 0.05), C(20, 50, 120), M.Fabric)
+	cylZ(m, c * CFrame.new(0, 0, -0.04), 0.02, h * 0.62, WHITE)
+	label(m, c * CFrame.new(0, 0, -0.07), Vector3.new(h * 0.5, h * 0.4, 0.01), "PC", C(20, 50, 120), false, { font = B.Fonts.Heavy })
 end
 
 LOOKS.turkish_flag = function(m, c)
@@ -147,7 +152,7 @@ end
 
 LOOKS.calligraphy = function(m, c)
 	frame(m, c, 3.4, 1.8, C(196, 160, 70), function(f, w, h)
-		label(m, f, Vector3.new(w, h, 0.02), "Patience is bitter,\nbut its fruit is sweet", C(230, 196, 100), C(20, 70, 50), { font = B.Fonts.Serif })
+		label(m, f, Vector3.new(w, h, 0.02), "Measure twice,\ncut once", C(230, 196, 100), C(20, 70, 50), { font = B.Fonts.Serif })
 	end)
 end
 
@@ -325,8 +330,8 @@ end
 
 LOOKS.staff_tea = function(m, c)
 	cabinet(m, c, 2.4, 3.2, 2)
-	if not Real.fit(m, "Kettle", c * CFrame.new(-0.3, 3.26, 0.1), 1.2, 1.2, 1.4) then
-		Props.samovar(m, c * CFrame.new(-0.3, 3.26, 0.1))
+	if not Real.fit(m, "CoffeeMachine", c * CFrame.new(-0.3, 3.26, 0.1), 1.4, 1.4, 1.8) then
+		Props.coffeeMachine(m, c * CFrame.new(-0.3, 3.26, 0.1))
 	end
 	for i = 0, 1 do
 		B.cylY(m, c * CFrame.new(0.7 + i * 0.3, 3.46, -0.4), 0.4, 0.2, C(170, 50, 20), M.Glass, nc({ Transparency = 0.2 }))
@@ -519,16 +524,18 @@ end
 LOOKS.cologne = function(m, c)
 	B.box(m, c * CFrame.new(0, 0.32, 0), Vector3.new(0.3, 0.64, 0.18), C(240, 230, 140), M.Glass, nc({ Transparency = 0.25 }))
 	cylY(m, c * CFrame.new(0, 0.72, 0), 0.16, 0.14, C(210, 170, 60), M.Metal)
-	label(m, c * CFrame.new(0, 0.3, -0.1), Vector3.new(0.26, 0.2, 0.01), "KOLONYA", C(40, 90, 40), WHITE)
+	label(m, c * CFrame.new(0, 0.3, -0.1), Vector3.new(0.26, 0.2, 0.01), "SANITISER", C(40, 90, 40), WHITE)
 end
 
 LOOKS.tea_glasses = function(m, c)
+	-- espresso cups on saucers on a steel tray
 	cylY(m, c * CFrame.new(0, 0.03, 0), 0.05, 1.1, STEEL, M.Metal)
 	for i = 0, 2 do
 		local a = i * 2.1
 		local p = c * CFrame.new(math.cos(a) * 0.3, 0, math.sin(a) * 0.3)
 		cylY(m, p * CFrame.new(0, 0.07, 0), 0.03, 0.34, WHITE)
-		B.cylY(m, p * CFrame.new(0, 0.27, 0), 0.38, 0.2, C(170, 50, 20), M.Glass, nc({ Transparency = 0.2 }))
+		cylY(m, p * CFrame.new(0, 0.18, 0), 0.2, 0.22, WHITE)
+		B.cylY(m, p * CFrame.new(0, 0.275, 0), 0.02, 0.18, C(60, 36, 22), M.SmoothPlastic, nc({ Name = "Coffee" }))
 	end
 end
 
@@ -607,7 +614,7 @@ LOOKS.espresso_bar = function(m, c, k)
 	for i = 0, 3 do
 		cylY(m, c * CFrame.new(1.4 + (i % 2) * 0.35, 3.85 + (i // 2) * 0.3, 0.3), 0.28, 0.3, WHITE)
 	end
-	label(m, c * CFrame.new(0, 6.6, 1.42), Vector3.new(4, 1.6, 0.06), "ESPRESSO • LATTE\nCAPPUCCINO • TEA", WHITE, C(30, 34, 30), { font = B.Fonts.Hand })
+	label(m, c * CFrame.new(0, 6.6, 1.42), Vector3.new(4, 1.6, 0.06), "ESPRESSO • LATTE\nCAPPUCCINO • COFFEE", WHITE, C(30, 34, 30), { font = B.Fonts.Hand })
 end
 
 -- Lighting --------------------------------------------------------------------------------------------

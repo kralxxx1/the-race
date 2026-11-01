@@ -1751,7 +1751,7 @@ function Rules.inspect(dev, target: string, lang: string?): { string }
 		table.insert(out, T2(lang, "Panel köşeden ortaya doğru çatlamış.", "The panel is cracked from the corner inward."))
 	end
 	if target == "keyboard" and f == "dead_keys" then
-		table.insert(out, T2(lang, "Tuşların altında kurumuş şekerli çay var.", "Dried sweet tea under the keys."))
+		table.insert(out, T2(lang, "Tuşların altında kurumuş şekerli kahve var.", "Dried sweet coffee under the keys."))
 	end
 	if target == "hinges" and f == "broken" then
 		table.insert(out, T2(lang, "Sol menteşenin bağlantısı kırılmış.", "The left hinge mount has snapped."))

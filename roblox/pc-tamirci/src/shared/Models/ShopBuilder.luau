@@ -688,13 +688,13 @@ function ShopBuilder.build(parent: Instance, cf: CFrame, opts): (Model, { [strin
 	local comfortRuns = { walls.leftFront, walls.frontLeft, walls.rightFront, walls.leftWork, walls.back, walls.rightWork }
 	if items.tea then
 		wallItem(comfortRuns, 3, 1.55, 3.1, function(c)
-			local m = B.model("TeaStation", shop)
+			local m = B.model("CoffeeStation", shop)
 			B.box(m, c * CFrame.new(0, 1.6, 0), Vector3.new(3, 3.2, 3), Color3.fromRGB(150, 110, 70), M.Wood)
-			if Real.fit(m, "Kettle", c * CFrame.new(-0.6, 3.2, 0), 1.3, 1.3, 1.5) then
-				Real.fit(m, "Tray", c * CFrame.new(0.7, 3.2, 0), 1, 2, 0.5)
-				Real.fit(m, "CupWhite", c * CFrame.new(0.7, 3.4, -0.3), 0.5, 0.5, 0.5)
+			if Real.fit(m, "CoffeeMachine", c * CFrame.new(-0.4, 3.2, 0), 1.8, 1.8, 2.4) then
+				Real.fit(m, "Tray", c * CFrame.new(0.9, 3.2, 0), 0.9, 1.8, 0.4)
+				Real.fit(m, "CupWhite", c * CFrame.new(0.9, 3.4, -0.3), 0.5, 0.5, 0.5)
 			else
-				Props.samovar(m, c * CFrame.new(0, 3.2, 0))
+				Props.coffeeMachine(m, c * CFrame.new(0, 3.2, 0))
 			end
 		end)
 	end

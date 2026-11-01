@@ -619,22 +619,28 @@ local function customize(m: Model, cf: CFrame, def, real, o: { [string]: any })
 		if RACK_BODIES[def.body] and r:NextNumber() < 0.16 then
 			local kind = r:NextInteger(1, 3)
 			local zc = -L * 0.02
-			for _, dz in { -1, 1 } do
-				box("RackBar", CFrame.new(0, H + 0.25, zc + dz * L * 0.12), Vector3.new(W * 0.7, 0.16, 0.2), rgb(30, 30, 34))
+			local len = L * 0.42
+			-- (two rails on the roof and two cross bars on them, as on the plain roof rack; the load rests on the bars)
+			for _, x in { -1, 1 } do
+				box("RackRail", CFrame.new(x * W * 0.3, H + 0.1, zc), Vector3.new(0.18, 0.2, len), rgb(30, 30, 34))
 			end
+			for _, dz in { -1, 1 } do
+				box("RackBar", CFrame.new(0, H + 0.3, zc + dz * len * 0.4), Vector3.new(W * 0.6, 0.16, 0.2), rgb(30, 30, 34))
+			end
+			local top = H + 0.38
 			if kind == 1 then
-				box("Surfboard", CFrame.new(0, H + 0.5, zc), Vector3.new(0.9, 0.14, L * 0.42), ({ rgb(250, 250, 244), rgb(60, 190, 220), rgb(250, 190, 40), rgb(230, 70, 90) })[r:NextInteger(1, 4)], M.SmoothPlastic)
-				box("SurfboardStripe", CFrame.new(0, H + 0.58, zc), Vector3.new(0.18, 0.04, L * 0.42), rgb(30, 30, 34), M.SmoothPlastic)
+				box("Surfboard", CFrame.new(0, top + 0.07, zc), Vector3.new(0.9, 0.14, len * 0.95), ({ rgb(250, 250, 244), rgb(60, 190, 220), rgb(250, 190, 40), rgb(230, 70, 90) })[r:NextInteger(1, 4)], M.SmoothPlastic)
+				box("SurfboardStripe", CFrame.new(0, top + 0.16, zc), Vector3.new(0.18, 0.04, len * 0.95), rgb(30, 30, 34), M.SmoothPlastic)
 			elseif kind == 2 then
 				for _, x in { -1, 1 } do
-					box("LadderRail", CFrame.new(x * W * 0.22, H + 0.5, zc), Vector3.new(0.14, 0.14, L * 0.5), rgb(190, 192, 198))
+					box("LadderRail", CFrame.new(x * W * 0.22, top + 0.07, zc), Vector3.new(0.14, 0.14, len * 0.95), rgb(190, 192, 198))
 				end
 				for k = -2, 2 do
-					box("LadderRung", CFrame.new(0, H + 0.5, zc + k * L * 0.1), Vector3.new(W * 0.44, 0.1, 0.1), rgb(190, 192, 198))
+					box("LadderRung", CFrame.new(0, top + 0.07, zc + k * len * 0.2), Vector3.new(W * 0.44, 0.1, 0.1), rgb(190, 192, 198))
 				end
 			else
-				box("Luggage", CFrame.new(-W * 0.12, H + 0.65, zc), Vector3.new(W * 0.36, 0.9, L * 0.2), rgb(110, 40, 40), M.SmoothPlastic)
-				box("Luggage", CFrame.new(W * 0.14, H + 0.55, zc + L * 0.02), Vector3.new(W * 0.3, 0.7, L * 0.18), rgb(40, 70, 120), M.SmoothPlastic)
+				box("Luggage", CFrame.new(-W * 0.12, top + 0.45, zc), Vector3.new(W * 0.36, 0.9, len * 0.5), rgb(110, 40, 40), M.SmoothPlastic)
+				box("Luggage", CFrame.new(W * 0.14, top + 0.35, zc + len * 0.05), Vector3.new(W * 0.3, 0.7, len * 0.42), rgb(40, 70, 120), M.SmoothPlastic)
 			end
 		elseif def.body == "pickup" and r:NextNumber() < 0.4 then
 			-- the bed: crates, barrels or a tarp over a load

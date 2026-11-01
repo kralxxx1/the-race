@@ -36,7 +36,7 @@ Upgrades.items = {
 	{ id = "carpet", cat = "decor", name = N("Halı", "Rug"), cost = 400, level = 1, comfort = 3, icon = "🟥" },
 	{ id = "plants", cat = "decor", name = N("Saksı Bitkileri", "Potted Plants"), cost = 300, level = 1, comfort = 4, icon = "🌿" },
 	{ id = "posters", cat = "decor", name = N("Donanım Posterleri", "Hardware Posters"), cost = 250, level = 1, comfort = 3, icon = "🖼️" },
-	{ id = "tea", cat = "decor", name = N("Çay İstasyonu", "Tea Station"), cost = 600, level = 1, comfort = 8, icon = "☕", elec = 2 },
+	{ id = "tea", cat = "decor", name = N("Kahve İstasyonu", "Coffee Station"), cost = 600, level = 1, comfort = 8, icon = "☕", elec = 2 },
 	{ id = "coffee", cat = "decor", name = N("Kahve Makinesi", "Coffee Machine"), cost = 900, level = 2, comfort = 8, icon = "☕", elec = 2 },
 	{ id = "music", cat = "decor", name = N("Müzik Sistemi", "Sound System"), cost = 1200, level = 2, comfort = 7, icon = "🔊", elec = 1 },
 	{ id = "tv", cat = "decor", name = N("Bekleme Salonu TV", "Waiting Room TV"), cost = 1500, level = 2, comfort = 10, icon = "📺", elec = 2 },
@@ -88,10 +88,10 @@ Upgrades.items = {
 	-- Decor
 	{ id = "wall_clock", cat = "decor", name = N("Duvar Saati", "Wall Clock"), cost = 120, level = 1, comfort = 1, icon = "🕰️", place = "high", w = 1.6, band = "top", zone = "front" },
 	{ id = "framed_art", cat = "decor", name = N("Tablo Seti (Şehir Manzaraları)", "Framed Prints (City Skylines)"), cost = 450, level = 1, comfort = 3, icon = "🖼️", place = "high", w = 5.6, band = "eye", zone = "front" },
-	{ id = "evil_eye", cat = "decor", name = N("Nazar Boncuğu Duvar Süsü", "Lucky Horseshoe"), cost = 80, level = 1, comfort = 1, tips = 0.01, icon = "🧿", place = "high", w = 1.6, band = "eye", zone = "front", desc = N("Göz değmesin!", "Brings the shop good luck!") },
+	{ id = "evil_eye", cat = "decor", name = N("Şans Nalı", "Lucky Horseshoe"), cost = 80, level = 1, comfort = 1, tips = 0.01, icon = "🧿", place = "high", w = 1.6, band = "eye", zone = "front", desc = N("Göz değmesin!", "Brings the shop good luck!") },
 	{ id = "turkish_flag", cat = "decor", name = N("Şirket Bayrağı", "Company Flag"), cost = 150, level = 1, comfort = 1, icon = "🚩", place = "high", w = 4.2, band = "top", zone = "front" },
 	{ id = "world_map", cat = "decor", name = N("Dünya Haritası", "World Map"), cost = 300, level = 2, comfort = 2, icon = "🗺️", place = "high", w = 5, band = "top", zone = "any" },
-	{ id = "calligraphy", cat = "decor", name = N("Hat Sanatı Levhası", "Calligraphy Panel"), cost = 700, level = 3, comfort = 3, icon = "✒️", place = "high", w = 3.4, band = "eye", zone = "front" },
+	{ id = "calligraphy", cat = "decor", name = N("Özlü Söz Panosu", "Quote Panel"), cost = 700, level = 3, comfort = 3, icon = "✒️", place = "high", w = 3.4, band = "eye", zone = "front" },
 	{ id = "lava_lamp", cat = "decor", name = N("Lav Lambası", "Lava Lamp"), cost = 120, level = 1, comfort = 1, elec = 0.5, icon = "🔮", place = "counter" },
 	{ id = "diffuser", cat = "decor", name = N("Oda Kokusu Difüzörü", "Scent Diffuser"), cost = 180, level = 1, comfort = 2, icon = "🌸", place = "counter" },
 	{ id = "bonsai", cat = "decor", name = N("Bonsai Ağacı", "Bonsai Tree"), cost = 650, level = 3, comfort = 3, icon = "🌳", place = "counter" },
@@ -128,8 +128,8 @@ Upgrades.items = {
 
 	-- Refreshments
 	{ id = "lokum", cat = "kitchen", name = N("Şeker Kasesi", "Candy Bowl"), cost = 60, level = 1, comfort = 2, tips = 0.01, icon = "🍬", place = "counter" },
-	{ id = "cologne", cat = "kitchen", name = N("Kolonya İkramı", "Cologne for Guests"), cost = 50, level = 1, comfort = 2, icon = "🍋", place = "counter", desc = N("Gelen müşterinin eline limon kolonyası.", "A splash of lemon cologne for every customer.") },
-	{ id = "tea_glasses", cat = "kitchen", name = N("İnce Belli Çay Bardakları", "Tea Glasses"), cost = 120, level = 1, comfort = 2, icon = "🍵", place = "counter" },
+	{ id = "cologne", cat = "kitchen", name = N("Misafir El Dezenfektanı", "Sanitiser for Guests"), cost = 50, level = 1, comfort = 2, icon = "🍋", place = "counter", desc = N("Gelen müşterinin eline temiz bir damla.", "A clean squirt for every customer's hands.") },
+	{ id = "tea_glasses", cat = "kitchen", name = N("Espresso Fincanları", "Espresso Cups"), cost = 120, level = 1, comfort = 2, icon = "🍵", place = "counter" },
 	{ id = "pastry_tray", cat = "kitchen", name = N("Çörek ve Kurabiye İkramı", "Pastry and Cookie Tray"), cost = 400, level = 2, comfort = 4, tips = 0.02, icon = "🥯", place = "counter" },
 	{ id = "turkish_coffee", cat = "kitchen", name = N("Barista Kahve Makinesi", "Barista Coffee Machine"), cost = 1100, level = 3, comfort = 6, tips = 0.03, elec = 1, icon = "☕", place = "wall", w = 2.4, d = 2.2, zone = "front" },
 	{ id = "microwave", cat = "kitchen", name = N("Mikrodalga Fırın", "Microwave"), cost = 350, level = 2, staffMorale = 0.5, elec = 1, icon = "🍲", place = "wall", w = 2.4, d = 2.2, zone = "work" },
@@ -236,7 +236,7 @@ Upgrades.items = {
 	-- The staff room
 	{ id = "lockers", cat = "staffroom", name = N("Personel Dolapları", "Staff Lockers"), cost = 900, level = 2, staffMorale = 1, icon = "🔐", place = "wall", w = 3.2, d = 1.6, zone = "work" },
 	{ id = "staff_fridge", cat = "staffroom", name = N("Personel Buzdolabı", "Staff Fridge"), cost = 600, level = 2, staffMorale = 0.5, elec = 2, icon = "❄️", place = "wall", w = 2, d = 2, zone = "work" },
-	{ id = "staff_tea", cat = "staffroom", name = N("Personel Çay Köşesi", "Staff Tea Corner"), cost = 450, level = 1, staffMorale = 1, icon = "☕", place = "wall", w = 2.4, d = 2, zone = "work" },
+	{ id = "staff_tea", cat = "staffroom", name = N("Personel Kahve Köşesi", "Staff Coffee Corner"), cost = 450, level = 1, staffMorale = 1, icon = "☕", place = "wall", w = 2.4, d = 2, zone = "work" },
 	{ id = "break_table", cat = "staffroom", name = N("Mola Masası", "Break Table"), cost = 700, level = 2, staffMorale = 1, icon = "🍽️", place = "floor", w = 4, d = 4, zone = "work" },
 	{ id = "uniforms", cat = "staffroom", name = N("Kurumsal Personel Kıyafetleri", "Staff Uniforms"), cost = 1800, level = 4, rep = 0.2, staffMorale = 0.5, attract = 2, icon = "👕", place = "none" },
 	{ id = "bonus_scheme", cat = "staffroom", name = N("Prim Sistemi", "Bonus Scheme"), cost = 2500, level = 6, staffMorale = 1, staffSpeed = 0.02, icon = "💰", place = "none" },
