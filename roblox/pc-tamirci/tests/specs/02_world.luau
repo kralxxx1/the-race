@@ -2,7 +2,9 @@
 
 local Engine = require("../lib/Engine")
 local Geometry = require("../lib/Geometry")
-local Vector3 = require("@lune/roblox").Vector3
+local roblox = require("@lune/roblox")
+local Vector3 = roblox.Vector3
+local Enum = roblox.Enum
 
 return function(T)
 	Engine.context = "server"
@@ -347,6 +349,105 @@ return function(T)
 		local TerrainB = Engine.mod("ServerScriptService.Server.World.TerrainBuilder")
 		local first = TerrainB.hillPath[1]
 		T.ok(first.Z < CityLayout.ZS[1] - 26 - 12, "the dirt track starts well north of the ring road's pavement")
+	end)
+
+	T.test("world: no cubes in the alleys or streets (the green and red dumpster boxes are gone)", function()
+		local boxes = {}
+		for _, d in Engine.world:GetDescendants() do
+			if d:IsA("BasePart") and (d.Name == "Dumpster" or d.Name == "Cube" or d.Name == "Crate" and d.Parent and d.Parent.Name == "Alley") then
+				table.insert(boxes, d:GetFullName())
+			end
+		end
+		T.ok(#boxes == 0, #boxes .. " dumpster/cube boxes left, e.g. " .. tostring(boxes[1]))
+		-- and no big plain solid block of any kind stands on a road or pavement: not in a carriageway
+		-- (checked above) and not on the pavements beside it either
+		local L = CityLayout.get()
+		local onPavement = {}
+		for _, d in Engine.world:GetDescendants() do
+			if d:IsA("Part") and d.Shape == Enum.PartType.Block and d.Transparency < 0.5 and not d:FindFirstChildOfClass("SpecialMesh") then
+				local s = d.Size
+				local mx, mn = math.max(s.X, s.Y, s.Z), math.min(s.X, s.Y, s.Z)
+				local p = d.Position
+				if mn >= 2.4 and mx <= 12 and mx / mn < 2.6 and p.Y < 8 and d.Anchored then
+					for _, r in L.roads do
+						local w = r.width / 2 + 7
+						local x0, x1 = math.min(r.a.X, r.b.X) - (if r.vertical then w else 0), math.max(r.a.X, r.b.X) + (if r.vertical then w else 0)
+						local z0, z1 = math.min(r.a.Y, r.b.Y) - (if r.vertical then 0 else w), math.max(r.a.Y, r.b.Y) + (if r.vertical then 0 else w)
+						if p.X > x0 and p.X < x1 and p.Z > z0 and p.Z < z1 then
+							table.insert(onPavement, d:GetFullName() .. " " .. tostring(d.Size))
+							break
+						end
+					end
+				end
+			end
+		end
+		for k = 1, math.min(#onPavement, 6) do
+			print("      block on the street:", onPavement[k])
+		end
+		T.ok(#onPavement == 0, #onPavement .. " plain blocks stand on a road or pavement")
+	end)
+
+	T.test("world: windows are clear plastic (the Glass material would hide the rain behind it)", function()
+		local glass, checked = {}, 0
+		for _, d in Engine.world:GetDescendants() do
+			if d:IsA("BasePart") then
+				checked += 1
+				if d.Material == Enum.Material.Glass and not d:GetAttribute("Bulb") and not d:HasTag("LampBulb") then
+					table.insert(glass, d:GetFullName())
+				end
+			end
+		end
+		for k = 1, math.min(#glass, 6) do
+			print("      glass:", glass[k])
+		end
+		T.ok(checked > 50000, "parts checked: " .. checked)
+		T.ok(#glass == 0, #glass .. " parts still use the Glass material")
+	end)
+
+	T.test("world: no brown soil lies on a pavement (tree pits are grates, street trees have no soil disc, Ground is gravel grey)", function()
+		local L = CityLayout.get()
+		local bad, trees = {}, 0
+		for _, d in Engine.world:GetDescendants() do
+			if d:IsA("BasePart") and d.Material == Enum.Material.Ground and d.Position.Y < 3 and not d:FindFirstAncestor("FlowerBed") then
+				local p = d.Position
+				for _, r in L.roads do
+					if r.kind ~= "ring" then
+						local w = r.width / 2
+						local x0, x1 = math.min(r.a.X, r.b.X) - (if r.vertical then w else 0), math.max(r.a.X, r.b.X) + (if r.vertical then w else 0)
+						local z0, z1 = math.min(r.a.Y, r.b.Y) - (if r.vertical then 0 else w), math.max(r.a.Y, r.b.Y) + (if r.vertical then 0 else w)
+						if p.X > x0 and p.X < x1 and p.Z > z0 and p.Z < z1 then
+							table.insert(bad, d:GetFullName())
+							break
+						end
+					end
+				end
+			end
+			if d:IsA("BasePart") and d.Name == "TreeGrate" then
+				trees += 1
+			end
+		end
+		for k = 1, math.min(#bad, 6) do
+			print("      soil part on a street:", bad[k])
+		end
+		T.ok(trees > 100, "tree grates: " .. trees)
+		T.ok(#bad == 0, #bad .. " soil-material parts lie on a street, e.g. " .. tostring(bad[1]))
+	end)
+
+	T.test("world: the park lawns have a pavement margin and the beach starts off the road (no grass, soil or sand spilling over a pavement)", function()
+		local TerrainB = Engine.mod("ServerScriptService.Server.World.TerrainBuilder")
+		local n = 0
+		for _, lawn in TerrainB.lawns() do
+			n += 1
+			local cx, cz = (lawn.x0 + lawn.x1) / 2, (lawn.z0 + lawn.z1) / 2
+			for _, probe in { Vector3.new(lawn.x0 + 2, -1, cz), Vector3.new(lawn.x1 - 2, -1, cz), Vector3.new(cx, -1, lawn.z0 + 2), Vector3.new(cx, -1, lawn.z1 - 2) } do
+				local m = Engine.terrainMaterialAt(probe)
+				T.ok(m == "Pavement", "the lawn's edge at " .. tostring(probe) .. " is " .. tostring(m))
+			end
+			T.ok(Engine.terrainMaterialAt(Vector3.new(cx, -1, cz)) == "Grass", "the middle of the lawn is grass")
+		end
+		T.ok(n >= 1, "lawns checked: " .. n)
+		T.ok(Engine.terrainMaterialAt(Vector3.new(0, -1, CityLayout.BEACH_Z + 2)) == "Pavement", "the first strip of the beach is pavement")
+		T.ok(Engine.terrainMaterialAt(Vector3.new(0, -1, CityLayout.BEACH_Z + 20)) == "Sand", "then sand")
 	end)
 
 	T.test("world: nothing thin lies on grass terrain (blades would poke through)", function()

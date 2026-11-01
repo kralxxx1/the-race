@@ -131,17 +131,67 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 		B.box(m, cf * CFrame.new(x * (W / 2 - 0.5), 1.55, 0), Vector3.new(0.5, 3.1, Dp - 0.4), legs, M.Metal)
 	end
 	B.box(m, cf * CFrame.new(0, 2.2, Dp / 2 - 0.4), Vector3.new(W - 1.4, 2, 0.3), legs, M.Metal)
-	-- drawers under the end beyond the parts area
+	-- a polished edge all round the top and rubber feet under the legs
+	local edge = Color3.fromRGB(196, 200, 208)
+	B.box(m, cf * CFrame.new(0, 3.27, -Dp / 2 + 0.05), Vector3.new(W + 0.08, 0.36, 0.1), edge, M.Metal, nc({ Name = "EdgeFront", Reflectance = 0.2 }))
+	for _, sx in { -1, 1 } do
+		B.box(m, cf * CFrame.new(sx * (W / 2 + 0.01), 3.27, 0), Vector3.new(0.1, 0.36, Dp + 0.08), edge, M.Metal, nc({ Name = "EdgeSide", Reflectance = 0.2 }))
+		for _, sz in { -1, 1 } do
+			B.cylY(m, cf * CFrame.new(sx * (W / 2 - 0.5), 0.06, sz * (Dp / 2 - 0.6)), 0.12, 0.45, Color3.fromRGB(20, 20, 22), M.SmoothPlastic, nc({ Name = "Foot" }))
+		end
+	end
+	-- drawers under the end beyond the parts area, each with a chrome bar handle and a label card
 	local dx = W / 2 - 2.5
 	B.box(m, cf * CFrame.new(dx, 2, -0.2), Vector3.new(3.6, 2.4, Dp - 0.8), drawerCol, M.Metal)
 	for k = 0, 2 do
-		B.box(m, cf * CFrame.new(dx, 1.2 + k * 0.8, -Dp / 2 + 0.35), Vector3.new(3.4, 0.6, 0.1), drawerCol:Lerp(Color3.new(0, 0, 0), 0.15), M.Metal, nc())
+		local fy = 1.2 + k * 0.8
+		B.box(m, cf * CFrame.new(dx, fy, -Dp / 2 + 0.35), Vector3.new(3.4, 0.6, 0.1), drawerCol:Lerp(Color3.new(0, 0, 0), 0.15), M.Metal, nc())
+		B.cyl(m, cf * CFrame.new(dx, fy + 0.06, -Dp / 2 + 0.2) * CFrame.Angles(0, 0, 0), 1.3, 0.1, edge, M.Metal, nc({ Name = "Handle", Reflectance = 0.3 }))
+		B.box(m, cf * CFrame.new(dx, fy - 0.12, -Dp / 2 + 0.29), Vector3.new(0.9, 0.16, 0.02), Color3.fromRGB(236, 236, 232), M.SmoothPlastic, nc({ Name = "DrawerLabel" }))
+	end
+	-- a shelf between the legs with a red tool chest, boxes of spare parts and a little UPS
+	local shelfW = W - 1.2 - 3.8
+	local shelfX = -(W / 2 - 0.9) + shelfW / 2
+	B.box(m, cf * CFrame.new(shelfX, 0.95, -0.15), Vector3.new(shelfW, 0.14, Dp - 1.2), legs, M.Metal, nc({ Name = "LowerShelf" }))
+	local chest = cf * CFrame.new(shelfX - 3.2, 1.0, -0.3)
+	B.box(m, chest * CFrame.new(0, 0.55, 0), Vector3.new(2.6, 1.0, 1.3), Color3.fromRGB(208, 44, 36), M.Metal, nc({ Name = "ToolChest" }))
+	B.box(m, chest * CFrame.new(0, 1.07, 0), Vector3.new(2.62, 0.14, 1.32), Color3.fromRGB(176, 34, 28), M.Metal, nc())
+	B.cyl(m, chest * CFrame.new(0, 1.17, 0) * CFrame.Angles(0, math.rad(90), 0), 1.1, 0.1, edge, M.Metal, nc({ Name = "ChestHandle" }))
+	for _, lx in { -0.9, 0.9 } do
+		B.box(m, chest * CFrame.new(lx, 0.82, -0.67), Vector3.new(0.3, 0.2, 0.05), edge, M.Metal, nc())
+	end
+	for i = 0, 2 do
+		B.box(m, cf * CFrame.new(shelfX + 0.4 + i * 1.7, 1.0 + 0.45, 0.1), Vector3.new(1.5, 0.9, 1.1), Color3.fromRGB(190, 150, 100):Lerp(Color3.new(1, 1, 1), i * 0.08), M.Cardboard, nc({ Name = "PartsBox" }))
+		B.box(m, cf * CFrame.new(shelfX + 0.4 + i * 1.7, 1.0 + 0.5, -0.46), Vector3.new(0.9, 0.35, 0.02), Color3.fromRGB(244, 244, 240), M.SmoothPlastic, nc({ Name = "BoxLabel" }))
+	end
+	B.box(m, cf * CFrame.new(shelfX + 4.4, 1.0 + 0.35, 0.2), Vector3.new(1.4, 0.7, 1.0), Color3.fromRGB(30, 32, 38), M.SmoothPlastic, nc({ Name = "UPS" }))
+	B.box(m, cf * CFrame.new(shelfX + 4.4, 1.0 + 0.45, -0.32), Vector3.new(0.08, 0.08, 0.02), Color3.fromRGB(80, 255, 120), M.Neon, nc({ Name = "UpsLed" }))
+	-- a low back panel with a power strip, a network socket and a cable rail
+	B.box(m, cf * CFrame.new(0.2, 3.9, Dp / 2 - 0.12), Vector3.new(W - 3.2, 1.0, 0.2), legs, M.Metal, nc({ Name = "BackRiser" }))
+	B.box(m, cf * CFrame.new(-2.6, 3.52, Dp / 2 - 0.5), Vector3.new(2.6, 0.24, 0.5), Color3.fromRGB(238, 238, 234), M.SmoothPlastic, nc({ Name = "PowerStrip" }))
+	for k = 0, 4 do
+		B.box(m, cf * CFrame.new(-3.5 + k * 0.42, 3.645, Dp / 2 - 0.5), Vector3.new(0.3, 0.02, 0.3), Color3.fromRGB(40, 40, 44), M.SmoothPlastic, nc())
+	end
+	B.box(m, cf * CFrame.new(-1.45, 3.64, Dp / 2 - 0.5), Vector3.new(0.18, 0.04, 0.12), Color3.fromRGB(255, 70, 60), M.Neon, nc({ Name = "StripSwitch" }))
+	B.cyl(m, cf * CFrame.new(-4.4, 3.5, Dp / 2 - 0.5), 0.9, 0.06, Color3.fromRGB(236, 236, 232), M.SmoothPlastic, nc())
+	B.box(m, cf * CFrame.new(1.8, 4.0, Dp / 2 - 0.2), Vector3.new(1.0, 0.7, 0.06), Color3.fromRGB(238, 238, 234), M.SmoothPlastic, nc({ Name = "WallPlate" }))
+	for k = 0, 1 do
+		B.box(m, cf * CFrame.new(1.8, 3.82 + k * 0.36, Dp / 2 - 0.24), Vector3.new(0.4, 0.22, 0.02), Color3.fromRGB(40, 40, 44), M.SmoothPlastic, nc())
+	end
+	-- a parts organiser at the left end of the desk: two columns of little bins in different colours
+	local org = cf * CFrame.new(-W / 2 + 1.0, 3.4, -0.6)
+	B.box(m, org * CFrame.new(0, 0.09, 0), Vector3.new(1.4, 0.18, 3.5), Color3.fromRGB(40, 42, 48), M.SmoothPlastic, nc({ Name = "Organiser" }))
+	local binCols = { Color3.fromRGB(226, 70, 60), Color3.fromRGB(60, 140, 230), Color3.fromRGB(250, 196, 50), Color3.fromRGB(70, 190, 110), Color3.fromRGB(210, 110, 220), Color3.fromRGB(240, 240, 236) }
+	for k = 0, 5 do
+		for c = -1, 1, 2 do
+			B.box(m, org * CFrame.new(c * 0.33, 0.33, -1.45 + k * 0.58), Vector3.new(0.58, 0.3, 0.5), binCols[k + 1], M.SmoothPlastic, nc({ Name = "Bin", Transparency = 0.15 }))
+		end
 	end
 	-- ESD mat under the device and the parts area
 	local matCol = if items.bench_mat then Color3.fromRGB(40, 110, 200) else Color3.fromRGB(110, 114, 120)
 	B.box(m, cf * CFrame.new(-0.7, 3.42, 0), Vector3.new(11.6, 0.05, Dp - 1.2), matCol, M.Rubber, nc({ Name = "Mat" }))
 	-- test monitor on the back, beyond the device
-	Props.monitor(m, cf * CFrame.new(6.2, 3.4, Dp / 2 - 1.4) * CFrame.Angles(0, math.rad(-12), 0), "", Color3.fromRGB(10, 30, 50))
+	Props.monitor(m, cf * CFrame.new(6.2, 3.4, Dp / 2 - 1.4) * CFrame.Angles(0, math.rad(-12), 0), "PC REPAIR\nBench ready", Color3.fromRGB(14, 52, 96), { style = "silver" })
 	local mon = m:FindFirstChild("Monitor")
 	if mon then
 		mon.Name = "BenchMonitor"
@@ -174,8 +224,15 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 	B.cylY(m, cf * CFrame.new(ANCHOR_X + 4.25, 3.5, -1.76), 0.25, 1.7, Color3.fromRGB(150, 150, 156), M.Metal, nc({ Name = "ScrewTray" }))
 	-- stool
 	local stool = cf * CFrame.new(STOOL_X, 0, STOOL_Z)
-	B.cylY(m, stool * CFrame.new(0, 1.2, 0), 2.4, 0.4, legs, M.Metal)
-	B.cylY(m, stool * CFrame.new(0, 0.1, 0), 0.2, 2, legs, M.Metal)
+	B.cylY(m, stool * CFrame.new(0, 1.35, 0), 2.1, 0.34, legs, M.Metal, { Reflectance = 0.15 })
+	B.cylY(m, stool * CFrame.new(0, 0.45, 0), 0.9, 0.5, Color3.fromRGB(26, 26, 30), M.SmoothPlastic, nc({ Name = "GasLift" }))
+	for k = 0, 4 do
+		local a = k * math.pi * 2 / 5
+		local dir = Vector3.new(math.cos(a), 0, math.sin(a))
+		B.box(m, CFrame.lookAt(stool.Position + Vector3.new(0, 0.34, 0) + dir * 0.65, stool.Position + Vector3.new(0, 0.34, 0) + dir * 2), Vector3.new(0.22, 0.14, 1.3), legs, M.Metal, nc({ Name = "Spoke" }))
+		B.cylY(m, CFrame.new(stool.Position + Vector3.new(0, 0.2, 0) + dir * 1.25), 0.3, 0.3, Color3.fromRGB(20, 20, 22), M.SmoothPlastic, nc({ Name = "Caster" }))
+	end
+	B.cylY(m, stool * CFrame.new(0, 2.28, 0), 0.12, 1.9, legs, M.Metal, nc({ Name = "SeatPlate" }))
 	local seat = Instance.new("Seat")
 	seat.Name = "Stool"
 	seat.Anchored = true
@@ -186,10 +243,21 @@ function ShopBuilder.workbench(parent: Instance, cf: CFrame, index: number, item
 	seat.CFrame = stool * CFrame.new(0, 2.5, 0) * CFrame.Angles(0, math.pi, 0)
 	seat.Parent = m
 	-- a lived-in desk: a phone, a notepad, a stack of paper and a cup (official furniture pack)
-	Real.fit(m, "Telephone", cf * CFrame.new(7.2, 3.4, -0.3) * CFrame.Angles(0, math.rad(15), 0), 1.4, 1.6, 1.0)
+	Real.fit(m, "Telephone", cf * CFrame.new(7.3, 3.4, -1.3) * CFrame.Angles(0, math.rad(15), 0), 1.2, 1.4, 1.0)
 	Real.fit(m, "PaperStack", cf * CFrame.new(6.0, 3.4, -2.8) * CFrame.Angles(0, math.rad(-12), 0), 1.5, 2.0, 0.6)
 	Real.fit(m, "Notepad", cf * CFrame.new(3.9, 3.4, 2.5) * CFrame.Angles(0, math.rad(8), 0), 1.2, 1.5, 0.3)
 	Real.fit(m, "CupWhite", cf * CFrame.new(7.4, 3.4, 1.9), 0.6, 0.6, 0.7)
+	-- keyboard (rows of keys) and a mouse with its cable in front of the monitor
+	local kb = cf * CFrame.new(5.4, 3.4, 0.55) * CFrame.Angles(0, math.rad(-8), 0)
+	B.box(m, kb * CFrame.new(0, 0.07, 0), Vector3.new(2.9, 0.14, 0.98), Color3.fromRGB(44, 46, 52), M.SmoothPlastic, nc({ Name = "Keyboard" }))
+	for r = 0, 3 do
+		B.box(m, kb * CFrame.new(0, 0.16, -0.36 + r * 0.2), Vector3.new(2.7, 0.05, 0.15), Color3.fromRGB(214, 218, 226), M.SmoothPlastic, nc({ Name = "KeyRow" }))
+	end
+	B.box(m, kb * CFrame.new(-0.2, 0.16, 0.44), Vector3.new(1.3, 0.05, 0.13), Color3.fromRGB(214, 218, 226), M.SmoothPlastic, nc({ Name = "SpaceBar" }))
+	local mouse = cf * CFrame.new(7.3, 3.4, 0.5) * CFrame.Angles(0, math.rad(12), 0)
+	B.ellipsoid(m, mouse * CFrame.new(0, 0.12, 0), Vector3.new(0.5, 0.26, 0.8), Color3.fromRGB(44, 46, 52), M.SmoothPlastic, nc({ Name = "Mouse" }))
+	B.box(m, mouse * CFrame.new(0, 0.22, -0.18), Vector3.new(0.05, 0.05, 0.18), Color3.fromRGB(200, 204, 212), M.SmoothPlastic, nc({ Name = "MouseWheel" }))
+	B.cyl(m, mouse * CFrame.new(0, 0.04, 0.6) * CFrame.Angles(0, math.rad(90), 0), 0.5, 0.04, Color3.fromRGB(26, 26, 30), M.SmoothPlastic, nc())
 	-- the device sits here; LookVector faces the technician
 	local anchor = B.marker(m, "DeviceAnchor", cf * CFrame.new(ANCHOR_X, 3.45, 0))
 	anchor:SetAttribute("Bench", index)

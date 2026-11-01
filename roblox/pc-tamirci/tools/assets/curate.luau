@@ -12,7 +12,7 @@ local process = require("@lune/process")
 
 require("../../tests/lib/Bootstrap").run("tools/assets/curate.luau")
 
-local Vector3, CFrame, Instance = roblox.Vector3, roblox.CFrame, roblox.Instance
+local Vector3, CFrame, Instance, Enum = roblox.Vector3, roblox.CFrame, roblox.Instance, roblox.Enum
 
 local packs = {}
 local function pack(id: number)
@@ -142,6 +142,14 @@ local function prepare(item: Instance, name: string, opts): Model
 		if d:IsA("BasePart") then
 			d.Anchored = true
 			d.CanTouch = false
+			-- windows are clear plastic, not the Glass material: in this lighting Glass hides everything
+			-- drawn behind it (the rain, the people outside), so a window would look like a black mirror
+			if d.Material == Enum.Material.Glass and not opts.keepGlass then
+				d.Material = Enum.Material.SmoothPlastic
+				if d.Reflectance < 0.08 then
+					d.Reflectance = 0.08
+				end
+			end
 			if opts.collide == false then
 				d.CanCollide = false
 				d.CanQuery = false

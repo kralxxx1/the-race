@@ -110,7 +110,10 @@ function Terrain.build()
 		terrain:SetMaterialColor(M.Grass, Color3.fromRGB(96, 140, 70))
 		terrain:SetMaterialColor(M.LeafyGrass, Color3.fromRGB(86, 128, 62))
 		terrain:SetMaterialColor(M.Sand, Color3.fromRGB(230, 212, 168))
-		terrain:SetMaterialColor(M.Ground, Color3.fromRGB(120, 100, 76))
+		-- ("Ground" is a light gravel grey, not soil brown: wherever a patch of it shows beside a road or a
+		-- pavement it reads as paving, never as dirt washed over the street)
+		terrain:SetMaterialColor(M.Ground, Color3.fromRGB(150, 146, 138))
+		terrain:SetMaterialColor(M.Pavement, Color3.fromRGB(156, 156, 154))
 		terrain:SetMaterialColor(M.Asphalt, Color3.fromRGB(92, 94, 98))
 		terrain:SetMaterialColor(M.Rock, Color3.fromRGB(130, 126, 120))
 		terrain:SetMaterialColor(M.Mud, Color3.fromRGB(96, 80, 62))
@@ -147,13 +150,27 @@ function Terrain.build()
 		pave((r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2, r.x1 - r.x0, r.z1 - r.z0)
 	end
 	paveRect(u)
-	for _, lawn in Terrain.lawns() do
-		terrain:FillBlock(CFrame.new((lawn.x0 + lawn.x1) / 2, -6, (lawn.z0 + lawn.z1) / 2), Vector3.new(lawn.x1 - lawn.x0, 12, lawn.z1 - lawn.z0), M.Grass)
+	local function lawnFill()
+		for _, lawn in Terrain.lawns() do
+			local w, d = lawn.x1 - lawn.x0, lawn.z1 - lawn.z0
+			terrain:FillBlock(CFrame.new((lawn.x0 + lawn.x1) / 2, -6, (lawn.z0 + lawn.z1) / 2), Vector3.new(w, 12, d), M.Grass)
+			-- A lawn is cut on a grid of 4-stud cells, so its edge can come out a stud or two over the
+			-- pavement beside it. A margin of pavement (same height, light grey) round the lawn means
+			-- whatever overhangs is paving, never grass or soil spilling over the road.
+			local m = 6
+			terrain:FillBlock(CFrame.new((lawn.x0 + lawn.x1) / 2, -6, lawn.z0 + m / 2), Vector3.new(w, 12, m), M.Pavement)
+			terrain:FillBlock(CFrame.new((lawn.x0 + lawn.x1) / 2, -6, lawn.z1 - m / 2), Vector3.new(w, 12, m), M.Pavement)
+			terrain:FillBlock(CFrame.new(lawn.x0 + m / 2, -6, (lawn.z0 + lawn.z1) / 2), Vector3.new(m, 12, d), M.Pavement)
+			terrain:FillBlock(CFrame.new(lawn.x1 - m / 2, -6, (lawn.z0 + lawn.z1) / 2), Vector3.new(m, 12, d), M.Pavement)
+		end
 	end
+	lawnFill()
 	-- beach sand, sloping under the water in 16-stud bands
 	local W = b.maxX - b.minX + 800
 	local SEA_LEVEL = Terrain.SEA_LEVEL
-	terrain:FillBlock(CFrame.new(0, -6, (CityLayout.BEACH_Z + seaZ) / 2), Vector3.new(W, 12, seaZ - CityLayout.BEACH_Z + 4), M.Sand)
+	local sandFrom = CityLayout.BEACH_Z + 8
+	terrain:FillBlock(CFrame.new(0, -6, (sandFrom + seaZ) / 2), Vector3.new(W, 12, seaZ - sandFrom + 4), M.Sand)
+	terrain:FillBlock(CFrame.new(0, -6, CityLayout.BEACH_Z + 4), Vector3.new(W, 12, 8), M.Pavement)
 	for i = 0, 8 do
 		local z = seaZ + i * 16 + 8
 		local sandTop = -0.5 - i * 2.4
@@ -216,10 +233,8 @@ function Terrain.build()
 	-- last of all, the city's footprint is cleared once more: nothing built after the first pass
 	-- (the hill track, a hill's foot) may leave soil lying on a road or a pavement
 	paveRect(u)
-	for _, lawn in Terrain.lawns() do
-		-- (the park lawns are grass again, as at the start)
-		terrain:FillBlock(CFrame.new((lawn.x0 + lawn.x1) / 2, -6, (lawn.z0 + lawn.z1) / 2), Vector3.new(lawn.x1 - lawn.x0, 12, lawn.z1 - lawn.z0), M.Grass)
-	end
+	-- (the park lawns are grass again, as at the start, with their pavement margins)
+	lawnFill()
 end
 
 -- Bare ground under everything thin that lies on grass terrain (park paths, flower beds, bench

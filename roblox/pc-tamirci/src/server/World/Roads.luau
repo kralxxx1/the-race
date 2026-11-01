@@ -177,7 +177,11 @@ local function segment(folder: Instance, L, road, rng: Random)
 			for s = -1, 1, 2 do
 				local tp = mid + dir * (t + spacing / 2) + right * s * (cw / 2 + sw / 2)
 				if math.abs(t + spacing / 2) < len / 2 - 8 and not nearDoor(L, tp + right * s * (sw / 2), 9) then
-					B.box(m, CFrame.new(tp + Vector3.new(0, WALK_Y + 0.02, 0)), Vector3.new(4, 0.08, 4), P.soil, M.Ground, { CanCollide = false })
+					-- (the tree stands in a cast-iron grate set flush in the pavement: no bare soil on the street)
+					B.box(m, CFrame.new(tp + Vector3.new(0, WALK_Y + 0.02, 0)), Vector3.new(4, 0.08, 4), Color3.fromRGB(58, 60, 64), M.Metal, { CanCollide = false, Name = "TreeGrate" })
+					for gx = -1, 1 do
+						B.box(m, CFrame.new(tp + Vector3.new(gx * 1.1, WALK_Y + 0.07, 0)), Vector3.new(0.18, 0.04, 3.6), Color3.fromRGB(96, 99, 106), M.Metal, { CanCollide = false })
+					end
 					Props.tree(m, CFrame.new(tp + Vector3.new(0, WALK_Y, 0)), Rand.pick(rng, if districtL == "SEA" or districtL == "CST" then { "palm", "palm", "street" } else { "street", "street", "street", "cypress" }), rng)
 				end
 			end

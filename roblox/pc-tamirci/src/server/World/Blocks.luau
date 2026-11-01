@@ -121,7 +121,15 @@ local function pocketGarden(parent: Instance, cf: CFrame, w: number, rng: Random
 	if w < 6 then
 		return
 	end
-	B.box(parent, cf * CFrame.new(0, 0.3, 0), Vector3.new(math.min(w - 2, 10), 0.6, 8), Color3.fromRGB(96, 74, 52), M.Ground, { Name = "GardenBed" })
+	-- (a lawn bed with a stone kerb: green, never bare brown soil that could look spilled onto the street)
+	local bw = math.min(w - 2, 10)
+	B.box(parent, cf * CFrame.new(0, 0.3, 0), Vector3.new(bw, 0.6, 8), Color3.fromRGB(86, 126, 62), M.Grass, { Name = "GardenBed" })
+	for _, e in { { 0, 4.1, bw + 0.4, 0.4 }, { 0, -4.1, bw + 0.4, 0.4 } } do
+		B.box(parent, cf * CFrame.new(e[1], 0.35, e[2]), Vector3.new(e[3], 0.7, e[4]), Color3.fromRGB(190, 188, 182), M.Concrete, { Name = "BedKerb", CanCollide = false })
+	end
+	for _, sx in { -1, 1 } do
+		B.box(parent, cf * CFrame.new(sx * (bw / 2 + 0.2), 0.35, 0), Vector3.new(0.4, 0.7, 8.4), Color3.fromRGB(190, 188, 182), M.Concrete, { Name = "BedKerb", CanCollide = false })
+	end
 	-- a tree that fits between the walls (a shrub in a narrow gap)
 	Props.tree(parent, cf * CFrame.new(0, 0.6, 0), if w >= 16 then "street" else "bush", rng)
 	if w >= 12 then
@@ -281,15 +289,11 @@ end
 Blocks.half = half
 
 -- The service alley between the two rows of shop plots.
-function Blocks.plotAlley(parent: Instance, block, rng: Random)
+function Blocks.plotAlley(parent: Instance, block, _rng: Random)
 	local zMid = (block.z0 + block.z1) / 2
 	B.box(parent, CFrame.new((block.x0 + block.x1) / 2, WALK_Y + 0.02, zMid), Vector3.new(block.x1 - block.x0 - 2, 0.06, 7), P.asphaltLight, M.Asphalt, { CanCollide = false })
-	-- three dumpsters spread along the alley (never in each other)
-	for k = 1, 3 do
-		local x = block.x0 + (block.x1 - block.x0) * (k - 0.5) / 3 + Rand.range(rng, -12, 12)
-		local d = B.box(parent, CFrame.new(x, WALK_Y + 2.2, zMid), Vector3.new(6, 4.4, 3.4), Rand.pick(rng, { Color3.fromRGB(40, 110, 60), Color3.fromRGB(60, 60, 70), Color3.fromRGB(150, 60, 40) }), M.Metal)
-		d.Name = "Dumpster"
-	end
+	-- (the alley stays clear: the big green and red "dumpster" boxes that used to stand in the middle of
+	-- it looked like cubes dropped on the road, so there is nothing in it now)
 end
 
 -- Landmarks rarely need their whole half-block: the strips beside them along the street get real

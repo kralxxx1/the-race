@@ -71,7 +71,7 @@ Props.assetPlants = false -- (flowers, shrubs and pot plants from the same pack:
 
 local BROADLEAF = {
 	oak = { trunk = { 7, 9 }, trunkD = { 1.5, 2 }, crown = { 13, 17 }, tall = 0.8, blobs = { 9, 12 } },
-	street = { trunk = { 5, 6.5 }, trunkD = { 0.9, 1.2 }, crown = { 8.5, 11 }, tall = 0.95, blobs = { 6, 8 } },
+	street = { trunk = { 5, 6.5 }, trunkD = { 0.9, 1.2 }, crown = { 8.5, 11 }, tall = 0.95, blobs = { 6, 8 }, pavement = true },
 	birch = { trunk = { 7, 9 }, trunkD = { 0.7, 0.9 }, crown = { 8, 10.5 }, tall = 1.15, blobs = { 6, 8 }, bark = Color3.fromRGB(226, 222, 210), fresh = 0.35 },
 	forest = { trunk = { 10, 14 }, trunkD = { 2, 2.8 }, crown = { 18, 24 }, tall = 0.8, blobs = { 11, 15 } },
 }
@@ -81,7 +81,10 @@ local function broadleaf(m: Model, cf: CFrame, spec, r: Random)
 	local th = Rand.range(r, spec.trunk[1], spec.trunk[2])
 	local td = Rand.range(r, spec.trunkD[1], spec.trunkD[2])
 	-- the soil it grows from, a flared foot, the trunk in two tapering lengths
-	B.cylY(m, cf * CFrame.new(0, 0.08, 0), 0.16, td * 2.8, Color3.fromRGB(88, 70, 52), M.Ground, noCollide({ CanCollide = false }))
+	if not spec.pavement then
+		-- (a mat of dark grass round the foot of the trunk: no brown soil disc that could lie over a pavement)
+		B.cylY(m, cf * CFrame.new(0, 0.08, 0), 0.16, td * 2.8, Color3.fromRGB(64, 96, 48), M.Grass, noCollide({ CanCollide = false }))
+	end
 	B.cylY(m, cf * CFrame.new(0, 0.5, 0), 1, td * 1.45, bark, M.Wood)
 	B.cylY(m, cf * CFrame.new(0, th * 0.4, 0), th * 0.8, td, bark, M.Wood)
 	B.cylY(m, cf * CFrame.new(0, th * 0.82, 0), th * 0.4, td * 0.74, bark, M.Wood, noCollide())
@@ -727,43 +730,48 @@ function Props.shelf(parent: Instance, cf: CFrame, w: number, h: number, depth: 
 end
 
 -- A flat-panel monitor on its stand, 3.5 studs wide (a 27-inch for the shop's big-handed people): a
--- two-part plastic shell with a rear bulge and vents, a slim black bezel with a deeper chin that
--- carries the brand, the power LED and the buttons, the glass over the panel, a tilting neck with a
--- hinge, a heavy foot with a chrome edge and rubber pads, and a cable running off the back. The
--- picture is the "Screen" part's SurfaceGui (named ScreenGui, a TextLabel inside); the model's origin
--- is the middle of the foot on the desk and it faces -Z.
-function Props.monitor(parent: Instance, cf: CFrame, text: string?, glow: Color3?): Model
+-- slim two-part shell with a rear bulge and vents, a hair-thin bezel with a deeper chin that carries
+-- the brand, the power LED and the buttons, a webcam dot, glossy glass over the panel, a brushed
+-- aluminium arm and a wide foot with rubber pads, and a braided cable running off the back. The
+-- picture is a little desktop drawn in the "Screen" part's SurfaceGui (named ScreenGui): a "Bg"
+-- frame (the wallpaper), a big title ("Text"), a smaller body ("Body") and a taskbar; the text is
+-- scaled to the glass so it still reads from across the shop. The model's origin is the middle of
+-- the foot on the desk and it faces -Z.
+-- opts.style: "dark" (default) or "silver" (light aluminium shell, for the bench).
+function Props.monitor(parent: Instance, cf: CFrame, text: string?, glow: Color3?, opts: { [string]: any }?): Model
+	local o = opts or {}
 	local m = B.model("Monitor", parent)
-	local shell = Color3.fromRGB(28, 29, 33)
-	local shell2 = Color3.fromRGB(42, 44, 50)
-	local dark = Color3.fromRGB(14, 14, 17)
-	local chrome = Color3.fromRGB(168, 172, 180)
+	local silver = o.style == "silver"
+	local shell = if silver then Color3.fromRGB(206, 210, 218) else Color3.fromRGB(34, 36, 41)
+	local shell2 = if silver then Color3.fromRGB(176, 181, 190) else Color3.fromRGB(52, 55, 62)
+	local dark = Color3.fromRGB(12, 12, 15)
+	local chrome = Color3.fromRGB(190, 194, 202)
 	local nc = noCollide
 	local W, H = 3.5, 2.14 -- the panel's outside
 	local cy = 1.9 -- height of its middle above the desk
-	-- the foot: a heavy plate with a chrome edge strip in front and four rubber pads
-	B.box(m, cf * CFrame.new(0, 0.06, 0.38), Vector3.new(1.9, 0.12, 1.15), shell2, M.Metal)
-	B.box(m, cf * CFrame.new(0, 0.13, -0.17), Vector3.new(1.84, 0.04, 0.05), chrome, M.Metal, nc())
-	for _, px in { -0.8, 0.8 } do
-		for _, pz in { -0.05, 0.8 } do
-			B.box(m, cf * CFrame.new(px, 0.015, pz), Vector3.new(0.22, 0.03, 0.22), dark, M.Rubber, nc())
+	-- the foot: a wide brushed-aluminium plate with a polished front edge and four rubber pads
+	B.box(m, cf * CFrame.new(0, 0.05, 0.4), Vector3.new(2.0, 0.1, 1.2), shell2, M.Metal, nc({ Reflectance = 0.1 }))
+	B.box(m, cf * CFrame.new(0, 0.1, -0.2), Vector3.new(1.96, 0.05, 0.05), chrome, M.Metal, nc({ Reflectance = 0.3 }))
+	for _, px in { -0.85, 0.85 } do
+		for _, pz in { -0.05, 0.85 } do
+			B.box(m, cf * CFrame.new(px, 0.012, pz), Vector3.new(0.22, 0.024, 0.22), dark, M.SmoothPlastic, nc())
 		end
 	end
-	-- the neck: a cover over the foot's joint, then the stem leaning back to the hinge behind the panel
-	B.box(m, cf * CFrame.new(0, 0.26, 0.52), Vector3.new(0.78, 0.28, 0.5), shell, M.SmoothPlastic, nc())
+	-- the arm: a cover over the foot's joint, the stem leaning back, a cable channel down its spine
+	B.box(m, cf * CFrame.new(0, 0.24, 0.52), Vector3.new(0.7, 0.26, 0.46), shell2, M.Metal, nc({ Reflectance = 0.08 }))
 	local from, to = Vector3.new(0, 0.3, 0.55), Vector3.new(0, cy - 0.45, 0.42)
-	B.box(m, cf * CFrame.lookAt((from + to) / 2, to), Vector3.new(0.36, 0.14, (to - from).Magnitude), shell, M.SmoothPlastic, nc())
-	B.box(m, cf * CFrame.lookAt((from + to) / 2 + Vector3.new(0, 0, -0.075), to + Vector3.new(0, 0, -0.075)), Vector3.new(0.2, 0.05, (to - from).Magnitude * 0.92), shell2, M.Metal, nc())
-	B.cyl(m, cf * CFrame.new(0, cy - 0.45, 0.4), 0.7, 0.32, shell2, M.Metal, nc())
+	B.box(m, cf * CFrame.lookAt((from + to) / 2, to), Vector3.new(0.34, 0.13, (to - from).Magnitude), shell2, M.Metal, nc({ Reflectance = 0.08 }))
+	B.box(m, cf * CFrame.lookAt((from + to) / 2 + Vector3.new(0, 0, 0.075), to + Vector3.new(0, 0, 0.075)), Vector3.new(0.18, 0.05, (to - from).Magnitude * 0.9), dark, M.SmoothPlastic, nc())
+	B.cyl(m, cf * CFrame.new(0, cy - 0.45, 0.4), 0.62, 0.3, chrome, M.Metal, nc({ Reflectance = 0.25 }))
 	-- the panel's back shell with the rear bulge (where the electronics are) and cooling slots
-	B.box(m, cf * CFrame.new(0, cy, 0.17), Vector3.new(W, H, 0.2), shell, M.SmoothPlastic, nc())
-	B.box(m, cf * CFrame.new(0, cy - 0.12, 0.34), Vector3.new(1.9, 1.2, 0.2), shell2, M.SmoothPlastic, nc())
-	B.box(m, cf * CFrame.new(0, cy - 0.12, 0.45), Vector3.new(1.3, 0.8, 0.04), shell, M.Metal, nc())
-	for k = -2, 2 do
-		B.box(m, cf * CFrame.new(k * 0.16, cy + 0.72, 0.28), Vector3.new(0.07, 0.38, 0.04), dark, M.SmoothPlastic, nc())
+	B.box(m, cf * CFrame.new(0, cy, 0.16), Vector3.new(W, H, 0.18), shell, M.SmoothPlastic, nc({ Reflectance = 0.04 }))
+	B.box(m, cf * CFrame.new(0, cy - 0.1, 0.32), Vector3.new(1.9, 1.15, 0.18), shell2, M.SmoothPlastic, nc())
+	B.box(m, cf * CFrame.new(0, cy - 0.1, 0.42), Vector3.new(1.3, 0.78, 0.04), shell, M.Metal, nc())
+	for k = -3, 3 do
+		B.box(m, cf * CFrame.new(k * 0.14, cy + 0.74, 0.26), Vector3.new(0.06, 0.34, 0.04), dark, M.SmoothPlastic, nc())
 	end
 	-- the front: the bezel round the picture, deeper at the bottom (the chin)
-	local side, top, chin = 0.08, 0.08, 0.27
+	local side, top, chin = 0.06, 0.06, 0.24
 	local openW, openH = W - 2 * side, H - top - chin
 	local openY = cy + (H / 2 - top) - openH / 2
 	B.box(m, cf * CFrame.new(0, cy + H / 2 - top / 2, 0.0), Vector3.new(W, top, 0.16), dark, M.SmoothPlastic, nc())
@@ -771,23 +779,153 @@ function Props.monitor(parent: Instance, cf: CFrame, text: string?, glow: Color3
 	for _, sx in { -1, 1 } do
 		B.box(m, cf * CFrame.new(sx * (W / 2 - side / 2), openY, 0.0), Vector3.new(side, openH, 0.16), dark, M.SmoothPlastic, nc())
 	end
-	-- (a thin chrome line along the bottom of the bezel)
-	B.box(m, cf * CFrame.new(0, cy - H / 2 + 0.02, -0.075), Vector3.new(W - 0.1, 0.025, 0.02), chrome, M.Metal, nc())
-	-- the picture itself, lit from inside, with a clear glass pane over it
+	-- a thin polished line along the bottom of the bezel, a webcam dot at the top
+	B.box(m, cf * CFrame.new(0, cy - H / 2 + 0.015, -0.08), Vector3.new(W - 0.08, 0.02, 0.02), chrome, M.Metal, nc({ Reflectance = 0.3 }))
+	B.cyl(m, cf * CFrame.new(0, cy + H / 2 - top / 2, -0.081) * CFrame.Angles(0, math.rad(90), 0), 0.012, 0.035, Color3.fromRGB(8, 10, 14), M.Glass, nc())
+	-- the picture: a little desktop on the panel
 	local screen = B.box(m, cf * CFrame.new(0, openY, 0.02), Vector3.new(openW, openH, 0.04), dark, M.SmoothPlastic, nc({ Name = "Screen" }))
-	B.sign(screen, Enum.NormalId.Front, text or "", { name = "ScreenGui", glow = true, brightness = 1.2, pixelsPerStud = 56, color = Color3.fromRGB(220, 240, 255), background = glow or Color3.fromRGB(16, 40, 80), font = B.Fonts.Mono })
-	B.box(m, cf * CFrame.new(0, openY, -0.012), Vector3.new(openW, openH, 0.012), Color3.fromRGB(190, 210, 235), M.Glass, nc({ Name = "GlassPane", Transparency = 0.93, Reflectance = 0.1 }))
+	local wall = glow or Color3.fromRGB(16, 40, 80)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "ScreenGui"
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 72
+	gui.LightInfluence = 0
+	gui.Brightness = 1.4
+	gui.ClipsDescendants = true
+	-- (MaxDistance: the picture is drawn from anywhere in the shop, not only close up)
+	pcall(function()
+		(gui :: any).MaxDistance = 0
+	end)
+	local bg = Instance.new("Frame")
+	bg.Name = "Bg"
+	bg.Size = UDim2.fromScale(1, 1)
+	bg.BorderSizePixel = 0
+	bg.BackgroundColor3 = wall
+	local wallGradient = Instance.new("UIGradient")
+	wallGradient.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(150, 150, 150))
+	wallGradient.Rotation = 90
+	wallGradient.Parent = bg
+	bg.Parent = gui
+	local title = Instance.new("TextLabel")
+	title.Name = "Text"
+	title.BackgroundTransparency = 1
+	title.Position = UDim2.fromScale(0.04, 0.08)
+	title.Size = UDim2.fromScale(0.92, 0.4)
+	title.TextScaled = true
+	title.Text = ""
+	title.FontFace = B.Fonts.Heavy
+	title.TextColor3 = Color3.fromRGB(244, 250, 255)
+	title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	title.TextStrokeTransparency = 0.7
+	title.TextXAlignment = Enum.TextXAlignment.Center
+	title.TextYAlignment = Enum.TextYAlignment.Center
+	title.Parent = gui
+	local body = Instance.new("TextLabel")
+	body.Name = "Body"
+	body.BackgroundTransparency = 1
+	body.Position = UDim2.fromScale(0.06, 0.5)
+	body.Size = UDim2.fromScale(0.88, 0.34)
+	body.TextScaled = true
+	body.Text = ""
+	body.FontFace = B.Fonts.Mono
+	body.TextColor3 = Color3.fromRGB(206, 228, 255)
+	body.TextWrapped = true
+	body.TextXAlignment = Enum.TextXAlignment.Center
+	body.TextYAlignment = Enum.TextYAlignment.Top
+	local bodyLimit = Instance.new("UITextSizeConstraint")
+	bodyLimit.MaxTextSize = 30
+	bodyLimit.MinTextSize = 6
+	bodyLimit.Parent = body
+	body.Parent = gui
+	local bar = Instance.new("Frame")
+	bar.Name = "Taskbar"
+	bar.Position = UDim2.fromScale(0, 0.88)
+	bar.Size = UDim2.fromScale(1, 0.12)
+	bar.BorderSizePixel = 0
+	bar.BackgroundColor3 = Color3.fromRGB(14, 18, 28)
+	bar.BackgroundTransparency = 0.1
+	bar.Parent = gui
+	local start = Instance.new("Frame")
+	start.Name = "Start"
+	start.Position = UDim2.fromScale(0.02, 0.2)
+	start.Size = UDim2.fromScale(0.05, 0.6)
+	start.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	start.BorderSizePixel = 0
+	start.BackgroundColor3 = Color3.fromRGB(70, 160, 255)
+	start.Parent = bar
+	local clock = Instance.new("TextLabel")
+	clock.Name = "Clock"
+	clock.BackgroundTransparency = 1
+	clock.AnchorPoint = Vector2.new(1, 0.5)
+	clock.Position = UDim2.fromScale(0.98, 0.5)
+	clock.Size = UDim2.fromScale(0.2, 0.7)
+	clock.TextScaled = true
+	clock.Text = "12:00"
+	clock.FontFace = B.Fonts.Mono
+	clock.TextColor3 = Color3.fromRGB(220, 232, 255)
+	clock.TextXAlignment = Enum.TextXAlignment.Right
+	clock.Parent = bar
+	gui.Parent = screen
+	-- what it shows to begin with (BenchViews.monitor changes it as the job goes on)
+	Props.monitorShow(screen, text or "", wall)
+	-- the glass: glossy and clear (no Glass material, which would hide the rain behind it)
+	B.box(m, cf * CFrame.new(0, openY, -0.012), Vector3.new(openW, openH, 0.012), Color3.fromRGB(205, 220, 240), M.SmoothPlastic, nc({ Name = "GlassPane", Transparency = 0.88, Reflectance = 0.22, CastShadow = false }))
+	-- the picture lights the desk in front of it a little
+	if o.light ~= false then
+		local lamp = B.box(m, cf * CFrame.new(0, openY, -0.05), Vector3.new(0.2, 0.2, 0.02), Color3.new(1, 1, 1), M.SmoothPlastic, nc({ Name = "ScreenGlow", Transparency = 1, CastShadow = false }))
+		B.surfaceLight(lamp, Enum.NormalId.Front, 9, 110, 0.5, wall:Lerp(Color3.new(1, 1, 1), 0.45))
+	end
 	-- the chin: the maker's name, the power light and three little buttons
-	local plate = B.box(m, cf * CFrame.new(-W / 2 + 0.62, cy - H / 2 + chin / 2, -0.083), Vector3.new(0.9, 0.12, 0.01), dark, M.SmoothPlastic, nc({ Name = "Brand" }))
-	B.sign(plate, Enum.NormalId.Front, "PC·REPAIR", { color = Color3.fromRGB(176, 180, 190), font = B.Fonts.Heavy, pixelsPerStud = 90, padding = 0.04 })
+	local plate = B.box(m, cf * CFrame.new(-W / 2 + 0.62, cy - H / 2 + chin / 2, -0.083), Vector3.new(0.9, 0.1, 0.01), dark, M.SmoothPlastic, nc({ Name = "Brand" }))
+	B.sign(plate, Enum.NormalId.Front, "PC·REPAIR", { color = Color3.fromRGB(176, 180, 190), font = B.Fonts.Heavy, pixelsPerStud = 120, padding = 0.04 })
 	B.box(m, cf * CFrame.new(W / 2 - 0.3, cy - H / 2 + chin / 2, -0.083), Vector3.new(0.05, 0.05, 0.015), Color3.fromRGB(70, 255, 120), M.Neon, nc({ Name = "MonitorLed" }))
 	for k = 1, 3 do
-		B.box(m, cf * CFrame.new(W / 2 - 0.5 - k * 0.16, cy - H / 2 + chin / 2 - 0.02, -0.083), Vector3.new(0.09, 0.05, 0.015), shell2, M.SmoothPlastic, nc())
+		B.box(m, cf * CFrame.new(W / 2 - 0.5 - k * 0.16, cy - H / 2 + chin / 2 - 0.01, -0.083), Vector3.new(0.09, 0.04, 0.015), shell2, M.SmoothPlastic, nc())
 	end
-	-- the cable: out of the back of the neck, down to the desk and away behind it
-	B.cylY(m, cf * CFrame.new(0.12, cy - 1.0, 0.56), 0.9, 0.06, dark, M.Rubber, nc())
-	B.cyl(m, cf * CFrame.new(0.12, 0.1, 0.9) * CFrame.Angles(0, math.pi / 2, 0), 0.8, 0.06, dark, M.Rubber, nc())
+	-- the cables: a braided one out of the back of the arm, down to the desk and away behind it
+	B.cylY(m, cf * CFrame.new(0.12, cy - 1.0, 0.56), 0.9, 0.06, dark, M.SmoothPlastic, nc())
+	B.cyl(m, cf * CFrame.new(0.12, 0.08, 0.95) * CFrame.Angles(0, math.pi / 2, 0), 0.8, 0.06, dark, M.SmoothPlastic, nc())
 	return m
+end
+
+-- Sets what a monitor's Screen part shows: the first line is the big title, the rest the smaller body
+-- text. "" turns it off (a dark glass, the wallpaper hidden). `wall` is the wallpaper colour.
+function Props.monitorShow(screen: Instance, text: string, wall: Color3?)
+	local gui = screen:FindFirstChild("ScreenGui")
+	if not gui then
+		return
+	end
+	local bg = gui:FindFirstChild("Bg") :: Frame?
+	local title = gui:FindFirstChild("Text") :: TextLabel?
+	local body = gui:FindFirstChild("Body") :: TextLabel?
+	local bar = gui:FindFirstChild("Taskbar") :: Frame?
+	if not (bg and title and body and bar) then
+		return
+	end
+	local off = text == "" and wall ~= nil and (wall.R + wall.G + wall.B) < 0.12
+	if bg then
+		bg.BackgroundColor3 = wall or bg.BackgroundColor3
+	end
+	if off then
+		title.Text = ""
+		body.Text = ""
+		bar.Visible = false
+		bg.BackgroundColor3 = Color3.fromRGB(6, 6, 8)
+		return
+	end
+	local first, rest = string.match(text, "^([^\n]*)\n*(.*)$")
+	title.Text = first or text
+	body.Text = rest or ""
+	bar.Visible = true
+	-- (a lone title is centred in the panel, with a body under it the title sits higher)
+	if (rest or "") == "" then
+		title.Position = UDim2.fromScale(0.04, 0.22)
+		title.Size = UDim2.fromScale(0.92, 0.5)
+	else
+		title.Position = UDim2.fromScale(0.04, 0.08)
+		title.Size = UDim2.fromScale(0.92, 0.4)
+	end
 end
 
 function Props.counter(parent: Instance, cf: CFrame, w: number, color: any?, top: any?): Model

@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local PCModel = require(Shared.Models.PCModel)
+local Props = require(Shared.Models.Props)
 local Rules = require(Shared.Repair.RepairRules)
 local Signal = require(Shared.Util.Signal)
 local S = require(script.Parent.Parent.Strings)
@@ -62,6 +63,8 @@ function BenchViews.apply(bench: Model, view: any, rev: number?)
 	end
 	if not view then
 		destroyView(bench)
+		-- (nothing on the bench any more: the monitor goes back to its idle desktop)
+		BenchViews.monitor(bench, "PC REPAIR\nBench ready", Color3.fromRGB(14, 52, 96))
 		return
 	end
 	local root = rootOf(bench)
@@ -145,21 +148,14 @@ end
 ----------------------------------------------------------------------------------------------------
 -- Power-on effects
 ----------------------------------------------------------------------------------------------------
+-- What the bench monitor shows: the first line is the big title (it fills the glass, so it reads from
+-- across the shop and from the zoomed-out camera), the lines after it the smaller text; "" turns the
+-- screen off. `bg` is the wallpaper colour.
 function BenchViews.monitor(bench: Model, text: string, bg: Color3?)
 	local mon = bench:FindFirstChild("BenchMonitor")
 	local screen = mon and mon:FindFirstChild("Screen")
-	local gui = screen and screen:FindFirstChild("ScreenGui")
-	local label = gui and gui:FindFirstChildWhichIsA("TextLabel")
-	if label then
-		label.Text = text
-		label.TextXAlignment = Enum.TextXAlignment.Left
-		label.TextYAlignment = Enum.TextYAlignment.Top
-		label.TextScaled = false
-		label.TextSize = 13
-		label.TextWrapped = true
-		if bg then
-			label.BackgroundColor3 = bg
-		end
+	if screen then
+		Props.monitorShow(screen, text, bg)
 	end
 end
 

@@ -68,11 +68,17 @@ local function dumpParts(root, center: any?, radius: number?)
 				if hasGui then
 					local gui = d:FindFirstChildOfClass("SurfaceGui")
 					local tl = gui:FindFirstChildOfClass("TextLabel")
+					local wallBg = gui:FindFirstChild("Bg")
 					if tl then
 						local okG, glow = pcall(function()
 							return gui.LightInfluence == 0
 						end)
-						label = { text = tl.Text, face = gui.Face.Name, color = hex(tl.TextColor3), bg = if tl.BackgroundTransparency < 1 then hex(tl.BackgroundColor3) else nil, glow = okG and glow or nil }
+						local body = gui:FindFirstChild("Body")
+						local shown = tl.Text
+						if body and body.Text ~= "" then
+							shown = shown .. "\n" .. body.Text
+						end
+						label = { text = shown, face = gui.Face.Name, color = hex(tl.TextColor3), bg = if wallBg then hex(wallBg.BackgroundColor3) elseif tl.BackgroundTransparency < 1 then hex(tl.BackgroundColor3) else nil, glow = okG and glow or nil }
 					end
 				end
 				-- MeshParts: the mesh and its texture (ids), drawn by the previewer
@@ -448,6 +454,27 @@ elseif what == "people" then
 	end
 	result.parts = dumpParts(folder)
 	outName = "people"
+elseif what == "bench" then
+	-- one workbench with its monitor, keyboard, shelf and chair: lune run tools/dump.luau bench
+	local ShopBuilder = Engine.mod("ReplicatedStorage.Shared.Models.ShopBuilder")
+	local Mock = require("../tests/lib/Mock")
+	local folder = roblox.Instance.new("Folder")
+	folder.Parent = Engine.workspace
+	local floor = roblox.Instance.new("Part")
+	floor.Anchored = true
+	floor.Size = roblox.Vector3.new(40, 0.4, 24)
+	floor.CFrame = roblox.CFrame.new(0, -0.2, 0)
+	floor.Color = roblox.Color3.fromRGB(176, 170, 160)
+	floor.Parent = folder
+	local wall = roblox.Instance.new("Part")
+	wall.Anchored = true
+	wall.Size = roblox.Vector3.new(40, 16, 0.5)
+	wall.CFrame = roblox.CFrame.new(0, 8, 4.4)
+	wall.Color = roblox.Color3.fromRGB(226, 222, 214)
+	wall.Parent = folder
+	ShopBuilder.workbench(folder, roblox.CFrame.new(0, 0, 0), 1, { bench_mat = true, bench_led = true, tool_wall = true }, Mock.Random.new(3))
+	result.parts = dumpParts(folder)
+	outName = "bench"
 elseif what == "monitor" then
 	-- the bench monitor with a picture: lune run tools/dump.luau monitor
 	local Props = Engine.mod("ReplicatedStorage.Shared.Models.Props")
@@ -459,7 +486,7 @@ elseif what == "monitor" then
 	desk.CFrame = roblox.CFrame.new(0, -0.3, 0)
 	desk.Color = roblox.Color3.fromRGB(150, 110, 70)
 	desk.Parent = folder
-	local m = Props.monitor(folder, roblox.CFrame.new(0, 0, 0), "Windows\n\nStarting up...", roblox.Color3.fromRGB(0, 90, 170))
+	local m = Props.monitor(folder, roblox.CFrame.new(0, 0, 0), "Windows\n\nStarting up...", roblox.Color3.fromRGB(0, 90, 170), { style = process.args[2] })
 	result.parts = dumpParts(folder)
 	outName = "monitor"
 elseif what == "umbrellas" then

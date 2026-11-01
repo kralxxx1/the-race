@@ -52,7 +52,15 @@ local function basePart(className: string, parent: Instance?, cf: CFrame, size: 
 	p.Size = size
 	p.CFrame = cf
 	p.Color = Builder.color(color)
-	p.Material = material or DEFAULT_MATERIAL
+	-- Windows and other "glass" are clear, slightly glossy plastic: the Glass material hides everything
+	-- drawn behind it in this lighting (the rain, the people and cars outside), so from indoors a
+	-- window would show no rain while an open door does.
+	if material == Enum.Material.Glass then
+		p.Material = Enum.Material.SmoothPlastic
+		p.Reflectance = 0.1
+	else
+		p.Material = material or DEFAULT_MATERIAL
+	end
 	applyProps(p, props)
 	if parent then
 		p.Parent = parent
