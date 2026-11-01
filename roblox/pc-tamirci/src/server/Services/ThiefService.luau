@@ -294,7 +294,7 @@ local function visit(player: Player)
 	local _, protect = security(player)
 	local look = if rng:NextNumber() < 0.5 then "thief" else "shady"
 	local name, gender = Customers.randomName(rng, false, NpcService.pickGender(look, rng))
-	local model = NpcService.spawn({ look = look, gender = gender, name = name, cf = street.CFrame * CFrame.new(Rand.range(rng, -40, 40), 3, 0), speed = 9 })
+	local model = NpcService.spawn({ look = look, gender = gender, name = name, cf = street.CFrame * CFrame.new(Rand.range(rng, -40, 40), 3, 0), speed = 9, owner = player })
 	model:SetAttribute("Thief", true)
 	model:AddTag("Runner")
 	local t = { model = model, owner = player, phase = "sneak" }
@@ -409,7 +409,7 @@ local function burgle(player: Player)
 	local it = prof.shop.items
 	local _, protect = security(player)
 	local name, gender = Customers.randomName(rng, false, NpcService.pickGender("thief", rng))
-	local model = NpcService.spawn({ look = "thief", gender = gender, name = name, cf = street.CFrame * CFrame.new(Rand.range(rng, -40, 40), 3, 0), speed = 8 })
+	local model = NpcService.spawn({ look = "thief", gender = gender, name = name, cf = street.CFrame * CFrame.new(Rand.range(rng, -40, 40), 3, 0), speed = 8, owner = player })
 	model:SetAttribute("Thief", true)
 	model:SetAttribute("Burglar", true)
 	model:AddTag("Runner")

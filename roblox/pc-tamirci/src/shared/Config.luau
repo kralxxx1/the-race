@@ -44,6 +44,15 @@ local Config = {
 	-- people of the city: built from our own parts (true: the catalog's realistic bodies, which show a
 	-- pale, staring face in the game); how many different people stand ready for the street crowd
 	RealisticNpcs = false,
+	-- the people of the city are the player's own Roblox friends: their real avatars and display
+	-- names (up to FriendsPerOwner built on the server for each player's customers and staff,
+	-- FriendsStreet built by each client for its street crowd). Without friends the plain people
+	-- below are used.
+	FriendNpcs = true,
+	FriendsPerOwner = 14,
+	FriendsStreet = 24,
+	-- hats, hoods, masks, glasses and other bits we modelled ourselves on the plain people (false: none)
+	PartAccessories = false,
 	StreetPeople = 120, -- gerçek dakika (sırada bunun %35'i kadar beklerler)
 	MaxCustomersPerServer = 140,
 	ReviewHistory = 40,

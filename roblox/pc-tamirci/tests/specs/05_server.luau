@@ -557,6 +557,86 @@ return function(T)
 		PlotService.build(player)
 	end)
 
+	T.test("server: staff with no customer take on small chores (shelf, display, waiting corner, door, order sheets) and go back to their post", function()
+		local CollectionService = game:GetService("CollectionService")
+		local p = DataService.get(player)
+		p.shop.level = 4
+		local function rec(role: string, uid: string)
+			return { uid = uid, role = role, name = role, gender = "f", skill = 3, wage = 100, trait = "calm", trait2 = "punctual", edu = "highschool", morale = 70, days = 0, xp = 0, look = 7 }
+		end
+		local function staffModel(role: string)
+			for _, m in CollectionService:GetTagged("Staff") do
+				if m:GetAttribute("Staff") == role then
+					return m
+				end
+			end
+			return nil
+		end
+		T.ok(#EmployeeService.CHORES >= 5, "chores: " .. #EmployeeService.CHORES)
+		local old = {}
+		for i, c in EmployeeService.CHORES do
+			old[i] = c.secs
+			c.secs = 0.5
+		end
+		local seen, finished = {}, 0
+		for _, role in { "manager", "cleaner", "security" } do
+			p.staff = { rec(role, "chore_" .. role) }
+			PlotService.build(player)
+			local who = waitFor(function()
+				return staffModel(role)
+			end, 5, role .. " in the shop")
+			local s = EmployeeService._staff(player)["chore_" .. role]
+			T.ok(s ~= nil, "the staff entry of " .. role)
+			local home = who.PrimaryPart.Position
+			for _ = 1, 4 do
+				local done = false
+				task.spawn(function()
+					EmployeeService._choreOnce(player, s)
+					done = true
+				end)
+				local t0 = os.clock()
+				while not done and os.clock() - t0 < 40 do
+					local d = who:GetAttribute("Doing")
+					if d then
+						seen[d] = true
+					end
+					task.wait(0.1)
+				end
+				T.ok(done, role .. " finished the chore")
+				finished += 1
+				T.ok(who:GetAttribute("Doing") == nil, role .. " puts the work down")
+				local back = (who.PrimaryPart.Position - home).Magnitude
+				T.ok(back < 4, role .. " is back at the post: " .. string.format("%.1f", back) .. " studs away")
+			end
+			-- a customer coming to the counter ends a chore at once and the person stays free for them
+			local done = false
+			task.spawn(function()
+				EmployeeService._choreOnce(player, s)
+				done = true
+			end)
+			task.wait(0.5)
+			s.serving = true
+			local t0 = os.clock()
+			while not done and os.clock() - t0 < 12 do
+				task.wait(0.1)
+			end
+			T.ok(done, role .. " drops the chore when a customer comes")
+			T.ok(who:GetAttribute("Doing") == nil, role .. " is not mid-chore")
+			s.serving = false
+		end
+		local kinds = 0
+		for _ in seen do
+			kinds += 1
+		end
+		T.ok(kinds >= 2, "different chores were seen: " .. kinds)
+		T.ok(finished >= 12, "chores done: " .. finished)
+		for i, c in EmployeeService.CHORES do
+			c.secs = old[i]
+		end
+		p.staff = {}
+		PlotService.build(player)
+	end)
+
 	T.test("server: settings are checked and the difficulty changes the numbers", function()
 		local Config = Engine.mod("ReplicatedStorage.Shared.Config")
 		local p = DataService.get(player)
@@ -621,7 +701,24 @@ return function(T)
 		s.next = 0
 		-- whoever comes (the odd seller of stolen goods is sent away), somebody ends up served and the
 		-- device repaired and paid for without the owner touching a thing
+		local faced, atCounter = 0, 0
+		local counterBack = PlotService.shopOf(player).points:FindFirstChild("CounterBack")
+		local counterFront = PlotService.shopOf(player).points:FindFirstChild("CounterFront")
 		waitFor(function()
+			-- (a customer collecting their device stands at the counter looking at the till, not off to the side)
+			for _, c in s.list do
+				if c.state == "pickup" and c.model and c.model.PrimaryPart and counterBack and counterFront then
+					local pos = c.model.PrimaryPart.Position
+					if (roblox.Vector3.new(pos.X, 0, pos.Z) - roblox.Vector3.new(counterFront.Position.X, 0, counterFront.Position.Z)).Magnitude < 3.5 then
+						atCounter += 1
+						local want = roblox.Vector3.new(counterBack.Position.X - pos.X, 0, counterBack.Position.Z - pos.Z).Unit
+						local look = c.model.PrimaryPart.CFrame.LookVector
+						if want:Dot(roblox.Vector3.new(look.X, 0, look.Z).Unit) > 0.85 then
+							faced += 1
+						end
+					end
+				end
+			end
 			if p.stats.repairs > repairs0 then
 				return true
 			end
@@ -631,6 +728,9 @@ return function(T)
 			return false
 		end, 60, "a customer served, repaired and paid with nobody but the staff")
 		T.ok(p.money > money0 or p.stats.repairs > repairs0, "paid")
+		if atCounter > 0 then
+			T.ok(faced >= atCounter * 0.7, "the customer faces the till while collecting the device: " .. faced .. " of " .. atCounter .. " looks")
+		end
 		EmployeeService.stepScale, EmployeeService.counterDelay = old, oldDelay
 		p.staff = {}
 		PlotService.build(player)

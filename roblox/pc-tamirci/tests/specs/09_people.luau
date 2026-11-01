@@ -4,6 +4,8 @@
 local Engine = require("../lib/Engine")
 local Mock = require("../lib/Mock")
 local task = require("@lune/task")
+local roblox = require("@lune/roblox")
+local Enum = roblox.Enum
 
 return function(T)
 	Engine.context = "server"
@@ -88,7 +90,7 @@ return function(T)
 					T.ok(d.Size.Magnitude < 8, look .. ": a part of " .. d.Name .. " is huge")
 				end
 			end
-			T.ok(parts >= 18 and parts <= 90, look .. ": " .. parts .. " parts")
+			T.ok(parts >= 14 and parts <= 90, look .. ": " .. parts .. " parts")
 			-- the skin is a real skin tone, never the mannequin grey
 			local c = head.Color
 			T.ok(not (math.abs(c.R - c.G) < 0.015 and math.abs(c.G - c.B) < 0.015 and c.R > 0.55 and c.R < 0.7), look .. ": a grey head")
@@ -100,6 +102,116 @@ return function(T)
 			n += 1
 		end
 		T.ok(n >= 60, "the 90 people wear only " .. n .. " different tops")
+	end)
+
+	T.test("people: the people of a player's city are that player's own Roblox friends (real avatars, their display names)", function()
+		local Friends = Engine.mod("ReplicatedStorage.Shared.Util.Friends")
+		local FriendCrowd = Engine.mod("ServerScriptService.Server.Services.FriendCrowd")
+		local Players = game:GetService("Players")
+		local names = { "Alex", "Bora", "Cleo", "Dani", "Eli", "Faye", "Gus" }
+		local old = Friends.provider
+		local fetched = 0
+		Friends.provider = {
+			list = function(_userId, max)
+				local out = {}
+				for i, n in names do
+					if i <= max then
+						table.insert(out, { id = 5000 + i, name = n:lower() .. "_rbx", display = n })
+					end
+				end
+				return out
+			end,
+			avatar = function(_id)
+				fetched += 1
+				return Players:CreateHumanoidModelFromDescription(roblox.Instance.new("HumanoidDescription"), Enum.HumanoidRigType.R15)
+			end,
+		}
+		local me = Engine.addPlayer("Friendly")
+		FriendCrowd.load(me)
+		local waited = 0
+		while FriendCrowd.count(me) < #names and waited < 400 do
+			task.wait(0.05)
+			waited += 1
+		end
+		T.eq(FriendCrowd.count(me), #names, "every friend's avatar was built")
+		T.eq(fetched, #names, "one fetch per friend")
+		-- people spawned for that player are the friends: their own look, their own name over the head
+		local seen, shown = {}, {}
+		for i = 1, 14 do
+			local m = Npc.spawn({ look = "casual", gender = "m", owner = me })
+			T.ok(m:GetAttribute("Friend") ~= nil, "a friend's avatar")
+			local fname = m:GetAttribute("FriendName")
+			T.ok(table.find(names, fname) ~= nil, "a friend's display name: " .. tostring(fname))
+			T.eq(m.Name, fname, "named like the friend")
+			T.ok(m:GetAttribute("Plain") == true and m:FindFirstChild("Animate") == nil, "no stock animation script, no retinting")
+			seen[fname] = true
+			shown[i] = m
+		end
+		local distinct = 0
+		for _ in seen do
+			distinct += 1
+		end
+		T.ok(distinct >= 6, "the crowd is varied: " .. distinct .. " different friends in 14 people")
+		for _, m in shown do
+			m:Destroy()
+		end
+		-- the same staff member always looks like the same friend; a thief keeps a name of their own
+		local a = Npc.spawn({ look = "technician", gender = "f", owner = me, friendSeed = 4242 })
+		local b = Npc.spawn({ look = "technician", gender = "f", owner = me, friendSeed = 4242 })
+		T.eq(a:GetAttribute("Friend"), b:GetAttribute("Friend"), "the same seed, the same friend")
+		local thief = Npc.spawn({ look = "thief", gender = "m", owner = me, name = "Shady Max" })
+		T.eq(thief.Name, "Shady Max", "a thief is not named after a friend")
+		a:Destroy()
+		b:Destroy()
+		thief:Destroy()
+		-- somebody without friends gets the plain people, with no hats of our own making
+		local lonely = Engine.addPlayer("Lonely")
+		T.eq(FriendCrowd.count(lonely), 0, "no friends, no pool")
+		Config.FriendNpcs = false
+		local plain = Npc.spawn({ look = "construction", gender = "m", owner = lonely })
+		T.ok(plain:GetAttribute("Friend") == nil and plain:GetAttribute("Plain") == true, "a plain person when friends are off")
+		local head = plain:FindFirstChild("Head")
+		for _, d in plain:GetDescendants() do
+			if d:IsA("BasePart") and d.Parent == head then
+				T.ok(d.Name ~= "Balaclava" and d.Name ~= "Hat" and d.Name ~= "Hood", "no hat or mask of ours on a plain person: " .. d.Name)
+			end
+		end
+		plain:Destroy()
+		Config.FriendNpcs = true
+		-- a person from the shared street pool for the lonely (a friend of somebody else is fine for a public clerk)
+		local clerk = Npc.spawn({ look = "shopkeeper", gender = "f" })
+		T.ok(clerk:GetAttribute("Friend") ~= nil, "a public clerk is one of somebody's friends")
+		clerk:Destroy()
+		Friends.provider = old
+	end)
+
+	T.test("people: plain people (nobody to be) wear no hats, hoods or masks of ours and no puffs of hair", function()
+		Config.FriendNpcs = false
+		local rng = Mock.Random.new(31)
+		local names = {}
+		for name in Npc.Looks do
+			table.insert(names, name)
+		end
+		table.sort(names)
+		local bad = 0
+		for i = 1, 200 do
+			local look = names[(i - 1) % #names + 1]
+			local person = Npc.plain(look, if i % 2 == 0 then "m" else "f", rng)
+			local head = person:FindFirstChild("Head")
+			for _, d in head:GetDescendants() do
+				if d:IsA("BasePart") and (d.Name == "Balaclava" or d.Name == "Hat" or d.Name == "Hood") then
+					bad += 1
+				end
+			end
+			for _, d in head:GetChildren() do
+				if d:IsA("BasePart") and d.Size.X > head.Size.X * 1.45 then
+					bad += 1 -- (a puff of hair or a brim much wider than the head)
+				end
+			end
+			person:Destroy()
+		end
+		T.eq(bad, 0, "hats, masks or puffs on plain people")
+		Config.FriendNpcs = true
 	end)
 
 	T.test("people: the street crowd for the clients is a pool of different people", function()

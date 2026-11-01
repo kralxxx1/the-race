@@ -23,6 +23,7 @@ local Umbrella = require(Shared.Models.Umbrella)
 
 local Ambience = require(script.Parent.Ambience)
 local Weather = require(script.Parent.Weather)
+local FriendCrowd = require(script.Parent.FriendCrowd)
 
 local Traffic = {}
 
@@ -143,13 +144,20 @@ end
 -- A copy of a random street avatar with its own skin tone: anchored root, no physics, no
 -- collisions. Returns nil until the server has published the avatars.
 local function person(role: string?): (Model?, BasePart?, Animator?, number)
-	local avatars = ReplicatedStorage:FindFirstChild("Avatars")
-	local all = if avatars then avatars:GetChildren() else {}
-	-- (the pool holds a few traffic officers; they are only handed out as officers)
+	-- the people of the street are this player's own friends (their real avatars, built in the
+	-- background by FriendCrowd); the server's plain people are what is used until the first friend is
+	-- ready, for a player without friends, and for the uniformed traffic officers
 	local list = {}
-	for _, a in all do
-		if (a:GetAttribute("Cop") == true) == (role == "cop") then
-			table.insert(list, a)
+	if role ~= "cop" and FriendCrowd.count() > 0 then
+		list = FriendCrowd.templates()
+	else
+		local avatars = ReplicatedStorage:FindFirstChild("Avatars")
+		local all = if avatars then avatars:GetChildren() else {}
+		-- (the pool holds a few traffic officers; they are only handed out as officers)
+		for _, a in all do
+			if (a:GetAttribute("Cop") == true) == (role == "cop") then
+				table.insert(list, a)
+			end
 		end
 	end
 	if #list == 0 then

@@ -201,6 +201,123 @@ local function despawnAll(player: Player)
 	end
 end
 
+----------------------------------------------------------------------------------------------------
+-- Chores between customers
+----------------------------------------------------------------------------------------------------
+-- Nobody stands frozen at their spot: every so often, while no customer is waiting, somebody who
+-- works in the shop steps over to something -- a shelf to straighten, a display to dust, the chairs
+-- in the waiting corner, the door to look at the street, the order sheets -- does that small job for
+-- a few seconds (their hands go through it, see NpcPoses) and goes back to where they belong. A
+-- customer arriving ends the chore at once.
+local CHORES = {
+	{ points = { "Shelf_1", "Shelf_2", "Shelf_3" }, kind = "stock", text = "Straightening the shelf", secs = 9 },
+	{ points = { "Showcase_1", "Showcase_2", "Showcase_3", "Showcase_4" }, kind = "wipe", text = "Dusting the display", secs = 7 },
+	{ points = { "Seat_1", "Seat_2", "Seat_3" }, kind = "wipe", text = "Tidying the waiting corner", secs = 6 },
+	{ points = { "Door" }, kind = "look", text = "Watching the street", secs = 6, face = "Outside" },
+	{ points = { "CounterSideF", "CounterSideB" }, kind = "clipboard", text = "Checking the orders", secs = 8 },
+}
+EmployeeService.CHORES = CHORES
+
+local function interrupted(player: Player, s): boolean
+	return s.stop or s.serving or s.busy or not player.Parent or not s.model or not NpcService.alive(s.model) or CustomerService.waiting(player) > 0
+end
+
+-- Walks in short hops (so a customer arriving can end the walk at the next hop); false when it was ended.
+local function walkHops(player: Player, s, goal: Vector3): boolean
+	for _ = 1, 8 do
+		if interrupted(player, s) then
+			return false
+		end
+		local root = s.model.PrimaryPart
+		if not root then
+			return false
+		end
+		local here = root.Position
+		local flat = Vector3.new(goal.X - here.X, 0, goal.Z - here.Z)
+		if flat.Magnitude < 1.2 then
+			return true
+		end
+		local hop = here + flat.Unit * math.min(flat.Magnitude, 9)
+		NpcService.walkTo(s.model, Vector3.new(hop.X, goal.Y, hop.Z))
+	end
+	return true
+end
+
+local function choreOnce(player: Player, s)
+	local spot = spotFor(player, s)
+	if not spot then
+		return
+	end
+	-- (the ones at the counter or in the guard post keep their post most of the time)
+	local chore = CHORES[rng:NextInteger(1, #CHORES)]
+	local pt: BasePart? = nil
+	local order = table.clone(chore.points)
+	for i = #order, 2, -1 do
+		local j = rng:NextInteger(1, i)
+		order[i], order[j] = order[j], order[i]
+	end
+	for _, name in order do
+		pt = point(player, name)
+		if pt then
+			break
+		end
+	end
+	if not pt then
+		return
+	end
+	s.chore = true
+	local ok = walkHops(player, s, pt.Position)
+	if ok then
+		-- face what they are working on (the door: the street; a shelf or a display: it)
+		local look = if chore.face then point(player, chore.face) else nil
+		if look then
+			NpcService.face(s.model, look.Position)
+		elseif pt.Name == "Door" then
+			NpcService.face(s.model, pt.Position + pt.CFrame.LookVector * 10)
+		else
+			NpcService.face(s.model, pt.Position + pt.CFrame.LookVector * -6)
+		end
+		NpcService.work(s.model, chore.kind, nil, chore.text)
+		local t0 = os.clock()
+		while os.clock() - t0 < chore.secs + rng:NextNumber() * 3 and not interrupted(player, s) do
+			task.wait(0.5)
+		end
+		NpcService.work(s.model, nil)
+	end
+	-- and back to their own place
+	if s.model and NpcService.alive(s.model) and not s.stop and not s.serving and not s.busy then
+		NpcService.work(s.model, nil)
+		if walkHops(player, s, spot.Position) and not s.serving then
+			NpcService.stand(s.model, spot)
+		end
+	end
+	s.chore = false
+end
+
+EmployeeService._choreOnce = choreOnce
+EmployeeService._staff = function(player: Player)
+	return staff[player]
+end
+
+local function choreLoop(player: Player, s, token: number)
+	task.wait(6 + rng:NextNumber() * 12)
+	while s.choreToken == token and not s.stop and player.Parent do
+		task.wait(12 + rng:NextNumber() * 14)
+		if s.choreToken ~= token then
+			break
+		end
+		local role = Employees.roles[s.rec.role]
+		if role and not role.bench and not remote(s.rec) and not interrupted(player, s) and not s.chore then
+			local ok, err = pcall(choreOnce, player, s)
+			if not ok then
+				warn("[EmployeeService] a chore failed: " .. tostring(err))
+				s.chore = false
+				pcall(NpcService.work, s.model, nil)
+			end
+		end
+	end
+end
+
 local function spawnOne(player: Player, s)
 	local shop = PlotService.shopOf(player)
 	if not shop or s.model then
@@ -210,9 +327,12 @@ local function spawnOne(player: Player, s)
 	local role = Employees.roles[rec.role]
 	local spot = spotFor(player, s)
 	local cf = if spot then spot + Vector3.new(0, 3, 0) else shop.info.front * CFrame.new(0, 3, 6)
-	s.model = NpcService.spawn({ look = role and role.look or "casual", gender = rec.gender, name = rec.name, seed = rec.look, cf = cf, tag = "Staff", speed = 11 })
+	s.model = NpcService.spawn({ look = role and role.look or "casual", gender = rec.gender, name = rec.name, seed = rec.look, cf = cf, tag = "Staff", speed = 11, owner = player, friendSeed = rec.look })
 	s.model:SetAttribute("Staff", rec.role)
 	NpcService.tag(s.model, (role and role.icon or "") .. " " .. rec.name)
+	-- (the chores: every time somebody is put in the shop a fresh loop starts and an older one ends)
+	s.choreToken = (s.choreToken or 0) + 1
+	task.spawn(choreLoop, player, s, s.choreToken)
 end
 
 -- Puts the shop's people in place. `full`: everybody goes and comes again (a rebuilt shop); without
@@ -933,6 +1053,12 @@ function EmployeeService.start()
 		local back, front = point(player, "CounterBack"), point(player, "CounterFront")
 		local home = who.model and who.model.PrimaryPart and back and (who.model.PrimaryPart.Position - back.Position).Magnitude < 4
 		task.spawn(function()
+			-- (a chore in progress ends at its next hop: wait for it so two walks never fight)
+			local t0 = os.clock()
+			while who.chore and os.clock() - t0 < 5 do
+				task.wait(0.2)
+			end
+			home = who.model and who.model.PrimaryPart and back and (who.model.PrimaryPart.Position - back.Position).Magnitude < 4
 			if back and who.model and not home then
 				NpcService.walkTo(who.model, back.Position)
 			end

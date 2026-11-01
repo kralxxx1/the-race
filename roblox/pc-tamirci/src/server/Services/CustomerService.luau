@@ -313,6 +313,22 @@ local function advance(player: Player)
 	end
 end
 
+-- How many customers are in this shop right now (in the line, at the counter, or coming back to
+-- collect a device): staff only do their chores while this is 0.
+function CustomerService.waiting(player: Player): number
+	local s = shops[player]
+	if not s then
+		return 0
+	end
+	local n = #s.queue + (if s.counter then 1 else 0)
+	for _, c in s.list do
+		if c.state == "pickup" then
+			n += 1
+		end
+	end
+	return n
+end
+
 local function spawnCustomer(player: Player)
 	local p = DataService.get(player)
 	local shop = PlotService.shopOf(player)
@@ -364,7 +380,15 @@ local function spawnCustomer(player: Player)
 	end
 	local side = if rng:NextNumber() < 0.5 then -1 else 1
 	local start = street.CFrame * CFrame.new(side * Rand.range(rng, 30, 60), 3, 0)
-	cust.model = NpcService.spawn({ look = arch.look, gender = gender, name = name, cf = start, tag = "Customer", speed = if arch.id == "hurry" then 14 else Rand.range(rng, 8.5, 11) })
+	cust.model = NpcService.spawn({ look = arch.look, gender = gender, name = name, cf = start, tag = "Customer", owner = player, speed = if arch.id == "hurry" then 14 else Rand.range(rng, 8.5, 11) })
+	-- (when the customer is one of the owner's friends they keep their own name)
+	local friendName = cust.model:GetAttribute("FriendName")
+	if type(friendName) == "string" and friendName ~= "" and arch.special ~= "stolen_offer" then
+		name = friendName
+		cust.name = friendName
+		cust.model.Name = friendName
+	end
+	cust.friendId = cust.model:GetAttribute("Friend")
 	cust.model:SetAttribute("CustomerId", cust.id)
 	cust.model:SetAttribute("Shop", player.UserId)
 	-- the name tag says what kind of customer this is (gold for the wealthy, red for the difficult)
@@ -726,7 +750,7 @@ local function pickup(player: Player, job)
 			if not street then
 				return
 			end
-			cust.model = NpcService.spawn({ look = cust.arch.look, gender = cust.gender, name = cust.name, cf = street.CFrame * CFrame.new(Rand.range(rng, -30, 30), 3, 0), tag = "Customer" })
+			cust.model = NpcService.spawn({ look = cust.arch.look, gender = cust.gender, name = cust.name, cf = street.CFrame * CFrame.new(Rand.range(rng, -30, 30), 3, 0), tag = "Customer", owner = player, friendId = cust.friendId })
 			cust.model:SetAttribute("CustomerId", cust.id)
 			NpcService.tag(cust.model, cust.name)
 			NpcService.walkPath(cust.model, { point(player, "Outside"), point(player, "Door") })
@@ -741,6 +765,12 @@ local function pickup(player: Player, job)
 		local cf = point(player, "CounterFront")
 		if cf and cust.model then
 			NpcService.walkTo(cust.model, cf.Position + Vector3.new(rng:NextNumber() * 2 - 1, 0, 0))
+			-- they stand square at the counter, looking at the till and whoever is behind it (not
+			-- wherever the walk happened to end)
+			local back = point(player, "CounterBack")
+			if back and cust.model and cust.model.Parent then
+				NpcService.face(cust.model, back.Position)
+			end
 		end
 		task.wait(1)
 		if cust.gone then

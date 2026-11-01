@@ -18,6 +18,7 @@ local Rand = require(Shared.Util.Rand)
 local Avatars = require(Shared.Data.Avatars)
 local PersonStyle = require(Shared.Data.PersonStyle)
 local ToolModels = require(Shared.Models.ToolModels)
+local FriendCrowd = require(script.Parent.FriendCrowd)
 
 local NpcService = {}
 
@@ -563,13 +564,19 @@ function NpcService.spawn(opts: { [string]: any }): Model
 	local list = if Config.RealisticNpcs then templates[lookName .. ":" .. gender] else nil
 	local model: Model
 	local real = list ~= nil and #list > 0
-	if real then
+	-- the people of the city are the owner's friends: a copy of a friend's real avatar (opts.friend ==
+	-- false asks for a plain person); with no friend ready it is the plain person below
+	local friend = if Config.FriendNpcs and opts.friend ~= false then FriendCrowd.pick(opts.owner, rng, opts.friendSeed, opts.friendId) else nil
+	if friend then
+		model = friend.template:Clone()
+		model:SetAttribute("Look", lookName)
+	elseif real then
 		model = (list :: { Model })[rng:NextInteger(1, #(list :: { Model }))]:Clone()
 		reskin(model, rng)
 	else
 		model = NpcService.plain(lookName, gender, rng)
 	end
-	model.Name = opts.name or "NPC"
+	model.Name = opts.name or (if friend then friend.display else "NPC")
 	local hum = model:FindFirstChildOfClass("Humanoid") :: Humanoid
 	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	hum.WalkSpeed = opts.speed or 10
@@ -638,6 +645,8 @@ local HAIR_PARTS = {
 	halfup = { CAP, LONGBACK, { "o", 0, 0.62, 0.3, 0.36 } },
 }
 NpcService.HairStyles = HAIR_PARTS
+-- the styles that stand well clear of the head (puffs, spikes, top knots): never used on the plain people
+NpcService.BigHair = { afro = true, curly = true, curlybob = true, twinbuns = true, spiky = true, topknot = true, mohawk = true, halfup = true, bun = true, pompadour = true, quiff = true }
 
 local function buildHair(head: BasePart, hair: { style: string, color: { number } }, hidden: boolean)
 	if hidden then
@@ -789,6 +798,14 @@ end
 function NpcService.plain(lookName: string, gender: string, rng: Random): Model
 	local look = LOOKS[lookName] or LOOKS.casual
 	local st = PersonStyle.roll(look, gender, rng)
+	if not Config.PartAccessories then
+		-- (no hats, hoods, masks or glasses of our own making, and only modest hair: the huge afro and
+		-- curly puffs looked like black blobs on the head)
+		st.extras = {}
+		if NpcService.BigHair[st.hair.style] then
+			st.hair.style = "short"
+		end
+	end
 	local base = baseRigs[if look.kid then "kid" else (st.size or sizeOf(look))] or baseRigs.m
 	local model = base:Clone()
 	local skin = c3(st.skin)

@@ -922,6 +922,50 @@ return function(T)
 		noErrors("traffic pedestrian")
 	end)
 
+	T.test("client: the people on the street are the player's own friends (their avatars and names), the officers stay in uniform", function()
+		Mock.errors = {}
+		local Traffic = cmod("Controllers.Traffic")
+		local FriendCrowd = cmod("Controllers.FriendCrowd")
+		local Friends = Engine.mod("ReplicatedStorage.Shared.Util.Friends")
+		local Players = game:GetService("Players")
+		-- three friends' avatars are ready
+		local models = {}
+		for i, n in { "Ayla", "Bruno", "Chen" } do
+			local m = Players:CreateHumanoidModelFromDescription(roblox.Instance.new("HumanoidDescription"), roblox.Enum.HumanoidRigType.R15)
+			models[i] = Friends.prepare(m, { id = 7000 + i, name = n:lower(), display = n })
+		end
+		Traffic.setCrowd("off")
+		for _ = 1, 30 do
+			Engine.step(1, 1 / 10)
+		end
+		FriendCrowd._set(models)
+		T.eq(FriendCrowd.count(), 3, "the friends are ready")
+		Traffic.setCrowd("normal")
+		for _ = 1, 400 do
+			Engine.timeOffset = (Engine.timeOffset or 0) + 0.1
+			Engine.step(1, 1 / 10)
+		end
+		local folder = Engine.workspace:FindFirstChild("ClientTraffic")
+		local friends, others, seen = 0, 0, {}
+		for _, m in folder:GetChildren() do
+			if m:FindFirstChildOfClass("Humanoid") and m:GetAttribute("Avatar") and m:GetAttribute("Cop") ~= true then
+				if m:GetAttribute("Friend") then
+					friends += 1
+					seen[m:GetAttribute("FriendName")] = true
+				else
+					others += 1
+				end
+			end
+		end
+		print(string.format("    street: %d friends, %d others, %d different friends", friends, others, (seen.Ayla and 1 or 0) + (seen.Bruno and 1 or 0) + (seen.Chen and 1 or 0)))
+		T.ok(friends >= 6, "pedestrians who are friends: " .. friends)
+		T.eq(others, 0, "nobody else on the pavements")
+		T.ok(seen.Ayla and seen.Bruno and seen.Chen, "all three friends are out")
+		T.ok(#Traffic._cops() >= 1 and Traffic._cops()[1].model:GetAttribute("Friend") == nil, "the traffic officers keep their uniform")
+		FriendCrowd._set({})
+		noErrors("friend crowd")
+	end)
+
 	T.test("client: pedestrians wait at the kerb for the cars and cross when it is clear", function()
 		Mock.errors = {}
 		local Traffic = cmod("Controllers.Traffic")
@@ -992,8 +1036,12 @@ return function(T)
 			local key = string.format("%.2f|%.2f|%.2f|%.2f|%.2f|%.2f", p.rs[1], p.rs[2], p.re, p.rw[2], p.neck[1], p.ls[1])
 			T.ok(not seen[key], kind .. " is the same as " .. tostring(seen[key]))
 			seen[key] = kind
-			for _, v in { p.rs[1], p.rs[2], p.ls[1], p.re, p.le, p.rw[1], p.rw[2], p.lw[1], p.neck[1], p.neck[2] } do
+			for _, v in { p.rs[1], p.rs[2], p.ls[1], p.rw[1], p.rw[2], p.lw[1], p.neck[1], p.neck[2] } do
 				T.ok(v == v and math.abs(v) < math.rad(120), kind .. ": an arm out of the possible")
+			end
+			-- (an elbow bends further than a shoulder turns: a hand at the ear is 140 degrees)
+			for _, v in { p.re, p.le } do
+				T.ok(v == v and v >= 0 and v < math.rad(150), kind .. ": an elbow out of the possible")
 			end
 		end
 		T.ok(#DriverPose.kinds() >= 10, "motions: " .. #DriverPose.kinds())
@@ -1062,7 +1110,18 @@ return function(T)
 		run(1.5)
 		T.ok(joint(cleaner, "RightShoulder").C0 ~= roblox.CFrame.new(), "the cleaner wipes")
 		T.ok(joint(recep, "LeftShoulder").C0 ~= roblox.CFrame.new(), "the receptionist types")
-		T.eq(joint(guard, "RightShoulder").C0, roblox.CFrame.new(), "the guard just stands")
+		T.ok(joint(guard, "RightShoulder").C0 ~= roblox.CFrame.new(), "the guard keeps watch: hands clasped, head turning")
+		-- nobody works through the same motion for ever: across a minute a receptionist does several things
+		local NpcPosesMod = cmod("Controllers.NpcPoses")
+		local kinds = {}
+		for t = 0, 120, 3 do
+			kinds[NpcPosesMod.kindOf(recep, false, t) or "?"] = true
+		end
+		local nk = 0
+		for _ in kinds do
+			nk += 1
+		end
+		T.ok(nk >= 3, "a receptionist's chores: " .. nk .. " different ones")
 		-- walking is not a chore
 		local _, root = rig("cleaner", nil)
 		local walker = root.Parent

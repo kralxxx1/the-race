@@ -164,6 +164,26 @@ MOTIONS.register = function(t, ph)
 	local tap, tap2 = sin(t * 9 + ph) * 2.5, sin(t * 7.3 + ph * 1.7) * 2.5
 	return P({ 24 + tap, -6 }, { 24 + tap2, 6 }, 66 + tap2, 66 + tap, { sin(t * 18 + ph) * 5, 0 }, { sin(t * 15 + ph) * 5, 0 }, { -10 + max(0, sin(t * 0.5 + ph)) * 12, sin(t * 0.5 + ph) * 12 })
 end
+-- a clipboard or tablet held up against the chest, a pen in the other hand writing, now and then a
+-- look up and round the room
+MOTIONS.clipboard = function(t, ph)
+	local write = sin(t * 5.5 + ph) * 3
+	return P({ 36, 14 }, { 46, -10 + write }, 104, 98, { -8, 0 }, { 6 + write, 0 }, { -20 + max(0, sin(t * 0.35 + ph)) * 18, sin(t * 0.4 + ph) * 20 })
+end
+-- a phone call: the right hand up at the ear, the left on the hip, swaying a little, nodding along
+MOTIONS.phone = function(t, ph)
+	return P({ 34, 22 }, { 6, -16 }, 142, 40, { 0, 0 }, STILL, { 6 + sin(t * 1.3 + ph) * 4, -16 + sin(t * 0.6 + ph) * 6 })
+end
+-- making a drink: both hands low in front working a machine, now and then reaching up for a cup
+MOTIONS.brew = function(t, ph)
+	local m = 0.5 + 0.5 * sin(t * 0.9 + ph)
+	local twist = sin(t * 3 + ph) * 8
+	return P({ 30 + m * 16, -8 }, { 32 + m * 10, 8 }, 76 + m * 10, 70, { twist, 0 }, { -twist, 0 }, { -22, sin(t * 0.5 + ph) * 8 })
+end
+-- on watch: the hands clasped in front, the head turning slowly from one side to the other
+MOTIONS.watch = function(t, ph)
+	return P({ 14, 16 }, { 14, -16 }, 78, 78, STILL, STILL, { -2, sin(t * 0.45 + ph) * 38 })
+end
 -- creeping about: crouched low (the hips forward, the knees bent, the body leaning over them), the
 -- hands held ready, the head turning to see who is watching. (The server lowers the person by the
 -- same much: Crouch.)

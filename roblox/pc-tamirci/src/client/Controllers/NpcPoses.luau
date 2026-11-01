@@ -25,14 +25,23 @@ local lastNow: number? = nil
 type State = { joints: any, phase: number, pose: any, last: Vector3?, still: number, kind: string? }
 local state: { [Model]: State } = setmetatable({}, { __mode = "k" })
 
--- what people who stand at their spot do while nobody has given them anything else
+-- what people who stand at their spot do while nobody has given them anything else: a list they
+-- work through (a spell of each, a different order for every person), so nobody stands frozen or
+-- does the same thing for ever
 local ROLE_KIND = {
-	receptionist = "register",
-	cashier = "register",
-	salesperson = "register",
-	cleaner = "wipe",
-	storekeeper = "stock",
+	receptionist = { "register", "register", "phone", "register", "clipboard" },
+	cashier = { "register", "register", "clipboard", "register", "phone" },
+	salesperson = { "register", "phone", "register", "clipboard" },
+	cleaner = { "wipe", "wipe", "stock", "wipe" },
+	storekeeper = { "stock", "clipboard", "stock", "stock" },
+	manager = { "clipboard", "type", "phone", "clipboard", "type" },
+	tea_maker = { "brew", "wipe", "brew", "brew", "phone" },
+	security = { "watch", "watch", "phone", "watch", "look" },
+	night_guard = { "watch", "look", "watch", "watch" },
+	foreman = { "clipboard", "look", "type" },
+	engineer = { "type", "clipboard", "look", "type" },
 }
+local SPELL = 13 -- seconds of each
 
 -- motions that go on while the person walks (the rest wait until they have stopped)
 local WALKING = { sneak = true }
@@ -50,7 +59,7 @@ end
 NpcPoses.atBench = atBench
 
 -- The motion somebody should be making right now (nil: none, the animation has the arms).
-local function kindOf(model: Model, sitting: boolean): string?
+local function kindOf(model: Model, sitting: boolean, now: number?): string?
 	local doing = model:GetAttribute("Doing")
 	if type(doing) == "string" and doing ~= "" then
 		return DriverPose.kindOf(doing)
@@ -62,7 +71,14 @@ local function kindOf(model: Model, sitting: boolean): string?
 		return "type"
 	end
 	local role = model:GetAttribute("Staff")
-	return if type(role) == "string" then ROLE_KIND[role] else nil
+	local list = if type(role) == "string" then ROLE_KIND[role] else nil
+	if not list then
+		return nil
+	end
+	-- (everybody works through the list from a different place in it)
+	local root = model.PrimaryPart
+	local seed = if root then math.floor(root.Position.X * 3 + root.Position.Z * 7) else 0
+	return list[(math.floor((now or os.clock()) / SPELL) + seed) % #list + 1]
 end
 NpcPoses.kindOf = kindOf
 
@@ -90,7 +106,7 @@ function NpcPoses.step(now: number)
 		if m.Parent then
 			local root = m.PrimaryPart
 			local sitting = root ~= nil and (root.Position - camPos).Magnitude < RANGE and atBench(m)
-			local kind = if root and (root.Position - camPos).Magnitude < RANGE then kindOf(m, sitting) else nil
+			local kind = if root and (root.Position - camPos).Magnitude < RANGE then kindOf(m, sitting, now) else nil
 			if root and kind then
 				local st = state[m]
 				if not st then
