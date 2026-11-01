@@ -421,6 +421,47 @@ return function(T)
 		T.ok(not root.Visible, "closed")
 	end)
 
+	T.test("client: the places of the city float their names over the world: the nearest few, faded by distance, gone when the name tags are off", function()
+		local Labels = cmod("Controllers.PlaceLabels")
+		local Prefs = cmod("Prefs")
+		local L = Engine.mod("ReplicatedStorage.Shared.World.CityLayout").get()
+		T.ok(Labels.count() >= #L.pois - 2, "a label for every place: " .. Labels.count() .. " of " .. #L.pois)
+		local folder = Engine.workspace:FindFirstChild("PlaceLabels")
+		T.ok(folder ~= nil and #folder:GetChildren() == Labels.count(), "the labels hang in a folder of their own")
+		-- fading: nothing at the doorstep, full at a stone's throw, thinning out, gone far away
+		T.eq(Labels.alphaAt(20), 0, "no label on the doorstep")
+		T.eq(Labels.alphaAt(200), 1, "full label")
+		T.ok(Labels.alphaAt(480) > 0 and Labels.alphaAt(480) < 1, "thinning out")
+		T.eq(Labels.alphaAt(700), 0, "gone")
+		-- a look from a street corner
+		Prefs.set("names", true)
+		local poi = L.poiById.megastore
+		local Vector3 = roblox.Vector3
+		local cam = Vector3.new(poi.pos.X + 40, 6, poi.pos.Z)
+		local shown = Labels.step(cam, 100)
+		local enabled, nearest, nearestD = 0, nil, math.huge
+		for _, a in folder:GetChildren() do
+			local gui = a:FindFirstChildOfClass("BillboardGui")
+			local d = (Vector3.new(a.Position.X, cam.Y, a.Position.Z) - cam).Magnitude
+			if gui.Enabled then
+				enabled += 1
+				T.ok(d > Labels.NEAR, a.Name .. " is labelled on its own doorstep (" .. math.floor(d) .. ")")
+			end
+			if d >= Labels.FULL and d < nearestD then
+				nearest, nearestD = gui, d
+			end
+		end
+		T.eq(enabled, shown, "the count is what is switched on")
+		T.ok(shown >= 1 and shown <= Labels.MAX, "some, never more than " .. Labels.MAX .. ": " .. shown)
+		T.ok(nearest and nearest.Enabled, "the nearest place beyond the doorstep is named")
+		local txt = nearest:FindFirstChild("Text")
+		T.ok(txt ~= nil and #txt.Text > 3, "an icon and a name")
+		-- without the name tags the street is clean
+		Prefs.set("names", false)
+		T.eq(Labels.step(cam, 200), 0, "none with the name tags off")
+		Prefs.set("names", true)
+	end)
+
 	T.test("client: a customer is served through the dialog", function()
 		Mock.errors = {}
 		CustomerService.ofShop(player).next = 0

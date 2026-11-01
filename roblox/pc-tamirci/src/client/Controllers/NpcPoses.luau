@@ -36,8 +36,8 @@ local ROLE_KIND = {
 	storekeeper = { "stock", "clipboard", "stock", "stock" },
 	manager = { "clipboard", "type", "phone", "clipboard", "type" },
 	tea_maker = { "brew", "wipe", "brew", "brew", "phone" },
-	security = { "watch", "watch", "phone", "watch", "look" },
-	night_guard = { "watch", "look", "watch", "watch" },
+	security = { "guard", "guard", "phone", "guard", "look" },
+	night_guard = { "guard", "look", "guard", "guard" },
 	foreman = { "clipboard", "look", "type" },
 	engineer = { "type", "clipboard", "look", "type" },
 }

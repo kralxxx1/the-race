@@ -317,6 +317,9 @@ elseif what == "poi" then
 	local world = WorldBuilder.build({ bake = true })
 	result.parts = dumpParts(world, poi.pos, tonumber(process.args[3]) or 120)
 	print(string.format("poi %s at (%.0f, %.0f, %.0f), door (%.0f, %.0f, %.0f)", poi.id, poi.pos.X, poi.pos.Y, poi.pos.Z, poi.door.X, poi.door.Y, poi.door.Z))
+	if poi.site then
+		print(string.format("site x %.0f..%.0f, z %.0f..%.0f", poi.site.x0, poi.site.x1, poi.site.z0, poi.site.z1))
+	end
 	outName = "poi_" .. poi.id
 elseif what == "parts" then
 	-- components side by side, each shown three ways (rows: front, top edge, back):

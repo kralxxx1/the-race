@@ -12,6 +12,10 @@ golf kulübü, karavan parkı ve yazlıklar yer alır. Toplam 60'tan fazla mekâ
 34 geniş dükkân arsası hazırdır (her biri eskisinin 3 katı; dükkânlar da 2 kat geniş ve yüksek),
 liderlik tabloları en zenginleri ve en değerli işletmeleri gösterir.
 
+Şehir yaşar: sokaktaki, mekânlardaki ve dükkândaki insanlar **senin Roblox arkadaşlarındır** (gerçek avatar
+ve görünen adlarıyla); spor salonunda koşar, sinemada film izler, parkta ördek besler, plajda voleybol
+oynar. 57 aktivite (aşağıya bak) tamirde işine yarayan geçici güçler verir.
+
 Oyun ilk açılışta **dil sorar** (English / Türkçe); sonradan **Ayarlar**'ın (O tuşu) en üstündeki dil
 satırından her sekmede değiştirilir ve kayıtla birlikte saklanır. Türkçede arayüzün yanında dünyadaki
 tabelalar, panolar ve etkileşim ipuçları da Türkçe olur (`src/shared/Data/WorldTextTR.luau`); yer, dükkân,
@@ -221,6 +225,29 @@ Dokunmatik cihazlarda tüm pencereler soldaki düğmelerle açılır; mini harit
 
 ---
 
+## Şehirde yaşam: mekânlar, aktiviteler ve arkadaşların
+
+**Hiçbir mekân boş değil.** Spor salonu (koşu bandı, bench press, dambıl, squat, bisiklet, boks torbası,
+yoga, protein barı), sinema (bilet, mısır, koltuklar), restoranlar ve kafeler (yemek, pizza, kruvasan,
+balık, dondurma, kahve), otel lobisi (oda, koltuk), kütüphane (okuma masası, çalışma bilgisayarı), internet
+kafe ve e-spor arenası kapılı, içi döşeli, lambalı gerçek binalardır. Dışarıda: parkta bankta dinlen,
+köprüden ördek besle, salıncak/kaydırak, piknik; lunaparkta dönme dolap, atlıkarınca, hız treni ve
+tezgâhlar (pamuk şeker, sosisli, halka atma, balon patlatma); plajda şezlong ve voleybol; havuzlarda yüzme;
+golf (vuruş alanı + putt), tenis, stadyumda penaltı ve tribün, kampta ateş/çadır/mangal, seyir tepesinde
+teleskop, iskele ve yat limanında olta, meydanda dilek çeşmesi ve telefon kulübesi, okul/üniversitede
+basket, itfaiyede hortum, kliniğe check-up, çiftlikte elma, pazarda meyve, kafede satranç.
+**57 aktivite** (`src/shared/Data/Activities.luau`) bir bedelle gelir, birkaç saniye sürer (ilerleme çubuğu;
+oturulabilen yerde oturtur) ve **buff** verir: tamirde hız, bahşiş, müşteri sabrı, deneyim. Buff'lar
+toplanır ama tavanı vardır (`Activities.cap`), süreleri dolunca biter. Bazı günlük görevler de bu
+aktivitelerdir (şehirde aktivite yap, dışarıda bir şey ye, spor yap).
+
+Mekânlardaki insanlar da **arkadaşlarındır**: oyuna girince `Players:GetFriendsAsync` ile arkadaş listen
+okunur, sokak kalabalığı, müşteriler, personel ve mekân sakinleri bu arkadaşlardan (rastgele, tekrarsız)
+kurulur; gerçek avatarları ve görünen adları vardır. Arkadaşı olmayan oyuncuda düz (şapkasız, kendi
+yaptığımız aksesuarsız) insanlar kullanılır. Uzaktaki yerlerin üstünde **yer etiketleri** (simge + ad,
+türün rengiyle) süzülür; en yakın 12 tanesi görünür, kapıya yaklaşınca solar. Ayarlar'daki isim
+etiketleriyle kapanır.
+
 ## Hazır modeller (Toolbox) ve kendi yaptıklarımız
 
 Şehrin görünen büyük kısmı **hazır, yayınlanmış modellerdir**: binalar, sokak eşyaları, dükkân
@@ -229,9 +256,9 @@ mobilyaları (raflar, vitrinler, koltuklar, masa eşyaları), **tüm sokak araç
 paketlerinden gelir (`assets/`, `tools/assets/curate.luau` ayıklar; betikler ve sesler atılır).
 Gökyüzü sesleri, yağmur ve gök gürültüsü de Roblox'un kendi ses kütüphanesindendir.
 
-Ağaçlar, çiçekler, bitkiler ve **insanlar** ise kendi parçalarımızdan kurulur: hazır ağaçların soluk
-ağları havada parça gizliyordu, hazır gövdelerin yüzü de solgun ve donuktu. Her kişi saç stili, ten,
-üst, alt, ayakkabı ve aksesuar karışımıdır (`src/shared/Data/PersonStyle.luau`); binlerce farklı kişi
+Ağaçlar, çiçekler ve bitkiler kendi parçalarımızdan kurulur (hazır ağaçların soluk ağları havada parça
+gizliyordu). **İnsanlar** arkadaşlarının gerçek avatarlarıdır; arkadaşı yoksa kendi parçalarımızdan
+(saç stili, ten, üst, alt, ayakkabı karışımı: `src/shared/Data/PersonStyle.luau`) şapkasız düz insanlar
 çıkar.
 
 Kendi çizdiğimiz yerler: **PC'nin içi** (parçalar tamir mantığına bağlı — çıkar, takılır, tozlanır, bozulur —
@@ -244,16 +271,30 @@ python3 tools/assets/toolbox.py search "gaming pc case" 1
 python3 tools/assets/toolbox.py sheet out.png <id> <id> ...
 ```
 
-**Topluluk modelleri hakkında dürüst not:** Toolbox'taki başkalarının yaptığı modelleri (araba,
-tornavida, şemsiye, NPC...) arama/önizleme olarak görebiliyoruz ama **indirip oyuna gömemiyoruz**:
-Roblox'un indirme hizmeti bunları yalnızca giriş yapmış bir hesaba verir (`401 Unauthorized`);
-anonim indirilebilenler yalnızca Roblox'un kendi yayımladığı paketlerdir (`tools/assets/fetch.py
-packs`). Bu yüzden elde edilebilen hazır modeller (araçlar, bina ve eşya paketleri, şemsiye kubbesi)
-kullanıldı; **tornavida/hava üfleyici/monitör gibi küçük aletler ve insanlar kodla çizilir** (monitör
-artık çerçeve, çene, boyun, ayak, cam ve kabloyla gerçek bir monitör; tornavidalar tırtıllı saplı,
-renk halkalı, havalı üfleyici lastik körüklü). Beğendiğin bir Toolbox modelini kullanmak istersen
-Studio'da **Toolbox → Models** ile yerleştirip `ServerStorage.Assets` içine koyabilir, ilgili
-`src/shared/Models/` dosyasından çağırabilirsin.
+**Topluluk modelleri hakkında dürüst not:** Toolbox'taki başkalarının yaptığı modelleri (tornavida,
+şemsiye, araba, NPC...) arama ve önizleme olarak görebiliyoruz ama bu geliştirme ortamından **indirip
+doğrulayamıyoruz**: Roblox'un indirme hizmeti bunları yalnızca giriş yapmış bir hesaba verir (`401
+Unauthorized`); anonim indirilebilenler yalnızca Roblox'un kendi paketleridir (`tools/assets/fetch.py
+packs`). Bu yüzden **bir hat kurduk, modelleri biz görmeden gömemedik**:
+
+- `src/shared/Data/ToolboxAssets.luau`: tornavida ve şemsiye için önizlemelerine bakarak seçtiğimiz
+  Toolbox kimlikleri (modelin hangi yöne bakacak yapıldığı bilgisiyle).
+- `ToolboxService` sunucu açılırken `InsertService:LoadAsset` ile bunları ister (ücretsiz, herkese açık
+  modeller yayındaki bir sunucuda yüklenebilir), `ToolboxFit` içindeki temizleyici **tüm betikleri,
+  sesleri, ışıkları ve parça olmayan her şeyi atar**, modeli döndürüp ölçekler, ucunu/ayağını
+  başlangıç noktasına koyar ve `ReplicatedStorage.Assets.Toolbox` altına koyar. Tezgâh tornavidası
+  ve yağmurdaki şemsiyeler yüklendiyse onu kullanır; **yüklenmezse (ya da `Config.ToolboxAssets =
+  false` ise) kendi çizdiğimiz tornavida/şemsiye devreye girer, hiçbir şey bozulmaz**. Sonuç
+  `Workspace` üzerindeki `ToolboxReport` özniteliğinde satır satır yazar.
+- Yayına bağımlılığı kaldırmak için Studio'da bir kez `tools/studio/ImportToolbox.lua` dosyasını Komut
+  Çubuğu'na yapıştır: modeller yere gömülür, kaydedip yayınlarsın (`InsertService` artık gerekmez).
+  Bir model ters çıkarsa `ToolboxAssets.luau`'da kimliğine `tip = "+X"` / `up = "-Y"` ipucu ekleyip tekrar
+  çalıştır.
+
+Bu hattın geometri kısmı (her yönden gelen modelleri doğru yöne çevirme, betik temizleme, sınırlar)
+başsız testlerle sınanır (`tests/specs/11_toolbox.luau`); **gerçek Roblox'ta yüklemenin sonucu ve
+görünümü burada doğrulanamadı.** Araçlar, bina/eşya paketleri ve ağaçlar zaten Roblox'un resmî
+paketlerinden gelir; insanlar da artık arkadaşlarının gerçek avatarlarıdır.
 
 ---
 
@@ -261,7 +302,10 @@ Studio'da **Toolbox → Models** ile yerleştirip `ServerStorage.Assets` içine 
 
 Dengeyi bu dosyadan değiştirebilirsin: başlangıç parası ve aletleri, gün süresi, müşteri sıklığı ve
 sabrı, pazarlık hakkı, hırsızlık aralıkları ve ödülü, taksi ücreti, XP eğrisi, termal macun ideal
-aralığı, statik elektrik riski, 2. el fiyat oranları, para birimi sembolü, ses kimlikleri.
+aralığı, statik elektrik riski, 2. el fiyat oranları, para birimi sembolü, ses kimlikleri. Ayrıca:
+`FriendNpcs` (insanlar arkadaşlarının avatarları; kapatırsan düz insanlar), `FriendsPerOwner` /
+`FriendsStreet` (kaç arkadaş hazırlanır), `PartAccessories` (düz insanlara şapka vb. eklenir mi: kapalı),
+`ToolboxAssets` (yayınlanmış tornavida/şemsiye istenir mi).
 
 Veri dosyaları `src/shared/Data/` altındadır:
 
@@ -274,6 +318,9 @@ Veri dosyaları `src/shared/Data/` altındadır:
 - `Customers.luau`: müşteri tipleri ve replikleri
 - `Faults.luau`: arızalar
 - `Locations.luau`: mekânlar
+- `Activities.luau`: 57 aktivite ve buff'lar (bedel, süre, etki)
+- `ToolboxAssets.luau`: yayınlanmış (Toolbox) modellerin kimlikleri ve yön ipuçları
+- `Quests.luau`: günlük görevler (aktivite, yemek, spor dahil)
 
 Şehir planı (bloklar, semtler, yollar) `src/shared/World/CityLayout.luau` içindedir.
 
@@ -291,14 +338,16 @@ publish/               Oyun sayfası simgesi (512×512) ve kapak görselleri (19
 src/shared/            ReplicatedStorage.Shared — veri, şehir düzeni, 3B modeller, tamir kuralları
 src/server/            ServerScriptService.Server — dünya kurucu ve servisler (kayıt, arsa, müşteri,
                        tamir, pazar, çalışan, hırsız, araç, sözleşme, vitrin, fatura, fabrika,
-                       liderlik, görev, zaman)
+                       liderlik, görev, zaman, arkadaş kalabalığı, aktiviteler ve buff'lar,
+                       Toolbox yükleyici)
 src/client/            StarterPlayerScripts.Client — HUD, pencereler (Ayarlar dahil), tezgâh ve Koç,
                        harita/GPS, araç, trafik ve yayalar, ortam, hava durumu (yağmur, şimşek),
                        dünya yazıları (Türkçe), öğretici; Prefs (ayarlar) ve Controllers/Display
 assets/                Roblox'un resmî paketlerinden ayıklanmış modeller (şehir, bitki örtüsü, mobilya,
                        araçlar); tools/assets/curate.luau ile üretilir
 tests/                 Lune ile Studio'suz testler
-tools/                 Önizleme araçları (3B ve arayüz görüntüleri)
+tools/                 Önizleme araçları (3B ve arayüz görüntüleri); tools/studio/ImportToolbox.lua
+                       (yayınlanmış modelleri yere gömer); tools/assets/toolbox.py (Toolbox araması)
 ```
 
 Sunucu yetkilidir: para, envanter, tamir adımları, satın alma ve pazarlık sunucuda doğrulanır; istemci

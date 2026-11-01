@@ -16,6 +16,9 @@ Quests.list = {
 	{ id = "catch", icon = "🚨", goal = { 1, 1 }, reward = 200, xp = 60, level = 2, name = N("Bir hırsız ya da dolandırıcı yakala", "Catch a thief or a scammer") },
 	{ id = "taxi", icon = "🚕", goal = { 1, 2 }, reward = 60, xp = 15, name = N("{n} kez taksiye bin", "Take {n} taxi rides") },
 	{ id = "contract", icon = "🏢", goal = { 2, 3 }, reward = 220, xp = 60, level = 3, name = N("{n} sözleşme makinesini sorunsuz teslim et", "Deliver {n} working contract machines") },
+	{ id = "activity", icon = "🎡", goal = { 2, 4 }, reward = 110, xp = 30, name = N("Şehirde {n} aktivite yap (spor, sinema, park...)", "Do {n} activities around the city") },
+	{ id = "eat", icon = "🍽️", goal = { 1, 3 }, reward = 90, xp = 25, name = N("Dışarıda {n} kez yemek, kahve ya da atıştırmalık al", "Have {n} meals, coffees or snacks out") },
+	{ id = "sport", icon = "🏋️", goal = { 1, 3 }, reward = 120, xp = 35, name = N("{n} kez spor yap (salon, kort, havuz...)", "Work out or play sport {n} times") },
 	{ id = "earn", icon = "💰", goal = { 300, 900 }, reward = 150, xp = 40, money = true, name = N("Bugün {n} kazan", "Earn {n} today") },
 }
 

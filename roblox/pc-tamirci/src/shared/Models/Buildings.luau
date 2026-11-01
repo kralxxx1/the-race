@@ -29,7 +29,7 @@ Buildings.ShopNames = {
 	"Home Haven Furniture", "Fresh Corner Market", "Harbour Fish Market", "Butcher Brothers", "Green Grocer", "QuickChange Exchange",
 	"Sole Mates Shoes", "Sports Hub", "Toyland", "Snapshot Photo", "Print 34", "Pet Palace",
 	"Notary Office", "Bright Smile Dental", "Happy Paws Vet", "Shine Shoe Repair", "Phone Fix Eddie", "Sparky Electric",
-	"Hardware Hank", "Bagel Stop", "Pie Corner", "Pizza Slice", "Cupcake Co.", "Tea Garden",
+	"Hardware Hank", "Bagel Stop", "Pie Corner", "Pizza Slice", "Cupcake Co.", "Coffee Garden",
 	"Cafe Pause", "Burger Bros", "Sushi Ada", "Dumpling House", "Wrap Shack", "Coffee Stop",
 }
 local SHOP_COLORS = { { 200, 40, 40 }, { 30, 120, 70 }, { 30, 80, 170 }, { 230, 140, 30 }, { 120, 40, 120 }, { 20, 20, 24 }, { 200, 170, 60 }, { 0, 150, 190 } }

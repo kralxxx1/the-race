@@ -257,7 +257,7 @@ local function half(parent: Instance, block, face: string, rng: Random)
 			local m = Buildings.building(parent, frontCf(l.x, 8), {
 				w = l.w - 8, d = math.min(depth - 8, 24), floors = rng:NextInteger(1, 2), floorH = 12, style = "apartment",
 				wallColor = { 246, 246, 242 }, rng = rng, ground = "shop", blankSides = true,
-				name = Rand.pick(rng, { "Beach Kiosk", "Wave Bar", "Sandy Cafe", "Sunny Ice Cream", "Captain Sam's Fish", "Island Tea Garden", "Surf Club" }),
+				name = Rand.pick(rng, { "Beach Kiosk", "Wave Bar", "Sandy Cafe", "Sunny Ice Cream", "Captain Sam's Fish", "Island Coffee Garden", "Surf Club" }),
 				accent = Rand.pick(rng, { { 30, 110, 190 }, { 20, 150, 170 }, { 230, 120, 40 } }),
 			})
 			m.Name = "BeachHouse"

@@ -232,6 +232,19 @@ Rahatlatıcı müzik, gece-gündüz döngüsü ve yağmur eşliğinde tamir keyf
 eklenebilir. Oyunun kendisi zaten Türkçe ve İngilizce.
 
 
+### Arkadaşların ve Toolbox modelleri (isteğe bağlı ama önerilir)
+
+- **Arkadaş NPC'ler:** sokaktaki, müşterideki, personeldeki ve mekânlardaki insanlar oyuncunun Roblox
+  arkadaşlarından kurulur (`Players:GetFriendsAsync`). Studio'da denerken **giriş yapmış hesabında
+  arkadaş** olması yeter; arkadaşı olmayan oyuncuya düz insanlar gelir (hata değil). Avatarlar yayında
+  internetten çekilir, ilk dakikada bir kısmı geç gelebilir.
+- **Tornavida ve şemsiye:** sunucu açılırken Creator Store'dan istenir (`ToolboxService`); yüklenemezse
+  oyun kendi modellerini kullanır. Yayına bağımlılığı kaldırmak için Studio'da oyunu açıp **View →
+  Command Bar**'a `tools/studio/ImportToolbox.lua` dosyasının içeriğini yapıştır (Play'de değil, düzenleme
+  modunda). Çıktıda hangi model yüklendi/atlandı yazar; `ReplicatedStorage → Assets → Toolbox` altında
+  görürsün. Sonra **File → Save** ve **Publish**. Bir model ters/yan çıkarsa `ToolboxAssets.luau`'da
+  kimliğine yön ipucu ekleyip komutu tekrar çalıştır.
+
 ## 9. Güncelleme yayınlamak
 
 1. Değişikliği Studio'da yap, sonra **File → Publish**.
@@ -250,5 +263,7 @@ Kodu dosyalardan (Rojo ile) geliştiriyorsan `README.md` dosyasındaki **Gelişt
 | Yayınla düğmesi hata veriyor | Hesap 2 günden yeni olabilir ya da yaş doğrulaması bitmemiş olabilir. |
 | Arkadaşlarım giremiyor | 6b'deki **Friends** kapalı mı? Oyuncunun yaş doğrulaması var mı (16+)? |
 | Bir ses çalmıyor | **View → Output**'ta "Failed to load sound" uyarısına bak. `src/shared/Config.luau` dosyasındaki `Sounds` bölümünde o sesin kimliğini değiştir ya da boş bırak. |
+| Tornavida/şemsiye kendi modelimiz görünüyor | Normal: Creator Store'dan yüklenemediyse kendi modellerimiz kullanılır. `Workspace` üzerindeki `ToolboxReport` özniteliğinde nedeni yazar; `ImportToolbox.lua` ile yere gömebilirsin. |
+| Sokaktaki insanlar hep aynı/düz | Hesapta arkadaş yoksa ya da avatarlar henüz inmediyse düz insanlar kullanılır; birkaç dakika sonra arkadaşların gelir. |
 | Telefonda düğmeler küçük | Oyun dokunmatiği destekler. Studio'da **Test → Device** menüsünden telefon görünümünü deneyebilirsin. |
 | Türkiye'den girilemiyor | Türkiye'de 2024'ten beri Roblox'a erişim engeli vardı. 2026'da kalkıp kalkmadığına dair haberler çelişkili; sorun buysa oyunla ilgili değildir. Oyun ilk açılışta dil sorar (English / Türkçe); sonradan Ayarlar'ın en üstünden değişir. |

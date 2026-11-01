@@ -48,6 +48,19 @@ for _, s in order do
 	s.start()
 end
 
+-- what is done around the city counts for the daily tasks: any activity, a meal or a coffee, a sport
+local EATING = { fed = true, caffeine = true, sweet = true }
+local SPORT = { gym = true, court = true, pool = true, stadium = true, golf = true, tennis = true }
+ActivityService.finished:Connect(function(player, a)
+	QuestService.bump(player, "activity")
+	if EATING[a.buff] then
+		QuestService.bump(player, "eat")
+	end
+	if SPORT[a.venue] then
+		QuestService.bump(player, "sport")
+	end
+end)
+
 TimeService.newDay:Connect(function(day)
 	EmployeeService.payday()
 	BillsService.newDay(day)

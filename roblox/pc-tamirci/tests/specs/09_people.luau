@@ -237,4 +237,25 @@ return function(T)
 		end
 		T.ok(n >= 80, "only " .. n .. " different people in the street pool")
 	end)
+	T.test("people: every activity's emote and every pose the patrons make exist (nobody stands there doing nothing)", function()
+		local Activities = Engine.mod("ReplicatedStorage.Shared.Data.Activities")
+		local DriverPose = Engine.mod("ReplicatedStorage.Shared.Util.DriverPose")
+		local kinds = {}
+		for _, k in DriverPose.kinds() do
+			kinds[k] = true
+		end
+		T.ok(#Activities.list >= 50, "activities: " .. #Activities.list)
+		for _, a in Activities.list do
+			T.ok(a.emote == nil or Npc.Emotes[a.emote] ~= nil, a.id .. " plays an emote that does not exist: " .. tostring(a.emote))
+			T.ok(a.pose == nil or a.pose == "sit" or kinds[a.pose], a.id .. " has a pose that does not exist: " .. tostring(a.pose))
+			T.ok(a.buff == nil or Activities.buffs[a.buff] ~= nil, a.id .. " gives a buff that does not exist: " .. tostring(a.buff))
+			T.ok(a.cost >= 0 and a.seconds >= 2 and a.seconds <= 20, a.id .. " has odd numbers")
+			T.ok(Activities.get(a.id) == a, a.id .. " is listed twice")
+		end
+		-- the guards keep their own motion and the audience at the film keeps its own
+		T.ok(kinds.guard and kinds.watch and kinds.guard ~= nil, "guard and watch are different motions")
+		local g = DriverPose.workPose("guard", 3, 0)
+		local w = DriverPose.workPose("watch", 3, 0)
+		T.ok(g ~= w, "different poses")
+	end)
 end

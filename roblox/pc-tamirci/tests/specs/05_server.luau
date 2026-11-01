@@ -741,6 +741,24 @@ return function(T)
 		T.ok(hum.WalkSpeed > 0, "free again: " .. hum.WalkSpeed)
 		local done = lastPush("activity.done")
 		T.ok(done ~= nil and done.buff == "energized", "what you got")
+		-- (it counts for the daily tasks: any activity, and sport)
+		local Quests = Engine.mod("ReplicatedStorage.Shared.Data.Quests")
+		local Market = Engine.mod("ReplicatedStorage.Shared.Economy.Market")
+		T.ok(Quests.get("activity") ~= nil and Quests.get("eat") ~= nil and Quests.get("sport") ~= nil, "the three new tasks exist")
+		p.quests = { day = Market.day(), list = {
+			{ id = "activity", goal = 5, n = 0, claimed = false, reward = 100, xp = 10 },
+			{ id = "sport", goal = 5, n = 0, claimed = false, reward = 100, xp = 10 },
+			{ id = "eat", goal = 5, n = 0, claimed = false, reward = 100, xp = 10 },
+		} }
+		p.money = 500
+		char:PivotTo(treadmill.CFrame * roblox.CFrame.new(0, 2, -3))
+		T.ok(ActivityService.begin(player, "treadmill", treadmill), "another run")
+		waitFor(function()
+			return not ActivityService.busy(player)
+		end, 4, "the second run to end")
+		T.eq(p.quests.list[1].n, 1, "counts as an activity")
+		T.eq(p.quests.list[2].n, 1, "counts as sport")
+		T.eq(p.quests.list[3].n, 0, "is not a meal")
 		T.ok(Buffs.effects(player).speed > 0, "a buff is on")
 		T.ok(RepairService.workSpeed(player) > speed0, "the bench works faster: " .. speed0 .. " -> " .. RepairService.workSpeed(player))
 		T.ok(p.xp > xp0 or p.level > level0, "some experience")

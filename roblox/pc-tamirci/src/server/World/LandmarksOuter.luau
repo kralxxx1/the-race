@@ -357,7 +357,7 @@ local function shipyard(parent: Instance, poi, rng: Random)
 end
 
 ----------------------------------------------------------------------------------------------------
--- Fishing village: the square, the fish stalls, the tea garden and the jetty on the beach
+-- Fishing village: the square, the fish stalls, the cafe terrace and the jetty on the beach
 ----------------------------------------------------------------------------------------------------
 local function fishingVillage(parent: Instance, poi, rng: Random)
 	local s = poi.site
@@ -382,7 +382,7 @@ local function fishingVillage(parent: Instance, poi, rng: Random)
 	B.box(m, f * CFrame.new(0, 0.8, -2), Vector3.new(8, 1.6, 2.4), Color3.fromRGB(220, 216, 206), M.Marble)
 	B.cyl(m, f * CFrame.new(0, 4, -1.4) * CFrame.Angles(0, math.pi / 2, 0), 1.2, 0.4, Color3.fromRGB(196, 150, 70), M.Metal, nc())
 	Venues.station(m, f * CFrame.new(0, 3.4, -5.4), "wish", Vector3.new(8, 5, 4))
-	-- the tea garden
+	-- the cafe terrace
 	for i = 0, 5 do
 		Props.parasolTable(m, CFrame.new(cx - 45 + (i % 3) * 14, Y + 0.12, cz - 18 + math.floor(i / 3) * 14), { 200, 40, 40 }, rng)
 		if i % 2 == 0 then
@@ -605,7 +605,7 @@ local function farm(parent: Instance, poi, rng: Random)
 		end
 	end
 	Venues.station(m, CFrame.new(s.x0 + 28 + (w - 56) / 6, Y + 3.2, s.z1 - 99), "apple_pick", Vector3.new(14, 6, 14))
-	Venues.signpost(m, facing(s.x0 + 28 + (w - 56) / 6, s.z1 - 126, 0, 1), "ORCHARD • PICK YOUR OWN", Color3.fromRGB(190, 255, 190), 11)
+	Venues.signpost(m, facing(s.x0 + 28 + (w - 56) / 6, s.z1 - 126, 0, -1), "ORCHARD • PICK YOUR OWN", Color3.fromRGB(190, 255, 190), 11)
 	-- the roadside stall on the western street
 	local stall = facing(s.x0 + 6, s.z0 + 126, -1, 0)
 	B.box(m, stall * CFrame.new(0, 1.6, 0), Vector3.new(12, 3.2, 4), Color3.fromRGB(150, 110, 70), M.WoodPlanks)

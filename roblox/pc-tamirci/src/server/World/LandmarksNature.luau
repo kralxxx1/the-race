@@ -106,7 +106,7 @@ local function park(parent, poi, rng)
 	end
 	B.wedge(m, pg * CFrame.new(-10, 2.6, -7.6), Vector3.new(3, 5, 9), Color3.fromRGB(250, 200, 40), M.SmoothPlastic)
 	Venues.station(m, pg * CFrame.new(-10, 3.2, -11), "slide", Vector3.new(5, 5, 6))
-	Venues.signpost(m, pg * CFrame.new(0, 0, -18) * CFrame.Angles(0, math.pi, 0), "PLAYGROUND", Color3.fromRGB(255, 220, 90), 9)
+	Venues.signpost(m, pg * CFrame.new(0, 0, -18), "PLAYGROUND", Color3.fromRGB(255, 220, 90), 9)
 	-- swings
 	B.box(m, pg * CFrame.new(10, 8, 0), Vector3.new(14, 0.5, 0.5), Color3.fromRGB(40, 120, 220), M.Metal)
 	for x = -1, 1, 2 do

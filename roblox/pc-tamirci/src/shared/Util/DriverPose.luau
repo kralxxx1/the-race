@@ -180,8 +180,8 @@ MOTIONS.brew = function(t, ph)
 	local twist = sin(t * 3 + ph) * 8
 	return P({ 30 + m * 16, -8 }, { 32 + m * 10, 8 }, 76 + m * 10, 70, { twist, 0 }, { -twist, 0 }, { -22, sin(t * 0.5 + ph) * 8 })
 end
--- on watch: the hands clasped in front, the head turning slowly from one side to the other
-MOTIONS.watch = function(t, ph)
+-- on guard: the hands clasped in front, the head turning slowly from one side to the other
+MOTIONS.guard = function(t, ph)
 	return P({ 14, 16 }, { 14, -16 }, 78, 78, STILL, STILL, { -2, sin(t * 0.45 + ph) * 38 })
 end
 -- Motions of the city's venues (the patrons of the gym, the cinema, the diner...). The server puts
