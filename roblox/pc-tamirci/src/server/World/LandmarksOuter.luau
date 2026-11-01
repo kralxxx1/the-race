@@ -11,6 +11,7 @@ local B = require(Shared.Util.Builder)
 local Rand = require(Shared.Util.Rand)
 local Props = require(Shared.Models.Props)
 local Buildings = require(Shared.Models.Buildings)
+local Venues = require(Shared.Models.Venues)
 local CityLayout = require(Shared.World.CityLayout)
 
 local Terrain = require(script.Parent.TerrainBuilder)
@@ -380,9 +381,13 @@ local function fishingVillage(parent: Instance, poi, rng: Random)
 	B.box(m, f * CFrame.new(0, 4, 0), Vector3.new(8, 8, 2), Color3.fromRGB(236, 232, 222), M.Marble)
 	B.box(m, f * CFrame.new(0, 0.8, -2), Vector3.new(8, 1.6, 2.4), Color3.fromRGB(220, 216, 206), M.Marble)
 	B.cyl(m, f * CFrame.new(0, 4, -1.4) * CFrame.Angles(0, math.pi / 2, 0), 1.2, 0.4, Color3.fromRGB(196, 150, 70), M.Metal, nc())
+	Venues.station(m, f * CFrame.new(0, 3.4, -5.4), "wish", Vector3.new(8, 5, 4))
 	-- the tea garden
 	for i = 0, 5 do
 		Props.parasolTable(m, CFrame.new(cx - 45 + (i % 3) * 14, Y + 0.12, cz - 18 + math.floor(i / 3) * 14), { 200, 40, 40 }, rng)
+		if i % 2 == 0 then
+			Venues.station(m, CFrame.new(cx - 45 + (i % 3) * 14, Y + 3.4, cz - 18 + math.floor(i / 3) * 14), "coffee", Vector3.new(6, 4, 6))
+		end
 	end
 	-- fish stalls on the south side of the square
 	for i = 0, 3 do
@@ -406,6 +411,7 @@ local function fishingVillage(parent: Instance, poi, rng: Random)
 	B.box(m, tc * CFrame.new(4, 4.4, -0.1), Vector3.new(5, 3.4, 0.2), Color3.fromRGB(40, 56, 70), M.Glass, nc())
 	local label = B.box(m, tc * CFrame.new(0, 8.4, -0.2), Vector3.new(14, 2, 0.4), blue, M.SmoothPlastic)
 	B.sign(label, Enum.NormalId.Front, "HARBOUR CAFE", { color = Color3.new(1, 1, 1) })
+	Venues.station(m, tc * CFrame.new(2, 3.4, -4.6), "coffee", Vector3.new(8, 5, 4))
 	-- the jetty on the beach south of the village, with fishing boats moored along it
 	local jx = cx
 	local zj0, zj1 = CityLayout.BEACH_Z + 8, CityLayout.SEA_Z + 80
@@ -416,6 +422,10 @@ local function fishingVillage(parent: Instance, poi, rng: Random)
 			B.cylY(m, CFrame.new(jx + sx, deckY - 5, z), 10, 0.8, Color3.fromRGB(110, 84, 60), M.Wood)
 		end
 	end
+	-- (a line in the water from the jetty: two places to fish, a friend at one)
+	Venues.station(m, CFrame.new(jx, deckY + 3.2, zj0 + 70), "fishing", Vector3.new(7, 5, 6))
+	Venues.station(m, CFrame.new(jx, deckY + 3.2, zj0 + 120), "fishing", Vector3.new(7, 5, 6))
+	Venues.patron(m, CFrame.new(jx + 2.4, deckY + 0.3, zj0 + 96) * CFrame.Angles(0, -math.pi / 2, 0), "fishing", "feed", "idle")
 	for k = 0, 3 do
 		for _, side in { -1, 1 } do
 			local b = Props.boat(m, CFrame.new(jx + side * 9, Terrain.SEA_LEVEL - 0.6, CityLayout.SEA_Z + 10 + k * 18), Rand.pick(rng, { { 240, 240, 236 }, { 40, 90, 150 }, { 200, 60, 50 } }), rng)
@@ -529,7 +539,7 @@ local function teknopark(parent: Instance, poi, rng: Random)
 		end
 	end
 	for _, sx in { -24, 24 } do
-		Props.bench(m, facing(cx + sx, cz + 26, 0, -1, Y))
+		Venues.benchStation(Props.bench(m, facing(cx + sx, cz + 26, 0, -1, Y)), rng)
 	end
 	postSign(m, facing(s.x0 + 8, cz + 22, -1, 0), "TECH PARK", 22, { 0, 110, 180 }, 7)
 	return m
@@ -594,6 +604,8 @@ local function farm(parent: Instance, poi, rng: Random)
 			Props.tree(m, CFrame.new(s.x0 + 28 + i * (w - 56) / 3, Y, s.z1 - 110 + j * 22), "oak", rng)
 		end
 	end
+	Venues.station(m, CFrame.new(s.x0 + 28 + (w - 56) / 6, Y + 3.2, s.z1 - 99), "apple_pick", Vector3.new(14, 6, 14))
+	Venues.signpost(m, facing(s.x0 + 28 + (w - 56) / 6, s.z1 - 126, 0, 1), "ORCHARD • PICK YOUR OWN", Color3.fromRGB(190, 255, 190), 11)
 	-- the roadside stall on the western street
 	local stall = facing(s.x0 + 6, s.z0 + 126, -1, 0)
 	B.box(m, stall * CFrame.new(0, 1.6, 0), Vector3.new(12, 3.2, 4), Color3.fromRGB(150, 110, 70), M.WoodPlanks)
@@ -601,6 +613,7 @@ local function farm(parent: Instance, poi, rng: Random)
 		B.box(m, stall * CFrame.new(-4.5 + k * 3, 3.6, 0), Vector3.new(2.6, 0.8, 2.6), crops[k + 1]:Lerp(Color3.fromRGB(220, 60, 40), if k % 2 == 0 then 0.6 else 0), M.SmoothPlastic)
 	end
 	postSign(m, stall * CFrame.new(0, 0, 3), "FARM FRESH", 12, { 90, 140, 60 }, 7)
+	Venues.station(m, stall * CFrame.new(0, 3.4, -3.4), "fruit", Vector3.new(10, 5, 4))
 	hedge(m, Vector3.new(s.x1 - 2, Y, s.z0 + 4), Vector3.new(s.x1 - 2, Y, s.z1 - 4))
 	return m
 end
@@ -645,6 +658,19 @@ local function golf(parent: Instance, poi, rng: Random)
 			B.cylY(m, CFrame.new(bunker.X, Y + 0.1, bunker.Z), 0.12, 14, sand, M.Sand)
 		end
 	end
+	-- the practice green (putt) and three mats for the driving range, with friends practising
+	local pgx, pgz = cx + 24, s.z0 + 56
+	B.cylY(m, CFrame.new(pgx, Y + 0.14, pgz), 0.14, 22, green, M.Grass, { Name = "PracticeGreen" })
+	B.cylY(m, CFrame.new(pgx + 4, Y + 0.2, pgz + 2), 0.05, 1.4, Color3.fromRGB(20, 20, 20), M.SmoothPlastic, nc())
+	B.cylY(m, CFrame.new(pgx + 4.6, Y + 3.6, pgz + 2), 7, 0.22, Color3.fromRGB(240, 240, 240), M.Metal, nc())
+	B.box(m, CFrame.new(pgx + 5.8, Y + 6.2, pgz + 2), Vector3.new(2.4, 1.6, 0.1), Color3.fromRGB(240, 200, 30), M.Fabric, nc())
+	Venues.station(m, CFrame.new(pgx - 6, Y + 3.2, pgz), "putt", Vector3.new(8, 5, 8))
+	Venues.patron(m, CFrame.new(pgx - 3, Y + 0.25, pgz) * CFrame.Angles(0, -math.pi / 2, 0), "putt", "putt", "idle")
+	for k = 0, 2 do
+		B.box(m, CFrame.new(cx - 10 + k * 7, Y + 0.18, s.z0 + 50), Vector3.new(4, 0.14, 5), Color3.fromRGB(70, 150, 70), M.Grass, nc({ Name = "RangeMat" }))
+	end
+	Venues.station(m, CFrame.new(cx - 3, Y + 3.2, s.z0 + 50), "golf_drive", Vector3.new(20, 5, 6))
+	Venues.patron(m, CFrame.new(cx + 4, Y + 0.25, s.z0 + 50) * CFrame.Angles(0, math.pi, 0), "golf_drive", "swing", "idle")
 	-- the pond, trees along the edges, a few carts
 	B.cylY(m, CFrame.new(gx0 + cw, Y + 0.14, gz0 + ch * 2), 0.14, 36, Color3.fromRGB(50, 130, 160), M.Glass, { Transparency = 0.1, Reflectance = 0.15, Name = "Pond" })
 	for k = 0, 9 do
@@ -697,6 +723,10 @@ local function caravanPark(parent: Instance, poi, rng: Random)
 			else
 				-- a picnic table on the pitch instead
 				local p = CFrame.new(cx + side * 62, Y, z)
+				-- (with a little barbecue beside it)
+				B.box(m, p * CFrame.new(-side * 5, 1.5, 0), Vector3.new(2.4, 3, 3), Color3.fromRGB(34, 36, 40), M.Metal)
+				B.box(m, p * CFrame.new(-side * 5, 3.2, 0), Vector3.new(2.6, 0.5, 3.2), Color3.fromRGB(180, 70, 40), M.Metal, nc({ Name = "GrillLid" }))
+				Venues.station(m, p * CFrame.new(-side * 3.4, 3.6, 0), "bbq", Vector3.new(7, 5, 8))
 				B.box(m, p * CFrame.new(0, 2.6, 0), Vector3.new(4, 0.3, 8), Color3.fromRGB(150, 110, 70), M.Wood)
 				B.box(m, p * CFrame.new(0, 1.225, 0), Vector3.new(0.6, 2.45, 6), Color3.fromRGB(120, 90, 60), M.Wood)
 				for _, bx in { -2.8, 2.8 } do
@@ -713,6 +743,7 @@ local function caravanPark(parent: Instance, poi, rng: Random)
 		for _, side in { -1, 1 } do
 			B.wedge(m, tc * CFrame.new(side * 2.2, 2.4, 0) * CFrame.Angles(0, side * math.pi / 2, 0), Vector3.new(8, 4.8, 4.4), col, M.Fabric)
 		end
+		Venues.station(m, tc * CFrame.new(0, 2.8, -2.8), "tent_nap", Vector3.new(6, 5, 4))
 	end
 	-- the shower block and a playground
 	local wc = facing(s.x0 + 22, s.z0 + 200, 1, 0)
@@ -730,15 +761,19 @@ local function caravanPark(parent: Instance, poi, rng: Random)
 	B.box(m, pg * CFrame.new(0, 10, 0), Vector3.new(0.6, 0.6, 13), Color3.fromRGB(200, 60, 50), M.Metal)
 	for _, sz in { -3, 3 } do
 		B.box(m, pg * CFrame.new(0, 2, sz), Vector3.new(2, 0.3, 1), Color3.fromRGB(40, 40, 44), M.Rubber)
+		Venues.station(m, pg * CFrame.new(0, 3.6, sz), "swing", Vector3.new(3, 5, 3))
 		B.box(m, pg * CFrame.new(0, 6, sz), Vector3.new(0.15, 8, 0.15), Color3.fromRGB(150, 150, 156), M.Metal, nc())
 	end
 	B.wedge(m, pg * CFrame.new(-6, 2.5, -12) * CFrame.Angles(0, math.pi / 2, 0), Vector3.new(2.6, 5, 10), Color3.fromRGB(240, 200, 40), M.SmoothPlastic)
+	Venues.station(m, pg * CFrame.new(-6, 3.2, -18.5), "slide", Vector3.new(5, 5, 5))
 	local fire = CFrame.new(cx - 62, Y, s.z1 - 78)
 	for i = 0, 7 do
 		local a = i * math.pi / 4
 		B.ball(m, fire * CFrame.new(math.cos(a) * 2.6, 0.5, math.sin(a) * 2.6), 1.4, Color3.fromRGB(120, 116, 110), M.Rock)
 	end
 	local flame = B.box(m, fire * CFrame.new(0, 1.2, 0), Vector3.new(1, 1, 1), Color3.fromRGB(255, 140, 40), M.Neon, nc({ Transparency = 1, Name = "Campfire" }))
+	Venues.station(m, fire * CFrame.new(0, 2.6, 4.2), "campfire", Vector3.new(8, 5, 5))
+	Venues.patron(m, fire * CFrame.new(5.2, 0.1, 0) * CFrame.Angles(0, math.pi / 2, 0), "campfire", "watch", "idle")
 	local f = Instance.new("Fire")
 	f.Size = 4
 	f.Heat = 8
@@ -780,15 +815,30 @@ local function villaClub(parent: Instance, poi, rng: Random)
 		for _, sx in { -15.2, 15.2 } do
 			B.cylY(m, c * CFrame.new(sx, 1.6, 0), 3.2, 0.4, Color3.fromRGB(60, 60, 64), M.Metal)
 		end
+		-- (a prompt at each baseline and a rally going on at one of the courts)
+		for _, sz in { -30, 30 } do
+			Venues.station(m, c * CFrame.new(0, 3.4, sz), "tennis", Vector3.new(12, 5, 6))
+		end
+		if k == 0 then
+			Venues.patron(m, c * CFrame.new(3, 0.25, 27), "tennis", "swing", "idle")
+			Venues.patron(m, c * CFrame.new(-3, 0.25, -27) * CFrame.Angles(0, math.pi, 0), "tennis", "swing", "idle")
+		end
 	end
 	-- the pool and its terrace
 	local px, pz = s.x1 - 46, s.z0 + 50
 	slab(m, px - 34, pz - 22, px + 34, pz + 22, Y + 0.3, Color3.fromRGB(236, 232, 222), M.SmoothPlastic)
 	B.box(m, CFrame.new(px, Y + 0.35, pz), Vector3.new(50, 0.2, 22), Color3.fromRGB(60, 180, 210), M.Glass, { Transparency = 0.15, Reflectance = 0.1, Name = "PoolWater" })
+	for _, dx in { -12, 12 } do
+		Venues.station(m, CFrame.new(px + dx, Y + 3.6, pz - 13.5), "swim", Vector3.new(8, 5, 5))
+	end
+	Venues.patron(m, CFrame.new(px + 3, Y + 0.3, pz - 13.5) * CFrame.Angles(0, math.pi, 0), "swim", "stretch", "idle")
 	for k = 0, 5 do
 		local lc = CFrame.new(px - 25 + k * 10, Y + 0.3, pz + 16)
 		B.box(m, lc * CFrame.new(0, 0.6, 0), Vector3.new(2.4, 0.4, 6), Color3.fromRGB(250, 250, 250), M.SmoothPlastic)
 		B.box(m, lc * CFrame.new(0, 1.4, -2.4) * CFrame.Angles(math.rad(50), 0, 0), Vector3.new(2.4, 0.4, 2.4), Color3.fromRGB(250, 250, 250), M.SmoothPlastic, nc())
+		if k % 2 == 1 then
+			Venues.station(m, lc * CFrame.new(0, 2.2, 0), "sunbathe", Vector3.new(3, 3, 6.4))
+		end
 	end
 	for k = 0, 2 do
 		Props.parasolTable(m, CFrame.new(px - 20 + k * 20, Y + 0.3, pz - 17), { 40, 110, 70 }, rng)
@@ -812,10 +862,17 @@ local function summerSite(parent: Instance, poi, rng: Random)
 	Buildings.building(m, facing(s.x1 - 20, s.z1 - 4, 0, 1), { w = 26, d = 20, floors = 1, floorH = 11, style = "apartment", rng = rng, ground = "shop", shops = 1, name = "VILLAGE MARKET", wallColor = { 250, 236, 210 }, blankSides = true })
 	slab(m, cx - 44, cz - 30, cx + 40, cz + 8, Y + 0.3, Color3.fromRGB(236, 230, 214), M.SmoothPlastic)
 	B.box(m, CFrame.new(cx - 2, Y + 0.35, cz - 12), Vector3.new(64, 0.2, 22), Color3.fromRGB(60, 180, 210), M.Glass, { Transparency = 0.15, Reflectance = 0.1, Name = "PoolWater" })
+	for _, dx in { -16, 14 } do
+		Venues.station(m, CFrame.new(cx + dx, Y + 3.6, cz - 26.5), "swim", Vector3.new(8, 5, 5))
+	end
+	Venues.patron(m, CFrame.new(cx + 2, Y + 0.3, cz - 26.5) * CFrame.Angles(0, math.pi, 0), "swim", "stretch", "idle")
 	for k = 0, 6 do
 		local lc = CFrame.new(cx - 36 + k * 11, Y + 0.3, cz + 3)
 		B.box(m, lc * CFrame.new(0, 0.6, 0), Vector3.new(2.4, 0.4, 6), Color3.fromRGB(250, 250, 250), M.SmoothPlastic)
 		B.box(m, lc * CFrame.new(0, 1.4, 2.4) * CFrame.Angles(math.rad(-50), 0, 0), Vector3.new(2.4, 0.4, 2.4), Color3.fromRGB(250, 250, 250), M.SmoothPlastic, nc())
+		if k % 2 == 0 then
+			Venues.station(m, lc * CFrame.new(0, 2.2, 0), "sunbathe", Vector3.new(3, 3, 6.4))
+		end
 	end
 	for k = 0, 5 do
 		Props.tree(m, CFrame.new(s.x0 + 8 + k * (s.x1 - s.x0 - 16) / 5, Y, s.z0 + 8), "palm", rng)

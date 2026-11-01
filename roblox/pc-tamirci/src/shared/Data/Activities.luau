@@ -29,6 +29,8 @@ Activities.buffs = {
 	thrill = { icon = "🎡", name = N("Heyecanlı", "Thrilled"), xp = 0.15, tips = 0.15, minutes = 8 },
 	calm = { icon = "🌳", name = N("Ferah", "Fresh air"), patience = 0.15, minutes = 8 },
 	hydrated = { icon = "💧", name = N("Susuz Değil", "Hydrated"), speed = 0.03, minutes = 3 },
+	healthy = { icon = "🩺", name = N("Sağlıklı", "Checked up"), speed = 0.04, patience = 0.12, minutes = 15 },
+	lucky = { icon = "🍀", name = N("Şanslı", "Lucky"), tips = 0.25, minutes = 6 },
 }
 
 -- The most any effect can add up to however many buffs are on.
@@ -75,6 +77,31 @@ local list = {
 	{ id = "putt", icon = "⛳", venue = "golf", name = N("Golf Çimi", "Putting Green"), verb = N("Vuruş Yap", "Putt"), cost = 5, seconds = 8, buff = "calm", xp = 2, emote = "point", pose = "putt" },
 	{ id = "tennis", icon = "🎾", venue = "tennis", name = N("Tenis Kortu", "Tennis Court"), verb = N("Tenis Oyna", "Play tennis"), cost = 5, seconds = 8, buff = "fit", xp = 4, emote = "cheer", pose = "swing" },
 	{ id = "fishing", icon = "🎣", venue = "marina", name = N("İskele", "The Jetty"), verb = N("Olta At", "Go fishing"), cost = 2, seconds = 10, buff = "calm", xp = 2, emote = "wave", pose = "feed" },
+	-- the park, the funfair, the pools, the camp, the viewpoint and the rest of the places out of doors
+	{ id = "swing", icon = "🧒", venue = "park", name = N("Salıncak", "Swing"), verb = N("Salın", "Have a swing"), cost = 0, seconds = 6, buff = "calm", xp = 1, emote = "cheer", pose = "pedal" },
+	{ id = "slide", icon = "🎈", venue = "park", name = N("Kaydırak", "Slide"), verb = N("Kay", "Go down the slide"), cost = 0, seconds = 4, buff = "energized", xp = 1, emote = "cheer", pose = "stretch" },
+	{ id = "picnic", icon = "🧺", venue = "park", name = N("Piknik Masası", "Picnic Table"), verb = N("Piknik Yap", "Have a picnic"), cost = 6, seconds = 8, buff = "fed", xp = 2, emote = "wave", pose = "eat" },
+	{ id = "carousel", icon = "🎠", venue = "lunapark", name = N("Atlıkarınca", "Carousel"), verb = N("Bin", "Ride the carousel"), cost = 5, seconds = 10, buff = "thrill", xp = 3, emote = "cheer", pose = "watch" },
+	{ id = "coaster", icon = "🎢", venue = "lunapark", name = N("Hız Treni", "Roller Coaster"), verb = N("Bilet Al & Bin", "Buy a ticket and ride"), cost = 12, seconds = 12, buff = "thrill", xp = 6, rep = 1, emote = "cheer", pose = "watch" },
+	{ id = "cotton_candy", icon = "🍬", venue = "lunapark", name = N("Pamuk Şeker", "Cotton Candy"), verb = N("Pamuk Şeker Al", "Buy cotton candy"), cost = 4, seconds = 4, buff = "sweet", xp = 1, emote = "wave", pose = "eat" },
+	{ id = "hotdog", icon = "🌭", venue = "lunapark", name = N("Sosisli", "Hot Dog"), verb = N("Sosisli Ye", "Have a hot dog"), cost = 6, seconds = 5, buff = "fed", xp = 2, emote = "wave", pose = "eat" },
+	{ id = "fries", icon = "🍟", venue = "lunapark", name = N("Patates Kızartması", "Loaded Fries"), verb = N("Patates Ye", "Have some fries"), cost = 5, seconds = 5, buff = "fed", xp = 2, emote = "wave", pose = "eat" },
+	{ id = "fruit", icon = "🍎", venue = "market", name = N("Taze Meyve", "Fresh Fruit"), verb = N("Meyve Al", "Buy some fruit"), cost = 4, seconds = 4, buff = "healthy", xp = 1, emote = "wave", pose = "eat" },
+	{ id = "apple_pick", icon = "🍏", venue = "farm", name = N("Elma Bahçesi", "Orchard"), verb = N("Elma Topla", "Pick apples"), cost = 0, seconds = 6, buff = "calm", xp = 1, emote = "wave", pose = "feed" },
+	{ id = "chess", icon = "♟️", venue = "cafe", name = N("Satranç Masası", "Chess Table"), verb = N("Satranç Oyna", "Play chess"), cost = 0, seconds = 10, buff = "gamer", xp = 3, rep = 1, emote = "point", pose = "type" },
+	{ id = "ring_toss", icon = "🎯", venue = "lunapark", name = N("Halka Atma", "Ring Toss"), verb = N("Halka At", "Throw the rings"), cost = 3, seconds = 6, buff = "gamer", xp = 2, emote = "cheer", pose = "swing" },
+	{ id = "balloon_pop", icon = "🎈", venue = "lunapark", name = N("Balon Patlatma", "Balloon Pop"), verb = N("Balon Patlat", "Pop the balloons"), cost = 3, seconds = 6, buff = "gamer", xp = 2, emote = "cheer", pose = "punch" },
+	{ id = "cheer", icon = "📣", venue = "stadium", name = N("Tribün", "The Stands"), verb = N("Maçı İzle", "Watch the match"), cost = 0, seconds = 8, buff = "inspired", xp = 2, emote = "cheer", pose = "watch" },
+	{ id = "golf_drive", icon = "🏌️", venue = "golf", name = N("Atış Alanı", "Driving Range"), verb = N("Vuruş At", "Hit a bucket"), cost = 6, seconds = 8, buff = "fit", xp = 3, emote = "point", pose = "swing" },
+	{ id = "swim", icon = "🏊", venue = "pool", name = N("Havuz", "Swimming Pool"), verb = N("Yüz", "Go for a swim"), cost = 5, seconds = 10, buff = "fit", xp = 4, emote = "cheer", pose = "stretch" },
+	{ id = "campfire", icon = "🔥", venue = "camp", name = N("Kamp Ateşi", "Campfire"), verb = N("Ateşin Başına Otur", "Sit by the fire"), cost = 0, seconds = 8, buff = "calm", xp = 1, emote = "wave", pose = "sit" },
+	{ id = "tent_nap", icon = "⛺", venue = "camp", name = N("Çadır", "Tent"), verb = N("Biraz Uyu", "Take a nap"), cost = 0, seconds = 12, buff = "rested", xp = 2, emote = "wave", pose = "sit" },
+	{ id = "telescope", icon = "🔭", venue = "viewpoint", name = N("Teleskop", "Telescope"), verb = N("Şehre Bak", "Look at the city"), cost = 0, seconds = 6, buff = "inspired", xp = 2, emote = "point", pose = "watch" },
+	{ id = "bbq", icon = "🍖", venue = "camp", name = N("Mangal", "Barbecue"), verb = N("Mangal Yap", "Grill something"), cost = 7, seconds = 8, buff = "fed", xp = 2, emote = "wave", pose = "brew" },
+	{ id = "hoops", icon = "🏀", venue = "court", name = N("Basketbol Potası", "Basketball Hoop"), verb = N("Basket At", "Shoot some hoops"), cost = 0, seconds = 8, buff = "energized", xp = 3, emote = "cheer", pose = "lift" },
+	{ id = "hose", icon = "🧯", venue = "fire", name = N("İtfaiye Hortumu", "Fire Hose"), verb = N("Hortumu Dene", "Try the hose"), cost = 0, seconds = 6, buff = "energized", xp = 2, emote = "cheer", pose = "punch" },
+	{ id = "checkup", icon = "🩺", venue = "clinic", name = N("Check-up", "Check-up"), verb = N("Muayene Ol", "Have a check-up"), cost = 12, seconds = 8, buff = "healthy", xp = 2, emote = "wave", pose = "stretch" },
+	{ id = "wish", icon = "🪙", venue = "plaza", name = N("Dilek Çeşmesi", "Wishing Fountain"), verb = N("Bozuk Para At", "Throw a coin"), cost = 1, seconds = 3, buff = "lucky", xp = 1, emote = "wave", pose = "feed" },
 	-- calling a friend (the people of the city are the player's friends)
 	{ id = "call", icon = "📞", venue = "phone", name = N("Arkadaşını Ara", "Call a friend"), verb = N("Ara", "Call"), cost = 0, seconds = 5, buff = "calm", xp = 1, emote = "wave", pose = "phone" },
 }

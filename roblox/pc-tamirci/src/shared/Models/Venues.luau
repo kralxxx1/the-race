@@ -75,6 +75,34 @@ local function seatPatrons(model: Instance, seatName: string, activityId: string
 	end
 end
 
+Venues.seatPatrons = seatPatrons
+
+-- A bench you can sit on and relax: a prompt over its seat (ActivityService sits the player down in
+-- it), and now and then one of the city's people is sitting there already. Returns the station.
+function Venues.benchStation(bench: Instance, rng: Random?): BasePart?
+	local seat = bench:FindFirstChild("Seat")
+	if not seat or not seat:IsA("Seat") then
+		return nil
+	end
+	local anchor = Venues.station(bench, seat.CFrame * CFrame.new(0, 1.4, 0), "relax", Vector3.new(5.6, 3, 2.6))
+	anchor:SetAttribute("SeatName", "Seat")
+	if rng then
+		seatPatrons(bench, "Seat", "relax", "sit", 0.3, rng)
+	end
+	return anchor
+end
+
+-- A signpost: a wooden post with a board that says what the place is for. `cf` looks the way the
+-- people come from; the board is read from there.
+function Venues.signpost(parent: Instance, cf: CFrame, text: string, accent: Color3?, w: number?): BasePart
+	local width = w or 8
+	B.box(parent, cf * CFrame.new(0, 3.2, 0.4), Vector3.new(0.5, 6.4, 0.5), Color3.fromRGB(96, 70, 48), M.Wood, { Name = "Post" })
+	local board = B.box(parent, cf * CFrame.new(0, 6.6, 0), Vector3.new(width, 2.2, 0.4), Color3.fromRGB(34, 36, 42), M.SmoothPlastic, nc({ Name = "Poster" }))
+	B.box(parent, cf * CFrame.new(0, 7.8, 0.1), Vector3.new(width + 0.4, 0.3, 0.6), Color3.fromRGB(96, 70, 48), M.Wood, nc({ Name = "Cap" }))
+	B.sign(board, Enum.NormalId.Front, text, { color = accent or Color3.fromRGB(255, 232, 170), glow = true, brightness = 1.1 })
+	return board
+end
+
 local function sign(parent: Instance, at: CFrame, w: number, h: number, text: string, color: Color3, bg: Color3?)
 	local p = B.box(parent, at, Vector3.new(w, h, 0.3), bg or Color3.fromRGB(24, 25, 30), M.SmoothPlastic, nc({ Name = "Poster" }))
 	B.sign(p, Enum.NormalId.Front, text, { color = color, glow = true, brightness = 1.2 })

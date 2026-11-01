@@ -299,10 +299,19 @@ local function teahouse(parent, poi, rng)
 		local board = B.box(m, c * CFrame.new(0, 2.6, 0), Vector3.new(2.6, 0.15, 1.6), Color3.fromRGB(150, 100, 60), M.Wood, nc())
 		board.Name = "Chessboard"
 		for k = 0, 1 do
-			Props.chair(m, c * CFrame.Angles(0, k * math.pi, 0) * CFrame.new(0, 0, 3), { 120, 80, 50 })
+			local seatCf = c * CFrame.Angles(0, k * math.pi, 0) * CFrame.new(0, 0, 3)
+			local chair = Props.chair(m, seatCf, { 120, 80, 50 })
+			if k == 0 then
+				-- (sit down and play: the prompt is on the chair, which sits you in it)
+				local st = Venues.station(chair, seatCf * CFrame.new(0, 3.4, -1.4), "chess", Vector3.new(4, 4, 4))
+				st:SetAttribute("SeatName", "Seat")
+			else
+				Venues.seatPatrons(chair, "Seat", "chess", "type", 0.6, rng)
+			end
 		end
 	end
 	Props.coffeeStation(m, cf * CFrame.new(w / 3, 0.2, 2))
+	Venues.station(m, cf * CFrame.new(w / 3, 3.4, -1.6), "coffee", Vector3.new(8, 5, 4))
 	Props.tree(m, cf * CFrame.new(w / 4, 0, 26), "oak", rng)
 	return m
 end
@@ -320,6 +329,10 @@ local function marketHall(parent, poi, rng)
 			B.ball(m, c * CFrame.new(Rand.range(rng, -3.8, 3.8), 2.4, Rand.range(rng, -2, 2)), 0.9, Rand.pick(rng, produce), M.SmoothPlastic, nc())
 		end
 		B.wedge(m, c * CFrame.new(0, 6.8, 0), Vector3.new(10, 1.2, 6), Rand.pick(rng, { Color3.fromRGB(240, 240, 236), Color3.fromRGB(200, 50, 40), Color3.fromRGB(40, 120, 70) }), M.Fabric, nc())
+		Venues.station(m, c * CFrame.new(0, 3.2, -4.2), "fruit", Vector3.new(8, 5, 3.6))
+		if i % 3 == 1 then
+			Venues.patron(m, c * CFrame.new(1.5, 0, -5.2) * CFrame.Angles(0, math.pi, 0), "fruit", "eat", "idle")
+		end
 		for x = -1, 1, 2 do
 			B.box(m, c * CFrame.new(x * 4.4, 3.4, -2.6), Vector3.new(0.3, 6.8, 0.3), Color3.fromRGB(90, 90, 96), M.Metal)
 		end

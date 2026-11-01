@@ -369,6 +369,16 @@ local venueLines = {
 	["Tickets"] = "Biletler",
 	["Welcome"] = "Hoş geldiniz",
 	["Welcome!"] = "Hoş geldiniz!",
+	["PLAYGROUND"] = "OYUN PARKI",
+	["CAROUSEL"] = "ATLIKARINCA",
+	["BEACH VOLLEYBALL"] = "PLAJ VOLEYBOLU",
+	["FERRIS WHEEL • TICKETS"] = "DÖNME DOLAP • BİLET",
+	["CLINIC • CHECK-UP"] = "KLİNİK • MUAYENE",
+	["CAMPUS LIBRARY"] = "KAMPÜS KÜTÜPHANESİ",
+	["PHONE"] = "TELEFON",
+	["RADIO HILL • LOOKOUT"] = "RADYO TEPESİ • MANZARA",
+	["WIND FARM • 6 TURBINES"] = "RÜZGÂR TARLASI • 6 TÜRBİN",
+	["ORCHARD • PICK YOUR OWN"] = "MEYVE BAHÇESİ • KENDİN TOPLA",
 }
 for en, tr in venueLines do
 	WorldTextTR.lines[en] = tr

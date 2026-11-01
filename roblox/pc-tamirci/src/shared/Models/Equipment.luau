@@ -372,4 +372,60 @@ function Equipment.readingTable(parent: Instance, cf: CFrame): Model
 	return m
 end
 
+----------------------------------------------------------------------------------------------------
+-- Out of doors
+----------------------------------------------------------------------------------------------------
+
+-- A ticket booth / kiosk: a small cabin with a window and a ledge, a striped awning and a lit sign. The
+-- customer stands in front, on the side the LookVector points to.
+function Equipment.ticketBooth(parent: Instance, cf: CFrame, label: string, accent: Color3): Model
+	local m = B.model("Booth", parent)
+	local wall = Color3.fromRGB(246, 242, 232)
+	B.box(m, cf * CFrame.new(0, 0.3, 0), Vector3.new(6.4, 0.6, 5.4), Color3.fromRGB(150, 146, 140), M.Concrete, { Name = "Base" })
+	B.box(m, cf * CFrame.new(0, 4.6, 0.6), Vector3.new(6, 8, 4), wall, M.SmoothPlastic, { Name = "Cabin" })
+	B.box(m, cf * CFrame.new(0, 5.4, -1.42), Vector3.new(4.2, 2.8, 0.2), Color3.fromRGB(40, 70, 90), M.Glass, nc({ Transparency = 0.35, Reflectance = 0.15, Name = "Window" }))
+	B.box(m, cf * CFrame.new(0, 3.9, -2), Vector3.new(4.8, 0.3, 1.6), accent, M.Wood, nc({ Name = "Ledge" }))
+	-- the awning: slanted, with a valance in stripes
+	B.box(m, cf * CFrame.new(0, 7.6, -2) * CFrame.Angles(math.rad(-16), 0, 0), Vector3.new(7, 0.3, 4), accent, M.Fabric, nc({ Name = "Awning" }))
+	for i = -3, 3 do
+		B.box(m, cf * CFrame.new(i * 0.95, 6.9, -3.75), Vector3.new(0.9, 0.9, 0.2), if i % 2 == 0 then accent else Color3.fromRGB(250, 250, 246), M.Fabric, nc({ Name = "Valance" }))
+	end
+	local sign = B.box(m, cf * CFrame.new(0, 9.4, 0.4), Vector3.new(6.2, 1.6, 0.4), Color3.fromRGB(24, 25, 30), M.SmoothPlastic, nc({ Name = "Poster" }))
+	B.sign(sign, Enum.NormalId.Front, label, { color = Color3.new(1, 1, 1), glow = true })
+	return m
+end
+
+-- A penalty spot with the ball on it, `cf` looking at the goal.
+function Equipment.penaltySpot(parent: Instance, cf: CFrame): Model
+	local m = B.model("PenaltySpot", parent)
+	B.cylY(m, cf * CFrame.new(0, 0.28, 0), 0.04, 1.6, Color3.fromRGB(250, 250, 250), M.SmoothPlastic, nc({ Name = "Spot" }))
+	local ball = B.ball(m, cf * CFrame.new(0, 0.95, 0), 1.3, Color3.fromRGB(248, 248, 248), M.SmoothPlastic, nc({ Name = "Ball" }))
+	for _, a in { 0, 1.25, 2.5, 3.75, 5 } do
+		B.ball(m, cf * CFrame.new(math.sin(a) * 0.42, 0.95 + math.cos(a * 1.3) * 0.2, -math.cos(a) * 0.5), 0.34, Color3.fromRGB(30, 30, 34), M.SmoothPlastic, nc({ Name = "Patch" }))
+	end
+	ball.Reflectance = 0.05
+	return m
+end
+
+-- A red telephone box with a phone inside, its open side towards the LookVector.
+function Equipment.phoneBooth(parent: Instance, cf: CFrame): Model
+	local m = B.model("PhoneBooth", parent)
+	local red = Color3.fromRGB(196, 32, 38)
+	B.box(m, cf * CFrame.new(0, 0.2, 0), Vector3.new(3.8, 0.4, 3.8), Color3.fromRGB(110, 110, 114), M.Concrete, { Name = "Base" })
+	for _, sx in { -1.7, 1.7 } do
+		for _, sz in { -1.7, 1.7 } do
+			B.box(m, cf * CFrame.new(sx, 4.4, sz), Vector3.new(0.3, 8, 0.3), red, M.Metal, { Name = "Post" })
+		end
+	end
+	B.box(m, cf * CFrame.new(0, 8.3, 0), Vector3.new(4, 0.6, 4), red, M.Metal, { Name = "Roof" })
+	B.box(m, cf * CFrame.new(0, 4.6, 1.7), Vector3.new(3.4, 7.4, 0.12), Color3.fromRGB(180, 210, 220), M.Glass, nc({ Transparency = 0.55, Name = "Pane" }))
+	for _, sx in { -1.7, 1.7 } do
+		B.box(m, cf * CFrame.new(sx, 4.6, 0), Vector3.new(0.12, 7.4, 3.4), Color3.fromRGB(180, 210, 220), M.Glass, nc({ Transparency = 0.55, Name = "Pane" }))
+	end
+	B.box(m, cf * CFrame.new(0, 3.6, 1.45), Vector3.new(0.9, 1.3, 0.4), Color3.fromRGB(40, 42, 48), M.Metal, nc({ Name = "Phone" }))
+	local lamp = B.box(m, cf * CFrame.new(0, 8.8, 0), Vector3.new(2.4, 0.9, 2.4), Color3.fromRGB(255, 244, 214), M.Neon, nc({ Name = "TopLamp" }))
+	B.sign(lamp, Enum.NormalId.Front, "PHONE", { color = Color3.fromRGB(60, 40, 20) })
+	return m
+end
+
 return Equipment

@@ -1,4 +1,4 @@
--- Civic landmarks: Republic Square (clock tower, fountain, city hall, bank, café), the university,
+-- Civic landmarks: Piazza Bella (clock tower, fountain, city hall, bank, café), the university,
 -- hospital, school, fire station and stadium.
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -6,6 +6,8 @@ local B = require(Shared.Util.Builder)
 local Rand = require(Shared.Util.Rand)
 local Props = require(Shared.Models.Props)
 local Buildings = require(Shared.Models.Buildings)
+local Venues = require(Shared.Models.Venues)
+local Equipment = require(Shared.Models.Equipment)
 local CityLayout = require(Shared.World.CityLayout)
 local Commerce = require(script.Parent.LandmarksCommerce)
 
@@ -33,10 +35,10 @@ local function colonnade(parent, cf: CFrame, width: number, height: number, coun
 end
 
 ----------------------------------------------------------------------------------------------------
--- Republic Square
+-- Piazza Bella
 ----------------------------------------------------------------------------------------------------
 local function plaza(parent, poi, rng)
-	local m = B.model("RepublicSquare", parent)
+	local m = B.model("PiazzaBella", parent)
 	local c = poi.pos
 	local center = CFrame.new(c.X, WALK_Y, c.Z)
 	local marble = Color3.fromRGB(236, 232, 222)
@@ -65,7 +67,7 @@ local function plaza(parent, poi, rng)
 		pe.EmissionDirection = Enum.NormalId.Top
 		pe.Parent = jet
 	end
-	-- clock tower (Izmir-style): base, shaft, clock stage, lantern
+	-- clock tower: base, shaft, clock stage, lantern
 	local stone = Color3.fromRGB(230, 214, 186)
 	local tower = center * CFrame.new(0, 2, 0)
 	B.box(m, tower * CFrame.new(0, 3, 0), Vector3.new(12, 6, 12), stone, M.Sandstone)
@@ -104,11 +106,18 @@ local function plaza(parent, poi, rng)
 		if i % 3 == 0 then
 			Props.tree(m, p, "oak", rng)
 		elseif i % 3 == 1 then
-			Props.bench(m, CFrame.lookAt(p.Position, center.Position) * CFrame.Angles(0, math.pi, 0))
+			Venues.benchStation(Props.bench(m, CFrame.lookAt(p.Position, center.Position) * CFrame.Angles(0, math.pi, 0)), rng)
 		else
 			Props.streetLamp(m, CFrame.lookAt(p.Position, center.Position), "classic")
 		end
 	end
+	-- throw a coin into the fountain (two places on its rim), a phone box to call a friend from
+	for k = -1, 1, 2 do
+		Venues.station(m, center * CFrame.new(0, 3.2, k * 26), "wish", Vector3.new(8, 5, 5))
+	end
+	local booth = CFrame.lookAt((center * CFrame.new(-38, 0, -22)).Position, center.Position)
+	Equipment.phoneBooth(m, booth)
+	Venues.station(m, booth * CFrame.new(0, 3.2, -2.6), "call", Vector3.new(5, 5, 4))
 	Props.flag(m, center * CFrame.new(-30, 0, -58), 30)
 	Props.flag(m, center * CFrame.new(30, 0, -58), 30)
 	Props.snackCart(m, CFrame.lookAt((center * CFrame.new(26, 0, 30)).Position, center.Position))
@@ -147,6 +156,7 @@ local function plaza(parent, poi, rng)
 	Buildings.building(m, cafeCf, { w = 34, d = 22, floors = 2, floorH = 12, style = "apartment", ground = "shop", shops = 1, name = "PLAZA CAFE ☕", accent = { 120, 70, 40 }, rng = rng, blankSides = true })
 	for i = 0, 3 do
 		Props.parasolTable(m, cafeCf * CFrame.new(-12 + i * 8, 0, -8), { 120, 70, 40 }, rng)
+		Venues.station(m, cafeCf * CFrame.new(-12 + i * 8, 3.2, -8), "coffee", Vector3.new(6, 4, 6))
 	end
 	return m
 end
@@ -164,7 +174,8 @@ local function university(parent, poi, rng)
 	colonnade(m, mainCf * CFrame.new(0, 0, -3), 40, 18, 6, Color3.fromRGB(240, 236, 226))
 	-- library (modern glass box) on the east side
 	local libCf = CFrame.lookAt(Vector3.new(b.x1 - 70, WALK_Y, cz - 20), Vector3.new(b.x1 - 140, WALK_Y, cz - 20))
-	Buildings.building(m, libCf, { w = 70, d = 46, floors = 3, floorH = 14, style = "modern", ground = "lobby", name = "LIBRARY", rng = rng, glassColor = { 80, 120, 140 } })
+	local lib = Buildings.hall(m, libCf, 70, 46, 16, { name = "CAMPUS LIBRARY", accent = { 30, 90, 60 }, wall = { 232, 230, 224 }, wallMat = M.SmoothPlastic, floor = { 120, 90, 66 }, floorMat = M.WoodPlanks, modelName = "Library" })
+	Venues.library(lib, libCf, 70, 46, 16, rng)
 	-- dorms on the west side
 	for k = 0, 1 do
 		local dormCf = CFrame.lookAt(Vector3.new(b.x0 + 40, WALK_Y, b.z0 + 70 + k * 110), Vector3.new(b.x0 + 140, WALK_Y, b.z0 + 70 + k * 110))
@@ -184,7 +195,7 @@ local function university(parent, poi, rng)
 		end
 	end
 	for i = 0, 5 do
-		Props.bench(m, quad * CFrame.new(-60 + i * 24, 0, 12))
+		Venues.benchStation(Props.bench(m, quad * CFrame.new(-60 + i * 24, 0, 12)), rng)
 	end
 	-- basketball court
 	local court = CFrame.new(b.x1 - 60, WALK_Y, b.z0 + 50)
@@ -193,6 +204,8 @@ local function university(parent, poi, rng)
 		B.cylY(m, court * CFrame.new(k * 24, 5, 0), 10, 0.5, Color3.fromRGB(60, 60, 64), M.Metal)
 		B.box(m, court * CFrame.new(k * 23.4, 10, 0), Vector3.new(0.3, 3.4, 5), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
 		B.cylY(m, court * CFrame.new(k * 22.4, 9, 0), 0.2, 1.8, Color3.fromRGB(230, 90, 30), M.Metal, nc())
+		Venues.station(m, court * CFrame.new(k * 19, 3.4, 0), "hoops", Vector3.new(6, 5, 7))
+		Venues.patron(m, court * CFrame.new(k * 15, 0.12, 0) * CFrame.Angles(0, -k * math.pi / 2, 0), "hoops", "lift", "idle")
 	end
 	return m
 end
@@ -212,6 +225,10 @@ local function hospital(parent, poi, rng)
 	B.sign(cross, Enum.NormalId.Front, "☾", { color = Color3.fromRGB(220, 20, 30), glow = true })
 	local er = B.box(m, cf * CFrame.new((w - 30) / 2 - 12, 11, -0.5), Vector3.new(14, 3, 1), Color3.fromRGB(200, 20, 30), M.Neon, nc())
 	B.sign(er, Enum.NormalId.Front, "EMERGENCY", { color = Color3.new(1, 1, 1) })
+	-- the walk-in clinic: a kiosk by the entrance where you can have a check-up
+	local kx = -(w - 30) / 2 - 8
+	local kiosk = Equipment.ticketBooth(m, cf * CFrame.new(kx, 0, 4), "CLINIC • CHECK-UP", Color3.fromRGB(30, 140, 170))
+	Venues.station(kiosk, cf * CFrame.new(kx, 3.2, -0.6), "checkup", Vector3.new(7, 5, 4))
 	-- ambulance bay
 	B.box(parent, cf * CFrame.new((w - 30) / 2 - 12, 0.05, -10), Vector3.new(16, 0.1, 14), Color3.fromRGB(240, 200, 40), M.SmoothPlastic, nc({ CanCollide = true }))
 	return m
@@ -228,6 +245,8 @@ local function school(parent, poi, rng)
 	for k = -1, 1, 2 do
 		B.cylY(parent, yard * CFrame.new(k * (w / 2 - 22), 5, 0), 10, 0.5, Color3.fromRGB(60, 60, 64), M.Metal)
 		B.box(parent, yard * CFrame.new(k * (w / 2 - 22.4), 10, 0), Vector3.new(0.3, 3, 4.6), Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
+		Venues.station(parent, yard * CFrame.new(k * (w / 2 - 26), 3.4, 0), "hoops", Vector3.new(6, 5, 7))
+		Venues.patron(parent, yard * CFrame.new(k * (w / 2 - 31), 0.12, 0) * CFrame.Angles(0, -k * math.pi / 2, 0), "hoops", "lift", "idle")
 	end
 	Props.flag(parent, cf * CFrame.new(-w / 2 + 14, 0, 6), 24)
 	Props.fence(parent, (cf * CFrame.new(-w / 2 + 4, 0, 2)).Position, (cf * CFrame.new(-6, 0, 2)).Position, "metal", 6)
@@ -263,6 +282,8 @@ local function fireStation(parent, poi, _rng)
 			B.cyl(m, truck * CFrame.new(x * 4.4, 1.8, z), 1.4, 3.6, Color3.fromRGB(26, 26, 26), M.Rubber)
 		end
 	end
+	Venues.station(m, truck * CFrame.new(6.4, 3.2, 3), "hose", Vector3.new(4, 5, 8))
+	Venues.patron(m, truck * CFrame.new(-7.5, 0.1, 6) * CFrame.Angles(0, -math.pi / 2, 0), nil, "watch", "idle", "Firefighter")
 	local bar = B.box(m, truck * CFrame.new(0, 7.4, -9), Vector3.new(6, 0.6, 1), Color3.fromRGB(40, 80, 255), M.Neon, nc())
 	bar:AddTag("Siren")
 	return m
@@ -291,6 +312,10 @@ local function stadium(parent, poi, _rng)
 		B.box(m, goal * CFrame.new(0, 8, 0), Vector3.new(0.4, 0.4, 12.4), white, M.Metal)
 		B.box(m, goal * CFrame.new(k * 3, 4, 0), Vector3.new(0.1, 8, 12), white, M.ForceField, nc({ Transparency = 0.6 }))
 	end
+	-- a penalty to take: the spot 12 studs in front of the right goal, a prompt behind the ball
+	Equipment.penaltySpot(m, center * CFrame.new(pw / 2 - 12, 0.25, 0) * CFrame.Angles(0, -math.pi / 2, 0))
+	Venues.station(m, center * CFrame.new(pw / 2 - 15, 3.2, 0), "penalty", Vector3.new(5, 5, 6))
+	Venues.patron(m, center * CFrame.new(pw / 2 - 16.5, 0.25, 4) * CFrame.Angles(0, -math.pi / 2, 0), "penalty", "kick", "idle")
 	-- stands (stepped) on all sides
 	-- a stand faces the pitch and rises away from it (local +Z)
 	local function stand(pos: Vector3, length: number)
@@ -299,6 +324,11 @@ local function stadium(parent, poi, _rng)
 			B.box(m, cf2 * CFrame.new(0, 1 + s * 1.6, s * 2.4), Vector3.new(length, 2, 2.6), if s % 2 == 0 then Color3.fromRGB(200, 30, 40) else Color3.fromRGB(240, 240, 240), M.SmoothPlastic)
 		end
 		B.box(m, cf2 * CFrame.new(0, 7, 17), Vector3.new(length, 14, 1), Color3.fromRGB(170, 170, 176), M.SmoothPlastic)
+		-- (a place to stand and watch, and a few fans already there)
+		Venues.station(m, cf2 * CFrame.new(0, 2 + 3 * 1.6 + 3.2, 3 * 2.4), "cheer", Vector3.new(16, 6, 6))
+		for k = 1, 3 do
+			Venues.patron(m, cf2 * CFrame.new(-length / 4 + k * length / 8, 2 + (k + 1) * 1.6, (k + 1) * 2.4), "cheer", "watch", "idle")
+		end
 	end
 	stand((center * CFrame.new(0, 0, pd / 2 + 10)).Position, pw + 10)
 	stand((center * CFrame.new(0, 0, -(pd / 2 + 10))).Position, pw + 10)

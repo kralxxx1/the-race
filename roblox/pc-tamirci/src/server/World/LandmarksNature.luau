@@ -8,6 +8,8 @@ local B = require(Shared.Util.Builder)
 local Rand = require(Shared.Util.Rand)
 local Props = require(Shared.Models.Props)
 local Buildings = require(Shared.Models.Buildings)
+local Venues = require(Shared.Models.Venues)
+local Equipment = require(Shared.Models.Equipment)
 local CityLayout = require(Shared.World.CityLayout)
 local Terrain = require(script.Parent.TerrainBuilder)
 
@@ -50,7 +52,7 @@ local function park(parent, poi, rng)
 		B.box(m, CFrame.lookAt((p0 + p1) / 2, p1), Vector3.new(8, 0.12, len + 1), path, M.SmoothPlastic, nc({ CanCollide = true }))
 		if i % 3 == 0 then
 			local out = ((p0 - Vector3.new(lake.x, p0.Y, lake.z)).Unit)
-			Props.bench(m, CFrame.lookAt(p0 + out * 6, Vector3.new(lake.x, p0.Y, lake.z)))
+			Venues.benchStation(Props.bench(m, CFrame.lookAt(p0 + out * 6, Vector3.new(lake.x, p0.Y, lake.z))), rng)
 		elseif i % 3 == 1 then
 			local out = ((p0 - Vector3.new(lake.x, p0.Y, lake.z)).Unit)
 			Props.streetLamp(m, CFrame.lookAt(p0 + out * 6, Vector3.new(lake.x, p0.Y, lake.z)), "classic")
@@ -79,6 +81,9 @@ local function park(parent, poi, rng)
 	for side = -1, 1, 2 do
 		B.box(m, bridge * CFrame.new(side * 3.8, 5.6, 0), Vector3.new(0.3, 0.3, 34), Color3.fromRGB(200, 60, 40), M.Wood)
 	end
+	-- the middle of the bridge: lean on the rail and feed the ducks (a friend does too)
+	Venues.station(m, bridge * CFrame.new(0, 5.2, 0), "ducks", Vector3.new(8, 4, 8))
+	Venues.patron(m, bridge * CFrame.new(2.6, 3.5, 0) * CFrame.Angles(0, -math.pi / 2, 0), "ducks", "feed", "idle")
 	-- gazebo on a little island point
 	local gz = CFrame.new(lake.x - lake.radius - 10, PARK_Y, lake.z - 20)
 	B.cylY(m, gz * CFrame.new(0, 0.5, 0), 1, 18, Color3.fromRGB(220, 214, 200), M.Marble)
@@ -87,6 +92,9 @@ local function park(parent, poi, rng)
 		B.cylY(m, gz * CFrame.new(math.cos(a) * 7.5, 5.5, math.sin(a) * 7.5), 10, 0.8, Color3.fromRGB(245, 245, 240), M.Wood)
 	end
 	B.spire(m, gz * CFrame.new(0, 13, 0), 20, 5, Color3.fromRGB(120, 60, 50), M.ClayRoofTiles)
+	for k = -1, 1, 2 do
+		Venues.benchStation(Props.bench(m, gz * CFrame.new(0, 1, k * 4.4) * CFrame.Angles(0, if k < 0 then 0 else math.pi, 0)), rng)
+	end
 	-- playground
 	local pg = CFrame.new(s.x1 - 60, PARK_Y, s.z0 + 60)
 	B.box(m, pg * CFrame.new(0, 0.05, 0), Vector3.new(40, 0.1, 30), Color3.fromRGB(226, 200, 150), M.Sand, nc({ CanCollide = true }))
@@ -97,6 +105,8 @@ local function park(parent, poi, rng)
 		end
 	end
 	B.wedge(m, pg * CFrame.new(-10, 2.6, -7.6), Vector3.new(3, 5, 9), Color3.fromRGB(250, 200, 40), M.SmoothPlastic)
+	Venues.station(m, pg * CFrame.new(-10, 3.2, -11), "slide", Vector3.new(5, 5, 6))
+	Venues.signpost(m, pg * CFrame.new(0, 0, -18) * CFrame.Angles(0, math.pi, 0), "PLAYGROUND", Color3.fromRGB(255, 220, 90), 9)
 	-- swings
 	B.box(m, pg * CFrame.new(10, 8, 0), Vector3.new(14, 0.5, 0.5), Color3.fromRGB(40, 120, 220), M.Metal)
 	for x = -1, 1, 2 do
@@ -112,6 +122,7 @@ local function park(parent, poi, rng)
 			B.box(swing, pg * CFrame.new(10 + k * 2.5 + side * 0.85, 5.15, 0), Vector3.new(0.08, 5.2, 0.08), Color3.fromRGB(150, 150, 156), M.Metal, nc())
 		end
 		swing:AddTag("Swing")
+		Venues.station(m, pg * CFrame.new(10 + k * 2.5, 3.4, 0), "swing", Vector3.new(3, 5, 3))
 	end
 	-- lots of trees, flower beds, picnic tables
 	for _ = 1, 90 do
@@ -129,7 +140,11 @@ local function park(parent, poi, rng)
 	end
 	for _ = 1, 6 do
 		local p = CFrame.new(Rand.range(rng, s.x0 + 30, s.x0 + 120), PARK_Y, Rand.range(rng, s.z1 - 100, s.z1 - 20))
-		-- a picnic table: top and two benches on legs
+		-- a picnic table: top and two benches on legs (a prompt over it, and now and then a friend at it)
+		Venues.station(m, p * CFrame.new(0, 3.4, 0), "picnic", Vector3.new(9, 4, 7))
+		if rng:NextNumber() < 0.5 then
+			Venues.patron(m, p * CFrame.new(1.5, 0, 4.6), "picnic", "eat", "idle")
+		end
 		B.box(m, p * CFrame.new(0, 2.4, 0), Vector3.new(8, 0.4, 3), Color3.fromRGB(150, 110, 70), M.WoodPlanks)
 		for side = -1, 1, 2 do
 			B.box(m, p * CFrame.new(0, 1.4, side * 2.6), Vector3.new(8, 0.3, 1.2), Color3.fromRGB(150, 110, 70), M.WoodPlanks)
@@ -196,6 +211,13 @@ local function lunapark(parent, poi, rng)
 		cabin.Name = "Cabin"
 	end
 	wheel:AddTag("FerrisWheel")
+	-- the ticket booth in front of the wheel, a queue of friends in front of it
+	local booth = CFrame.lookAt(Vector3.new(cx - 80, WALK_Y, cz - 34), Vector3.new(cx - 80, WALK_Y, cz - 20))
+	Equipment.ticketBooth(m, booth, "FERRIS WHEEL • TICKETS", Color3.fromRGB(230, 60, 110))
+	Venues.station(m, booth * CFrame.new(0, 3.2, -4.4), "ride", Vector3.new(7, 5, 4))
+	for k = 0, 1 do
+		Venues.patron(m, booth * CFrame.new(-1.2 + k * 2.4, 0.1, -(7 + k * 3)) * CFrame.Angles(0, math.pi, 0), "ride", "watch", "idle")
+	end
 	-- carousel (rotated by clients)
 	local car = CFrame.new(cx + 40, WALK_Y, cz - 70)
 	B.cylY(m, car * CFrame.new(0, 0.6, 0), 1.2, 30, Color3.fromRGB(240, 230, 210), M.Wood)
@@ -210,6 +232,8 @@ local function lunapark(parent, poi, rng)
 		horse.Name = "Horse"
 	end
 	top:AddTag("Carousel")
+	Venues.station(m, car * CFrame.new(0, 3.4, 15.5), "carousel", Vector3.new(7, 5, 5))
+	Venues.signpost(m, CFrame.lookAt(car.Position + Vector3.new(0, 0, 21), car.Position + Vector3.new(0, 0, 40)), "CAROUSEL", Color3.fromRGB(255, 200, 220), 7)
 	-- roller coaster frame (static) with a looping track along the back
 	local track = Color3.fromRGB(240, 70, 50)
 	local pts = {}
@@ -239,6 +263,12 @@ local function lunapark(parent, poi, rng)
 		B.sign(sign, Enum.NormalId.Front, ({ "COTTON CANDY", "POPCORN", "BALLOON POP", "HOT DOGS", "LOADED FRIES", "RING TOSS", "ICE CREAM", "FUNFAIR TICKETS" })[i + 1], { color = Color3.new(1, 1, 1) })
 		local bulb = B.box(m, c * CFrame.new(0, 8, -0.8), Vector3.new(9, 0.3, 0.3), Color3.fromRGB(255, 230, 160), M.Neon, nc())
 		bulb.Name = "StallLights"
+		-- (what the stall sells is what you can buy there; now and then a friend is at the counter)
+		local sells = ({ "cotton_candy", "popcorn", "balloon_pop", "hotdog", "fries", "ring_toss", "icecream", "coaster" })[i + 1]
+		Venues.station(m, c * CFrame.new(0, 3, -2.8), sells, Vector3.new(8, 5, 3.6))
+		if i % 3 == 1 then
+			Venues.patron(m, c * CFrame.new(1.4, 0.1, -4.6) * CFrame.Angles(0, math.pi, 0), sells, "eat", "idle")
+		end
 	end
 	local gate = CFrame.lookAt(Vector3.new(cx, WALK_Y, s.z0 + 2), Vector3.new(cx, WALK_Y, s.z0 - 10))
 	local arch = B.box(m, gate * CFrame.new(0, 16, 0), Vector3.new(30, 4, 2), Color3.fromRGB(240, 60, 120), M.SmoothPlastic)
@@ -321,6 +351,8 @@ local function marina(parent, poi, rng)
 	local cx = (s.x0 + s.x1) / 2
 	local clubCf = CFrame.lookAt(Vector3.new(cx, WALK_Y, s.z1 - 6), Vector3.new(cx, WALK_Y, s.z1 + 10))
 	Buildings.building(m, clubCf * CFrame.new(0, 0, 30), { w = 80, d = 40, floors = 2, floorH = 14, style = "modern", ground = "lobby", name = "YACHT CLUB ⛵", rng = rng, glassColor = { 80, 140, 170 }, wallColor = { 240, 240, 240 } })
+	-- the terrace in front of the club: a coffee at the water's edge
+	Venues.station(m, clubCf * CFrame.new(0, 3.4, 24), "coffee", Vector3.new(10, 5, 4))
 	-- boats on trailers in the yard
 	for i = 0, 4 do
 		Props.boat(m, CFrame.new(s.x0 + 30 + i * 40, WALK_Y + 2, s.z0 + 40) * CFrame.Angles(0, math.pi / 2, 0), nil, rng)
@@ -331,6 +363,10 @@ local function marina(parent, poi, rng)
 		local x = s.x0 + 40 + k * ((s.x1 - s.x0 - 80) / 3)
 		local dock = CFrame.new(x, Terrain.SEA_LEVEL + 1, seaZ + 50)
 		B.box(m, dock, Vector3.new(6, 1, 110), Color3.fromRGB(170, 140, 100), M.WoodPlanks)
+		Venues.station(m, dock * CFrame.new(0, 3, 50), "fishing", Vector3.new(6, 5, 6))
+		if k % 2 == 1 then
+			Venues.patron(m, dock * CFrame.new(1.2, 0.5, 44) * CFrame.Angles(0, math.pi, 0), "fishing", "feed", "idle")
+		end
 		for j = 0, 3 do
 			for side = -1, 1, 2 do
 				local y = CFrame.new(x + side * 12, Terrain.SEA_LEVEL - 0.5, seaZ + 10 + j * 26)
@@ -370,6 +406,17 @@ local function pier(parent, poi, _rng)
 	B.box(m, term * CFrame.new(0, 14.8, -10), Vector3.new(30, 1.6, 20), Color3.fromRGB(150, 40, 40), M.ClayRoofTiles)
 	local sign = B.box(m, term * CFrame.new(0, 11, -1.8), Vector3.new(16, 2, 0.3), Color3.fromRGB(20, 50, 100), M.SmoothPlastic, nc())
 	B.sign(sign, Enum.NormalId.Front, "FERRY PIER", { color = Color3.new(1, 1, 1) })
+	-- anglers at the rails: a prompt to join them (and one of them is there already)
+	for k = 0, 2 do
+		local z = start + 36 + k * 36
+		for side = -1, 1, 2 do
+			if (k + side) % 2 == 0 then
+				Venues.station(m, CFrame.new(p.X + side * 6.3, WALK_Y + 3, z), "fishing", Vector3.new(4, 5, 6))
+			else
+				Venues.patron(m, CFrame.new(p.X + side * 6.3, WALK_Y + 0.7, z) * CFrame.Angles(0, -side * math.pi / 2, 0), "fishing", "feed", "idle")
+			end
+		end
+	end
 	-- anglers' buckets and lamps
 	for k = 0, 5 do
 		Props.streetLamp(m, CFrame.lookAt(Vector3.new(p.X + 7, WALK_Y + 0.7, start + 10 + k * 24), Vector3.new(p.X, WALK_Y + 0.7, start + 10 + k * 24)), "classic")
@@ -425,6 +472,9 @@ local function beach(parent, _poi, rng)
 					B.box(m, l * CFrame.new(0, 0.9, 2.4) * CFrame.Angles(math.rad(50), 0, 0), Vector3.new(2.2, 0.3, 2.4), Color3.fromRGB(250, 250, 250), M.SmoothPlastic, nc())
 					local towel = B.box(m, l * CFrame.new(0, 0.2, 0), Vector3.new(2, 0.05, 5), col:Lerp(Color3.new(1, 1, 1), 0.3), M.Fabric, nc())
 					towel.Name = "Towel"
+					if (math.floor(x / 26) + row + (side + 1) / 2) % 3 == 0 then
+						Venues.station(m, l * CFrame.new(0, 1.8, 0), "sunbathe", Vector3.new(3.4, 3, 6.4))
+					end
 				end
 			end
 		end
@@ -436,6 +486,14 @@ local function beach(parent, _poi, rng)
 		B.cylY(m, net * CFrame.new(side * 14, 4, 0), 8, 0.4, Color3.fromRGB(240, 240, 240), M.Metal)
 	end
 	B.box(m, net * CFrame.new(0, 6.2, 0), Vector3.new(28, 3, 0.1), Color3.fromRGB(240, 240, 240), M.ForceField, nc({ Transparency = 0.3 }))
+	-- (a game on: one prompt each side of the net and friends playing)
+	for side = -1, 1, 2 do
+		Venues.station(m, net * CFrame.new(0, 3.4, side * 4.5), "volleyball", Vector3.new(14, 5, 4))
+		for k = -1, 1, 2 do
+			Venues.patron(m, net * CFrame.new(k * 6, 0, side * 8) * CFrame.Angles(0, if side < 0 then math.pi else 0, 0), "volleyball", "swing", "idle")
+		end
+	end
+	Venues.signpost(m, CFrame.lookAt(net.Position + Vector3.new(0, 0, 14), net.Position + Vector3.new(0, 0, 40)), "BEACH VOLLEYBALL", Color3.fromRGB(255, 230, 150), 12)
 	-- lifeguard towers
 	for _, lx in { -400, 150, 700 } do
 		local t = CFrame.new(lx, 0.2, z0 + 26)
@@ -472,12 +530,17 @@ local function viewpoint(parent, poi, _rng)
 		local tel = base * CFrame.new(k * 10, 0, 12)
 		B.cylY(m, tel * CFrame.new(0, 1.8, 0), 3.6, 0.5, Color3.fromRGB(80, 80, 86), M.Metal)
 		B.cyl(m, tel * CFrame.new(0, 3.8, 0.4) * CFrame.Angles(0, math.pi / 2, math.rad(-10)), 2.4, 1, Color3.fromRGB(40, 80, 140), M.Metal)
-		Props.bench(m, CFrame.lookAt((base * CFrame.new(k * 18, 0, 6)).Position, (base * CFrame.new(k * 18, 0, 30)).Position))
+		Venues.benchStation(Props.bench(m, CFrame.lookAt((base * CFrame.new(k * 18, 0, 6)).Position, (base * CFrame.new(k * 18, 0, 30)).Position)), Random.new(7 + k))
+		Venues.station(m, tel * CFrame.new(0, 3.4, -1.6), "telescope", Vector3.new(4, 5, 4))
+		if k > 0 then
+			Venues.patron(m, tel * CFrame.new(0, 0.1, -2.2) * CFrame.Angles(0, math.pi, 0), "telescope", "watch", "idle")
+		end
 	end
 	local kiosk = CFrame.lookAt((base * CFrame.new(0, 0, -10)).Position, (base * CFrame.new(0, 0, 10)).Position)
 	B.box(m, kiosk * CFrame.new(0, 4, 2), Vector3.new(12, 8, 6), Color3.fromRGB(150, 110, 70), M.WoodPlanks)
 	local sign = B.box(m, kiosk * CFrame.new(0, 9, -1), Vector3.new(12, 2, 0.4), Color3.fromRGB(40, 90, 60), M.Wood)
 	B.sign(sign, Enum.NormalId.Front, "VIEWPOINT COFFEE GARDEN", { color = Color3.fromRGB(250, 240, 200) })
+	Venues.station(m, kiosk * CFrame.new(0, 3.4, -3.2), "coffee", Vector3.new(9, 5, 3.6))
 	Props.flag(m, base * CFrame.new(20, 0, -10), 26)
 	return m
 end
@@ -502,6 +565,12 @@ local function windfarm(parent, poi, rng)
 		end
 		rotor:SetAttribute("Speed", Rand.range(rng, 0.5, 0.9))
 		rotor:AddTag("WindTurbine")
+		if k == 2 then
+			-- a bench and a sign at the foot of one of them
+			local bx, bz = x + 10, z + 12
+			Venues.benchStation(Props.bench(m, CFrame.lookAt(Vector3.new(bx, ground(bx, bz), bz), Vector3.new(bx, ground(bx, bz), bz + 30))), Random.new(5))
+			Venues.signpost(m, CFrame.lookAt(Vector3.new(x - 6, ground(x - 6, z + 18), z + 18), Vector3.new(x - 6, ground(x - 6, z + 18), z + 50)), "WIND FARM • 6 TURBINES", Color3.fromRGB(190, 240, 255), 11)
+		end
 	end
 	return m
 end
@@ -519,6 +588,7 @@ local function camp(parent, poi, rng)
 		B.cyl(m, fire * CFrame.new(0, 0.6, 0) * CFrame.Angles(0, i * math.pi / 3, 0), 4, 0.5, Color3.fromRGB(90, 60, 40), M.Wood, nc())
 	end
 	local flame = B.box(m, fire * CFrame.new(0, 1.2, 0), Vector3.new(1, 1, 1), Color3.fromRGB(255, 140, 40), M.Neon, nc({ Transparency = 1, Name = "Campfire" }))
+	Venues.station(m, fire * CFrame.new(0, 2.6, 4), "campfire", Vector3.new(8, 5, 5))
 	local f = Instance.new("Fire")
 	f.Size = 5
 	f.Heat = 9
@@ -532,7 +602,8 @@ local function camp(parent, poi, rng)
 		for side = -1, 1, 2 do
 			B.wedge(m, tc * CFrame.new(side * 2.2, 2.4, 0) * CFrame.Angles(0, side * math.pi / 2, 0), Vector3.new(8, 4.8, 4.4), col, M.Fabric)
 		end
-		Props.chair(m, tc * CFrame.new(3, 0, -5), { 30, 90, 60 })
+		Venues.seatPatrons(Props.chair(m, tc * CFrame.new(3, 0, -5), { 30, 90, 60 }), "Seat", "campfire", "sit", 0.45, rng)
+		Venues.station(m, tc * CFrame.new(0, 2.6, -2.8), "tent_nap", Vector3.new(6, 5, 4))
 	end
 	for _ = 1, 30 do
 		local x, z = p.X + Rand.range(rng, -90, 90), p.Z + Rand.range(rng, -70, 70)
@@ -568,6 +639,11 @@ local function radioTower(parent, poi, _rng)
 	local top = B.ball(m, base * CFrame.new(0, h + 1.3, 0), 1.6, Color3.fromRGB(255, 30, 30), M.Neon, nc())
 	top:AddTag("Beacon")
 	B.box(m, base * CFrame.new(16, 4, 0), Vector3.new(12, 8, 10), Color3.fromRGB(200, 200, 196), M.SmoothPlastic)
+	-- a bench on the hilltop looking south over the city, and a sign
+	local bx, bz = p.X - 22, p.Z + 14
+	local bench = Props.bench(m, CFrame.lookAt(Vector3.new(bx, ground(bx, bz), bz), Vector3.new(bx, ground(bx, bz), bz + 30)))
+	Venues.benchStation(bench, Random.new(31))
+	Venues.signpost(m, CFrame.lookAt(Vector3.new(p.X - 8, ground(p.X - 8, p.Z + 26), p.Z + 26), Vector3.new(p.X - 8, ground(p.X - 8, p.Z + 26), p.Z + 60)), "RADIO HILL • LOOKOUT", Color3.fromRGB(255, 232, 170), 11)
 	return m
 end
 

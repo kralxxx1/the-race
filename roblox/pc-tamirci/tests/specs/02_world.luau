@@ -500,4 +500,138 @@ return function(T)
 		local lawn = TerrainB.lawns()[1]
 		T.ok(lawn ~= nil, "a park lawn")
 	end)
+	T.test("world: every activity has a station, stations stand within reach of the ground, and no place to play or relax is empty", function()
+		local world = Engine.world
+		local Activities = Engine.mod("ReplicatedStorage.Shared.Data.Activities")
+		local TerrainB = Engine.mod("ServerScriptService.Server.World.TerrainBuilder")
+		local L = CityLayout.get()
+		local per, stations, spots = {}, {}, {}
+		for _, d in world:GetDescendants() do
+			if d:IsA("BasePart") then
+				local id = d:GetAttribute("Activity")
+				if typeof(id) == "string" and string.sub(d.Name, 1, 8) == "Station_" then
+					T.ok(Activities.get(id) ~= nil, "a station for an activity that does not exist: " .. id)
+					per[id] = (per[id] or 0) + 1
+					table.insert(stations, d)
+				elseif d:GetAttribute("Pose") ~= nil and d.Name == "Patron" then
+					table.insert(spots, d)
+				end
+			end
+		end
+		for _, a in Activities.list do
+			T.ok((per[a.id] or 0) >= 1, "activity " .. a.id .. " has no station anywhere in the city")
+		end
+		-- every station is near the ground or the floor it belongs to: not hovering in the air
+		-- (parts are filed by 32-stud cell so each station only looks at its neighbours; the big ones, which
+		-- a station may stand on from far off their centre, are looked at by every station)
+		local cells, big = {}, {}
+		for _, d in world:GetDescendants() do
+			if d:IsA("BasePart") and d.CanCollide and d.Transparency < 1 then
+				local q, sz, cf = d.Position, d.Size, d.CFrame
+				-- (half the extent along x and z, the part's turn counted in)
+				local hx = (math.abs(cf.RightVector.X) * sz.X + math.abs(cf.UpVector.X) * sz.Y + math.abs(cf.LookVector.X) * sz.Z) / 2
+				local hz = (math.abs(cf.RightVector.Z) * sz.X + math.abs(cf.UpVector.Z) * sz.Y + math.abs(cf.LookVector.Z) * sz.Z) / 2
+				local hy = (math.abs(cf.RightVector.Y) * sz.X + math.abs(cf.UpVector.Y) * sz.Y + math.abs(cf.LookVector.Y) * sz.Z) / 2
+				local rec = { x = q.X, z = q.Z, top = q.Y + hy, hx = hx, hz = hz, r = math.max(hx, hz), part = d }
+				if rec.r > 24 then
+					table.insert(big, rec)
+				else
+					local key = math.floor(q.X / 32) .. "," .. math.floor(q.Z / 32)
+					local list = cells[key]
+					if not list then
+						list = {}
+						cells[key] = list
+					end
+					table.insert(list, rec)
+				end
+			end
+		end
+		for _, st in stations do
+			local p = st.Position
+			local support = math.max(TerrainB.groundHeight(p.X, p.Z), CityLayout.WALK_Y)
+			local function consider(rec)
+				if rec.top <= p.Y and rec.top > support and math.abs(rec.x - p.X) <= rec.hx and math.abs(rec.z - p.Z) <= rec.hz then
+					support = rec.top
+				end
+			end
+			for _, rec in big do
+				consider(rec)
+			end
+			local cx, cz = math.floor(p.X / 32), math.floor(p.Z / 32)
+			for dx = -1, 1 do
+				for dz = -1, 1 do
+					for _, rec in cells[(cx + dx) .. "," .. (cz + dz)] or {} do
+						consider(rec)
+					end
+				end
+			end
+			T.ok(p.Y - support < 10, string.format("%s %s hovers %.1f studs over its floor", st:GetFullName(), tostring(st:GetAttribute("Activity")), p.Y - support))
+		end
+		-- and the places where the city's people stand are on a floor too (their feet are the spot): not sunk
+		-- into a table, not hanging over the ground
+		local lastSupport = nil
+		local function floorAt(p, paved)
+			lastSupport = nil
+			local support = if paved then math.max(TerrainB.groundHeight(p.X, p.Z), CityLayout.WALK_Y) else TerrainB.groundHeight(p.X, p.Z)
+			local function consider(rec)
+				if rec.top <= p.Y + 0.7 and rec.top > support and math.abs(rec.x - p.X) <= rec.hx and math.abs(rec.z - p.Z) <= rec.hz then
+					support = rec.top
+					lastSupport = rec.part
+				end
+			end
+			for _, rec in big do
+				consider(rec)
+			end
+			local cx, cz = math.floor(p.X / 32), math.floor(p.Z / 32)
+			for dx = -1, 1 do
+				for dz = -1, 1 do
+					for _, rec in cells[(cx + dx) .. "," .. (cz + dz)] or {} do
+						consider(rec)
+					end
+				end
+			end
+			return support
+		end
+		local bad = {}
+		for _, sp in spots do
+			local p = sp.Position
+			-- (the floor is a part, or the terrain, or the pavement the city is laid on: any one of them will do)
+			local ok = false
+			for _, paved in { false, true } do
+				local f = floorAt(p, paved)
+				if p.Y - f <= 1.7 and p.Y - f >= -0.45 then
+					ok = true
+				end
+			end
+			if not ok then
+				local f1 = floorAt(p, false)
+				table.insert(bad, string.format("%s at y %.2f over a floor at %.2f (%s) / %.2f", sp:GetFullName(), p.Y, f1, if lastSupport then lastSupport:GetFullName() .. " " .. tostring(lastSupport.Size) else "terrain", floorAt(p, true)))
+			end
+		end
+		T.ok(#bad == 0, #bad .. " people would stand in the air or in the furniture:\n" .. table.concat(bad, "\n", 1, math.min(#bad, 12)))
+		-- the places to play, eat, relax and exercise have something to do (a station) and somebody doing it
+		local function near(list, poi, radius)
+			local n = 0
+			for _, d in list do
+				local p = d.Position
+				local site = poi.site
+				local inside = if site then (p.X >= site.x0 - 40 and p.X <= site.x1 + 40 and p.Z >= site.z0 - 40 and p.Z <= site.z1 + 40) else false
+				if inside or (Vector3.new(p.X, 0, p.Z) - Vector3.new(poi.pos.X, 0, poi.pos.Z)).Magnitude < radius then
+					n += 1
+				end
+			end
+			return n
+		end
+		local empty = {}
+		for _, loc in Locations.list do
+			if loc.cat == "leisure" or loc.cat == "nature" or loc.cat == "food" then
+				local poi = L.poiById[loc.id]
+				if near(stations, poi, 160) == 0 then
+					table.insert(empty, loc.id)
+				end
+			end
+		end
+		table.sort(empty)
+		T.eq(table.concat(empty, ","), "", "places with nothing to do")
+	end)
 end

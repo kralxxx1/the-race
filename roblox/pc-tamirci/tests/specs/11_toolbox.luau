@@ -277,7 +277,7 @@ return function(T)
 		end
 		-- a second run leaves what is in the place alone, force loads it again
 		local calls = 0
-		local counting = function(id)
+		local counting = function(_id)
 			calls += 1
 			return nil, "never"
 		end
