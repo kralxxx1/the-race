@@ -113,6 +113,62 @@ return function(T)
 		T.ok(count(seen) >= 330, "different cars among " .. n .. ": " .. count(seen))
 	end)
 
+	T.test("traffic: ready-made cars come in thousands of looks (variants, sizes, finishes, loads) and the city's own fleet (ambulance, post, school, delivery, ride-share, taxi)", function()
+		local rng = Mock.Random.new(11)
+		local cars = {}
+		for _, v in Vehicles.list do
+			if v.kind == "car" and VehicleModels.hasKit(v) then
+				table.insert(cars, v)
+			end
+		end
+		for _, v in Vehicles.street do
+			if VehicleModels.hasKit(v) then
+				table.insert(cars, v)
+			end
+		end
+		T.ok(#cars >= 12, "kinds with a ready-made body: " .. #cars)
+		local seen, specials, sizes, finishes, loads, n = {}, {}, {}, {}, {}, 0
+		for i = 1, 500 do
+			local def = cars[rng:NextInteger(1, #cars)]
+			local special = VehicleModels.specialFor(def, rng)
+			local folder = roblox.Instance.new("Folder")
+			folder.Parent = Engine.workspace
+			local m = VehicleModels.build(folder, def, roblox.CFrame.new(), { color = rng:NextInteger(1, #VehicleModels.PALETTE), plate = "K" .. i * 104729, static = true, special = special, taxi = special == "taxi", look = rng:NextInteger(1, 2147483646) })
+			local _, size = m:GetBoundingBox()
+			sizes[string.format("%s:%.1f", def.body, size.Z)] = true
+			if special then
+				specials[special] = (specials[special] or 0) + 1
+			end
+			local look, load = {}, ""
+			for _, d in m:GetDescendants() do
+				if d:IsA("BasePart") and d.Transparency < 1 then
+					table.insert(look, string.format("%s:%.2f.%.2f.%.2f.%.2f", d.Name, d.Color.R, d.Color.G, d.Color.B, d.Reflectance))
+					if d.Name == "Surfboard" or d.Name == "LadderRail" or d.Name == "Luggage" or d.Name == "Crate" or d.Name == "Barrel" or d.Name == "Tarp" or d.Name == "Livery" or d.Name == "RackBox" then
+						load = d.Name
+					end
+					if d:GetAttribute("Paint") then
+						finishes[string.format("%.2f", d.Reflectance)] = true
+					end
+				end
+			end
+			if load ~= "" then
+				loads[load] = true
+			end
+			table.sort(look)
+			seen[def.id .. "|" .. table.concat(look, ",")] = true
+			n += 1
+			folder:Destroy()
+		end
+		print(string.format("    %d different cars among %d; specials: ambulance %d, post %d, school %d, ride %d, delivery %d, taxi %d; %d lengths, %d finishes, %d loads", count(seen), n, specials.ambulance or 0, specials.mail or 0, specials.school or 0, specials.rideshare or 0, specials.delivery or 0, specials.taxi or 0, count(sizes), count(finishes), count(loads)))
+		T.ok(count(seen) >= 455, "different cars among " .. n .. ": " .. count(seen))
+		for _, kind in { "ambulance", "mail", "school", "rideshare", "delivery", "taxi" } do
+			T.ok((specials[kind] or 0) >= 3, kind .. " cars: " .. tostring(specials[kind]))
+		end
+		T.ok(count(sizes) >= 40, "different lengths: " .. count(sizes))
+		T.ok(count(finishes) >= 4, "paint finishes: " .. count(finishes))
+		T.ok(count(loads) >= 5, "kinds of load or livery: " .. count(loads))
+	end)
+
 	T.test("traffic: an umbrella has a dome, trim, ribs, a shaft and a handle, and is carried beside the head with the arm reaching up to it", function()
 		local Umbrella = Engine.mod("ReplicatedStorage.Shared.Models.Umbrella")
 		local Npc = Engine.mod("ServerScriptService.Server.Services.NpcService")

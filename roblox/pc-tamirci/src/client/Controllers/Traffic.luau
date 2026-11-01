@@ -32,18 +32,18 @@ local L
 local folder: Folder
 local rng = Random.new()
 
-local BASE_CARS = 12 -- (it used to be twenty: the junctions were a tangle)
-local BASE_PEDS = 26
+local BASE_CARS = 14 -- (it used to be twenty: the junctions were a tangle; a touch busier than twelve)
+local BASE_PEDS = 36
 if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
 	-- phones: lighter streets
-	BASE_CARS, BASE_PEDS = 7, 14
+	BASE_CARS, BASE_PEDS = 8, 20
 end
 local DENSITY = { off = 0, low = 0.5, normal = 1, high = 1.5 }
 local MAX_CARS, MAX_PEDS = BASE_CARS, BASE_PEDS
 local SPAWN_MIN, SPAWN_MAX, DESPAWN = 80, 320, 430
 local SPAWN_GAP = 52 -- cars are not put on the street closer than this (a bus is 48 long)
-local CAR_SCALE = 1.6 -- the street's cars are this much bigger than the dealer's models (the driver fits in)
-local DRIVER_SCALE = 0.85
+local CAR_SCALE = 1.28 -- the street's cars are this much bigger than the dealer's models (a fifth smaller than they were: the driver still fits in)
+local DRIVER_SCALE = 0.7
 local POLICE_SHARE = 0.07 -- of the cars, one in fourteen is a police car
 local POLICE_EVERY = 16 -- and never more than sixteen cars go by without one
 local SENSE_MARGIN = 0.8 -- studs kept between two cars' bodies
@@ -428,11 +428,19 @@ local function spawnCar(): boolean
 	if def.body == "bus" or def.body == "truck" then
 		c.cruise = math.min(c.cruise, 24)
 	end
+	-- the odd taxi, ambulance, post van, driving-school car, delivery van or ride-share car among the
+	-- ordinary ones; a seed of its own gives every car its own paint finish, roof, load and size
+	local special = nil
+	if not police then
+		special = VehicleModels.specialFor(def, rng)
+	end
 	local ok, m = pcall(VehicleModels.build, folder, def, CFrame.new(), {
 		color = VehicleModels.PALETTE[rng:NextInteger(1, #VehicleModels.PALETTE)],
 		plate = randomPlate(),
 		static = true,
-		taxi = not police and rng:NextNumber() < 0.07,
+		taxi = special == "taxi",
+		special = special,
+		look = rng:NextInteger(1, 2147483646),
 		police = if police then def else nil,
 	})
 	if not ok then

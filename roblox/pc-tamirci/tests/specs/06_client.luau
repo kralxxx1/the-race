@@ -864,10 +864,10 @@ return function(T)
 		T.ok(worst < 2.5, "two cars drove into each other: " .. worstPair)
 		T.ok(moved > 3000, "traffic keeps flowing: " .. moved)
 		-- the street is not crowded: at most a dozen cars at the normal setting (18 at the busiest)
-		T.ok(maxCars <= 18, "cars at the busiest setting: " .. maxCars)
+		T.ok(maxCars <= 21, "cars at the busiest setting: " .. maxCars)
 		Traffic.setDensity("normal")
 		Engine.step(200, 0.1)
-		T.ok(#Traffic._cars() <= 12, "cars at the normal setting: " .. #Traffic._cars())
+		T.ok(#Traffic._cars() <= 14, "cars at the normal setting: " .. #Traffic._cars())
 		-- nothing but ready-made cars: no car is built from boxes
 		for _, c in Traffic._cars() do
 			T.ok(c.model:FindFirstChild("Wheel1", true) ~= nil and c.model:FindFirstChild("Body", true) ~= nil, tostring(c.def.id) .. " is a ready-made car")

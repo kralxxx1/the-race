@@ -349,10 +349,24 @@ local LAMPS = {
 	Offroad = { f = { x = 2.46, y = 4.6, z = -9.6, w = 0.58, h = 0.36, d = 0.4 }, r = { x = 2.46, y = 4.4, z = 9.6, w = 0.58, h = 0.36, d = 0.4 } },
 }
 
-local function kitOf(def)
+-- The variants of each kind that share the white one's measurements (so the indicator lamps and the
+-- wheels sit right): picked by a seed so a street of the same kind of car is not one car repeated.
+local VARIANTS = {
+	Sedan = { "Sedan_white", "Sedan_aqua", "Sedan_black" },
+	SUV = { "SUV_white", "SUV_blue", "SUV_black" },
+	Pickup = { "Pickup_white", "Pickup_blue", "Pickup_bronze" },
+	Van = { "Van_white" },
+	Sports = { "Sports_white", "Sports_red" },
+	Offroad = { "Offroad_black", "Offroad_greencamo", "Offroad_pink", "Offroad_whitecamo" },
+}
+
+local function kitOf(def, variant: string?)
 	local spec = OFFICIAL[def.body]
 	if not spec then
 		return nil
+	end
+	if variant and Assets.get("Vehicles", variant) then
+		return Assets.get("Vehicles", variant)
 	end
 	-- (the white one when there is one, else the first variant of the kind: the off-roader only comes in
 	-- black and two camouflages)
@@ -367,16 +381,17 @@ end
 
 -- Puts the official car's body and wheels into `m` on `cf`, painted `color`; returns its sizes
 -- (nil when the asset library is missing, so the parts-built car is used).
-local function buildOfficial(m: Model, cf: CFrame, def, color: Color3, plateText: string)
+local function buildOfficial(m: Model, cf: CFrame, def, color: Color3, plateText: string, jitter: number?, variant: string?)
 	local spec = OFFICIAL[def.body]
 	if not spec then
 		return nil
 	end
-	local template = kitOf(def)
+	local template = kitOf(def, variant)
 	if not template then
 		return nil
 	end
-	local scale = spec[2]
+	-- (no two cars of one kind are exactly the same size: a few per cent either way)
+	local scale = spec[2] * (jitter or 1)
 	local kit = template:Clone()
 	kit:ScaleTo(scale)
 	kit:PivotTo(cf)
@@ -441,6 +456,35 @@ local TINTS = { 0.32, 0.5, 0.68 }
 local RACK_BODIES = { wagon = true, suv = true, van = true, minibus = true, offroad = true }
 local TAXI_BODIES = { classic = true, hatch = true, sedan = true, electric = true, wagon = true }
 
+-- Which of the city's special cars (if any) a car of this kind is: a taxi, an ambulance, a post van, a
+-- driving-school car, a ride-share car or a delivery van, with the odds the street has of each.
+function VehicleModels.specialFor(def, rng: Random): string?
+	local x = rng:NextNumber()
+	local body = def.body
+	if TAXI_BODIES[body] then
+		if x < 0.07 then
+			return "taxi"
+		elseif x < 0.1 and body ~= "wagon" then
+			return "school"
+		elseif x < 0.15 then
+			return "rideshare"
+		end
+	elseif body == "van" or body == "minibus" then
+		if x < 0.07 then
+			return "ambulance"
+		elseif x < 0.12 then
+			return "mail"
+		elseif x < 0.3 then
+			return "delivery"
+		end
+	elseif body == "pickup" then
+		if x < 0.25 then
+			return "delivery"
+		end
+	end
+	return nil
+end
+
 -- A stable number from text (plates, ids).
 function VehicleModels.seedOf(text: string): number
 	local h = 5381
@@ -487,6 +531,127 @@ local function customize(m: Model, cf: CFrame, def, real, o: { [string]: any })
 		if r:NextNumber() < 0.5 then
 			-- (the box sits across both rails, resting on them)
 			box("RackBox", CFrame.new(0, H + 0.2 + 0.53, z), Vector3.new(W * 0.66, 1.1, len * 0.55), rgb(54, 58, 66), M.SmoothPlastic)
+		end
+	end
+	-- the paint's finish: matte, satin, gloss or metallic (a shine on the paint parts)
+	local finish = ({ 0, 0.04, 0.1, 0.18, 0.26 })[r:NextInteger(1, 5)]
+	for _, d in m:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("Paint") then
+			d.Reflectance = finish
+		end
+	end
+	-- a panel on both sides of the body with writing on it (a livery)
+	local function livery(name: string, y: number, z: number, h: number, len: number, panel: Color3, text: string, textColor: Color3)
+		for _, s in { -1, 1 } do
+			local p = box(name, CFrame.new(s * (real.W / 2 + 0.03), y, z), Vector3.new(0.06, h, len), panel, M.SmoothPlastic)
+			B.sign(p, if s > 0 then Enum.NormalId.Right else Enum.NormalId.Left, text, { color = textColor, font = B.Fonts.Heavy, pixelsPerStud = 36, padding = 0.06 })
+		end
+	end
+	local function stripe(name: string, y: number, h: number, color: Color3, len: number?)
+		for _, s in { -1, 1 } do
+			box(name, CFrame.new(s * (real.W / 2 + 0.03), y, 0), Vector3.new(0.06, h, len or real.L * 0.8), color, M.SmoothPlastic)
+		end
+	end
+	local function paint(color: Color3)
+		for _, d in m:GetDescendants() do
+			if d:IsA("BasePart") and d:GetAttribute("Paint") then
+				d.Color = color
+			end
+		end
+	end
+	local function beacon(hue: string, x: number, z: number)
+		local lamp = box("PoliceLight", CFrame.new(x, real.H + 0.3, z), Vector3.new(real.W * 0.22, 0.3, 0.5), if hue == "red" then rgb(255, 40, 40) else rgb(50, 110, 255), M.Neon)
+		lamp:SetAttribute("Hue", hue)
+		lamp:AddTag("PoliceLight")
+	end
+	local sp = o.special
+	local bodyY = math.max(1.2, real.H * 0.42)
+	local sideH = math.max(1.1, real.H * 0.3)
+	if sp == "ambulance" and (def.body == "van" or def.body == "minibus") then
+		paint(rgb(244, 244, 246))
+		stripe("AmbulanceStripe", real.H * 0.32, 0.5, rgb(210, 30, 36))
+		livery("AmbulanceText", bodyY + 0.2, real.L * 0.1, sideH * 0.9, real.L * 0.42, rgb(244, 244, 246), "AMBULANCE", rgb(210, 30, 36))
+		for _, s in { -1, 1 } do
+			-- (a red cross on each rear door panel)
+			box("Cross", CFrame.new(s * (real.W / 2 + 0.04), bodyY + 0.3, real.L * 0.36), Vector3.new(0.05, 1.5, 0.45), rgb(210, 30, 36), M.SmoothPlastic)
+			box("Cross", CFrame.new(s * (real.W / 2 + 0.04), bodyY + 0.3, real.L * 0.36), Vector3.new(0.05, 0.45, 1.5), rgb(210, 30, 36), M.SmoothPlastic)
+		end
+		box("BarBase", CFrame.new(0, real.H + 0.12, -real.L * 0.12), Vector3.new(real.W * 0.6, 0.2, 1.0), rgb(26, 26, 30))
+		beacon("red", -real.W * 0.16, -real.L * 0.12)
+		beacon("blue", real.W * 0.16, -real.L * 0.12)
+	elseif sp == "mail" and (def.body == "van" or def.body == "minibus") then
+		paint(rgb(252, 214, 40))
+		stripe("MailStripe", real.H * 0.3, 0.45, rgb(200, 30, 36))
+		livery("MailText", bodyY + 0.2, real.L * 0.1, sideH * 0.8, real.L * 0.4, rgb(252, 214, 40), "POST", rgb(200, 30, 36))
+	elseif sp == "school" and (def.body == "hatch" or def.body == "sedan" or def.body == "classic" or def.body == "electric") then
+		paint(rgb(244, 244, 246))
+		stripe("SchoolStripe", real.H * 0.3, 0.4, rgb(30, 90, 190))
+		local sign = box("SchoolSign", CFrame.new(0, real.H + 0.3, -real.L * 0.02), Vector3.new(real.W * 0.36, 0.6, 1.1), rgb(250, 250, 244), M.SmoothPlastic)
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			B.sign(sign, face, "L", { color = rgb(250, 250, 244), background = rgb(30, 90, 190), pixelsPerStud = 60, font = B.Fonts.Heavy })
+		end
+		livery("SchoolText", bodyY, 0, sideH * 0.7, real.L * 0.38, rgb(244, 244, 246), "DRIVING SCHOOL", rgb(30, 90, 190))
+	elseif sp == "rideshare" and TAXI_BODIES[def.body] then
+		local sign = box("RideSign", CFrame.new(0, real.H + 0.25, real.L * 0.02), Vector3.new(real.W * 0.22, 0.4, 0.7), rgb(30, 34, 40), M.SmoothPlastic)
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			B.sign(sign, face, "RIDE", { color = rgb(80, 220, 255), glow = true, pixelsPerStud = 60, font = B.Fonts.Heavy })
+		end
+	elseif sp == "delivery" and (def.body == "van" or def.body == "minibus" or def.body == "pickup") then
+		local brands = {
+			{ "FAST COURIER", rgb(214, 44, 40), rgb(250, 250, 244) },
+			{ "A1 PLUMBING", rgb(30, 100, 200), rgb(250, 250, 244) },
+			{ "CITY BAKERY", rgb(240, 214, 160), rgb(120, 60, 30) },
+			{ "FRESH FLOWERS", rgb(236, 120, 160), rgb(250, 250, 244) },
+			{ "PC REPAIR 24/7", rgb(20, 24, 40), rgb(80, 220, 255) },
+			{ "POOL SERVICE", rgb(40, 170, 200), rgb(250, 250, 244) },
+			{ "HOME DELIVERY", rgb(60, 150, 80), rgb(250, 250, 244) },
+			{ "GREEN GARDENS", rgb(60, 130, 70), rgb(250, 244, 200) },
+			{ "ELECTRO FIX", rgb(240, 190, 30), rgb(26, 26, 30) },
+			{ "MOVING CO.", rgb(120, 90, 60), rgb(250, 250, 244) },
+		}
+		local brand = brands[r:NextInteger(1, #brands)]
+		local zc = if def.body == "pickup" then real.L * 0.1 else real.L * 0.12
+		livery("Livery", bodyY + 0.3, zc, sideH * 0.8, real.L * (if def.body == "pickup" then 0.3 else 0.42), brand[2], brand[1], brand[3])
+	end
+	-- a load on the roof (a surfboard, a ladder, luggage) or in the pickup's bed, the odd time
+	if not sp and not o.taxi then
+		local H, W, L = real.H, real.W, real.L
+		if RACK_BODIES[def.body] and r:NextNumber() < 0.16 then
+			local kind = r:NextInteger(1, 3)
+			local zc = -L * 0.02
+			for _, dz in { -1, 1 } do
+				box("RackBar", CFrame.new(0, H + 0.25, zc + dz * L * 0.12), Vector3.new(W * 0.7, 0.16, 0.2), rgb(30, 30, 34))
+			end
+			if kind == 1 then
+				box("Surfboard", CFrame.new(0, H + 0.5, zc), Vector3.new(0.9, 0.14, L * 0.42), ({ rgb(250, 250, 244), rgb(60, 190, 220), rgb(250, 190, 40), rgb(230, 70, 90) })[r:NextInteger(1, 4)], M.SmoothPlastic)
+				box("SurfboardStripe", CFrame.new(0, H + 0.58, zc), Vector3.new(0.18, 0.04, L * 0.42), rgb(30, 30, 34), M.SmoothPlastic)
+			elseif kind == 2 then
+				for _, x in { -1, 1 } do
+					box("LadderRail", CFrame.new(x * W * 0.22, H + 0.5, zc), Vector3.new(0.14, 0.14, L * 0.5), rgb(190, 192, 198))
+				end
+				for k = -2, 2 do
+					box("LadderRung", CFrame.new(0, H + 0.5, zc + k * L * 0.1), Vector3.new(W * 0.44, 0.1, 0.1), rgb(190, 192, 198))
+				end
+			else
+				box("Luggage", CFrame.new(-W * 0.12, H + 0.65, zc), Vector3.new(W * 0.36, 0.9, L * 0.2), rgb(110, 40, 40), M.SmoothPlastic)
+				box("Luggage", CFrame.new(W * 0.14, H + 0.55, zc + L * 0.02), Vector3.new(W * 0.3, 0.7, L * 0.18), rgb(40, 70, 120), M.SmoothPlastic)
+			end
+		elseif def.body == "pickup" and r:NextNumber() < 0.4 then
+			-- the bed: crates, barrels or a tarp over a load
+			local bedZ = L * 0.3
+			local bedY = math.max(1.4, H * 0.4)
+			local kind = r:NextInteger(1, 3)
+			if kind == 1 then
+				box("Crate", CFrame.new(-W * 0.16, bedY + 0.55, bedZ), Vector3.new(W * 0.3, 1.1, L * 0.16), rgb(196, 150, 96), M.Wood)
+				box("Crate", CFrame.new(W * 0.17, bedY + 0.4, bedZ + L * 0.02), Vector3.new(W * 0.3, 0.8, L * 0.14), rgb(176, 130, 84), M.Wood)
+			elseif kind == 2 then
+				for _, x in { -1, 1 } do
+					local b = B.cylY(m, cf * CFrame.new(x * W * 0.18, bedY + 0.55, bedZ), 1.1, W * 0.28, rgb(40, 90, 170), M.Metal, { Name = "Barrel", CanCollide = false, CanTouch = false, CanQuery = false })
+					b:AddTag("CarAddon")
+				end
+			else
+				box("Tarp", CFrame.new(0, bedY + 0.3, bedZ), Vector3.new(W * 0.62, 0.6, L * 0.2), rgb(60, 110, 150), M.Fabric)
+			end
 		end
 	end
 	-- the odd taxi: yellow paint and a lit sign on the roof
@@ -696,7 +861,15 @@ function VehicleModels.build(parent: Instance?, def, cf: CFrame, opts: { [string
 	local plateText = o.plate or "PC 1001"
 	local isBike = def.kind ~= "car"
 	-- (the street life builds half of its cars from parts, so the silhouettes differ more)
-	local real = if isBike or o.procedural then nil else buildOfficial(m, cf, def, color, plateText)
+	local seed = Random.new(o.look or VehicleModels.seedOf(tostring(o.plate or def.id)) + 17)
+	local jitter = 0.95 + seed:NextNumber() * 0.1
+	local variant = nil
+	local spec0 = OFFICIAL[def.body]
+	if spec0 and VARIANTS[spec0[1]] and o.variant ~= false then
+		local list = VARIANTS[spec0[1]]
+		variant = list[seed:NextInteger(1, #list)]
+	end
+	local real = if isBike or o.procedural then nil else buildOfficial(m, cf, def, color, plateText, jitter, variant)
 	local S = real or (if isBike then buildBike(m, cf, def, color, plateText) else buildCar(m, cf, def, color, plateText))
 	local wr = S.wr
 	local wb = S.wb
