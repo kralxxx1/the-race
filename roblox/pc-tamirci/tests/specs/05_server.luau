@@ -637,6 +637,190 @@ return function(T)
 		PlotService.build(player)
 	end)
 
+	T.test("server: the gym, the cinema, the diners and the hotel are places you can walk into, full of things to do", function()
+		local CS = game:GetService("CollectionService")
+		local CityLayout = Engine.mod("ReplicatedStorage.Shared.World.CityLayout")
+		local Activities = Engine.mod("ReplicatedStorage.Shared.Data.Activities")
+		local L = CityLayout.get()
+		local want = {
+			gym = { stations = 17, patrons = 5 },
+			cinema = { stations = 6, patrons = 4 },
+			kebab = { stations = 2, patrons = 2 },
+			bakery = { stations = 2, patrons = 2 },
+			pizzeria = { stations = 2, patrons = 2 },
+			fish = { stations = 2, patrons = 2 },
+			icecream = { stations = 2, patrons = 2 },
+			hotel = { stations = 3, patrons = 2 },
+		}
+		local function inside(site, p: any): boolean
+			return p.X >= site.x0 and p.X <= site.x1 and p.Z >= site.z0 and p.Z <= site.z1
+		end
+		local total = 0
+		for id, need in want do
+			local poi = L.poiById[id]
+			T.ok(poi ~= nil and poi.site ~= nil, id .. " is on the map")
+			local site = poi.site
+			-- a real doorway: the way in from the pavement is open for a dozen studs (no wall or window across it)
+			local look = if site.face == "s" then roblox.Vector3.new(0, 0, 1) else roblox.Vector3.new(0, 0, -1)
+			local frontZ = if site.face == "s" then site.z1 - 4 else site.z0 + 4
+			local from = roblox.Vector3.new((site.x0 + site.x1) / 2, 4.5, frontZ) + look * 6
+			local params = Mock.RaycastParams.new()
+			params.FilterType = roblox.Enum.RaycastFilterType.Exclude
+			params.FilterDescendantsInstances = { Engine.workspace:FindFirstChildOfClass("Terrain") }
+			local hit = Engine.workspace:Raycast(from, -look * 14, params)
+			T.ok(hit == nil, id .. ": the door is open, but the way is blocked by " .. (if hit then hit.Instance:GetFullName() else ""))
+			local stations, patrons = 0, 0
+			for _, a in CS:GetTagged("ActivityStation") do
+				if inside(site, a.Position) then
+					stations += 1
+					local act = Activities.get(a:GetAttribute("Activity"))
+					T.ok(act ~= nil, "a station with an unknown activity " .. tostring(a:GetAttribute("Activity")))
+					local prompt = a:FindFirstChildOfClass("ProximityPrompt")
+					T.ok(prompt ~= nil and prompt.Name == "ActivityPrompt" and prompt.ActionText == act.verb.en, "the prompt says what to do: " .. tostring(prompt and prompt.ActionText))
+				end
+			end
+			for _, a in CS:GetTagged("PatronSpot") do
+				if inside(site, a.Position) then
+					patrons += 1
+				end
+			end
+			total += stations
+			T.ok(stations >= need.stations, id .. ": " .. stations .. " things to do (wanted " .. need.stations .. ")")
+			T.ok(patrons >= need.patrons, id .. ": " .. patrons .. " places for people (wanted " .. need.patrons .. ")")
+		end
+		print("    stations in the leisure places: " .. total)
+		-- and every kind of activity is available somewhere on the map
+		T.ok(#Activities.list >= 30, "activities: " .. #Activities.list)
+	end)
+
+	T.test("server: an activity costs money, keeps you busy, then pays in experience and a buff that speeds up the bench", function()
+		local CS = game:GetService("CollectionService")
+		local Activities = Engine.mod("ReplicatedStorage.Shared.Data.Activities")
+		local ActivityService = Engine.require(Services.ActivityService)
+		local Buffs = Engine.require(Services.Buffs)
+		local p = DataService.get(player)
+		local treadmill = nil
+		for _, a in CS:GetTagged("ActivityStation") do
+			if a:GetAttribute("Activity") == "treadmill" then
+				treadmill = a
+				break
+			end
+		end
+		T.ok(treadmill ~= nil, "a treadmill station")
+		local act = Activities.get("treadmill")
+		local oldSeconds = act.seconds
+		act.seconds = 0.6
+		local char = player.Character
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		char:PivotTo(treadmill.CFrame * roblox.CFrame.new(0, 2, -3))
+		-- too poor for it: nothing happens, you are told
+		p.money = 1
+		local ok, why = ActivityService.begin(player, "treadmill", treadmill)
+		T.ok(not ok and why == "money", "not enough money: " .. tostring(why))
+		T.ok(lastPush("toast") and lastPush("toast").key == "activity_poor", "told why")
+		-- too far from it
+		char:PivotTo(treadmill.CFrame * roblox.CFrame.new(0, 2, -60))
+		p.money = 500
+		ok, why = ActivityService.begin(player, "treadmill", treadmill)
+		T.ok(not ok and why == "far", "too far: " .. tostring(why))
+		char:PivotTo(treadmill.CFrame * roblox.CFrame.new(0, 2, -3))
+		local speed0, xp0, level0 = RepairService.workSpeed(player), p.xp, p.level
+		T.ok(Buffs.effects(player).speed == 0, "no buff yet")
+		ok = ActivityService.begin(player, "treadmill", treadmill)
+		T.ok(ok, "started")
+		T.eq(p.money, 500 - act.cost, "it costs " .. act.cost)
+		T.eq(hum.WalkSpeed, 0, "busy: standing still")
+		T.ok(ActivityService.busy(player), "marked busy")
+		local again, whyAgain = ActivityService.begin(player, "treadmill", treadmill)
+		T.ok(not again and whyAgain == "busy", "one thing at a time")
+		local started = lastPush("activity.start")
+		T.ok(started ~= nil and started.id == "treadmill" and started.seconds == 0.6, "the screen is told")
+		waitFor(function()
+			return not ActivityService.busy(player)
+		end, 4, "the activity to end")
+		T.ok(hum.WalkSpeed > 0, "free again: " .. hum.WalkSpeed)
+		local done = lastPush("activity.done")
+		T.ok(done ~= nil and done.buff == "energized", "what you got")
+		T.ok(Buffs.effects(player).speed > 0, "a buff is on")
+		T.ok(RepairService.workSpeed(player) > speed0, "the bench works faster: " .. speed0 .. " -> " .. RepairService.workSpeed(player))
+		T.ok(p.xp > xp0 or p.level > level0, "some experience")
+		local list = lastPush("buffs")
+		T.ok(list ~= nil and #list.list >= 1 and list.list[1].id == "energized" and list.list[1].left > 60, "the buff list for the screen")
+		-- buffs add up to a cap and expire
+		for _, id in { "fit", "caffeine", "gamer", "rested", "energized", "sweet" } do
+			Buffs.add(player, id)
+		end
+		T.ok(Buffs.effects(player).speed <= Activities.cap.speed + 1e-9, "the speed bonus has a ceiling: " .. Buffs.effects(player).speed)
+		local clock0 = Buffs.clock
+		Buffs.clock = function()
+			return clock0() + 3600
+		end
+		T.eq(Buffs.effects(player).speed, 0, "after an hour they have worn off")
+		Buffs.clock = clock0
+		Buffs.clear(player)
+		act.seconds = oldSeconds
+		char:PivotTo(PlotService.shopOf(player).points.Outside.CFrame)
+	end)
+
+	T.test("server: the player's friends fill the gym and the cinema -- jogging, lifting, watching the film -- and go home when nobody is near", function()
+		local CS = game:GetService("CollectionService")
+		local Players = game:GetService("Players")
+		local Friends = Engine.mod("ReplicatedStorage.Shared.Util.Friends")
+		local FriendCrowd = Engine.require(Services.FriendCrowd)
+		local ActivityService = Engine.require(Services.ActivityService)
+		-- six of the player's friends are ready
+		local entries = {}
+		for i, n in { "Ana", "Berk", "Cem", "Dilan", "Ece", "Farid" } do
+			local m = Players:CreateHumanoidModelFromDescription(roblox.Instance.new("HumanoidDescription"), roblox.Enum.HumanoidRigType.R15)
+			Friends.prepare(m, { id = 9100 + i, name = n:lower(), display = n })
+			table.insert(entries, { id = 9100 + i, name = n:lower(), display = n, template = m })
+		end
+		-- (nobody near: whoever was put in a venue earlier, before the friends were ready, goes home)
+		player.Character:PivotTo(roblox.CFrame.new(9000, 30, 9000))
+		ActivityService.step(100)
+		T.eq(ActivityService.patronCount(), 0, "an empty city to start from")
+		FriendCrowd._fill(player, entries)
+		local gym
+		for _, a in CS:GetTagged("ActivityStation") do
+			if a:GetAttribute("Activity") == "treadmill" then
+				gym = a
+				break
+			end
+		end
+		player.Character:PivotTo(gym.CFrame * roblox.CFrame.new(0, 2, -3))
+		local n = ActivityService.step(100)
+		T.ok(n >= 6, "people appeared in the places around: " .. n)
+		local poses, names, models = {}, {}, {}
+		for _, m in CS:GetTagged("NpcModel") do
+			if m:GetAttribute("Patron") then
+				table.insert(models, m)
+				poses[m:GetAttribute("Doing") or "?"] = true
+				names[m:GetAttribute("FriendName") or "?"] = true
+			end
+		end
+		T.ok(poses.run and poses.register, "somebody runs on a treadmill, somebody works the desk: " .. next(poses))
+		T.ok(names.Ana or names.Berk or names.Cem or names.Dilan or names.Ece or names.Farid, "they are the player's friends")
+		T.ok(not names["?"], "every one of them is a friend")
+		-- the runners are on the belt: feet on it, running in place
+		for _, m in models do
+			if m:GetAttribute("Doing") == "run" then
+				local root = m.PrimaryPart
+				T.ok(root ~= nil and root.Anchored, "held in place")
+				local hum = m:FindFirstChildOfClass("Humanoid")
+				T.ok(root.Position.Y > gym.Position.Y - 3 and root.Position.Y < gym.Position.Y + 3, "up on the belt, not in the floor: " .. string.format("%.1f vs %.1f", root.Position.Y, gym.Position.Y))
+				T.ok(hum ~= nil, "a humanoid")
+			end
+		end
+		local at = ActivityService.patronCount()
+		T.ok(at >= 6, "patrons: " .. at)
+		-- everyone has gone far away: the patrons are taken away again (and the seats are on offer once more)
+		player.Character:PivotTo(roblox.CFrame.new(9000, 30, 9000))
+		ActivityService.step(100)
+		T.eq(ActivityService.patronCount(), 0, "nobody left when nobody is near")
+		FriendCrowd._fill(player, {})
+		player.Character:PivotTo(PlotService.shopOf(player).points.Outside.CFrame)
+	end)
+
 	T.test("server: settings are checked and the difficulty changes the numbers", function()
 		local Config = Engine.mod("ReplicatedStorage.Shared.Config")
 		local p = DataService.get(player)
@@ -761,14 +945,15 @@ return function(T)
 			end
 			return nil
 		end, 10, "a thief to turn up")
-		-- the face is behind a ski mask with a slit for the eyes
+		-- (a thief is one of the people of the city like any other: no mask of our own making; what gives
+		-- them away is the way they creep, the sack and the till they rummage in)
 		local knit = 0
 		for _, d in thief:GetDescendants() do
 			if d.Name == "Balaclava" then
 				knit += 1
 			end
 		end
-		T.ok(knit >= 5, "a balaclava on the head: " .. knit)
+		T.eq(knit, 0, "no mask or hat modelled by us")
 		-- no name tag while creeping: nobody announces themselves
 		T.ok(thief.Head:FindFirstChild("NameTag") == nil, "no name above a thief")
 		local sneaked, rummaged, sack, tallest, spoke, crouched = false, false, false, 0, false, false
@@ -976,7 +1161,7 @@ return function(T)
 				parts += 1
 			end
 		end
-		T.ok(parts > 18, "wears hair, clothes and accessories: " .. parts .. " parts")
+		T.ok(parts > 14, "wears hair and clothes: " .. parts .. " parts")
 		-- gestures: a wave and a dance play once and the person goes back to standing around
 		T.eq(#NpcService.Emotes.dance, 9, "nine dance takes")
 		for _, name in { "wave", "point", "cheer", "laugh", "shrug", "tilt", "salute", "hello" } do

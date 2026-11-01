@@ -7,6 +7,7 @@ local B = require(Shared.Util.Builder)
 local Rand = require(Shared.Util.Rand)
 local Props = require(Shared.Models.Props)
 local Buildings = require(Shared.Models.Buildings)
+local Venues = require(Shared.Models.Venues)
 local CityLayout = require(Shared.World.CityLayout)
 
 local Commerce = {}
@@ -476,6 +477,8 @@ local function internetCafe(parent, poi, _rng)
 	end
 	Commerce.servicePoint(m, cf * CFrame.new(0, 0.2, hd - 8), "contracts", poi.id, "Take Bulk Job", "Pixel Internet Cafe")
 	B.box(parent, cf * CFrame.new(0, 13 + 13, hd / 2), Vector3.new(hw, 26, hd), Color3.fromRGB(190, 190, 196), M.SmoothPlastic)
+	-- gaming: every third computer is yours to play on, friends sit at some of the others
+	Venues.addSeatStations(m, "play", 3, 0.4, "type", Random.new(poi.id:len() * 31))
 	return m
 end
 
@@ -507,34 +510,36 @@ local function datacenter(parent, poi, _rng)
 	return m
 end
 
-local function restaurant(parent, poi, rng, title, accent, tables)
+-- A place to eat: an enterable hall (a real door, tables, a counter with the dish of the house, a coffee
+-- machine, friends eating) with parasol tables outside.
+local function restaurant(parent, poi, rng, title, accent, tables, dish)
 	local cf, w = Commerce.siteFrame(poi, 2)
-	local m = Buildings.building(parent, cf * CFrame.new(0, 0, 10), { w = math.min(w - 14, 50), d = 30, floors = rng:NextInteger(2, 3), floorH = 12, style = Rand.pick(rng, { "apartment", "historic" }), ground = "shop", shops = 1, name = title, accent = accent, rng = rng, blankSides = true })
+	local hw, hd, hh = math.min(w - 14, 44), 30, 12
+	local frame = cf * CFrame.new(0, 0, 8)
+	local color = Color3.fromRGB(accent[1], accent[2], accent[3])
+	local m = Buildings.hall(parent, frame, hw, hd, hh, { name = title, accent = accent, wall = { 244, 240, 230 }, wallMat = M.SmoothPlastic, floor = { 214, 208, 196 }, floorMat = M.CeramicTiles, modelName = "Restaurant" })
+	Venues.diner(m, frame, hw, hd, hh, rng, dish or "meal", color)
 	for i = 1, tables or 4 do
-		Props.parasolTable(parent, cf * CFrame.new(-w / 3 + (i - 1) * (w / 1.5) / math.max(1, (tables or 4) - 1), 0, 4), accent, rng)
+		local x = -w / 3 + (i - 1) * (w / 1.5) / math.max(1, (tables or 4) - 1)
+		-- (never one across the doorway)
+		if math.abs(x) > 10 then
+			Props.parasolTable(parent, cf * CFrame.new(x, 0, 4), accent, rng)
+		end
 	end
 	return m
 end
 
-local function simpleBuilding(parent, poi, rng, title, style, floors, accent, ground)
+local function cinema(parent, poi, rng)
 	local cf, w, d = Commerce.siteFrame(poi, 4)
-	return Buildings.building(parent, cf, { w = w - 14, d = math.min(d - 10, 50), floors = floors, floorH = 13, style = style, ground = ground or "lobby", name = title, accent = accent, rng = rng })
-end
-
-local function cinema(parent, poi, _rng)
-	local cf, w, d = Commerce.siteFrame(poi, 4)
-	local m = B.model("Cinema", parent)
-	B.box(m, cf * CFrame.new(0, 14, d / 2), Vector3.new(w - 16, 28, d - 16), Color3.fromRGB(60, 30, 50), M.SmoothPlastic)
-	local marquee = B.box(m, cf * CFrame.new(0, 12, -2), Vector3.new(w - 20, 6, 4), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
-	B.sign(marquee, Enum.NormalId.Front, "STAR CINEMA  •  NOW SHOWING: 'THE LAST REPAIRMAN'", { color = Color3.fromRGB(255, 220, 90), glow = true, brightness = 2 })
+	local hw, hd, hh = math.min(w - 20, 64), math.min(d - 14, 64), 22
+	local m = Buildings.hall(parent, cf, hw, hd, hh, { name = "STAR CINEMA 🎬", accent = { 150, 24, 40 }, wall = { 46, 20, 30 }, wallMat = M.SmoothPlastic, floor = { 60, 24, 34 }, floorMat = M.SmoothPlastic, modelName = "Cinema" })
+	Venues.cinema(m, cf, hw, hd, hh, rng)
+	-- the marquee over the door, with its bulbs
+	local marquee = B.box(m, cf * CFrame.new(0, 12.6, -2.2), Vector3.new(hw - 24, 4.4, 3.4), Color3.fromRGB(20, 20, 24), M.SmoothPlastic, { Name = "Marquee" })
+	B.sign(marquee, Enum.NormalId.Front, "NOW SHOWING: 'THE LAST REPAIRMAN'", { color = Color3.fromRGB(255, 220, 90), glow = true, brightness = 2 })
 	for i = -3, 3 do
-		local bulb = B.ball(m, cf * CFrame.new(i * (w - 24) / 6, 15.3, -3.8), 0.6, Color3.fromRGB(255, 230, 150), M.Neon, nc())
+		local bulb = B.ball(m, cf * CFrame.new(i * (hw - 28) / 6, 15.1, -3.9), 0.6, Color3.fromRGB(255, 230, 150), M.Neon, nc())
 		bulb.Name = "MarqueeBulb"
-	end
-	B.box(m, cf * CFrame.new(0, 4.5, 0.2), Vector3.new(w - 24, 9, 0.4), Color3.fromRGB(160, 180, 196), M.Glass, { Transparency = 0.5 })
-	for k = -1, 1, 2 do
-		local poster = B.box(m, cf * CFrame.new(k * (w / 2 - 14), 5, -0.4), Vector3.new(6, 9, 0.3), Color3.fromRGB(30, 30, 30), M.SmoothPlastic, nc())
-		B.sign(poster, Enum.NormalId.Front, if k < 0 then "RAM\nWARS" else "BLUE\nSCREEN 2", { color = Color3.fromRGB(255, 255, 255), background = if k < 0 then Color3.fromRGB(120, 20, 30) else Color3.fromRGB(20, 40, 120), glow = true })
 	end
 	return m
 end
@@ -550,6 +555,7 @@ local function arena(parent, poi, _rng)
 		B.box(m, stage * CFrame.new(i * 6, 3.4, -2), Vector3.new(4, 0.3, 2), Color3.fromRGB(20, 20, 24), M.SmoothPlastic)
 		Props.monitor(m, stage * CFrame.new(i * 6, 3.55, -1.6), "", Color3.fromRGB(80, 10, 50))
 		Props.chair(m, stage * CFrame.new(i * 6, 3, -0.2), { 200, 30, 90 })
+		Venues.station(m, stage * CFrame.new(i * 6, 6.2, -0.2), "esports", Vector3.new(2.4, 3, 2.4))
 	end
 	-- the audience: rows of seats facing the stage, LED strips along the walls, team banners
 	local hw = math.min(w - 20, 70) / 2
@@ -646,25 +652,36 @@ function Commerce.build(parent: Instance, L, yieldFn: (() -> ())?)
 		cinema = cinema,
 		arena = arena,
 		kebab = function(p, poi, r)
-			return restaurant(p, poi, r, "DOWNTOWN DINER", { 200, 40, 30 }, 4)
+			return restaurant(p, poi, r, "DOWNTOWN DINER", { 200, 40, 30 }, 4, "meal")
 		end,
 		bakery = function(p, poi, r)
-			return restaurant(p, poi, r, "STONE OVEN BAKERY", { 170, 110, 50 }, 2)
+			return restaurant(p, poi, r, "STONE OVEN BAKERY", { 170, 110, 50 }, 2, "pastry")
 		end,
 		pizzeria = function(p, poi, r)
-			return restaurant(p, poi, r, "NAPOLI PIZZA", { 30, 130, 60 }, 5)
+			return restaurant(p, poi, r, "NAPOLI PIZZA", { 30, 130, 60 }, 5, "pizza")
 		end,
 		fish = function(p, poi, r)
-			return restaurant(p, poi, r, "HARBOUR FISH & CHIPS", { 30, 90, 150 }, 6)
+			return restaurant(p, poi, r, "HARBOUR FISH & CHIPS", { 30, 90, 150 }, 6, "fish")
 		end,
 		icecream = function(p, poi, r)
-			return restaurant(p, poi, r, "SCOOP ICE CREAM", { 240, 120, 160 }, 4)
+			return restaurant(p, poi, r, "SCOOP ICE CREAM", { 240, 120, 160 }, 4, "icecream")
 		end,
 		gym = function(p, poi, r)
-			return simpleBuilding(p, poi, r, "IRON GYM", "modern", 3, { 30, 30, 34 }, "shop")
+			local cf, w, d = Commerce.siteFrame(poi, 4)
+			local hw, hd, hh = math.min(w - 20, 64), math.min(d - 14, 62), 15
+			local m = Buildings.hall(p, cf, hw, hd, hh, { name = "IRON GYM 🏋", accent = { 240, 120, 30 }, wall = { 40, 42, 48 }, wallMat = M.SmoothPlastic, floor = { 70, 72, 80 }, floorMat = M.SmoothPlastic, modelName = "Gym" })
+			Venues.gym(m, cf, hw, hd, hh, r)
+			return m
 		end,
 		hotel = function(p, poi, r)
-			return simpleBuilding(p, poi, r, "GRAND SEASIDE HOTEL", "modern", 12, { 160, 120, 40 })
+			-- a lobby you can walk into at the front, the tower rising behind it
+			local cf, w = Commerce.siteFrame(poi, 4)
+			local m = B.model("Hotel", p)
+			local lw, ld, lh = math.min(w - 60, 48), 30, 13
+			local lobby = Buildings.hall(m, cf, lw, ld, lh, { name = "GRAND SEASIDE HOTEL", accent = { 160, 120, 40 }, wall = { 236, 228, 212 }, wallMat = M.SmoothPlastic, floor = { 214, 200, 176 }, floorMat = M.SmoothPlastic, modelName = "Lobby" })
+			Venues.hotel(lobby, cf, lw, ld, lh, r)
+			Buildings.building(m, cf * CFrame.new(0, 0, ld + 2), { w = w - 14, d = 34, floors = 12, floorH = 13, style = "modern", ground = "lobby", name = "GRAND SEASIDE HOTEL", accent = { 160, 120, 40 }, rng = r })
+			return m
 		end,
 	}
 	for _, poi in L.pois do

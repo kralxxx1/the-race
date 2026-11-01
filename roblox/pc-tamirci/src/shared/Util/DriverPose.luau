@@ -184,6 +184,80 @@ end
 MOTIONS.watch = function(t, ph)
 	return P({ 14, 16 }, { 14, -16 }, 78, 78, STILL, STILL, { -2, sin(t * 0.45 + ph) * 38 })
 end
+-- Motions of the city's venues (the patrons of the gym, the cinema, the diner...). The server puts
+-- the motion's name in a patron's "Doing"; the legs are the animation's (running, sitting, standing).
+-- jogging on the spot: the arms swing against each other, the elbows bent, the head steady
+MOTIONS.run = function(t, ph)
+	local a = sin(t * 8 + ph)
+	return P({ 8 + a * 38, -4 }, { 8 - a * 38, 4 }, 84, 84, STILL, STILL, { -4, 0 }, -4)
+end
+-- a barbell pressed from the chest to full stretch and back, both hands together on the bar
+MOTIONS.lift = function(t, ph)
+	local m = 0.5 + 0.5 * sin(t * 1.5 + ph)
+	return P({ 48 + m * 46, -6 }, { 48 + m * 46, 6 }, 104 - m * 96, 104 - m * 96, { -20, 0 }, { -20, 0 }, { -12 + m * 10, 0 })
+end
+-- a dumbbell curl: one forearm up, the other arm resting, in turn
+MOTIONS.curl = function(t, ph)
+	local m = 0.5 + 0.5 * sin(t * 2.2 + ph)
+	return P({ 6, -4 }, { 6, 4 }, 8 + m * 100, 8 + (1 - m) * 100, STILL, STILL, { -8, 0 })
+end
+-- pedalling a bike: leaning forward, both hands on the bars, the shoulders rocking a little
+MOTIONS.pedal = function(t, ph)
+	local r = sin(t * 5 + ph)
+	return P({ 52 + r * 2, -6 }, { 52 - r * 2, 6 }, 28, 28, STILL, STILL, { -14, sin(t * 0.5) * 6 }, -22)
+end
+-- boxing: jabs, left and right in turn, a little guard in between
+MOTIONS.punch = function(t, ph)
+	local a = max(0, sin(t * 6 + ph))
+	local b = max(0, sin(t * 6 + ph + math.pi))
+	return P({ 36 + a * 54, 6 }, { 36 + b * 54, -6 }, 100 - a * 92, 100 - b * 92, STILL, STILL, { -8, sin(t * 3) * 6 })
+end
+-- stretching: both arms up over the head and slowly side to side
+MOTIONS.stretch = function(t, ph)
+	local s = sin(t * 0.8 + ph)
+	return P({ 100 + s * 6, 14 + s * 10 }, { 100 + s * 6, -14 + s * 10 }, 6, 6, STILL, STILL, { -6, s * 12 }, s * 6)
+end
+-- a drink: the right hand brings a cup to the mouth and puts it down
+MOTIONS.drink = function(t, ph)
+	local m = max(0, sin(t * 0.9 + ph))
+	return P({ 30 + m * 40, -8 }, { 12, 6 }, 70 + m * 62, 40, STILL, STILL, { -4 - m * 8, sin(t * 0.3 + ph) * 8 })
+end
+-- eating: one hand to the mouth, then the other, a bite and a look around
+MOTIONS.eat = function(t, ph)
+	local a = max(0, sin(t * 1.4 + ph))
+	local b = max(0, sin(t * 1.4 + ph + math.pi))
+	return P({ 26 + a * 44, -8 }, { 26 + b * 44, 8 }, 60 + a * 74, 60 + b * 74, STILL, STILL, { -10 - (a + b) * 6, sin(t * 0.4 + ph) * 8 })
+end
+-- reading a book held in both hands low in front of the chest, the head down, a page turned now and then
+MOTIONS.read = function(t, ph)
+	local turn = max(0, sin(t * 0.35 + ph)) ^ 6
+	return P({ 40, 10 }, { 40, -10 }, 96, 96, { -12, 0 }, { -12, 0 }, { -26 + turn * 6, 0 })
+end
+-- watching a screen: the hands in the lap, the head up, now and then a laugh or a clap
+MOTIONS.watch = function(t, ph)
+	local c = max(0, sin(t * 0.25 + ph)) ^ 12
+	return P({ 28 + c * 14 + sin(t * 14) * c * 6, 8 }, { 28 + c * 14 - sin(t * 14) * c * 6, -8 }, 70 + c * 20, 70 + c * 20, STILL, STILL, { 4 + sin(t * 0.7 + ph) * 3, sin(t * 0.3 + ph) * 6 })
+end
+-- throwing crumbs: the right hand scooping and flicking out in front
+MOTIONS.feed = function(t, ph)
+	local m = 0.5 + 0.5 * sin(t * 2 + ph)
+	return P({ 20 + m * 40, -10 }, { 8, 6 }, 40 + m * 40, 20, { m * 20, 0 }, STILL, { -18, sin(t * 0.5 + ph) * 10 })
+end
+-- a kick: the arms out for balance and the body rocking back and forward
+MOTIONS.kick = function(t, ph)
+	local m = max(0, sin(t * 1.6 + ph))
+	return P({ 12, 30 + m * 20 }, { 12, -30 - m * 20 }, 18, 18, STILL, STILL, { -8, 0 }, -8 + m * 12)
+end
+-- putting: both hands on the club, a slow swing from the shoulders
+MOTIONS.putt = function(t, ph)
+	local s = sin(t * 1.2 + ph) * 12
+	return P({ 34 + s, 6 }, { 34 + s, -6 }, 40, 40, STILL, STILL, { -28, 0 }, -18)
+end
+-- a tennis stroke: the racket arm swinging across the body
+MOTIONS.swing = function(t, ph)
+	local s = sin(t * 2.4 + ph)
+	return P({ 52 + s * 30, 20 - s * 40 }, { 20, 8 }, 30 + max(0, s) * 24, 40, STILL, STILL, { -6, s * 14 }, s * 8)
+end
 -- creeping about: crouched low (the hips forward, the knees bent, the body leaning over them), the
 -- hands held ready, the head turning to see who is watching. (The server lowers the person by the
 -- same much: Crouch.)

@@ -218,6 +218,13 @@ local function segment(folder: Instance, L, road, rng: Random)
 	if road.kind == "main" and road.id % 2 == 0 then
 		local side = if road.id % 4 == 0 then 1 else -1
 		local bp = mid + right * side * (cw / 2 + sw / 2 + 1)
+		-- (never in front of somebody's door: slide along the pavement until the way in is clear)
+		for _ = 1, 5 do
+			if not nearDoor(L, bp, 17) then
+				break
+			end
+			bp += dir * 24
+		end
 		Props.busStop(m, CFrame.lookAt(bp + Vector3.new(0, WALK_Y, 0), bp + Vector3.new(0, WALK_Y, 0) - right * side), road.name)
 	end
 	return m

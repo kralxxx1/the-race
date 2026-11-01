@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Net = require(Shared.Net)
+local Buffs = require(script.Parent.Buffs)
 local Signal = require(Shared.Util.Signal)
 local Rand = require(Shared.Util.Rand)
 local Parts = require(Shared.Data.Parts)
@@ -198,7 +199,7 @@ CustomerService.difficultyOf = difficultyOf
 local function patienceSeconds(cust, player: Player): number
 	local r = Config.CustomerPatienceMinutes
 	local base = Rand.range(rng, r[1], r[2]) * 60 * (cust.arch.patience or 1) * difficultyOf(player).patience
-	return base * (1 + math.max(-20, comfortOf(player)) / 120) * (1 + sumItems(player, "patience"))
+	return base * (1 + math.max(-20, comfortOf(player)) / 120) * (1 + sumItems(player, "patience") + Buffs.effects(player).patience)
 end
 
 local function removeCustomer(cust)
@@ -675,7 +676,7 @@ local function pay(player: Player, cust, job)
 		stars = math.clamp(stars, 1, 5)
 		local tip = 0
 		local staffList = (DataService.get(player) or {}).staff
-		if stars >= 4 and rng:NextNumber() < (cust.arch.tip or 0.2) * (1 + math.max(-20, comfortOf(player)) / 100) * math.max(0.3, 1 + Employees.effect(staffList, "tips") + sumItems(player, "tips")) then
+		if stars >= 4 and rng:NextNumber() < (cust.arch.tip or 0.2) * (1 + math.max(-20, comfortOf(player)) / 100) * math.max(0.3, 1 + Employees.effect(staffList, "tips") + sumItems(player, "tips") + Buffs.effects(player).tips) then
 			tip = math.floor(job.price * Rand.range(rng, 0.08, 0.22))
 		end
 		-- the scammer bolts instead of paying, half of the time

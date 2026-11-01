@@ -2,6 +2,8 @@
 -- world (the baked text is English). names, brands, models, street names and numbers stay as they are.
 -- Looked up line by line (a sign's lines are split at line breaks), see WorldText.translate.
 
+local Activities = require(script.Parent.Activities)
+
 local WorldTextTR = {}
 
 WorldTextTR.lines = {
@@ -337,5 +339,39 @@ WorldTextTR.patterns = {
 	{ "^Shop for Rent #(%d+)$", "Kiralık Dükkân #%1" },
 	{ "^BUSINESS$", "İŞYERİ" },
 }
+
+-- the venues' activities: the prompt (the verb) and the object (the name) of every station, and the
+-- signs, posters and boards inside the gym, the cinema, the diners, the hotel and the library
+for _, a in Activities.list do
+	WorldTextTR.lines[a.verb.en] = a.verb.tr
+	WorldTextTR.lines[a.name.en] = a.name.tr
+end
+local venueLines = {
+	["FRONT DESK • DAY PASS"] = "RESEPSİYON • GÜNLÜK GİRİŞ",
+	["NO PAIN • NO GAIN"] = "ACI YOK • KAZANÇ YOK",
+	["LOCKERS"] = "SOYUNMA DOLAPLARI",
+	["SHAKES • SMOOTHIES • PROTEIN BARS"] = "SHAKE • SMOOTHIE • PROTEİN BARI",
+	["NOW SHOWING"] = "ŞİMDİ GÖSTERİMDE",
+	["NOW SHOWING: 'THE LAST REPAIRMAN'"] = "ŞİMDİ GÖSTERİMDE: 'SON TAMİRCİ'",
+	["BURGERS • WRAPS • GRILL"] = "BURGER • DÜRÜM • IZGARA",
+	["FRESH BREAD • PASTRIES"] = "TAZE EKMEK • PASTALAR",
+	["WOOD-FIRED PIZZA"] = "ODUN ATEŞİNDE PİZZA",
+	["FISH & CHIPS • CALAMARI"] = "BALIK & PATATES • KALAMAR",
+	["SCOOPS • SUNDAES • SHAKES"] = "TOP DONDURMA • SUNDAE • SHAKE",
+	["TODAY'S SPECIAL"] = "GÜNÜN MENÜSÜ",
+	["LIFTS  1-12"] = "ASANSÖRLER  1-12",
+	["SILENCE PLEASE"] = "SESSİZ OLALIM",
+	["CATALOGUE"] = "KATALOG",
+	["Search books"] = "Kitap ara",
+	["Borrow a book"] = "Kitap ödünç al",
+	["Open all day"] = "Gün boyu açık",
+	["Bench ready"] = "Tezgâh hazır",
+	["Tickets"] = "Biletler",
+	["Welcome"] = "Hoş geldiniz",
+	["Welcome!"] = "Hoş geldiniz!",
+}
+for en, tr in venueLines do
+	WorldTextTR.lines[en] = tr
+end
 
 return WorldTextTR

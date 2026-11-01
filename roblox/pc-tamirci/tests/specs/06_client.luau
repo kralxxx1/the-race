@@ -715,7 +715,10 @@ return function(T)
 		T.eq(overlapped, 0, "cars sitting inside the car ahead")
 		-- their wheels roll with the road, the indicators blink before a turn, police cars flash
 		local rolled, police, flashing = 0, 0, 0
-		for _ = 1, 200 do
+		local stepsRun = 0
+		-- (police cars are one in a few of the cars: run on a while longer until one has been seen flashing)
+		while stepsRun < 200 or (flashing == 0 and stepsRun < 2000) do
+			stepsRun += 1
 			Engine.step(1, 1 / 10)
 			for _, c in Traffic._cars() do
 				if c.model:GetAttribute("Police") ~= nil then

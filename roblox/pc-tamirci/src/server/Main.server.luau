@@ -21,6 +21,7 @@ print(string.format("[PC Repair Tycoon] build " .. Config.Version .. " - city re
 local DataService = require(Services.DataService)
 local PlotService = require(Services.PlotService)
 local FriendCrowd = require(Services.FriendCrowd)
+local ActivityService = require(Services.ActivityService)
 local NpcService = require(Services.NpcService)
 local RepairService = require(Services.RepairService)
 local CustomerService = require(Services.CustomerService)
@@ -38,7 +39,7 @@ local FactoryService = require(Services.FactoryService)
 local LeaderService = require(Services.LeaderService)
 local MarketingService = require(Services.MarketingService)
 
-local order = { DataService, PlotService, FriendCrowd, NpcService, RepairService, QuestService, CustomerService, MarketService, EmployeeService, BillsService, ThiefService, GearService, FactoryService, LeaderService, MarketingService, VehicleService, ContractService, ShowcaseService, TimeService }
+local order = { DataService, PlotService, FriendCrowd, NpcService, RepairService, QuestService, CustomerService, MarketService, EmployeeService, BillsService, ThiefService, GearService, FactoryService, LeaderService, MarketingService, VehicleService, ContractService, ShowcaseService, ActivityService, TimeService }
 for _, s in order do
 	s.init()
 end

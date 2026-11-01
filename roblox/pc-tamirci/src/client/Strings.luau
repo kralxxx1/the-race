@@ -259,6 +259,7 @@ local T = {
 	t_not_your_bench = { "Bu senin dükkânın değil.", "This isn't your shop." },
 	t_jobs_full = { "İş listen dolu! Önce bazılarını bitir.", "Your job list is full! Finish some first." },
 	t_not_your_customer = { "Bu müşteri başka dükkânın.", "That customer belongs to another shop." },
+	t_activity_poor = { "Bunun için {cost} lazım ama o kadar paran yok.", "That costs {cost} and you don't have enough." },
 	t_police_fine = { "🚓 Polis: {part} çalıntı çıktı! El konuldu, {fine} ceza.", "🚓 Police: the {part} was stolen goods! Confiscated, {fine} fine." },
 	t_customer_left = { "😠 {name} beklemekten sıkıldı, cihazını alıp gitti.", "😠 {name} got tired of waiting and left with the device." },
 	t_scammer_escaped = { "💸 {name} parayı vermeden kaçtı!", "💸 {name} ran off without paying!" },

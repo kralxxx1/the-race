@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Net = require(Shared.Net)
+local Buffs = require(script.Parent.Buffs)
 local Signal = require(Shared.Util.Signal)
 local Parts = require(Shared.Data.Parts)
 local Tools = require(Shared.Data.Tools)
@@ -800,7 +801,8 @@ end
 
 -- Shop items that speed up bench work (LED lamp, tool wall, test monitor, microscope).
 function RepairService.workSpeed(player: Player): number
-	local s = 1
+	-- (a workout, a coffee or a game in the city gives a short bonus on top)
+	local s = 1 + Buffs.effects(player).speed
 	local owned = items(player)
 	for _, item in Upgrades.items do
 		if item.speed and owned[item.id] then

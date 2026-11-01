@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Net = require(Shared.Net)
+local Buffs = require(script.Parent.Buffs)
 local Signal = require(Shared.Util.Signal)
 local Parts = require(Shared.Data.Parts)
 local Upgrades = require(Shared.Data.Upgrades)
@@ -460,12 +461,14 @@ function DataService.xpFor(level: number): number
 	return math.floor(Config.XpBase * level ^ Config.XpExponent)
 end
 
-function DataService.addXp(player: Player, amount: number): number
+function DataService.addXp(player: Player, amount: number, raw: boolean?): number
 	local p = profiles[player]
 	if not p then
 		return 0
 	end
-	p.xp += math.floor(amount)
+	-- (a film or a book in the city makes the next while's experience worth more; `raw` skips that)
+	local gain = if raw then amount else amount * (1 + Buffs.effects(player).xp)
+	p.xp += math.floor(gain)
 	local gained = 0
 	while p.level < Config.MaxLevel and p.xp >= DataService.xpFor(p.level) do
 		p.xp -= DataService.xpFor(p.level)
